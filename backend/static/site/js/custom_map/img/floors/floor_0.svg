@@ -1,0 +1,18 @@
+<svg width="1800" height="814" viewBox="0 0 1800 814" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="floor_0">
+<rect width="1800" height="814" fill="#FDFBF4"/>
+<path id="floor" class="floor" d="M120 257V704.5L1247.5 266H1679.5V80H1227L120 257Z" fill="#C1C3C5"/>
+<g id="objects">
+<path id="object_1" d="M128.5 692.5V621L209 608L217 657.5L128.5 692.5Z" fill="#A9E0F4" stroke="white" stroke-width="5"/>
+<path id="object_2" d="M209 604.5L128.5 617V527.5L195 517L209 604.5Z" fill="#A9E0F4" stroke="white" stroke-width="5"/>
+<path id="object_3" d="M128.5 525L274.5 502L234 246.5L128.5 264V525Z" fill="#A9E0F4" stroke="white" stroke-width="5"/>
+<path id="object_4" d="M263.5 419.5L254 361L341 347L350 405L263.5 419.5Z" fill="#A9E0F4" stroke="white" stroke-width="5"/>
+<path id="object_5" d="M322.5 232.5L236 246.5L254 359L340.5 345L322.5 232.5Z" fill="#A9E0F4" stroke="white" stroke-width="5"/>
+<path id="object_6" d="M351.5 290L334.5 293L324.5 232L497 204.5L505.5 256.5L350 281.5L351.5 290Z" fill="#A9E0F4" stroke="white" stroke-width="5"/>
+<path id="object_7" d="M498.5 204.5L513 289.5L598 276L584.5 191L498.5 204.5Z" fill="#A9E0F4" stroke="white" stroke-width="5"/>
+<path id="object_8" d="M586 190.5L600 275.5L685.5 262L672 177L586 190.5Z" fill="#A9E0F4" stroke="white" stroke-width="5"/>
+<path id="object_9" d="M742 430.5L629 449V446L619 447.5L609.5 391L617.5 390L613.5 360.5L728 342L742 430.5Z" fill="#A9E0F4" stroke="white" stroke-width="5"/>
+<path id="object_10" d="M700.5 344.5L673.5 176.5L1224 88.5L1236 262.5L1225 267L1063 293L1068.5 327.5L842.5 415L744 430.5L729 339.5L700.5 344.5Z" fill="#A9E0F4" stroke="white" stroke-width="5"/>
+</g>
+</g>
+</svg>

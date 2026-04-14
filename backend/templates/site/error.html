@@ -1,0 +1,36 @@
+{% extends 'site/layouts/base_blank.html' %}
+{% load static %}
+
+
+{% block body_classes %}h-100{% endblock %}
+{% block root_classes %}h-100{% endblock %}
+{% block inner %}
+
+    <div class="fixed-background"></div>
+        <div class="container-fluid p-0 h-100 position-relative">
+        <div class="row g-0 h-100">
+            <div class="offset-0 col-12 d-none d-lg-flex offset-md-1 col-lg h-lg-100"></div>
+            <div class="col-12 col-lg-auto h-100 pb-4 px-4 pt-0 p-lg-0">
+                <div class="sw-lg-80 min-h-100 bg-foreground d-flex justify-content-center align-items-center shadow-deep py-5 full-page-content-right-border">
+                    <div class="sw-lg-60 px-5">
+                    <div class="mb-2">
+                        <h2 class="cta-1 mb-0 text-primary">{{title}}</h2>
+                    </div>
+                    <div class="mb-5">
+                        <p class="h6">
+                            {{text}}
+                        </p>
+                    </div>
+                    <div>
+                        <a href="/" class="btn btn-icon btn-icon-start btn-primary">
+                        <i data-acorn-icon="arrow-left"></i>
+                        <span>Вернуться на главную</span>
+                        </a>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock inner %}

@@ -1,0 +1,89 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block content %}
+    <div class="d-flex justify-content-center">
+        <div class="col-12 col-xl-8 mb-5">
+            <div class="mx-auto">
+                <form method="POST" action="{% url 'finances:budget' %}">
+                    {% csrf_token %}
+                    <div class="card mb-5">
+                        <div class="card-body">
+
+                            <h1 class="mb-3 mt-1 pb-0 display-4">Бюджет</h1>
+                            <div class="row g-3">
+                                <div class="col-md-9">
+                                    <label class="mb-3 top-label">
+                                        <input class="form-control" name="title" />
+                                        <span>ЗАГОЛОВОК</span>
+                                    </label>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="mb-3 top-label">
+                                        <input class="form-control" name="year" />
+                                        <span>ГОД</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6">
+                                    <label class="d-block form-label">Документ</label>
+                                    <div class="input-group">
+                                        <input type="file" class="form-control" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="w-100">
+                                        <label class="d-block form-label">Статус бюджета</label>
+                                        <select class="custom_select">
+                                            <option label="&nbsp;"></option>
+                                            <option>На рассмотрении</option>
+                                            <option>Отклонен</option>
+                                            <option>Согласован</option>
+                                            <option>Действующий</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6">
+                                    <label class="d-block form-label">Ответственный</label>
+                                    <input id="usersListTags" class="users-list-container" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="d-block form-label">Наблюдатели</label>
+                                    <input id="usersListTags2" class="users-list-container" />
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end mt-3">
+                                <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
+                                    <span>Сохранить</span>
+                                    <i data-acorn-icon="chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{% static 'site/js/vendor/quill.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/quill.active.js' %}"></script>
+    <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/tagify.min.js' %}"></script>
+
+
+    <script src="{% static 'site/js/forms/controls.editor.js' %}"></script>
+    <script src="{% static 'site/js/forms/controls.datepicker.js' %}"></script>
+    <script src="{% static 'site/js/forms/controls.tag.js' %}"></script>
+    <script src="{% static 'site/js/forms/controls.select2.js' %}"></script>
+
+{% endblock scripts %}

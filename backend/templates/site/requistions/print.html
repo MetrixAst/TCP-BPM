@@ -1,0 +1,49 @@
+{% extends 'site/layouts/base_blank.html' %}
+{% load static %}
+
+{% block inner %}
+
+    <div class="py-5 px-5">
+        <div class="row">
+            <h4 class="mb-4">Информация</h4>
+
+            {% for title, value in info.items %}
+                {% if value %}
+                    <div class="col-12 col-xxl-6 mb-2">
+                        <div class="title_with_value">
+                            <span>{{title}}</span>
+                            <span>{{value}}</span>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+
+        <div class="div mt-5 row">
+            <h4>Лист согласования</h4>
+            <table class="table">
+
+                <thead>
+                    <tr>
+                        <th scope="col">Дата</th>
+                        <th scope="col">Пользователь</th>
+                        <th scope="col">Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    {% for item in current.history.all %}
+                        <tr>
+                            <td>{{item.date}}</td>
+                            <td>{{item.user.get_name}}</td>
+                            <td>{{item.title}}</td>
+                        </tr>
+                    {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+{% endblock %}

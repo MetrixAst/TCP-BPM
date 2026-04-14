@@ -1,0 +1,40 @@
+# Django
+Django==4.2.17
+djangorestframework==3.15.2
+django-betterforms==2.0.0
+django-celery-results==2.5.1
+django-js-asset==2.1.0
+django-mptt==0.16.0
+django-mptt-admin==2.7.2
+
+# Database
+psycopg2-binary==2.9.10
+sqlparse==0.5.3
+
+# Task queue
+celery==5.4.0
+redis==5.2.1
+
+# Web server
+gunicorn==23.0.0
+daphne==4.1.2
+
+# Auth & Security
+PyJWT==2.9.0
+python-decouple==3.8
+
+# HTTP & Networking
+requests==2.32.3
+urllib3==2.3.0
+certifi==2024.12.14
+charset-normalizer==3.4.1
+idna==3.10
+
+# Media
+Pillow==11.1.0
+
+# Push notifications
+pyfcm==2.0.7
+
+# Timezone
+pytz==2024.2

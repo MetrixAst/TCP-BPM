@@ -1,0 +1,149 @@
+{% extends 'site/layouts/base_blank.html' %}
+{% load static %}
+
+{% block inner %}
+    {% if not is_mobile %}
+        <div id="nav" class="nav-container d-flex dark">
+            <div class="nav-content d-flex">
+            <!-- Logo Start -->
+            <div class="logo position-relative">
+                <a href="/">
+                    <!-- Logo can be added directly -->
+                    <img src="{% static 'site/img/logo/logo-with-title.svg' %}" alt="logo" />
+                </a>
+            </div>
+            <!-- Logo End -->
+
+            <!-- User Menu Start -->
+            <div class="user-container d-flex">
+                <a href="{% url 'account:profile' %}" class="d-flex user position-relative">
+                    <img class="profile" alt="profile" src="{{user.get_avatar_url}}" />
+                    <div class="name">{{user.get_name}}</div>
+                </a>
+            </div>
+            <!-- User Menu End -->
+
+
+
+
+            <!-- Icons Menu Start -->
+            <ul class="list-unstyled list-inline text-center menu-icons">
+
+                {% comment %} <li class="list-inline-item">
+                    <a href="#" data-bs-toggle="dropdown" data-bs-target="#add_menu" aria-haspopup="true" aria-expanded="false" class="notification-button">
+                        <div class="position-relative d-inline-flex">
+                        <i data-acorn-icon="plus" data-acorn-size="18"></i>
+                        </div>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end wide notification-dropdown" id="add_menu">
+                        <ul>
+                            <li><a href="{% url 'tasks:edit' 0 %}">Добавить задачу</a></li>
+                            <li><a href="{% url 'documents:edit' 'documents' 0 %}">Добавить документ</a></li>
+                        </ul>
+                    </div>
+                </li> {% endcomment %}
+
+                <li class="list-inline-item">
+                <a href="#" data-bs-toggle="dropdown" data-bs-target="#notifications" aria-haspopup="true" aria-expanded="false" class="notification-button">
+                    <div class="position-relative d-inline-flex">
+                    <i data-acorn-icon="bell" data-acorn-size="18"></i>
+                    {% if indicators.indicators %}
+                        <span class="position-absolute notification-dot rounded-xl"></span>
+                    {% endif %}
+                    </div>
+                </a>
+                <div class="dropdown-menu dropdown-menu-end wide notification-dropdown scroll-out" id="notifications">
+                    <div class="scroll">
+                    <ul class="list-unstyled border-last-none">
+
+                        {% for current in notifications %}
+                        
+                            <li class="mb-3 pb-3 border-bottom border-separator-light d-flex">
+                                <a href="{{current.url}}">
+                                    <div class="d-flex flex-column mb-2 mb-sm-0">
+                                        <div>{{current.title}}</div>
+                                        <div class="text-small text-muted">{{current.text}}</div>
+                                    </div>
+                                </a>
+                            </li>
+
+                        {% empty %}
+                            <div class="text-center text-primary">Список уведомлении пуст</div>
+                        {% endfor %}
+                    </ul>
+                    </div>
+                </div>
+                </li>
+
+                <li class="list-inline-item">
+                    <a href="{% url 'account:logout' %}">
+                        <i data-acorn-icon="logout" data-acorn-size="18"></i>
+                    </a>
+                </li>
+
+            </ul>
+            <!-- Icons Menu End -->
+
+            <!-- Menu Start -->
+            <div class="menu-container flex-grow-1">
+                <ul id="menu" class="menu">
+
+                    {% for current in menu %}
+
+                        <li class="indicator_counter" data-type="{{current.indicator_alias}}">
+                            <a href="{{current.url}}">
+                                <i data-acorn-icon="{{current.icon}}" class="icon" data-acorn-size="18"></i>
+                                <span class="label">{{current.title}}</span>
+                            </a>
+
+                            {% if current.submenu %}
+                                <ul id="{{current.id}}">
+
+                                    {% for submenu in current.submenu %}
+                                        <li class="indicator_counter" data-type="{{submenu.indicator_alias}}">
+                                            <a href="{{submenu.url}}">
+                                                <span class="label">{{submenu.title}}</span>
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </li>
+
+                    {% endfor %}
+
+                </ul>
+            </div>
+            <!-- Menu End -->
+
+            <!-- Mobile Buttons Start -->
+            <div class="mobile-buttons-container">
+                <!-- Scrollspy Mobile Button Start -->
+                <a href="#" id="scrollSpyButton" class="spy-button" data-bs-toggle="dropdown">
+                <i data-acorn-icon="menu-dropdown"></i>
+                </a>
+                <!-- Scrollspy Mobile Button End -->
+
+                <!-- Scrollspy Mobile Dropdown Start -->
+                <div class="dropdown-menu dropdown-menu-end" id="scrollSpyDropdown"></div>
+                <!-- Scrollspy Mobile Dropdown End -->
+
+                <!-- Menu Button Start -->
+                <a href="#" id="mobileMenuButton" class="menu-button">
+                <i data-acorn-icon="menu"></i>
+                </a>
+                <!-- Menu Button End -->
+            </div>
+            <!-- Mobile Buttons End -->
+            </div>
+            <div class="nav-shadow"></div>
+        </div>
+    {% endif %}
+
+
+    <main>
+        <div class="container">
+            {% block content %}{% endblock content %}
+        </div>
+    </main>
+{% endblock inner %}

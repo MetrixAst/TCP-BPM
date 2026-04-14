@@ -1,0 +1,146 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block content %}
+
+    <!-- Title and Top Buttons Start -->
+    <div class="page-title-container show_in_mobile">
+        <div class="row g-0">
+          <div class="col-auto mb-2 mb-md-0 me-auto">
+            <div class="w-auto sw-md-30">
+              <h1 class="mb-0 pb-0 display-4" id="title">HR календарь</h1>
+              <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+                <ul class="breadcrumb pt-0">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная страница</a></li>
+                    <li class="breadcrumb-item">{{category_title}}</li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+          <div class="w-100 d-md-none"></div>
+          <div class="col-auto d-flex align-items-start justify-content-end">
+            <button type="button" class="btn btn-outline-primary btn-icon btn-icon-only ms-1" id="goPrev">
+              <i data-acorn-icon="chevron-left"></i>
+            </button>
+            <button type="button" class="btn btn-outline-primary btn-icon btn-icon-only ms-1" id="goNext">
+              <i data-acorn-icon="chevron-right"></i>
+            </button>
+          </div>
+          <div class="col col-md-auto d-flex align-items-start justify-content-end">
+            <a href="{% url 'hr:edit_calendar' 0 %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1 w-100 w-md-auto">
+              <i data-acorn-icon="plus"></i>
+              <span>Добавить</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <!-- Title and Top Buttons End -->
+
+
+    <!-- Calendar Title Start -->
+    <div class="d-flex justify-content-between">
+        <h2 class="small-title" id="calendarTitle">Title</h2>
+        {% comment %} <button
+          class="btn btn-sm btn-icon btn-icon-only btn-foreground shadow align-top mt-n2"
+          type="button"
+          data-bs-toggle="dropdown"
+          aria-expanded="false"
+          aria-haspopup="true"
+        >
+          <i data-acorn-icon="more-horizontal" data-acorn-size="15"></i>
+        </button>
+        <div class="dropdown-menu dropdown-menu-sm dropdown-menu-end shadow">
+          <a class="dropdown-item" href="#" id="monthView">Месяц</a>
+          <a class="dropdown-item" href="#" id="weekView">Неделя</a>
+          <a class="dropdown-item" href="#" id="dayView">День</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="#" id="goToday">Сегодня</a>
+        </div> {% endcomment %}
+      </div>
+      <!-- Calendar Title End -->
+
+      <!-- Calendar Content Start -->
+      <div class="card">
+        <div class="card-body">
+          <div id="calendar" data-csrf="{{csrf_token}}"></div>
+        </div>
+      </div>
+      <!-- Calendar Content End -->
+
+      
+      <!-- New Task Start -->
+      <div class="modal modal-right fade" id="newEventModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalTitle">Запись</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body d-flex flex-column">
+                <div class="mb-5" id="event_content">
+                    
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+              <a href="#" class="btn btn-icon btn-icon-only btn-outline-primary" type="button" title="Удалить" id="delete_button">
+                <i data-acorn-icon="bin"></i>
+              </a>
+              <a href="#" class="btn btn-icon btn-icon-end btn-primary" type="button" id="edit_button">
+                <i data-acorn-icon="edit"></i>
+                <span>Редактировать</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- New Task End -->
+
+    {% verbatim %}
+        <script id="event_template" type="x-tmpl-mustache">
+            <div class="d-flex align-items-center flex-column mb-4">
+                <div class="d-flex align-items-center flex-column">
+                    <div class="h5 mb-0">{{extendedProps.user}}</div>
+                    <div class="text-muted">{{extendedProps.category}}</div>
+                </div>
+            </div>
+
+            <p class="text-small text-muted mb-2">ИНФОРМАЦИЯ</p>
+
+            <div class="row g-0 mb-2">
+                <div class="col">
+                    <div class="sh-2 d-flex align-items-center lh-1-25 text-alternate">Начало</div>
+                </div>
+                <div class="col-auto">
+                    <div class="sh-2 d-flex align-items-center justify-content-end text-muted">{{start}}</div>
+                </div>
+            </div>
+
+            <div class="row g-0 mb-2">
+                <div class="col">
+                    <div class="sh-2 d-flex align-items-center lh-1-25 text-alternate">Завершение</div>
+                </div>
+                <div class="col-auto">
+                    <div class="sh-2 d-flex align-items-center justify-content-end text-muted">{{end}}</div>
+                </div>
+            </div>
+        </script>
+    {% endverbatim %}
+
+{% endblock %}
+
+
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'site/css/vendor/fullcalendar.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap-datepicker3.standalone.min.css' %}" />
+{% endblock styles %}
+
+{% block scripts %}
+    <script>
+        const calendar_category = "{{category}}";
+    </script>
+    <script src="{% static 'site/js/vendor/fullcalendar/main.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/moment-with-locales.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/timepicker.js' %}"></script>
+    <script src="{% static 'site/js/apps/hr_calendar.js' %}"></script>
+{% endblock scripts %}

@@ -1,0 +1,107 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% load site_tags %}
+
+{% block content %}
+
+    <!-- Title and Top Buttons Start -->
+    <div class="page-title-container">
+        <div class="row">
+            <!-- Title Start -->
+            <div class="col-12 col-sm-6">
+                <h1 class="mb-0 pb-0 display-4" id="title">Заявки</h1>
+                <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+                    <ul class="breadcrumb pt-0">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная страница</a></li>
+                    <li class="breadcrumb-item">Заявки от арендаторов</li>
+                    </ul>
+                </nav>
+            </div>
+            <!-- Title End -->
+
+            <div class="col-12 col-md d-flex align-items-start justify-content-end justify-content-lg-end">
+                <a href="{% url 'requistions:create' %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1" id="mobile_button" data-icon="plus">
+                    <i data-acorn-icon="plus"></i>
+                    <span>Добавить заявку</span>
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Customers List Start -->
+    <div class="row">
+        <div class="col-12 mb-5">
+            <div class="card mb-2 bg-transparent no-shadow d-none d-lg-block">
+                <div class="row g-0 sh-3">
+                    <div class="col">
+                        <div class="card-body pt-0 pb-0 h-100">
+                            <div class="row g-0 h-100 align-content-center">
+                                <div class="col-lg-1 d-flex align-items-center mb-2 mb-lg-0 text-muted text-small">ИДЕНТИФИКАТОР</div>
+                                <div class="col-lg-2 d-flex align-items-center text-muted text-small">НОМЕР ПРОПУСКА</div>
+                                <div class="col-lg-2 d-flex align-items-center text-muted text-small">КОНТРАГЕНТ/БРЕНД</div>
+                                <div class="col-lg-2 d-flex align-items-center text-muted text-small">ТИП ЗАЯВКИ</div>
+                                <div class="col-lg-2 d-flex align-items-center text-muted text-small">ПЕЧАТНАЯ ФОРМА</div>
+                                <div class="col-lg-2 d-flex align-items-center text-muted text-small">ДАТА ДОБАВЛЕНИЯ</div>
+                                <div class="col-lg-1 align-items-center text-muted text-small text-end">СТАТУС</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div>
+
+                {% for current in paginator.items %}
+
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <div class="row g-0 h-100 align-content-center">
+                                <div class="col-11 col-lg-1 d-flex flex-column justify-content-center mb-2 mb-lg-0 order-1 order-lg-1 h-lg-100 position-relative">
+                                    <div class="text-muted text-small d-lg-none">НОМЕР ЗАЯВКИ</div>
+                                    <a href="{% url 'requistions:item' current.id %}" class="text-truncate h-100 d-flex align-items-center mobile_link" attr-title="Заявка №{{current.id}}">Заявка №{{current.id}}</a>
+                                </div>
+                                <div class="col-6 col-lg-2 d-flex flex-column justify-content-center mb-2 mb-lg-0 order-3 order-lg-2">
+                                    <div class="text-muted text-small d-lg-none">Рег. №</div>
+                                    <a href="{% url 'requistions:item' current.id %}" class="mobile_link" attr-title="Заявка №{{current.id}}">{{current.number}}</a>
+                                </div>
+                                <div class="col-6 col-lg-2 d-flex flex-column justify-content-center mb-2 mb-lg-0 order-5 order-lg-3">
+                                    <div class="text-muted text-small d-lg-none">КОНТРАГЕНТ/БРЕНД</div>
+                                    <div class="text-alternate">{{current.supplier}}</div>
+                                </div>
+                                <div class="col-6 col-lg-2 d-flex flex-column justify-content-center mb-2 mb-lg-0 order-4 order-lg-4">
+                                    <div class="text-muted text-small d-lg-none">ТИП ЗАЯВКИ</div>
+                                    <div class="text-alternate">{{current.get_requistion_type_display}}</div>
+                                </div>
+                                <div class="col-6 col-lg-2 d-flex flex-column justify-content-center mb-2 mb-lg-0 order-5 order-lg-4">
+                                    <div class="text-muted text-small d-lg-none">ПЕЧАТНАЯ ФОРМА</div>
+                                    <div class="text-alternate"><a href="{% url 'requistions:print' current.id %}" class="mobile_link" attr-title="Заявка №{{current.id}}">Перейти</a></div>
+                                </div>
+                                <div class="col-6 col-lg-2 d-flex flex-column justify-content-center mb-2 mb-lg-0 order-5 order-lg-4">
+                                    <div class="text-muted text-small d-lg-none">ДАТА ДОБАВЛЕНИЯ</div>
+                                    <div class="text-alternate">{{current.date}}</div>
+                                </div>
+                                <div class="col-6 col-lg-1 d-flex flex-column justify-content-center align-items-lg-end mb-2 mb-lg-0 order-lg-last">
+                                    <div class="text-muted text-small d-lg-none mb-1">СТАТУС</div>
+                                    <div>
+                                        <span class="badge bg-outline-primary group">{{current.status_info.title}}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                {% endfor %}
+
+            </div>
+        </div>
+    </div>
+    <!-- Customers List End -->
+    
+    {% show_paginator paginator %}
+
+      
+
+{% endblock %}

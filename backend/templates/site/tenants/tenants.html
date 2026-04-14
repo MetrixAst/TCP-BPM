@@ -1,0 +1,375 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% load site_tags %}
+
+
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'site/js/custom_map/css/custom_map.css' %}" />
+    <style>
+        .map_container{
+            width: 100%;
+            height: 80vh;
+            border: 1px solid #f4f4f4;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+    </style>
+{% endblock styles %}
+
+{% block content %}
+
+    <!-- Title and Top Buttons Start -->
+    <div class="page-title-container">
+        <div class="row">
+            <!-- Title Start -->
+            <div class="col-12 col-sm-6">
+                <h1 class="mb-0 pb-0 display-4" id="title">Арендаторы</h1>
+                <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+                    <ul class="breadcrumb pt-0">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная страница</a></li>
+                    <li class="breadcrumb-item">Арендаторы</li>
+                    </ul>
+                </nav>
+            </div>
+            <!-- Title End -->
+
+            
+
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Title Tabs Start -->
+        <ul class="nav nav-tabs nav-tabs-title nav-tabs-line-title responsive-tabs mb-4 justify-content-center" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" data-bs-toggle="tab" href="#projectsTab" role="tab" aria-selected="false">Списком</a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link active" data-bs-toggle="tab" href="#collectionsTab" role="tab" aria-selected="true">На карте</a>
+            </li>
+            <li class="nav-item dropdown ms-auto d-none responsive-tab-dropdown">
+                <a
+                    class="btn btn-icon btn-icon-only btn-background pt-0"
+                    href="#"
+                    role="button"
+                    data-bs-toggle="dropdown"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                    data-diplay="static"
+                    >
+                <i data-acorn-icon="more-horizontal"></i>
+                </a>
+                <ul class="dropdown-menu mt-2 dropdown-menu-end"></ul>
+            </li>
+        </ul>
+        <!-- Title Tabs End -->
+        <div class="tab-content">
+
+            <!-- Projects Tab Start -->
+            <div class="tab-pane fade" id="projectsTab" role="tabpanel">
+                
+                <!-- Customers List Start -->
+                <div class="row">
+                    <div class="col-12 mb-5">
+                        {% if paginator.items %}
+                            <div class="card mb-2 bg-transparent no-shadow d-none d-lg-block">
+                                <div class="row g-0 sh-3">
+                                    <div class="col">
+                                        <div class="card-body pt-0 pb-0 h-100">
+                                            <div class="row g-0 h-100 align-content-center">
+                                                <div class="col-lg-1 d-flex align-items-center mb-2 mb-lg-0 text-muted text-small">№ ПОМЕЩЕНИЯ</div>
+                                                <div class="col-lg-2 d-flex align-items-center text-muted text-small">НАИМЕНОВАНИЕ</div>
+                                                <div class="col-lg-2 d-flex align-items-center text-muted text-small">ПЛОЩАДЬ</div>
+                                                <div class="col-lg-2 d-flex align-items-center text-muted text-small">СТАВКА ЗА кв2</div>
+                                                <div class="col-lg-2 d-flex align-items-center text-muted text-small">СРОК</div>
+                                                <div class="col-lg-2 d-flex align-items-center text-muted text-small">СКИДКА</div>
+                                                <div class="col-lg-1 align-items-center text-muted text-small text-end">СТАТУС</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div id="checkboxTable">
+                            
+                            {% for current in paginator.items %}
+
+                                <div class="card mb-2">
+                                    <div class="card-body">
+                                        <div class="row g-0 h-100 align-content-center">
+                                            <div class="col-11 col-lg-1 d-flex flex-column justify-content-center mb-2 mb-lg-0 order-1 order-lg-1 h-lg-100 position-relative">
+                                                <div class="text-muted text-small d-lg-none">№ ПОМЕЩЕНИЯ</div>
+                                                <a href="javascript:showTenant({{current.id}})" class="text-truncate h-100 d-flex align-items-center">{{current.number}}</a>
+                                            </div>
+                                            <div class="col-6 col-lg-2 d-flex flex-column justify-content-center mb-2 mb-lg-0 order-3 order-lg-2">
+                                                <div class="text-muted text-small d-lg-none">НАИМЕНОВАНИЕ</div>
+                                                <a href="javascript:showTenant({{current.id}})">{{current.name}}</a>
+                                            </div>
+                                            <div class="col-6 col-lg-2 d-flex flex-column justify-content-center mb-2 mb-lg-0 order-5 order-lg-3">
+                                                <div class="text-muted text-small d-lg-none">ПЛОЩАДЬ</div>
+                                                <div class="text-alternate">{{current.area}}</div>
+                                            </div>
+                                            <div class="col-6 col-lg-2 d-flex flex-column justify-content-center mb-2 mb-lg-0 order-4 order-lg-4">
+                                                <div class="text-muted text-small d-lg-none">СТАВКА ЗА кв2</div>
+                                                <div class="text-alternate">
+                                                    <span>
+                                                        {{current.price}}
+                                                        <span class="text-small">₸</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="col-6 col-lg-2 d-flex flex-column justify-content-center mb-2 mb-lg-0 order-5 order-lg-4">
+                                                <div class="text-muted text-small d-lg-none">СРОК</div>
+                                                <div class="text-alternate">{{current.end_date}}</div>
+                                            </div>
+                                            <div class="col-6 col-lg-2 d-flex flex-column justify-content-center mb-2 mb-lg-0 order-5 order-lg-4">
+                                                <div class="text-muted text-small d-lg-none">СКИДКА</div>
+                                                <div class="text-alternate">{{current.discount}}%</div>
+                                            </div>
+                                            <div class="col-6 col-lg-1 d-flex flex-column justify-content-center align-items-lg-end mb-2 mb-lg-0 order-lg-last">
+                                                <div class="text-muted text-small d-lg-none mb-1">СТАТУС</div>
+                                                <div>
+                                                    <span class="circle_status {{current.status}}"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            {% endfor %}
+
+                            
+
+                        </div>
+                    </div>
+                </div>
+                <!-- Customers List End -->
+                <!-- Pagination Start -->
+                {% show_paginator paginator %}
+                <!-- Pagination End -->
+
+            </div>
+            <!-- Projects Tab End -->
+
+
+            <!-- Collections Tab Start -->
+            <div class="tab-pane fade active show" id="collectionsTab" role="tabpanel">
+                <div id="map_container"></div>
+            </div>
+            <!-- Collections Tab End -->
+
+            
+        </div>
+    </div>
+
+
+    <div class="modal fade modal-right scroll-out-negative" id="rightModalScrollExample" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable full">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="tenant_name"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="scroll-track-visible">
+                        <div class="" id="tenant_content">
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var tenants = {{tenants|safe}};
+    </script>
+
+    {% verbatim %}
+        <script id="tenant_template" type="x-tmpl-mustache">
+            <div class="d-flex align-items-center flex-column mb-4">
+                <div class="d-flex align-items-center flex-column">
+                    <div class="sw-13 position-relative mb-3">
+                        <img id="tenant_img" src="{{image}}" class="img-fluid rounded-xl" alt="thumb" />
+                    </div>
+                    <div class="h5 mb-0">{{name}}</div>
+                    <div class="text-muted">{{category}}</div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <div class="text-center">
+                    <p class="text-small text-muted mb-1">№ ПОМЕЩЕНИЯ</p>
+                    <p>{{number}}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-small text-muted mb-1">ПЛОЩАДЬ</p>
+                    <p>{{area}}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-small text-muted mb-1">СКИДКА</p>
+                    <p>{{discount}}%</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-small text-muted mb-1">СТАВКА</p>
+                    <p>{{price}}</p>
+                </div>
+            </div>
+
+            <div class="mb-5">
+                <p class="text-small text-muted mb-2">ИНФОРМАЦИЯ</p>
+
+                <div class="row g-0 mb-2">
+                    <div class="col">
+                        <div class="sh-2 d-flex align-items-center lh-1-25 text-alternate">Начало аренды</div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="sh-2 d-flex align-items-center justify-content-end text-muted">{{start_date}}</div>
+                    </div>
+                </div>
+
+                <div class="row g-0 mb-2">
+                    <div class="col">
+                        <div class="sh-2 d-flex align-items-center lh-1-25 text-alternate">Завершение аренды</div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="sh-2 d-flex align-items-center justify-content-end text-muted">{{end_date}}</div>
+                    </div>
+                </div>
+
+                <div class="row g-0 mb-2">
+                    <div class="col">
+                        <div class="sh-2 d-flex align-items-center lh-1-25 text-alternate">Срок скидки</div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="sh-2 d-flex align-items-center justify-content-end text-muted">{{discount_date}}</div>
+                    </div>
+                </div>
+
+                <div class="row g-0 mb-2">
+                    <div class="col">
+                        <div class="sh-2 d-flex align-items-center lh-1-25 text-alternate">Процент с оборота</div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="sh-2 d-flex align-items-center justify-content-end text-muted">{{percent}}%</div>
+                    </div>
+                </div>
+
+                <div class="row g-0 mb-2">
+                    <div class="col">
+                        <div class="sh-2 d-flex align-items-center lh-1-25 text-alternate">Повышение ставки</div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="sh-2 d-flex align-items-center justify-content-end text-muted">{{increase_type}}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-5">
+                <p class="text-small text-muted mb-2">КОНТАКТЫ</p>
+                <div class="row g-0 mb-2">
+                    <div class="col-auto">
+                        <div class="sw-3 me-1">
+                            <i data-acorn-icon="phone" class="text-primary" data-acorn-size="17"></i>
+                        </div>
+                    </div>
+                    <div class="col text-alternate">{{phone}}</div>
+                </div>
+                <div class="row g-0 mb-2">
+                    <div class="col-auto">
+                        <div class="sw-3 me-1">
+                            <i data-acorn-icon="email" class="text-primary" data-acorn-size="17"></i>
+                        </div>
+                    </div>
+                    <div class="col text-alternate">{{email}}</div>
+                </div>
+                <div class="row g-0 mb-2">
+                    <div class="col-auto">
+                        <div class="sw-3 me-1">
+                            <i data-acorn-icon="pin" class="text-primary" data-acorn-size="17"></i>
+                        </div>
+                    </div>
+                    <div class="col text-alternate">{{address}}</div>
+                </div>
+            </div>
+            <div class="mb-4">
+                <p class="text-small text-muted mb-2">ОТВЕТСТВЕННОЕ ЛИЦО</p>
+                <div class="row g-0 mb-2">
+                    <div class="col-auto">
+                        <div class="sw-3 me-1">
+                            <i data-acorn-icon="user" class="text-primary" data-acorn-size="17"></i>
+                        </div>
+                    </div>
+                    <div class="col text-alternate align-middle">{{contact}}</div>
+                </div>
+            </div>
+            <div>
+                <p class="text-small text-muted mb-2">ПРИМЕЧАНИЕ</p>
+                <div class="row g-0">
+                    <div class="col-auto">
+                        <div class="sw-3 me-1">
+                            <i data-acorn-icon="warning-hexagon" class="text-primary" data-acorn-size="17"></i>
+                        </div>
+                    </div>
+                    <div class="col text-alternate align-middle">{{note}}</div>
+                </div>
+            </div>
+        </script>
+    {% endverbatim %}
+
+
+    <div class="modal fade" id="selectedRoom" tabindex="-1" role="dialog" aria-labelledby="selectedRoomModal" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="selectedRoomModal">Помещение</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="cta-3">Идентификатор помещения</div>
+                <div class="mb-3 cta-3 text-primary" id="map_id_label">Join our email list!</div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+{% endblock %}
+
+
+{% block scripts %}
+    <script src="{% static 'site/js/custom_map/js/custom_map.js' %}"></script>
+
+    <script>
+        $(document).ready(function(){
+            const map = $('#map_container').customMap({
+				floorsStartFrom: 0,
+				floors: 4,
+				currentFloor: 1,
+				//iconSize: 20,
+
+				floorsPath: '/static/site/js/custom_map/img/floors',
+				defaultIcon: "{% static 'site/img/map_pin.png' %}",
+				dataUrl: '{% url "tenants:all_json" %}',
+
+				onReady: () => {
+				},
+				floorLoaded: () => {
+					//map.selectObject(5);
+					//map.selectMapObject('object_78');
+				},
+				onTapped: (object) => {
+                    if(object.object != null){
+                        showTenant(object.object.id);
+                    }
+                    else{
+                        $('#map_id_label').text(object.map_id);
+                        $('#selectedRoom').modal('show');
+                    }
+				},
+
+			});
+        });
+    </script>
+{% endblock scripts %}

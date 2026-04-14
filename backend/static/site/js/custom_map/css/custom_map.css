@@ -1,0 +1,128 @@
+.map_container{
+	width: 100%;
+	height: 100%;
+	position: relative;
+	opacity: 0;
+	transition: 0.1s ease opacity;
+	font-family: 'Montserrat', sans-serif;
+	background: #FDFBF4;
+}
+
+.map_container.loaded{
+	opacity: 1;
+}
+
+.map_container #map{
+	width: 100%;
+	height: 100%;
+}
+.controls{
+	position: absolute;
+    right: 16px;
+    top: 0px;
+    bottom: 0px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.controls span{
+	display: block;
+    width: 34px;
+    height: 34px;
+    background: white;
+    margin-bottom: 11px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 1px 1px 17px #00000014;
+    text-align: center;
+    font-size: 24px;
+    line-height: 33px;
+    color: #0000005e;
+}
+
+.controls span.selected{
+	background: black;
+	color: white;
+}
+
+.controls.floors{
+	right: unset;
+	left: 16px;
+}
+.controls.floors span{
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.map_container #objects path{
+	fill: #c39269;
+	cursor: pointer;
+	transition: 0.1s ease fill;
+	stroke: #ad7d54;
+}
+.map_container #objects path:hover{
+	fill: #a47954;
+}
+.map_container #objects path.selected{
+/*	fill: black;*/
+	fill: #7c5b3f;
+	animation: blink-animation 1s infinite;
+	-webkit-animation: blink-animation 1s infinite;
+}
+
+@keyframes blink-animation {
+	50% {
+	  fill: #c39269;
+	}
+	100% {
+	  fill: #7c5b3f;
+	}
+}
+@-webkit-keyframes blink-animation {
+	50% {
+	  fill: #c39269;
+	}
+	100% {
+	  fill: #7c5b3f;
+	}
+}
+
+
+.map_container #objects path.red{
+	fill: #f4a9a9;
+}
+.map_container #objects path.gray{
+	fill: #dddddd;
+}
+.map_container svg .map_icon{
+	pointer-events: none;
+}
+.map_container svg .map_label{
+	font-size: 14px;
+	fill: #578a9d;
+	font-weight: 500;
+	pointer-events: none;
+}
+
+.map_container svg[zoom="0"] .map_label{
+	font-size: 14px;
+}
+.map_container svg[zoom="1"] .map_label{
+	font-size: 14px;
+}
+.map_container svg[zoom="2"] .map_label{
+	font-size: 12px;
+}
+.map_container svg[zoom="3"] .map_label{
+	font-size: 10px;
+}
+.map_container svg[zoom="4"] .map_label{
+	font-size: 8px;
+}
+.map_container svg[zoom="5"] .map_label{
+	font-size: 6px;
+}
+
+.map_container path.floor{
+	fill: #f8e9d5;
+}

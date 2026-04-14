@@ -1,0 +1,106 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% load site_tags %}
+
+{% block content %}
+
+    <!-- Title and Top Buttons Start -->
+    <div class="page-title-container">
+        <div class="row g-0">
+            <div class="col-auto mb-2 mb-md-0 me-auto">
+                <div class="w-auto sw-md-25">
+                    <h1 class="mb-0 pb-0 display-4" id="title">Задачи</h1>
+                    <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+                        <ul class="breadcrumb pt-0">
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'dashboard:base' %}">Главная</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'tasks:list' %}">Менеджер задач</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+            <div class="col-12 col-md d-flex align-items-start justify-content-end justify-content-lg-start">
+                <form class="me-lg-auto w-100 w-md-auto search-input-container border border-separator">
+                    <input class="form-control search" name="search" type="text" autocomplete="off" placeholder="Поиск по задачам"/>
+                    <span class="search-magnifier-icon">
+                        <i data-acorn-icon="search"></i>
+                    </span>
+                </form>
+
+                {% if can_create %}
+                    <a href="{% url 'tasks:edit' 0 %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1" id="mobile_button" data-icon="plus" data-icon="plus">
+                        <i data-acorn-icon="plus"></i>
+                        <span>Новая задача</span>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- Title and Top Buttons End -->
+
+    <div class="row g-0">
+
+        <div class="col-auto d-none d-lg-flex side_menu_items">
+            <div class="nav flex-column sw-25 mt-n2" id="tasksMenuColumn">
+                <div class="menu-items">
+                    <a class="nav-link px-0 task-menu-item {% if action == 'all' %}active{% endif %}" href="{% url 'tasks:list' %}">
+                        <i data-acorn-icon="list" data-acorn-size="17" class="me-2"></i>
+                        <span class="d-inline-block mt-1 align-middle">Все</span>
+                    </a>
+
+                    {% for key, current in statuses.items %}
+                        <a class="nav-link px-0 task-menu-item {% if action == key %}active{% endif %}" href="{% url 'tasks:by_type' key %}">
+                            <i data-acorn-icon="{{current.icon}}" data-acorn-size="17" class="me-2"></i>
+                            <span class="d-inline-block mt-1 align-middle">{{current.title}}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <!-- List Items Start -->
+            <div class="row g-2 row-cols-1 row-cols-lg-2 row-cols-xl-3" id="tasksContainer">
+
+                {% for current in paginator.items %}
+
+                    <div class="col task-item indicator_item" data-type="task" data-id="{{current.id}}">
+                        <div class="card h-100">
+                            <div class="card-body position-relative">
+                                <div class="h-100">
+                                    
+                                    <div class="form-check-label h-100 text-decoration-none">
+                                        <div class="content h-100 text-decoration-none d-flex flex-column justify-content-between">
+                                            <a href="{% url 'tasks:task' current.id %}" class="mobile_link" attr-title="{{current.title}}">
+                                                <span class="h4 pe-7 lh-1-5 title">{{current.title}}</span>
+                                            </a>
+                                            <span class="text-muted d-block text-small mb-2 mt-1">Срок: {{current.deadline}}</span>
+                                            <span class="text-alternate mb-4 flex-grow-1 detail">{{current.text|truncatechars:130}}</span>
+                                            
+                                            <div class="tags mb-1">    
+                                                {% if current.important %}
+                                                    <span class="badge bg-danger text-uppercase">Важная задача</span>
+                                                {% endif %}
+                                                <span class="badge opacity-75 text-decoration-none me-1 bg-outline-{{current.status_info.color}}">{{current.status_info.title}}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                {% endfor %}
+
+            </div>
+            <!-- List Items End -->
+
+
+            {% show_paginator paginator %}
+        </div>
+    </div>
+
+{% endblock %}

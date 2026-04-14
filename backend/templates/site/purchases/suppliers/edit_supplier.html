@@ -1,0 +1,210 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% load site_tags %}
+
+{% block content %}
+    <div class="d-flex justify-content-center">
+        <div class="col-12 col-xl-8 mb-5">
+            <div class="mx-auto">
+                <form class="uppercase_label" method="POST">
+                    {% check_form form %}
+                    {% csrf_token %}
+                    <div class="card mb-5">
+                        <div class="card-body">
+
+                            <h1 class="mb-3 mt-1 pb-0 display-4">Поставщик</h1>
+                            
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="top-label w-100">
+                                        {{form.status}}
+                                        <span>Статус контрагента</span>
+                                    </label>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="top-label w-100">
+                                        {{form.check_status}}
+                                        <span>Благонадежность</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.name}}
+                                        <span>Полное наименование</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label w-100">
+                                        {{form.form}}
+                                        <span>Форма собственности</span>
+                                    </label>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="top-label w-100">
+                                        {{form.supplier_type}}
+                                        <span>Юр. / физ. лицо</span>
+                                    </label>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.reg_date}}
+                                        <span>Дата регистрации ТОО/ИП</span>
+                                    </label>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.identifier}}
+                                        <span>БИН / ИИН</span>
+                                    </label>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="top-label w-100">
+                                        {{form.category}}
+                                        <span>Категория контрагента</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.kbe}}
+                                        <span>КБЕ</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label w-100">
+                                        {{form.country}}
+                                        <span>Страна резидентства</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label w-100">
+                                        {{form.city}}
+                                        <span>Город</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.address1}}
+                                        <span>Юридический адрес</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.address2}}
+                                        <span>Фактический адрес</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.head_name}}
+                                        <span>ФИО учредителя</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.head_status}}
+                                        <span>Статус учредителя</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.phone}}
+                                        <span>Телефон</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.email}}
+                                        <span>Email</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.certificate_serie}}
+                                        <span>Серия свидетельства по НДС</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.certificate_number}}
+                                        <span>Номер свидетельства по НДС</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.certificate_date}}
+                                        <span>Дата свидетельства по НДС</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.contacts}}
+                                        <span>Контакты</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.adata_link}}
+                                        <span>Ссылка на карточку контраганта в adata.kz</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.oked}}
+                                        <span>Основной окэд</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.problems}}
+                                        <span>Есть проблемы</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.size}}
+                                        <span>Размер предприятия</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.lawyer}}
+                                        <span>Юрист</span>
+                                    </label>
+                                </div>
+                                
+                            </div>
+
+                            <div class="d-flex justify-content-end mt-3">
+                                <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
+                                    <span>Сохранить</span>
+                                    <i data-acorn-icon="chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+    </div>
+{% endblock %}

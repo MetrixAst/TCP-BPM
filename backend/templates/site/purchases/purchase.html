@@ -1,0 +1,300 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block content %}
+
+    <!-- Title and Top Buttons Start -->
+    <div class="page-title-container">
+        <div class="row">
+            <!-- Title Start -->
+            <div class="col-12 col-md-7">
+                <h1 class="mb-0 pb-0 display-4" id="title">Закупка приборов освещения</h1>
+                <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+                    <ul class="breadcrumb pt-0">
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'documents:list' 'documents' %}">Документы</a></li>
+                        <li class="breadcrumb-item">IBPM-П-АД-11/2020-021</li>
+                    </ul>
+                </nav>
+            </div>
+            <!-- Title End -->
+            <!-- Top Buttons Start -->
+            <div class="col-12 col-md-5 d-flex align-items-start justify-content-end">
+                <!-- Contact Button Start -->
+                <button type="button" class="btn btn-outline-primary btn-icon btn-icon-start w-100 w-md-auto">
+                <i data-acorn-icon="download"></i>
+                <span>Скачать</span>
+                </button>
+                <!-- Contact Button End -->
+            </div>
+            <!-- Top Buttons End -->
+        </div>
+    </div>
+    <!-- Title and Top Buttons End -->
+    <div class="row gx-4 gy-5">
+        <!-- Left Side Start -->
+        <div class="col-12 col-xl-4 col-xxl-3">
+            <!-- Biography Start -->
+            <h2 class="small-title">Информация</h2>
+            <div class="card">
+                <div class="card-body mb-n5">
+                    <div class="d-flex align-items-center flex-column mb-5 text-center">
+                        <div class="mb-5 d-flex align-items-center flex-column">
+                            <div class="text-muted">Искакова Алия</div>
+                            <div class="h5 mb-2">Закупка приборов освещения</div>
+                            <span class="badge bg-primary">НА МОДЕРАЦИИ</span>
+                        </div>
+                        <div class="d-flex flex-row justify-content-between w-100 w-sm-50 w-xl-100">
+                            <button type="button" class="btn btn-primary w-100 me-2">Утвердить</button>
+                            <button type="button" class="btn btn-outline-primary w-100 me-2">Отказать</button>
+                        </div>
+                    </div>
+                    <div class="mb-5">
+
+
+                        <div class="row g-0 align-items-center mb-2">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Поставщик</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center"><a href="{% url 'purchases:supplier' 2 %}">ТОО Рога и копыта</a></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 align-items-center mb-2">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Дата добавления</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center">13.07.2022 11:03</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 align-items-center mb-2">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Дата обновления</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center">18.07.2022 11:19</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 align-items-center mb-2">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Наблюдатель</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center">Иксымбаева Айнур</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 align-items-center mb-2">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center text-muted">Участники</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex justify-content-end align-items-center text-end">Калиев Руслан</div>
+                                        <div class="sh-5 d-flex justify-content-end align-items-center">Валиханова Айсулу</div>
+                                        <div class="sh-5 d-flex justify-content-end align-items-center">Пак Александр</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+            </div>
+            <!-- Biography End -->
+        </div>
+        <!-- Left Side End -->
+        <!-- Right Side Start -->
+        <div class="col-12 col-xl-8 col-xxl-9">
+            <!-- Title Tabs Start -->
+            <ul class="nav nav-tabs nav-tabs-title nav-tabs-line-title responsive-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#projectsTab" role="tab" aria-selected="true">Документ</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" data-bs-toggle="tab" href="#collectionsTab" role="tab" aria-selected="false">Обсуждения</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" data-bs-toggle="tab" href="#friendsTab" role="tab" aria-selected="false">Лист согласования</a>
+                </li>
+                <li class="nav-item dropdown ms-auto d-none responsive-tab-dropdown">
+                    <a
+                        class="btn btn-icon btn-icon-only btn-background pt-0"
+                        href="#"
+                        role="button"
+                        data-bs-toggle="dropdown"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        data-diplay="static"
+                        >
+                    <i data-acorn-icon="more-horizontal"></i>
+                    </a>
+                    <ul class="dropdown-menu mt-2 dropdown-menu-end"></ul>
+                </li>
+            </ul>
+            <!-- Title Tabs End -->
+            <div class="tab-content">
+                <!-- Projects Tab Start -->
+                <div class="tab-pane fade active show" id="projectsTab" role="tabpanel">
+                    
+                    
+                    <iframe width="100%" style="height: 100vh" src="{% static 'sample.pdf' %} " frameborder="0"></iframe>
+
+
+                </div>
+                <!-- Projects Tab End -->
+                <!-- Collections Tab Start -->
+                <div class="tab-pane fade" id="collectionsTab" role="tabpanel">
+                    
+                    <div class="card">
+                        <div class="card-body">
+            
+            
+                          <div class="d-flex align-items-center border-bottom border-separator-light pb-3 mt-3">
+                            <div class="row g-0 w-100">
+                              <div class="col-auto">
+                                <div class="sw-5 me-3">
+                                  <img src="{% static 'site/img/profile/profile-1.webp' %}" class="img-fluid rounded-xl" alt="thumb" />
+                                </div>
+                              </div>
+                              <div class="col pe-3">
+                                <a href="#">Новикова Алиса</a>
+                                <div class="text-muted text-small mb-2">2 часа назад</div>
+                                <div class="text-medium text-alternate lh-1-25">Я считаю, что текущая наша система работает отлично!</div>
+                              </div>
+                            </div>
+                          </div>
+            
+            
+                          <div class="d-flex align-items-center border-bottom border-separator-light pb-3 mt-3">
+                            <div class="row g-0 w-100">
+                              <div class="col-auto">
+                                <div class="sw-5 me-3">
+                                  <img src="{% static 'site/img/profile/profile-2.webp' %}" class="img-fluid rounded-xl" alt="thumb" />
+                                </div>
+                              </div>
+                              <div class="col pe-3">
+                                <a href="#">Иванов Володя</a>
+                                <div class="text-muted text-small mb-2">3 часа назад</div>
+                                <div class="text-medium text-alternate lh-1-25">Ну не знаю, кому как, а по мне нужно поменять сервис рассылок</div>
+                              </div>
+                            </div>
+                          </div>
+            
+                          <div class="d-flex align-items-center border-bottom border-separator-light pb-3 mt-3">
+                            <div class="row g-0 w-100">
+                              <div class="col-auto">
+                                <div class="sw-5 me-3">
+                                  <img src="{% static 'site/img/profile/profile-3.webp' %}" class="img-fluid rounded-xl" alt="thumb" />
+                                </div>
+                              </div>
+                              <div class="col pe-3">
+                                <a href="#">Алиев Ришад</a>
+                                <div class="text-muted text-small mb-2">3 часа назад</div>
+                                <div class="text-medium text-alternate lh-1-25">:) </div>
+                              </div>
+                            </div>
+                          </div>
+            
+                          <div class="d-flex align-items-center pb-3 mt-3">
+                            <div class="row g-0 w-100">
+                              <div class="col-auto">
+                                <div class="sw-5 me-3">
+                                  <img src="{% static 'site/img/profile/profile-4.webp' %}" class="img-fluid rounded-xl" alt="thumb" />
+                                </div>
+                              </div>
+                              <div class="col pe-3">
+                                <a href="#">Калиева Райхан</a>
+                                <div class="text-muted text-small mb-2">4 часа назад</div>
+                                <div class="text-medium text-alternate lh-1-25">Замена не требуется, задача закрыта!</div>
+                              </div>
+                            </div>
+                          </div>
+            
+                          <div class="input-group mt-5">
+                            <input type="text" class="form-control" placeholder="Написать комментарии" aria-label="Написать комментарии" />
+                            <button class="btn btn-icon btn-icon-end btn-outline-primary" type="button">
+                              <span>Отправить</span>
+                              <i data-acorn-icon="send"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                </div>
+                <!-- Collections Tab End -->
+                <!-- Friends Tab Start -->
+                <div class="tab-pane fade" id="friendsTab" role="tabpanel">
+                    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Этап</th>
+                                <th scope="col">Дата</th>
+                                <th scope="col">Создано</th>
+                                <th scope="col">Статус</th>
+                                <th scope="col">Комментарии</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th scope="row">Согласование</th>
+                                <td>15.07.2022 11:51</td>
+                                <td>Калиева Аиша</td>
+                                <td>Согласовано</td>
+                                <td>Прошу при распечатке поменять шрифты в соответствии с бренд-буком</td>
+                            </tr>
+                            
+                            <tr>
+                                <th scope="row">Согласование</th>
+                                <td>17.07.2022 03:38</td>
+                                <td>Алиакпаров Серик</td>
+                                <td>Согласовано</td>
+                                <td> </td>
+                            </tr>
+
+                            
+                            <tr>
+                                <th scope="row"> </th>
+                                <td>18.07.2022 11:26</td>
+                                <td>Валиханов Берик</td>
+                                <td>Подписано</td>
+                                <td> </td>
+                            </tr>
+
+
+                        </tbody>
+                    </table>
+
+                </div>
+                <!-- Friends Tab End -->
+            </div>
+        </div>
+        <!-- Right Side End -->
+    </div>
+
+{% endblock %}

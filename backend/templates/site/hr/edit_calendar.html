@@ -1,0 +1,68 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% load site_tags %}
+
+{% block content %}
+    <div class="d-flex justify-content-center">
+        <div class="col-12 col-xl-8 mb-5">
+            <div class="mx-auto">
+                <form class="uppercase_label" method="POST">
+                    {% check_form form %}
+                    {% csrf_token %}
+                    <div class="card mb-5">
+                        <div class="card-body">
+
+                            <h1 class="mb-3 mt-1 pb-0 display-4">Запись в календарь</h1>
+                            
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="top-label w-100">
+                                        {{form.category}}
+                                        <span>Тип</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label w-100">
+                                        {{form.user}}
+                                        <span>Сотрудник</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label">
+                                        {{form.start_date}}
+                                        <span>Дата начала</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label w-100">
+                                        {{form.end_date}}
+                                        <span>Дата завершения</span>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="top-label w-100">
+                                        {{form.title}}
+                                        <span>Заметка</span>
+                                    </label>
+                                </div>
+                                
+                            </div>
+
+                            <div class="d-flex justify-content-end mt-3">
+                                <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
+                                    <span>Сохранить</span>
+                                    <i data-acorn-icon="chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+    </div>
+{% endblock %}

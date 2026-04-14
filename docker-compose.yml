@@ -1,0 +1,81 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - ./backend/.env
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-trc_bpm}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  web:
+    build: ./backend
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py migrate --noinput &&
+             daphne project.asgi:application -b 0.0.0.0 -p 8000"
+    volumes:
+      - ./backend:/home/app/web
+      - static_volume:/home/app/web/assets
+      - media_volume:/home/app/web/media
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE=postgres
+    depends_on:
+      - db
+      - redis
+
+  celery_worker:
+    build: ./backend
+    command: celery -A project worker -l info
+    volumes:
+      - ./backend:/home/app/web
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE=postgres
+    depends_on:
+      - db
+      - redis
+
+  celery_beat:
+    build: ./backend
+    command: celery -A project beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - ./backend:/home/app/web
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE=postgres
+    depends_on:
+      - db
+      - redis
+
+  nginx:
+    build: ./nginx
+    volumes:
+      - static_volume:/home/app/web/static
+      - media_volume:/home/app/web/media
+    ports:
+      - "80:80"
+    environment:
+      - SERVER_NAME=localhost
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:

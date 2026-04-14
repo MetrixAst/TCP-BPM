@@ -1,0 +1,121 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html
+  lang="ru"
+  data-footer="false"
+  data-override='{"attributes": {"placement": "vertical", "layout": "fluid" , "behaviour": "unpinned"}, "showSettings":false, "storagePrefix": "starter-project"}'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>MetriX BPM</title>
+    <meta name="description" content="MetriX BPM" />
+    <!-- Favicon Tags Start -->
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'site/img/favicon/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'site/img/favicon/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'site/img/favicon/favicon-16x16.png' %}">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#ffffff">
+    <!-- Favicon Tags End -->
+
+
+
+    <!-- Font Tags Start -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'site/font/CS-Interface/style.css' %}" />
+    <!-- Font Tags End -->
+    <!-- Vendor Styles Start -->
+    <link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'site/css/vendor/OverlayScrollbars.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'site/css/vendor/glide.core.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'site/css/vendor/introjs.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'site/css/vendor/plyr.css' %}" />
+
+    <link rel="stylesheet" href="{% static 'site/css/vendor/quill.bubble.css' %}" />
+    <link rel="stylesheet" href="{% static 'site/css/vendor/quill.snow.css' %}" />
+    <link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap-datepicker3.standalone.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'site/css/vendor/tagify.css' %}" />
+
+    <!-- Vendor Styles End -->
+    <!-- Template Base Styles Start -->
+    <link rel="stylesheet" href="{% static 'site/css/styles.css' %}" />
+    <!-- Template Base Styles End -->
+
+    <link rel="stylesheet" href="{% static 'site/css/main.css' %}?v={{static_version}}" />
+
+    {% block styles %}{% endblock styles %}
+
+    <script src="{% static 'site/js/base/loader.js' %}"></script>
+  </head>
+
+  <body class="{% if is_mobile %}is_mobile{% endif %} {% block body_classes %}{% endblock body_classes %}">
+    <div id="root" class="{% block root_classes %}{% endblock root_classes %}">
+      
+        {% block inner %}{% endblock inner %}
+
+    </div>
+
+
+    <script>
+      const indicatorsData = JSON.parse('{{ indicators_json | escapejs }}');
+    </script>
+
+
+    <!-- Vendor Scripts Start -->
+    <script src="{% static 'site/js/vendor/jquery-3.5.1.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/OverlayScrollbars.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/autoComplete.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/clamp.min.js' %}"></script>
+    <script src="{% static 'site/icon/acorn-icons.js' %}"></script>
+    <script src="{% static 'site/icon/acorn-icons-interface.js' %}"></script>
+    <script src="{% static 'site/js/vendor/Chart.bundle.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/chartjs-plugin-datalabels.js' %}"></script>
+    <script src="{% static 'site/js/vendor/chartjs-plugin-rounded-bar.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/glide.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/intro.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/plyr.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/movecontent.js'%}"></script>
+    <script src="{% static 'site/js/vendor/fuse.js'%}"></script>
+
+    <script src="{% static 'site/js/mustache.min.js' %}"></script>
+
+    <script src="{% static 'site/js/vendor/quill.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/quill.active.js' %}"></script>
+    <script src="{% static 'site/js/vendor/tagify.min.js' %}"></script>
+
+    <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/timepicker.js' %}"></script>
+    <!-- Vendor Scripts End -->
+    
+
+    <!-- Plugin Scripts Start -->
+    <script src="{% static 'site/js/plugins/org/d3.v7.min.js' %}"></script>
+    <script src="{% static 'site/js/plugins/org/d3-org-chart.js' %}"></script>
+    <script src="{% static 'site/js/plugins/org/d3-flextree.js' %}"></script>
+    <!-- Plugin Scripts End -->
+
+
+    <!-- Template Base Scripts Start -->
+    <script src="{% static 'site/js/base/helpers.js' %}"></script>
+    <script src="{% static 'site/js/base/globals.js' %}"></script>
+    <script src="{% static 'site/js/base/nav.js' %}"></script>
+    <script src="{% static 'site/js/base/settings.js' %}"></script>
+    <!-- Template Base Scripts End -->
+    <!-- Page Specific Scripts Start -->
+
+    <script src="{% static 'site/js/common.js' %}"></script>
+    <script src="{% static 'site/js/scripts.js' %}?v={{static_version}}"></script>
+    <script src="{% static 'site/js/main.js' %}?v={{static_version}}"></script>
+    <!-- Page Specific Scripts End -->
+
+    {% block scripts %}{% endblock scripts %}
+  </body>
+</html>

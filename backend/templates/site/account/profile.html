@@ -1,0 +1,109 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% load site_tags %}
+
+{% block content %}
+
+    <!-- Title and Top Buttons Start -->
+    <div class="page-title-container">
+        <div class="row">
+            <!-- Title Start -->
+            <div class="col-12 col-md-7">
+                <h1 class="mb-0 pb-0 display-4" id="title">Профиль</h1>
+                <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+                    <ul class="breadcrumb pt-0">
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+                        <li class="breadcrumb-item">{{user.get_name}}</li>
+                    </ul>
+                </nav>
+            </div>
+            <!-- Title End -->
+        </div>
+    </div>
+    <!-- Title and Top Buttons End -->
+    
+    <div class="row">
+        <!-- Left Side Start -->
+        <div class="col-12 col-xl-4 col-xxl-3">
+            <!-- Biography Start -->
+            <h2 class="small-title">Профиль</h2>
+            <div class="card mb-5">
+                <div class="card-body">
+                    <div class="d-flex align-items-center flex-column mb-4">
+                        <div class="d-flex align-items-center flex-column">
+                            <div class="sw-13 position-relative mb-3">
+                                <img src="{{user.get_avatar_url}}" class="img-fluid rounded-xl" alt="thumb" />
+                            </div>
+                            <div class="h5 mb-0">{{user.get_name}}</div>
+                            {% if info %}
+                                <div class="text-muted">{{user.employee_info.job_title}}</div>
+                                <div class="text-muted">
+                                    <i data-acorn-icon="pin" class="me-1"></i>
+                                    <span class="align-middle">{{user.employee_info.department}}</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="nav flex-column" role="tablist">
+                        <a class="nav-link active px-0 border-bottom border-separator-light" data-bs-toggle="tab" href="#overviewTab" role="tab">
+                            <i data-acorn-icon="activity" class="me-2" data-acorn-size="17"></i>
+                            <span class="align-middle">Аккаунт</span>
+                        </a>
+                        {% if info %}
+                            <a class="nav-link px-0 border-bottom border-separator-light" data-bs-toggle="tab" href="#projectsTab" role="tab">
+                                <i data-acorn-icon="office" class="me-2" data-acorn-size="17"></i>
+                                <span class="align-middle">Команда</span>
+                            </a>
+                        {% endif %}
+                        <a class="nav-link px-0" href="/">
+                            <i data-acorn-icon="lock-off" class="me-2" data-acorn-size="17"></i>
+                            <span class="align-middle">Выйти</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <!-- Biography End -->
+        </div>
+        <!-- Left Side End -->
+        <!-- Right Side Start -->
+        <div class="col-12 col-xl-8 col-xxl-9 mb-5 tab-content">
+            <!-- Overview Tab Start -->
+            <div class="tab-pane fade show active" id="overviewTab" role="tabpanel">
+                <!-- Public Info Start -->
+                <h2 class="small-title">Настройки аккаунта</h2>
+                <div class="card mb-5">
+                    <div class="card-body">
+                        <form method="POST">
+                            <input type="hidden" name="form_type" value="profile">
+                            {% init_form profile_form True %}
+                        </form>
+                    </div>
+                </div>
+                <!-- Public Info End -->
+
+
+                <!-- Private Info Start -->
+                <h2 class="small-title">Пароль</h2>
+                <div class="card mb-5">
+                    <div class="card-body">
+                        <form method="POST">
+                            <input type="hidden" name="form_type" value="password">
+                            {% init_form password_form True %}
+                        </form>
+                    </div>
+                </div>
+                <!-- Private Info End -->
+            </div>
+            <!-- Overview Tab End -->
+            <!-- Projects Tab Start -->
+            <div class="tab-pane fade" id="projectsTab" role="tabpanel">
+                <div class="chart-container" data-url="{% url 'account:structure' 'self' %}" style="height: 90vh;"></div>
+            </div>
+            <!-- Projects Tab End -->
+            
+        </div>
+        <!-- Right Side End -->
+    </div>
+
+
+{% endblock %}

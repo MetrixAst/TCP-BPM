@@ -1,0 +1,54 @@
+{% load static %}
+
+<script type="text/template" data-template="comment_template">
+  <div class="d-flex align-items-center border-bottom border-separator-light pb-3 mt-3">
+    <div class="row g-0 w-100">
+      <div class="col-auto">
+        <div class="sw-5 me-3">
+          <img src="${avatar}" class="img-fluid rounded-xl" alt="thumb" />
+        </div>
+      </div>
+      <div class="col pe-3">
+        <p class="text-primary mb-0">${name}</p>
+        <div class="text-muted text-small mb-2">${date}</div>
+        <div class="text-medium text-alternate lh-1-25">${text}</div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<div class="card" id="comment_area" total="{{total}}" target-type="{{target_type}}" target-id="{{target_id}}" csrf="{{csrf_token}}">
+    <div class="card-body">
+
+      <div class="input-group mb-5">
+        <input type="text" id="comment_text" class="form-control" placeholder="Написать комментарии" aria-label="Написать комментарии" />
+        <button class="btn btn-icon btn-icon-end btn-outline-primary" type="button" id="send_comment">
+          <span>Отправить</span>
+          <i data-acorn-icon="send"></i>
+        </button>
+      </div>
+
+      <div id="comments_list">
+
+        {% for current in comments %}
+          <div class="d-flex align-items-center border-bottom border-separator-light pb-3 mt-3">
+            <div class="row g-0 w-100">
+              <div class="col-auto">
+                <div class="sw-5 me-3">
+                  <img src="{{current.user.get_avatar_url}}" class="img-fluid rounded-xl" alt="thumb" />
+                </div>
+              </div>
+              <div class="col pe-3">
+                <p class="text-primary mb-0">{{current.user.get_name}}</p>
+                <div class="text-muted text-small mb-2">{{current.formatted_date}}</div>
+                <div class="text-medium text-alternate lh-1-25">{{current.text}}</div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+
+        
+      </div>
+
+    </div>
+</div>

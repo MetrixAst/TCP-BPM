@@ -1,0 +1,143 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% load site_tags %}
+
+{% block content %}
+
+    <!-- Title and Top Buttons Start -->
+    <div class="page-title-container">
+        <div class="row g-0">
+            <div class="col-auto mb-2 mb-md-0 me-auto">
+                <div class="w-auto sw-md-25">
+                    <h1 class="mb-0 pb-0 display-4" id="title">Контрагенты</h1>
+                    <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+                        <ul class="breadcrumb pt-0">
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'dashboard:dashboard' %}">Главная</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                Контрагенты
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+            <div class="col-12 col-md d-flex align-items-start justify-content-end justify-content-lg-end">
+                <form class="me-lg-auto w-100 w-md-auto search-input-container border border-separator">
+                    <input class="form-control search" name="search" type="text" autocomplete="off" placeholder="Поиск"/>
+                    <span class="search-magnifier-icon">
+                        <i data-acorn-icon="search"></i>
+                    </span>
+                </form>
+
+                <a href="{% url 'purchases:edit_supplier' 0 %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1" id="mobile_button" data-icon="plus">
+                    <i data-acorn-icon="plus"></i>
+                    <span>Добавить контрагента</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    <!-- Title and Top Buttons End -->
+
+    <div class="row g-0">
+        <div class="col-auto d-none d-lg-flex side_menu_items">
+            <div class="nav flex-column sw-25 mt-n2">
+                <div class="menu-items">
+
+                    {% for current in statuses %}
+                        <a class="nav-link px-0 task-menu-item {% if status == current.0 %}active{% endif %}" href="{% url 'purchases:suppliers_by_status' current.0 %}">
+                            <span class="d-inline-block mt-1 align-middle">{{current.1}}</span>
+                        </a>
+                    {% endfor %}
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+
+            <form class="row mb-3" style="display: none">
+                {% csrf_token %}
+                <div class="col-md-3 mb-2">
+                    <input class="form-control" name="title" placeholder="БИН/ИИН"/>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <input class="form-control" name="title" placeholder="Наименование"/>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="w-100">
+                        <select class="custom_select" placeholder="Статус">
+                            <option label="&nbsp;"></option>
+                            <option value="all">Все</option>
+                            <option value="true">Благонадежные</option>
+                            <option value="false">Неблагонадежные</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
+                        <i data-acorn-icon="search"></i>
+                        <span>Поиск</span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="row">
+                <div class="col-12 mb-5">
+                    <div class="card mb-2 bg-transparent no-shadow d-none d-md-block">
+                        <div class="row g-0 sh-3">
+                            <div class="col">
+                                <div class="card-body pt-0 pb-0 h-100">
+                                    <div class="row g-0 h-100 align-content-center">
+                                        <div class="col-6 col-md-5 d-flex align-items-center text-alternate text-medium text-muted text-small">НАИМЕНОВАНИЕ</div>
+                                        <div class="col-6 col-md-3 d-flex align-items-center text-alternate text-medium text-muted text-small">БИН</div>
+                                        <div class="col-6 col-md-2 d-flex align-items-center text-alternate text-medium text-muted text-small">ДАТА ОБНОВЛЕНИЯ</div>
+                                        <div class="col-6 col-md-2 d-flex align-items-center justify-content-md-end text-alternate text-medium text-muted text-small">
+                                            СТАТУС КОНТРАГЕНТА
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-5">
+
+                        {% for current in paginator.items %}
+                            <div class="card mb-2">
+                                <div class="card-body h-100">
+                                    <div class="row g-0 h-100 align-content-center">
+
+                                        <div class="col-11 col-md-5 d-flex flex-column mb-1 mb-md-0 order-1 order-md-1 position-static">
+                                            <a href="{% url 'purchases:supplier' current.id %}" class="mobile_link">{{current.name}}</a>
+                                            <div class="text-small text-muted text-truncate">{{current.get_supplier_type_display}}</div>
+                                        </div>
+                                        <div class="col-12 col-md-3 d-flex align-items-center text-muted order-3 order-md-2">
+                                            {{current.identifier}}
+                                        </div>
+                                        <div class="col-12 col-md-2 d-flex align-items-center text-muted order-3 order-md-2">{{current.updated_at}}</div>
+                                        <div class="col-1 col-md-2 d-flex align-items-center text-muted text-medium justify-content-end order-2 order-md-3">
+                                            <span class="badge rounded-pill bg-{{current.status_color}} me-1">{{current.get_status_display}}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+
+                    </div>
+
+                    {% show_paginator paginator %}
+
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+{% endblock %}
+
+
+
+{% block scripts %}
+    <script src="{% static 'site/js/forms/controls.select2.js' %}"></script>
+{% endblock scripts %}

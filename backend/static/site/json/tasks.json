@@ -1,0 +1,223 @@
+{
+    "tasks": [
+        {
+            "id": 1,
+            "status": "Active",
+            "title": "Изучить сервисы для email рассылок",
+            "detail": "Требуется понять какие сервисы подходят по приципу цена/качество",
+            "tags": [
+                {
+                    "title": "Департамент",
+                    "class": "bg-outline-danger"
+                },
+                {
+                    "title": "Группа",
+                    "class": "bg-outline-primary"
+                }
+            ],
+            "deleted": false
+        },
+        {
+            "id": 2,
+            "status": "Active",
+            "title": "Сделать новые вывески перед бутиками",
+            "detail": "То что у нас сейчас стоит выглядит будто попали в 2000 годы",
+            "tags": [
+                {
+                    "title": "Департамент",
+                    "class": "bg-outline-danger"
+                },
+                {
+                    "title": "Задание",
+                    "class": "bg-outline-success"
+                }
+            ],
+            "deleted": false
+        },
+        {
+            "id": 3,
+            "status": "Work",
+            "title": "Постоянно вырубается интернет",
+            "detail": "По всему ТРЦ каждый день в 14:00 вырубается интернет! Требуется понять в чем проблема",
+            "tags": [
+                {
+                    "title": "Департамент",
+                    "class": "bg-outline-danger"
+                },
+                {
+                    "title": "Компания",
+                    "class": "bg-outline-warning"
+                }
+            ],
+            "deleted": false
+        },
+        {
+            "id": 4,
+            "status": "Work",
+            "title": "Провести интервью с новыми дизайнерами",
+            "detail": "Уволить тех что есть, и принять новых",
+            "tags": [
+                {
+                    "title": "Задание",
+                    "class": "bg-outline-success"
+                },
+                {
+                    "title": "Компания",
+                    "class": "bg-outline-warning"
+                }
+            ],
+            "deleted": false
+        },
+        {
+            "id": 5,
+            "status": "Active",
+            "title": "Привести сайт в нормальный вид",
+            "detail": "Сайт не находится в поисковиках, требуется нормально настроить SEO оптимизацию",
+            "tags": [
+                {
+                    "title": "Группа",
+                    "class": "bg-outline-primary"
+                }
+            ],
+            "deleted": false
+        },
+        {
+            "id": 6,
+            "status": "Work",
+            "title": "Посадить дерево перед ТРЦ",
+            "detail": "Вокруг очень много места, летом жарко, а тени нет. Посадите уже дерево или сделайте парк",
+            "tags": [
+                {
+                    "title": "Группа",
+                    "class": "bg-outline-primary"
+                }
+            ],
+            "deleted": false
+        },
+        {
+            "id": 7,
+            "status": "Work",
+            "title": "Заменить клавиатуры в HR отделе",
+            "detail": "Целыми днями слышу как они тыкают по клавишам",
+            "tags": [
+                {
+                    "title": "Группа",
+                    "class": "bg-outline-primary"
+                }
+            ],
+            "deleted": false
+        },
+        {
+            "id": 8,
+            "status": "Work",
+            "title": "Приготовить подарки на новый год!",
+            "detail": "Все скидываемся и делаем подарки",
+            "tags": [
+                {
+                    "title": "Компания",
+                    "class": "bg-outline-warning"
+                }
+            ],
+            "deleted": false
+        },
+        {
+            "id": 9,
+            "status": "Work",
+            "title": "Не работают счетчики",
+            "detail": "Поговорить с командой разработчиков и решить проблему с счетчиками.",
+            "tags": [],
+            "deleted": false
+        },
+        {
+            "id": 10,
+            "status": "Work",
+            "title": "Поставить кофемашины",
+            "detail": "Требуется установить на каждом этаже по 4 кофемашины",
+            "tags": [
+                {
+                    "title": "Задание",
+                    "class": "bg-outline-success"
+                },
+                {
+                    "title": "Компания",
+                    "class": "bg-outline-warning"
+                }
+            ],
+            "deleted": false
+        },
+        {
+            "id": 11,
+            "status": "Done",
+            "title": "Протекает вода",
+            "detail": "Фонтан на первом этаже на самом деле не фонтан!",
+            "tags": [
+                {
+                    "title": "Группа",
+                    "class": "bg-outline-primary"
+                },
+                {
+                    "title": "Департамент",
+                    "class": "bg-outline-danger"
+                }
+            ],
+            "deleted": false
+        },
+        {
+            "id": 12,
+            "status": "Done",
+            "title": "Запустить приложение в AppStore и PlayMarket",
+            "detail": "Разобраться почему магазины не принимают приложение",
+            "tags": [
+                {
+                    "title": "Группа",
+                    "class": "bg-outline-primary"
+                }
+            ],
+            "deleted": false
+        },
+        {
+            "id": 13,
+            "status": "Done",
+            "title": "Перенести все задачи с Trello",
+            "detail": "Почему мы работаем в Trello, когда у нас есть свой менеджер задач?",
+            "tags": [
+                {
+                    "title": "Компания",
+                    "class": "bg-outline-warning"
+                }
+            ],
+            "deleted": true
+        },
+        {
+            "id": 14,
+            "status": "Done",
+            "title": "Что с трудовым договором?",
+            "detail": "Уже пол года не можем утвердить трудовой договор!",
+            "tags": [
+                {
+                    "title": "Компания",
+                    "class": "bg-outline-warning"
+                }
+            ],
+            "deleted": false
+        }
+    ],
+    "tags": [
+        {
+            "title": "Группа",
+            "class": "bg-outline-primary"
+        },
+        {
+            "title": "Компания",
+            "class": "bg-outline-warning"
+        },
+        {
+            "title": "Департамент",
+            "class": "bg-outline-danger"
+        },
+        {
+            "title": "Задание",
+            "class": "bg-outline-success"
+        }
+    ]
+}

@@ -1,0 +1,218 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block content %}
+
+    <!-- Title and Top Buttons Start -->
+    <div class="page-title-container">
+        <div class="row g-0">
+            <div class="col-auto mb-2 mb-md-0 me-auto">
+                <div class="w-auto">
+                    <h1 class="mb-0 pb-0 display-4" id="title">Бюджет компании</h1>
+                    <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+                        <ul class="breadcrumb pt-0">
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'dashboard:dashboard' %}">Главная</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="#">Финансы</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+            <div class="col-12 col-md d-flex align-items-start justify-content-end justify-content-lg-end">
+                <a href="{% url 'finances:budget_create' %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1" id="mobile_button" data-icon="plus">
+                    <i data-acorn-icon="plus"></i>
+                    <span>Добавить</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    <!-- Title and Top Buttons End -->
+
+    <div class="row g-0">
+
+        <div class="col">
+
+            <div class="row">
+                <div class="col-12 mb-5">
+                    <div class="card mb-2 bg-transparent no-shadow d-none d-md-block">
+                        <div class="row g-0 sh-3">
+                            <div class="col">
+                                <div class="card-body pt-0 pb-0 h-100">
+                                    <div class="row g-0 h-100 align-content-center">
+                                        <div class="col-6 col-md-5 d-flex align-items-center text-alternate text-medium text-muted text-small">ЗАГОЛОВОК</div>
+                                        <div class="col-6 col-md-3 d-flex align-items-center text-alternate text-medium text-muted text-small">ГОД</div>
+                                        <div class="col-6 col-md-2 d-flex align-items-center text-alternate text-medium text-muted text-small">СТАТУС</div>
+                                        <div class="col-6 col-md-2 d-flex align-items-center justify-content-md-end text-alternate text-medium text-muted text-small">
+                                            СОЗДАНО
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-5">
+
+                        <div class="card mb-2 sh-11 sh-md-8">
+                            <div class="card-body pt-0 pb-0 h-100">
+                                <div class="row g-0 h-100 align-content-center">
+
+                                    <div class="col-11 col-md-5 d-flex align-items-center mb-1 mb-md-0 order-1 order-md-1 position-static">
+                                        <a href="{% url 'finances:budget_item' 4 %}">Аквапарк "Маями"</a>
+                                    </div>
+                                    <div class="col-12 col-md-3 d-flex align-items-center text-muted order-3 order-md-2">
+                                        2023
+                                    </div>
+                                    <div class="col-12 col-md-2 d-flex align-items-center text-muted order-3 order-md-2">Действующий. Основной бюджет</div>
+                                    <div class="col-1 col-md-2 d-flex align-items-center text-muted text-medium justify-content-end order-2 order-md-3">
+                                        MetriX BPM
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-2 sh-11 sh-md-8">
+                            <div class="card-body pt-0 pb-0 h-100">
+                                <div class="row g-0 h-100 align-content-center">
+
+                                    <div class="col-11 col-md-5 d-flex align-items-center mb-1 mb-md-0 order-1 order-md-1 position-static">
+                                        <a href="{% url 'finances:budget_item' 4 %}">Аквапарк "Маями"</a>
+                                    </div>
+                                    <div class="col-12 col-md-3 d-flex align-items-center text-muted order-3 order-md-2">
+                                        2023
+                                    </div>
+                                    <div class="col-12 col-md-2 d-flex align-items-center text-muted order-3 order-md-2">Действующий. Основной бюджет</div>
+                                    <div class="col-1 col-md-2 d-flex align-items-center text-muted text-medium justify-content-end order-2 order-md-3">
+                                        MetriX BPM
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-2 sh-11 sh-md-8">
+                            <div class="card-body pt-0 pb-0 h-100">
+                                <div class="row g-0 h-100 align-content-center">
+
+                                    <div class="col-11 col-md-5 d-flex align-items-center mb-1 mb-md-0 order-1 order-md-1 position-static">
+                                        <a href="{% url 'finances:budget_item' 4 %}">Аквапарк "Маями"</a>
+                                    </div>
+                                    <div class="col-12 col-md-3 d-flex align-items-center text-muted order-3 order-md-2">
+                                        2023
+                                    </div>
+                                    <div class="col-12 col-md-2 d-flex align-items-center text-muted order-3 order-md-2">Действующий. Основной бюджет</div>
+                                    <div class="col-1 col-md-2 d-flex align-items-center text-muted text-medium justify-content-end order-2 order-md-3">
+                                        MetriX BPM
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-2 sh-11 sh-md-8">
+                            <div class="card-body pt-0 pb-0 h-100">
+                                <div class="row g-0 h-100 align-content-center">
+
+                                    <div class="col-11 col-md-5 d-flex align-items-center mb-1 mb-md-0 order-1 order-md-1 position-static">
+                                        <a href="{% url 'finances:budget_item' 4 %}">Аквапарк "Маями"</a>
+                                    </div>
+                                    <div class="col-12 col-md-3 d-flex align-items-center text-muted order-3 order-md-2">
+                                        2023
+                                    </div>
+                                    <div class="col-12 col-md-2 d-flex align-items-center text-muted order-3 order-md-2">Действующий. Основной бюджет</div>
+                                    <div class="col-1 col-md-2 d-flex align-items-center text-muted text-medium justify-content-end order-2 order-md-3">
+                                        MetriX BPM
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-2 sh-11 sh-md-8">
+                            <div class="card-body pt-0 pb-0 h-100">
+                                <div class="row g-0 h-100 align-content-center">
+
+                                    <div class="col-11 col-md-5 d-flex align-items-center mb-1 mb-md-0 order-1 order-md-1 position-static">
+                                        <a href="{% url 'finances:budget_item' 4 %}">Аквапарк "Маями"</a>
+                                    </div>
+                                    <div class="col-12 col-md-3 d-flex align-items-center text-muted order-3 order-md-2">
+                                        2023
+                                    </div>
+                                    <div class="col-12 col-md-2 d-flex align-items-center text-muted order-3 order-md-2">Действующий. Основной бюджет</div>
+                                    <div class="col-1 col-md-2 d-flex align-items-center text-muted text-medium justify-content-end order-2 order-md-3">
+                                        MetriX BPM
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-2 sh-11 sh-md-8">
+                            <div class="card-body pt-0 pb-0 h-100">
+                                <div class="row g-0 h-100 align-content-center">
+
+                                    <div class="col-11 col-md-5 d-flex align-items-center mb-1 mb-md-0 order-1 order-md-1 position-static">
+                                        <a href="{% url 'finances:budget_item' 4 %}">Аквапарк "Маями"</a>
+                                    </div>
+                                    <div class="col-12 col-md-3 d-flex align-items-center text-muted order-3 order-md-2">
+                                        2023
+                                    </div>
+                                    <div class="col-12 col-md-2 d-flex align-items-center text-muted order-3 order-md-2">Действующий. Основной бюджет</div>
+                                    <div class="col-1 col-md-2 d-flex align-items-center text-muted text-medium justify-content-end order-2 order-md-3">
+                                        MetriX BPM
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-2 sh-11 sh-md-8">
+                            <div class="card-body pt-0 pb-0 h-100">
+                                <div class="row g-0 h-100 align-content-center">
+
+                                    <div class="col-11 col-md-5 d-flex align-items-center mb-1 mb-md-0 order-1 order-md-1 position-static">
+                                        <a href="{% url 'finances:budget_item' 4 %}">Аквапарк "Маями"</a>
+                                    </div>
+                                    <div class="col-12 col-md-3 d-flex align-items-center text-muted order-3 order-md-2">
+                                        2023
+                                    </div>
+                                    <div class="col-12 col-md-2 d-flex align-items-center text-muted order-3 order-md-2">Действующий. Основной бюджет</div>
+                                    <div class="col-1 col-md-2 d-flex align-items-center text-muted text-medium justify-content-end order-2 order-md-3">
+                                        MetriX BPM
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        
+                    </div>
+
+
+                    <div class="w-100 d-flex justify-content-center">
+                        <ul class="pagination">
+                            <li class="page-item prev disabled">
+                                <a class="page page-link shadow" href="#">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="acorn-icons acorn-icons-chevron-left undefined">
+                                        <path d="M13 16L7.35355 10.3536C7.15829 10.1583 7.15829 9.84171 7.35355 9.64645L13 4"></path>
+                                    </svg>
+                                </a>
+                            </li>
+                            <li class="page-item active">
+                                <a class="page page-link shadow" href="#">1</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page page-link shadow" href="#">2</a>
+                            </li>
+                            <li class="page-item next">
+                                <a class="page page-link shadow" href="#">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="acorn-icons acorn-icons-chevron-right undefined">
+                                        <path d="M7 4L12.6464 9.64645C12.8417 9.84171 12.8417 10.1583 12.6464 10.3536L7 16"></path>
+                                    </svg>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+{% endblock %}

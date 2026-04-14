@@ -1,0 +1,139 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% load mptt_tags %}
+{% load site_tags %}
+
+{% block content %}
+
+    <!-- Title and Top Buttons Start -->
+    <div class="page-title-container">
+        <div class="row g-0">
+            <div class="col-auto mb-2 mb-md-0 me-auto">
+                <div class="w-auto sw-md-25">
+                    <h1 class="mb-0 pb-0 display-4" id="title">{{type_config.title}}</h1>
+                    <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+                        <ul class="breadcrumb pt-0">
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'dashboard:dashboard' %}">Главная</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a>{{type_config.title}}</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+            <div class="col-12 col-md d-flex align-items-start justify-content-end justify-content-lg-end">
+                <a href="{% url 'documents:edit' document_type 0 %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1" id="mobile_button" data-icon="plus">
+                    <i data-acorn-icon="plus"></i>
+                    <span>{{type_config.add_button}}</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    <!-- Title and Top Buttons End -->
+
+    {% include 'site/layouts/filter_form.html' with form=form %}
+
+    <div class="row g-0">
+
+        {% if not type_config.hide_left %}
+            <div class="col-auto d-none d-lg-flex side_menu_items">
+                <div class="nav flex-column sw-25 mt-n2">
+                    <div class="menu-items">
+                        <a class="nav-link px-0 task-menu-item {% if status == 'all' %}active{% endif %}" href="{% url 'documents:by_status' document_type 'all' %}">
+                            <span class="d-inline-block mt-1 align-middle">Все</span>
+                        </a>
+                        
+                        {% if type_config.statuses %}
+
+                            {% for key, current in statuses.items %}
+                                <a class="nav-link px-0 task-menu-item {% if status == key %}active{% endif %}" href="{% url 'documents:by_status' document_type key %}">
+                                    <span class="d-inline-block mt-1 align-middle">{{current.title}}</span>
+                                </a>
+                            {% endfor %}
+                        {% endif %}
+                        {% if type_config.tree %}
+                            {% recursetree tree %}
+                                    
+                                {% if node.is_leaf_node %}
+                                    <a class="nav-link px-0 task-menu-item {% if node.id == folder %}active{% endif %}" href="{% url 'documents:by_folder' document_type node.id %}">
+                                        {% if node.level > 1 %}
+                                            <i class="align-middle me-2 sw-2 d-inline-block"></i>
+                                        {% endif %}
+                                        <span class="d-inline-block mt-1 align-middle">{{ node.name }}</span>
+                                    </a>
+                                {% else %}
+                                    <a class="nav-link px-0 dropdown-toggle" href="#node{{node.id}}" data-bs-toggle="collapse"
+                                        aria-expanded="true">
+                                        <span class="d-inline-block align-middle">{{ node.name }}</span>
+                                    </a>
+                                    <div class="collapse show" id="node{{node.id}}">
+                                        {{ children }}
+                                    </div>
+                                {% endif %}
+
+                            {% endrecursetree %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="col">
+
+            <div class="row">
+                <div class="col-12 mb-5">
+                    
+                    {% if paginator.items %}
+                        <div class="card mb-2 bg-transparent no-shadow d-none d-md-block">
+                            <div class="row g-0 sh-3">
+                                <div class="col">
+                                    <div class="card-body pt-0 pb-0 h-100">
+                                        <div class="row g-0 h-100 align-content-center">
+                                            <div class="col-6 col-md-7 d-flex align-items-center text-alternate text-medium text-muted text-small">ФАЙЛ</div>
+                                            <div class="col-6 col-md-3 d-flex align-items-center text-alternate text-medium text-muted text-small">ДАТА ДОБАВЛЕНИЯ</div>
+                                            <div class="col-6 col-md-2 d-flex align-items-center justify-content-md-end text-alternate text-medium text-muted text-small">
+                                                СТАТУС
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-5">
+
+                        {% for current in paginator.items %}
+
+                            <div class="card mb-2 sh-11 sh-md-8 indicator_item" data-type="{{current.document_type}}" data-id="{{current.id}}">
+                                <div class="card-body pt-0 pb-0 h-100">
+                                    <div class="row g-0 h-100 align-content-center">
+
+                                        <div class="col-11 col-md-7 d-flex flex-column mb-1 mb-md-0 order-1 order-md-1 position-static">
+                                            <a class="mobile_link" href="{% url 'documents:document' current.id %}">{{current.number}}</a>
+                                            <div class="text-small text-muted text-truncate">{{current.title}}</div>
+                                        </div>
+                                        <div class="col-12 col-md-3 d-flex align-items-center text-muted order-3 order-md-2">{{current.date}}</div>
+                                        <div class="col-1 col-md-2 d-flex align-items-center text-muted text-medium justify-content-end order-2 order-md-3">
+                                            {{current.status_info.title}}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        {% endfor %}
+
+                        
+                    </div>
+
+
+                    {% show_paginator paginator True %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+{% endblock %}

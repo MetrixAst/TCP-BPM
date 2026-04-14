@@ -1,0 +1,26 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% load site_tags %}
+
+{% block content %}
+    <div class="d-flex justify-content-center">
+        <div class="col-12 col-lg-4 mb-5">
+            <div class="mx-auto">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="card mb-5">
+                        <div class="card-body">
+
+                            <h1 class="mb-3 mt-1 pb-0 display-4">Новая заявка</h1>
+                            <h2 class="small-title">Шаг 2/2</h2>
+
+                            {% init_form form %}
+
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+    </div>
+{% endblock %}

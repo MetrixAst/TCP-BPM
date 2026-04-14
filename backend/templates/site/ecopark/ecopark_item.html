@@ -1,0 +1,244 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block content %}
+
+    <!-- Title and Top Buttons Start -->
+    <div class="page-title-container">
+        <div class="row">
+            <!-- Title Start -->
+            <div class="col-12 col-md-7">
+                <h1 class="mb-0 pb-0 display-4" id="title">Замена расходников эскалатора</h1>
+
+                <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+                    <ul class="breadcrumb pt-0">
+                        <li class="breadcrumb-item">
+                            <a href="{% url 'dashboard:dashboard' %}">Главная</a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            <a href="{% url 'ecopark:home' %}">Эксплуатация</a>
+                        </li>
+                        <li class="breadcrumb-item">Эскалатор</li>
+                    </ul>
+                </nav>
+            </div>
+            <!-- Title End -->
+            <!-- Top Buttons Start -->
+            <div class="col-12 col-md-5 d-flex align-items-start justify-content-end">
+                <!-- Contact Button Start -->
+                <button type="button" class="btn btn-outline-primary btn-icon btn-icon-start w-100 w-md-auto">
+                <i data-acorn-icon="download"></i>
+                <span>Скачать</span>
+                </button>
+                <!-- Contact Button End -->
+            </div>
+            <!-- Top Buttons End -->
+        </div>
+    </div>
+    <!-- Title and Top Buttons End -->
+    <div class="row gx-4 gy-5">
+        <!-- Left Side Start -->
+        <div class="col-12 col-xl-4 col-xxl-3">
+            <!-- Biography Start -->
+            <h2 class="small-title">Информация</h2>
+            <div class="card">
+                <div class="card-body mb-n5">
+                    <div class="d-flex align-items-center flex-column text-center">
+                        <div class="mb-5 d-flex align-items-center flex-column">
+                            <div class="text-muted">Эскалатор</div>
+                            <div class="h5 mb-2">Замена расходников эскалатора</div>
+                            <span class="badge bg-success">ВЫПОЛНЕН</span>
+                        </div>
+                    </div>
+                    <div class="mb-5">
+
+                        <div class="row g-0 align-items-center">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Дата</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center">18.07.2022 11:19</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+                        <div class="row g-0 align-items-center">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Сумма</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center">32 560</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 align-items-center">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Исполнитель</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center">ОАО Казахтелеком</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 align-items-center">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Выполнил заявку</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center">Тахиров Алихан</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 align-items-center">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Проверил</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center">Ташенова Марьям</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+            </div>
+            <!-- Biography End -->
+        </div>
+        <!-- Left Side End -->
+        <!-- Right Side Start -->
+        <div class="col-12 col-xl-8 col-xxl-9">
+            <!-- Title Tabs Start -->
+            <ul class="nav nav-tabs nav-tabs-title nav-tabs-line-title responsive-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#projectsTab" role="tab" aria-selected="true">Документ</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" data-bs-toggle="tab" href="#friendsTab" role="tab" aria-selected="false">История обслуживания</a>
+                </li>
+                <li class="nav-item dropdown ms-auto d-none responsive-tab-dropdown">
+                    <a
+                        class="btn btn-icon btn-icon-only btn-background pt-0"
+                        href="#"
+                        role="button"
+                        data-bs-toggle="dropdown"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        data-diplay="static"
+                        >
+                    <i data-acorn-icon="more-horizontal"></i>
+                    </a>
+                    <ul class="dropdown-menu mt-2 dropdown-menu-end"></ul>
+                </li>
+            </ul>
+            <!-- Title Tabs End -->
+            <div class="tab-content">
+                <!-- Projects Tab Start -->
+                <div class="tab-pane fade active show" id="projectsTab" role="tabpanel">
+                    
+                    
+                    <iframe width="100%" style="height: 100vh" src="{% static 'sample.pdf' %} " frameborder="0"></iframe>
+
+
+                </div>
+                <!-- Projects Tab End -->
+                
+                <!-- Friends Tab Start -->
+                <div class="tab-pane fade" id="friendsTab" role="tabpanel">
+                    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Наименование работ</th>
+                                <th scope="col">Дата</th>
+                                <th scope="col">Исполнитель</th>
+                                <th scope="col">Ответственный</th>
+                                <th scope="col">Сумма</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Замена расходников эскалатора</td>
+                                <th>15.07.2022 11:51</th>
+                                <td>ОАО Казахтелеком</td>
+                                <td>Ташенова Марьям</td>
+                                <td>32 560</td>
+                            </tr>
+                            <tr>
+                                <td>Замена расходников эскалатора</td>
+                                <th>15.07.2022 11:51</th>
+                                <td>ОАО Казахтелеком</td>
+                                <td>Ташенова Марьям</td>
+                                <td>32 560</td>
+                            </tr>
+                            <tr>
+                                <td>Замена расходников эскалатора</td>
+                                <th>15.07.2022 11:51</th>
+                                <td>ОАО Казахтелеком</td>
+                                <td>Ташенова Марьям</td>
+                                <td>32 560</td>
+                            </tr>
+                            <tr>
+                                <td>Замена расходников эскалатора</td>
+                                <th>15.07.2022 11:51</th>
+                                <td>ОАО Казахтелеком</td>
+                                <td>Ташенова Марьям</td>
+                                <td>32 560</td>
+                            </tr>
+                            <tr>
+                                <td>Замена расходников эскалатора</td>
+                                <th>15.07.2022 11:51</th>
+                                <td>ОАО Казахтелеком</td>
+                                <td>Ташенова Марьям</td>
+                                <td>32 560</td>
+                            </tr>
+                            <tr>
+                                <td>Замена расходников эскалатора</td>
+                                <th>15.07.2022 11:51</th>
+                                <td>ОАО Казахтелеком</td>
+                                <td>Ташенова Марьям</td>
+                                <td>32 560</td>
+                            </tr>
+                            <tr>
+                                <td>Замена расходников эскалатора</td>
+                                <th>15.07.2022 11:51</th>
+                                <td>ОАО Казахтелеком</td>
+                                <td>Ташенова Марьям</td>
+                                <td>32 560</td>
+                            </tr>
+                            
+
+
+                        </tbody>
+                    </table>
+
+                </div>
+                <!-- Friends Tab End -->
+            </div>
+        </div>
+        <!-- Right Side End -->
+    </div>
+
+{% endblock %}

@@ -1,0 +1,107 @@
+{% load static %}
+
+<iframe src="https://docs.google.com/viewer?url={{full_url}}&embedded=true" style="width:100%; height:100vh;" frameborder="0"></iframe>
+
+{% comment %} <!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{document.title}}</title>
+
+    <script src="{% static 'site/js/vendor/jquery-3.5.1.min.js' %}"></script>
+
+    <!--PDF--> 
+    <link rel="stylesheet" href="{% static 'site/js/office/pdf/pdf.viewer.css' %}"> 
+    <script src="{% static 'site/js/office/pdf/pdf.js' %}"></script> 
+    <!--Docs-->
+    <script src="{% static 'site/js/office/docx/jszip-utils.js' %}"></script>
+    <script src="{% static 'site/js/office/docx/mammoth.browser.min.js' %}"></script>
+    <!--PPTX-->
+    <link rel="stylesheet" href="{% static 'site/js/office/PPTXjs/css/pptxjs.css' %}">
+    <link rel="stylesheet" href="{% static 'site/js/office/PPTXjs/css/nv.d3.min.css' %}">
+    <!-- optional if you want to use revealjs (v1.11.0) -->
+    <link rel="stylesheet" href="{% static 'site/js/office/revealjs/reveal.css' %}">
+    <script type="text/javascript" src="{% static 'site/js/office/PPTXjs/js/filereader.js' %}"></script>
+    <script type="text/javascript" src="{% static 'site/js/office/PPTXjs/js/d3.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'site/js/office/PPTXjs/js/nv.d3.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'site/js/office/PPTXjs/js/pptxjs.js' %}"></script>
+    <script type="text/javascript" src="{% static 'site/js/office/PPTXjs/js/divs2slides.js' %}"></script>
+
+    <!--All Spreadsheet -->
+    <link rel="stylesheet" href="{% static 'site/js/office/SheetJS/handsontable.full.min.css' %}">
+    <script type="text/javascript" src="{% static 'site/js/office/SheetJS/handsontable.full.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'site/js/office/SheetJS/xlsx.full.min.js' %}"></script>
+    <!--Image viewer--> 
+    <link rel="stylesheet" href="{% static 'site/js/office/verySimpleImageViewer/css/jquery.verySimpleImageViewer.css' %}">
+    <script type="text/javascript" src="{% static 'site/js/office/verySimpleImageViewer/js/jquery.verySimpleImageViewer.js' %}"></script>
+    <!--officeToHtml-->
+    <script src="{% static 'site/js/office/officeToHtml/officeToHtml.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'site/js/office/officeToHtml/officeToHtml.css' %}">
+
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        body{
+            background: white;
+            padding: 30px;
+            font-family: sans-serif;
+        }
+        #resolte-contaniner{
+            min-height: 100vh;
+        }
+        img{
+            max-width: 100%;
+        }
+    </style>
+
+</head>
+<body>
+    <div id="resolte-contaniner"></div>
+
+
+    <script>
+        $(document).ready(function(){
+            $("#resolte-contaniner").officeToHtml({
+                url: "{{document.document.url}}",
+                pdfSetting: {
+                    thumbnailViewBtn: false,
+                    searchBtn: false,
+                    nextPreviousBtn: false,
+                    pageNumberTxt: false,
+                    totalPagesLabel: false,
+                    zoomBtns: false,
+                    scaleSelector: false,
+                    presantationModeBtn: false,
+                    openFileBtn: false,
+                    printBtn: false,
+                    downloadBtn: false,
+                    bookmarkBtn: false,
+                    secondaryToolbarBtn: false,
+                    firstPageBtn: false,
+                    lastPageBtn: false,
+                    pageRotateCwBtn: false,
+                    pageRotateCcwBtn: false,
+                    cursorSelectTextToolbarBtn: false,
+                    cursorHandToolbarBtn: false
+                },
+                docxSetting: {
+                    // setting for docx
+                },
+                pptxSetting: {
+                    // setting for pptx
+                },
+                sheetSetting: {
+                    // setting for excel
+                },
+                imageSetting: {
+                    // setting for  images
+                }
+            });  
+        });
+    </script>
+</body>
+</html> {% endcomment %}

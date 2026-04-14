@@ -1,0 +1,240 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% block content %}
+<!-- Title and Top Buttons Start -->
+<div class="page-title-container">
+    <div class="row">
+        <!-- Title Start -->
+        <div class="col-12 col-sm-6">
+            <h1 class="mb-0 pb-0 display-4" id="title">Добро пожаловать</h1>
+            <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+            </nav>
+        </div>
+        <!-- Title End -->
+    </div>
+</div>
+<!-- Title and Top Buttons End -->
+<div class="row">
+    <div class="col-12 col-xl-6">
+        <!-- Sales & Stocks Charts Start -->
+        <div class="mb-5" data-title="Fancy Charts" data-intro="Some charts over here!" data-step="1">
+            <h2 class="small-title">Показатели</h2>
+            <div class="card mb-2 h-auto sh-xl-24">
+                <div class="card-body">
+                    <div class="row g-0 h-100 chart-container">
+                        <!-- Contents for below are provided from js -->
+                        <div class="col-12 col-sm-auto d-flex flex-column justify-content-between custom-tooltip pe-0 pe-sm-4">
+                            <p class="heading title mb-1"></p>
+                            <div>
+                                <div>
+                                    <div class="cta-2 text-primary value d-inline-block align-middle sw-4"></div>
+                                    <i class="icon d-inline-block align-middle text-primary" data-acorn-size="15"></i>
+                                </div>
+                                <div class="text-small text-muted mb-1 text"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-auto">
+                                    <div class="cta-3 text-alternate">84</div>
+                                    <div class="text-small text-muted mb-1">Эта неделя</div>
+                                </div>
+                                <div class="col">
+                                    <div class="cta-3 text-alternate">792</div>
+                                    <div class="text-small text-muted mb-1">Этот месяц</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm sh-17">
+                            <canvas id="largeLineChart1"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card h-auto sh-xl-24">
+                <div class="card-body">
+                    <div class="row g-0 h-100 chart-container">
+                        <!-- Contents for below are provided from js -->
+                        <div class="col-12 col-sm-auto d-flex flex-column justify-content-between custom-tooltip pe-0 pe-sm-4">
+                            <p class="heading title"></p>
+                            <div>
+                                <div>
+                                    <div class="cta-2 text-primary value d-inline-block align-middle sw-4"></div>
+                                    <i class="icon d-inline-block align-middle text-primary" data-acorn-size="15"></i>
+                                </div>
+                                <div class="text-small text-muted mb-1 text"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-auto">
+                                    <div class="cta-3 text-alternate">84</div>
+                                    <div class="text-small text-muted mb-1">Эта неделя</div>
+                                </div>
+                                <div class="col">
+                                    <div class="cta-3 text-alternate">792</div>
+                                    <div class="text-small text-muted mb-1">Этот месяц</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm sh-17">
+                            <canvas id="largeLineChart2"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Sales & Stocks Charts End -->
+        <!-- Stats Start -->
+        <h2 class="small-title">Задачи</h2>
+        <div class="row gx-2">
+            <div class="col-12 p-0">
+                <div class="glide glide-small" id="statsCarousel">
+                    <div class="glide__track" data-glide-el="track">
+                        <div class="glide__slides">
+                            
+                            {% for current in task_statistic %}
+                                <a href="{% url "tasks:by_type" current.slug %}" class="glide__slide mobile_link" attr-title="{{current.title}}">
+                                    <div class="card mb-5 sh-20 hover-border-primary">
+                                        <div class="h-100 p-4 text-center align-items-center d-flex flex-column justify-content-between">
+                                            <div class="d-flex flex-column justify-content-center align-items-center sh-5 sw-5 rounded-xl bg-gradient-light mb-2">
+                                                <i data-acorn-icon="{{current.icon}}" class="text-white"></i>
+                                            </div>
+                                            <p class="mb-0 lh-1">{{current.title}}</p>
+                                            <p class="cta-3 mb-0 text-primary">{{current.count}}</p>
+                                        </div>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Stats Start -->
+    </div>
+    
+    {% if documents %}
+        <!-- Products Start -->
+        <div class="col-12 col-xl-6 mb-5">
+            <div class="d-flex justify-content-between">
+                <h2 class="small-title">Документы</h2>
+            </div>
+            <div class="scroll-out">
+                <div class="scroll-by-count" data-count="6">
+                    
+                    {% for current in documents %}
+                        <div class="card mb-2" data-title="Product Card" data-intro="Here is a product card with buttons!" data-step="2">
+                            <div class="row g-0 sh-12">
+                                <div class="col">
+                                    <div class="card-body pt-0 pb-0 h-100">
+                                        <div class="row g-0 h-100 align-content-center">
+                                            <div class="col-12 col-md-7 d-flex flex-column mb-2 mb-md-0 position-static">
+                                                <a href="{% url 'documents:document' current.id %}" class="mobile_link">{{current.number}}</a>
+                                                <div class="text-small text-muted text-truncate">{{current.title}}</div>
+                                            </div>
+                                            <div class="col-12 col-md-5 d-flex align-items-center justify-content-md-end float_mobile">
+                                                <button class="default_cursor d-lg-inline-block btn btn-sm btn-icon btn-icon-start btn-{{current.status_info.color}} ms-1" type="button">
+                                                    <span class="">{{current.status_info.title}}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+
+                </div>
+            </div>
+        </div>
+        <!-- Products End -->
+    {% endif %}
+
+</div>
+<div class="row">
+    
+    {% if notifications %}
+        <!-- Logs Start -->
+        <div class="col-lg-6 mb-5">
+            <h2 class="small-title">Уведомления</h2>
+            <div class="card sh-40 h-lg-100-card">
+                <div class="card-body mb-n2 scroll-out h-100">
+                    <div class="scroll h-100">
+                        
+                        {% for current in notifications %}
+                            <div class="row g-0 mb-2">
+                                <div class="col-auto">
+                                    <div class="sw-3 d-inline-block d-flex justify-content-start align-items-center h-100">
+                                        <div class="sh-3">
+                                            <i data-acorn-icon="message" class="text-primary align-top"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="card-body d-flex flex-column pt-0 pb-0 ps-3 pe-4 h-100 justify-content-center">
+                                        {% if current.url %}
+                                            <a href="{{current.url}}" class="mobile_link" attr-title="{{current.title}}">
+                                                <div class="d-flex flex-column">
+                                                    <div class="text-primary">{{current.title}}</div>
+                                                    <div class="text-small text-muted">{{current.text}}</div>
+                                                </div>
+                                            </a>
+                                        {% else %}
+                                            <div>
+                                                <div class="d-flex flex-column">
+                                                    <div class="text-alternate">{{current.title}}</div>
+                                                    <div class="text-small text-muted">{{current.text}}</div>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <div class="d-inline-block d-flex justify-content-end align-items-center h-100">
+                                        <div class="text-muted ms-2 mt-n1 lh-1-25">{{current.created_date}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="text-center text-primary">Список уведомлении пуст</div>
+                        {% endfor %}
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Logs End -->
+    {% endif %}
+
+    <!-- Categories Start -->
+    <div class="col-lg-6 mb-5">
+        <div class="d-flex justify-content-between">
+            <h2 class="small-title">Часто посещаемые</h2>
+        </div>
+        <div class="row g-2">
+
+            {% for current in menu %}
+                {% if not current.submenu %}
+                    <div class="col-6 col-xl-4" >
+                        <div class="card h-100 hover-scale-up">
+                            <a class="card-body text-center" href="{{current.url}}">
+                                <i data-acorn-icon="{{current.icon}}" class="text-primary"></i>
+                                <p class="heading mt-3 text-body">{{current.title}}</p>
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            
+        </div>
+    </div>
+    <!-- Categories End -->
+</div>
+
+
+{% endblock content %}
+
+
+{% block scripts %}
+    <script src="{% static 'site/js/cs/glide.custom.js' %}"></script>
+    <script src="{% static 'site/js/cs/charts.extend.js' %}"></script>
+    <script src="{% static 'site/js/pages/dashboard.default.js' %}"></script>
+{% endblock scripts %}

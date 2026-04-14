@@ -1,0 +1,338 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% load site_tags %}
+
+{% block content %}
+
+    <!-- Title and Top Buttons Start -->
+    <div class="page-title-container">
+        <div class="row">
+            <!-- Title Start -->
+            <div class="col-12 col-md-7">
+                <h1 class="mb-0 pb-0 display-4" id="title">{{document.number}}</h1>
+                <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+                    <ul class="breadcrumb pt-0">
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'documents:list' type_config.id %}">{{type_config.title}}</a></li>
+                        <li class="breadcrumb-item">{{document.number}}</li>
+                    </ul>
+                </nav>
+            </div>
+            <!-- Title End -->
+            <!-- Top Buttons Start -->
+            <div class="col-12 col-md-5 d-flex align-items-start justify-content-end">
+                <!-- Contact Button Start -->
+                <a target="_blank" href="{{document.document.url}}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start w-100 w-md-auto" id="mobile_button" data-icon="download">
+                    <i data-acorn-icon="download"></i>
+                    <span>Скачать</span>
+                </a>
+                <!-- Contact Button End -->
+            </div>
+            <!-- Top Buttons End -->
+        </div>
+    </div>
+    <!-- Title and Top Buttons End -->
+    <div class="row gx-4 gy-5 indicator_item_opened" data-type="{{document.document_type}}" data-id="{{document.id}}">
+        <!-- Left Side Start -->
+        <div class="col-12 col-xl-4 col-xxl-3">
+            <!-- Biography Start -->
+            <h2 class="small-title">Информация</h2>
+            <div class="card">
+                <div class="card-body mb-n5">
+                    <div class="d-flex align-items-center flex-column mb-3 text-center">
+                        <div class="mb-3 d-flex align-items-center flex-column">
+                            <div class="h5 mb-2">{{document.title}}</div>
+                            <span class="badge bg-{{document.status_info.color}}">{{document.status_info.title}}</span>
+                        </div>
+                        <div class="flex-row justify-content-between w-100">
+                            {% if actions %}
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#actionModal">Выполнить действие</button>
+                                <div class="modal fade" id="actionModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelDefault" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <form method="POST" action="{% url 'documents:document_action' document.id %}" class="modal-content">
+                                            {% csrf_token %}
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="exampleModalLabelDefault">Задать статус</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+
+                                            <div class="modal-body text-start">
+
+                                                <select class="select2" name="action" data-placeholder="Действие">
+                                                    <option label="&nbsp;"></option>
+                                                    {% for current in actions %}
+                                                        <option value="{{current.action}}">{{current.title}}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                
+                                                <div class="mt-3 filled">
+                                                    <textarea placeholder="Комментарии" class="form-control" name="text" rows="2"></textarea>
+                                                    <i data-acorn-icon="notebook-1"></i>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-outline-muted" data-bs-dismiss="modal">Закрыть</button>
+                                                <button type="submit" class="btn btn-primary">Отправить</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            {% comment %} {% for current in actions %}
+                                <a href="{% url 'documents:document_action' document.id current.action %}" class="btn btn-{{current.color}} w-100 mb-2" data-type="{{current.action}}">{{current.title}}</a>
+                            {% endfor %} {% endcomment %}
+                        </div>
+                    </div>
+                    {% if document.text %}
+                        <div class="mb-5">
+                            <p class="text-small text-muted mb-2">ОПИСАНИЕ</p>
+                            <p>{{document.text}}</p>
+                        </div>
+                    {% endif %}
+                    <div class="mb-5">
+
+                        <div class="row g-0 align-items-center mb-2">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Дата добавления</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center justify-content-end">{{document.date}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 align-items-center mb-2">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Срок</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center justify-content-end">{{document.end_date}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 align-items-center mb-2">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Дата регистрации</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center justify-content-end">{{document.reg_date}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="row g-0 align-items-center mb-2">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Инициатор</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center justify-content-end">{{document.author.get_name}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if document.supplier %}
+                            <div class="row g-0 align-items-center mb-2">
+                                <div class="col">
+                                    <div class="row g-0">
+                                        <div class="col">
+                                            <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Контрагент</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="sh-5 d-flex align-items-center justify-content-end">{{document.supplier.name}}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <div class="row g-0 align-items-center mb-2">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Наблюдатель</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        {% for current in document.observers.all %}
+                                            <div class="sh-5 d-flex align-items-center justify-content-end">{{current.get_name}}</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 align-items-center mb-2">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center text-muted">Участники</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        {% for current in document.coordinators.all %}
+                                            <div class="sh-5 d-flex align-items-center justify-content-end">{{current.get_name}}</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+            </div>
+            <!-- Biography End -->
+        </div>
+        <!-- Left Side End -->
+        <!-- Right Side Start -->
+        <div class="col-12 col-xl-8 col-xxl-9">
+            <!-- Title Tabs Start -->
+            <ul class="nav nav-tabs nav-tabs-title nav-tabs-line-title responsive-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#projectsTab" role="tab" aria-selected="true">Документ</a>
+                </li>
+                {% if document.folder.multiple_files %}
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link" data-bs-toggle="tab" href="#addit" role="tab" aria-selected="true">Дополнительные документы</a>
+                    </li>
+                {% endif %}
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" data-bs-toggle="tab" href="#collectionsTab" role="tab" aria-selected="false">Обсуждения</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" data-bs-toggle="tab" href="#friendsTab" role="tab" aria-selected="false">Лист согласования</a>
+                </li>
+                <li class="nav-item dropdown ms-auto d-none responsive-tab-dropdown">
+                    <a
+                        class="btn btn-icon btn-icon-only btn-background pt-0"
+                        href="#"
+                        role="button"
+                        data-bs-toggle="dropdown"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        data-diplay="static"
+                        >
+                    <i data-acorn-icon="more-horizontal"></i>
+                    </a>
+                    <ul class="dropdown-menu mt-2 dropdown-menu-end"></ul>
+                </li>
+            </ul>
+            <!-- Title Tabs End -->
+            <div class="tab-content">
+                <!-- Projects Tab Start -->
+                <div class="tab-pane fade active show" id="projectsTab" role="tabpanel">
+
+                    {% document_frame request document %}
+
+                </div>
+
+                {% if document.folder.multiple_files %}
+                    <div class="tab-pane fade" id="addit" role="tabpanel">
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <p class="heading title mb-1">Загрузить документ</p>
+                                <form action="{% url 'documents:upload_addit' document.id %}" method="POST" class="grid_outer" id="addit_form" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    
+                                    <div class="grid_child">
+                                        {{addit_form.title}}
+                                    </div>
+        
+                                    <div class="grid_child">
+                                        {{addit_form.document}}
+                                    </div>
+                                
+                                    <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
+                                        <span>Загрузить</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        {% for addit in document.inner_documents.all %}
+
+                            <div class="card mb-2">
+                                <div class="card-body h-100">
+                                    <div class="row g-0 h-100 align-content-center">
+
+                                        <div class="d-flex flex-column flex-sm-row pt-0 pb-0 pe-0 h-100 align-items-sm-center justify-content-sm-between">
+                                            <div class="d-flex flex-column mb-2 mb-sm-0">
+                                                <div>{{addit.title}}</div>
+                                                <div class="text-small text-muted">{{addit.author}}</div>
+                                            </div>
+                                            <div class="d-flex">
+                                                <a href="{% url 'documents:addit_document_frame' addit.id %}" target="_blank" class="btn btn-outline-secondary btn-sm" type="button">Смотреть</a>
+                                                <a href="{{addit.document.url}}" target="_blank" class="btn btn-sm btn-icon btn-icon-only btn-outline-secondary ms-1" type="button">
+                                                    <i data-acorn-icon="download"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+
+                    </div>
+                {% endif %}
+                <!-- Projects Tab End -->
+                <!-- Collections Tab Start -->
+                <div class="tab-pane fade" id="collectionsTab" role="tabpanel">
+                    
+                    {% load_comments 'document' document.id %}
+                
+                </div>
+                <!-- Collections Tab End -->
+                <!-- Friends Tab Start -->
+                <div class="tab-pane fade" id="friendsTab" role="tabpanel">
+                    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Дата</th>
+                                <th scope="col">Пользователь</th>
+                                <th scope="col">Статус</th>
+                                <th scope="col">Комментарии</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                            {% for current in document.history.all %}
+                                <tr>
+                                    <td>{{current.date}}</td>
+                                    <td>{{current.user.get_name}}</td>
+                                    <td>{{current.title}}</td>
+                                    <td class="text-info">
+                                        {% if current.text %}
+                                            {{current.text}}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+
+                        </tbody>
+                    </table>
+
+                </div>
+                <!-- Friends Tab End -->
+            </div>
+        </div>
+        <!-- Right Side End -->
+    </div>
+
+{% endblock %}

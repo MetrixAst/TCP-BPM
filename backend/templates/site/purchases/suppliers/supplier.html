@@ -1,0 +1,120 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block content %}
+
+    <!-- Title and Top Buttons Start -->
+    <div class="page-title-container">
+        <div class="row">
+            <!-- Title Start -->
+            <div class="col-12 col-md-7">
+                <h1 class="mb-0 pb-0 display-4" id="title">{{supplier.name}}</h1>
+                <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+                    <ul class="breadcrumb pt-0">
+                        <li class="breadcrumb-item">
+                            <a href="{% url 'dashboard:dashboard' %}">Главная</a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            <a href="{% url 'purchases:suppliers' %}">Контрагенты</a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            <a>{{supplier.name}}</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+            <!-- Title End -->
+        </div>
+    </div>
+    <!-- Title and Top Buttons End -->
+    <div class="row gx-4 gy-5">
+        <!-- Left Side Start -->
+        <div class="col-12 col-xl-4 col-xxl-3">
+            <!-- Biography Start -->
+            <h2 class="small-title">Информация</h2>
+            <div class="card">
+                <div class="card-body mb-n5">
+                    <div class="d-flex align-items-center flex-column mb-5 text-center">
+                        <div class="mb-5 d-flex align-items-center flex-column">
+                            <div class="h5 mb-2">{{supplier.name}}</div>
+                            <span class="badge bg-{{supplier.status_color}}">{{supplier.get_status_display}}</span>
+                        </div>
+                        <div class="d-flex flex-row justify-content-between w-100 w-sm-50 w-xl-100">
+                            <a href="{% url 'purchases:edit_supplier' supplier.id %}" type="button" class="btn btn-primary w-100 me-2 mobile_link" attr-title="{{supplier.name}}">Редактировать</a>
+                        </div>
+                    </div>
+                    <div class="mb-5">
+
+                        <div class="row g-0 align-items-center mb-2">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Дата добавления</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center">{{supplier.created_at}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 align-items-center mb-2">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Дата обновления</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center">{{supplier.updated_at}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 align-items-center mb-2">
+                            <div class="col">
+                                <div class="row g-0">
+                                    <div class="col">
+                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Добавил</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="sh-5 d-flex align-items-center">{{supplier.author.get_name}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                </div>
+            </div>
+            <!-- Biography End -->
+        </div>
+        <!-- Left Side End -->
+        <!-- Right Side Start -->
+        <div class="col-12 col-xl-8 col-xxl-9">
+            <h2 class="small-title">Детали</h2>
+            <div class="card">
+                <div class="card-body row">
+
+                    {% for title, value in info.items %}
+                        {% if value %}
+                            <div class="col-12 col-xxl-6 mb-2">
+                                <div class="title_with_value">
+                                    <span>{{title}}</span>
+                                    <span>{{value}}</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    
+                    
+                </div>
+            </div>
+        </div>
+        <!-- Right Side End -->
+    </div>
+
+{% endblock %}

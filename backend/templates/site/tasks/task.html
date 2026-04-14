@@ -1,0 +1,198 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% load site_tags %}
+
+{% block content %}
+    <!-- Title and Top Buttons Start -->
+    <div class="page-title-container">
+        <div class="row g-0">
+            <div class="col-auto mb-2 mb-md-0 me-auto">
+                <div class="w-auto sw-md-25">
+                    <h1 class="mb-0 pb-0 display-4" id="title">Задача</h1>
+                    <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+                      <ul class="breadcrumb pt-0">
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'tasks:list' %}">Задачи</a></li>
+                        <li class="breadcrumb-item">{{task.title}}</li>
+                      </ul>
+                    </nav>
+                </div>
+            </div>
+            <div class="col-12 col-md d-flex align-items-start justify-content-end justify-content-lg-end">
+                <a href="{% url 'tasks:edit' task.id %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1" id="mobile_button" data-icon="edit">
+                  <i data-acorn-icon="edit"></i>
+                  <span>Редактировать</span>
+                </a>
+            </div>
+        </div>
+    </div>
+      <!-- Title and Top Buttons End -->
+
+      <div class="row indicator_item_opened" data-type="task" data-id="{{task.id}}">
+        <div class="col-12 col-xl-8 col-xxl-9 mb-5">
+          <div class="card mb-5">
+
+            <!-- Details Start -->
+            <div class="card-body">
+              {% if task.important %}
+                  <span class="badge bg-danger text-uppercase mb-3">Важная задача</span>
+              {% endif %}
+              <h4 class="mb-3">{{task.title}}</h4>
+              {% if task.text %}
+                <div class="mb-4">
+                  <p class="pre">{{task.text}}</p>
+                </div>
+              {% endif %}
+              <div class="row align-items-center">
+                <!-- Comments and Likes Start -->
+                <div class="col-6 text-muted">
+                  <div class="row g-3">
+                    <div class="col-auto">
+                      <i data-acorn-icon="eye" class="text-primary me-1" data-acorn-size="15"></i>
+                      <span class="align-middle">{{task.views}}</span>
+                    </div>
+                    <div class="col-auto">
+                      <i data-acorn-icon="message" class="text-primary me-1" data-acorn-size="15"></i>
+                      <span class="align-middle total_comments">0</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- Comments and Likes End -->
+
+              </div>
+            </div>
+            <!-- Details End -->
+          </div>
+
+          <!-- Comments Start -->
+          <h2 class="small-title">Комментарии</h2>
+          
+          {% load_comments 'task' task.id %}
+          <!-- Comments End -->
+        </div>
+
+        <!-- Right Side Start -->
+        <div class="col-12 col-xl-4 col-xxl-3">
+            
+          <div class="row">
+            <!-- Hire Start -->
+            <div class="col-12">
+              <div class="card mb-5">
+                <div class="card-body row g-0">
+                  <div class="col-12">
+                    <div class="cta-3">Срок задачи: {{task.deadline}}</div>
+                    <div class="mb-0 cta-3 text-{{status_info.color}}">{{status_info.title}}</div>
+                    <div class="d-grid gap-2 mt-3">
+                        {% for current in actions %}
+                          <a href="{% url 'tasks:task_action' task.id current.action %}" class="btn btn-{{current.color}}" type="button" data-type="{{current.action}}">{{current.title}}</a>
+                        {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Hire End -->
+
+            
+
+            
+            <!-- Hire Start -->
+            <div class="col-12">
+                <h2 class="small-title">Ответственные</h2>
+                <div class="card mb-5">
+                  <div class="card-body row g-0">
+                    <div class="col-12">
+
+                      {% for current in task.responsible.all %}
+                        <div class="row g-0 sh-6 {% if not forloop.first %}mt-3{% endif %}">
+                          <div class="col-auto">
+                            <img src="{{current.get_avatar_url}}" class="card-img rounded-xl sh-6 sw-6" alt="thumb" />
+                          </div>
+                          <div class="col">
+                            <div class="card-body d-flex flex-row pt-0 pb-0 ps-3 pe-0 h-100 align-items-center justify-content-between">
+                              <div class="d-flex flex-column">
+                                <div>{{current}}</div>
+                                <div class="text-small text-muted">{{current.employee_info.job_title}}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      {% endfor %}
+
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Hire End -->
+
+
+              <!-- Hire Start -->
+                <div class="col-12">
+                    <h2 class="small-title">Наблюдатели</h2>
+                    <div class="card mb-5">
+                        <div class="card-body row g-0">
+                            <div class="col-12">
+        
+                            {% for current in task.observers.all %}
+                              <div class="row g-0 sh-6 {% if not forloop.first %}mt-3{% endif %}">
+                                <div class="col-auto">
+                                  <img src="{{current.get_avatar_url}}" class="card-img rounded-xl sh-6 sw-6" alt="thumb" />
+                                </div>
+                                <div class="col">
+                                  <div class="card-body d-flex flex-row pt-0 pb-0 ps-3 pe-0 h-100 align-items-center justify-content-between">
+                                    <div class="d-flex flex-column">
+                                      <div>{{current}}</div>
+                                      <div class="text-small text-muted">{{current.employee_info.job_title}}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            {% endfor %}
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+              <!-- Hire End -->
+
+
+                <!-- Logs Start -->
+                <div class="col-lg-12 mb-5">
+                    <h2 class="small-title">Активность</h2>
+                    <div class="card sh-40 h-lg-100-card">
+                        <div class="card-body mb-n2">
+
+                          {% for current in task.history.all %}
+                            <div class="row g-0 mb-2">
+                              <div class="col-auto">
+                                  <div class="sw-3 d-inline-block d-flex justify-content-start align-items-center h-100">
+                                      <div class="sh-3">
+                                          <i data-acorn-icon="triangle" class="text-primary align-top"></i>
+                                      </div>
+                                  </div>
+                              </div>
+                              <div class="col">
+                                  <div class="card-body d-flex flex-column pt-0 pb-0 ps-3 pe-4 h-100 justify-content-center">
+                                      <div class="d-flex flex-column">
+                                          <div class="text-alternate mt-n1 lh-1-25">{{current.title}}</div>
+                                      </div>
+                                  </div>
+                              </div>
+                              <div class="col-auto">
+                                  <div class="d-inline-block d-flex justify-content-end align-items-center h-100">
+                                      <div class="text-muted ms-2 mt-n1 lh-1-25">{{current.date|date:"d.m.Y H:m"}}</div>
+                                  </div>
+                              </div>
+                          </div>
+                          {% endfor %}
+
+
+                        </div>
+                    </div>
+                </div>
+                <!-- Logs End -->
+          </div>
+        </div>
+        <!-- Right Side End -->
+      </div>
+{% endblock %}

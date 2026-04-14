@@ -1,0 +1,100 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block content %}
+    <div class="d-flex justify-content-center">
+        <div class="col-xl-6 mb-5">
+            <div class="mx-auto">
+                <form method="POST" action="{% url 'documents:list' 'documents' %}">
+                    {% csrf_token %}
+                    <div class="card mb-5">
+                        <div class="card-body">
+
+                            <h1 class="mb-3 mt-1 pb-0 display-4">Новая запись</h1>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="d-block form-label">Наименование работ</label>
+                                    <input class="form-control" name="title" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="d-block form-label">Объект</label>
+                                    <div class="w-100">
+                                        <select class="custom_select" data-search="1">
+                                            <option label="&nbsp;"></option>
+                                            <option value="true">Эскалатор</option>
+                                            <option value="false">1 этаж электроника</option>
+                                            <option value="false">Трубы на 4 этаже</option>
+                                            <option value="false">Сантехника</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="d-block form-label">Документ</label>
+                                    <div class="input-group">
+                                        <input type="file" class="form-control" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="d-block form-label">Исполнитель</label>
+                                    <div class="w-100">
+                                        <select class="custom_select" data-search="1">
+                                            <option label="&nbsp;"></option>
+                                            <option value="true">ТОО Рога и копыта</option>
+                                            <option value="false">ИП Асылбеков</option>
+                                            <option value="false">ИП Калиева</option>
+                                            <option value="false">ОАО Казахтелеком</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="d-block form-label">Направить</label>
+                                    <input id="usersListTags" class="users-list-container" />
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="w-100">
+                                        <label class="form-label">Статус</label>
+                                        <select class="custom_select">
+                                            <option label="&nbsp;"></option>
+                                            <option value="true">В процессе</option>
+                                            <option value="false">Выполнен</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end mt-3">
+                                <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
+                                    <span>Сохранить</span>
+                                    <i data-acorn-icon="chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{% static 'site/js/vendor/quill.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/quill.active.js' %}"></script>
+    <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/tagify.min.js' %}"></script>
+
+
+    <script src="{% static 'site/js/forms/controls.editor.js' %}"></script>
+    <script src="{% static 'site/js/forms/controls.datepicker.js' %}"></script>
+    <script src="{% static 'site/js/forms/controls.tag.js' %}"></script>
+    <script src="{% static 'site/js/forms/controls.select2.js' %}"></script>
+
+{% endblock scripts %}

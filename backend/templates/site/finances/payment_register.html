@@ -1,0 +1,286 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block content %}
+
+    <!-- Title and Top Buttons Start -->
+    <div class="page-title-container">
+        <div class="row">
+            <!-- Title Start -->
+            <div class="col-12 col-sm-6">
+                <h1 class="mb-0 pb-0 display-4" id="title">Реестр оплат</h1>
+                <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+                    <ul class="breadcrumb pt-0">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная страница</a></li>
+                    <li class="breadcrumb-item">Финансы</li>
+                    </ul>
+                </nav>
+            </div>
+            <!-- Title End -->
+
+        </div>
+    </div>
+    <!-- Title and Top Buttons End -->
+
+
+    <div class="">
+        <form class="row mb-3">
+            {% csrf_token %}
+            <div class="col-md-4 mb-2">
+                <div class="input-daterange input-group" id="datePickerRange">
+                    <input type="text" class="form-control" name="start" placeholder="От" />
+                    <span class="mx-2"></span>
+                    <input type="text" class="form-control" name="end" placeholder="До" />
+                </div>
+            </div>
+            <div class="col-md-3 mb-2">
+                <div class="w-100">
+                    <select class="custom_select" placeholder="Контрагент" data-search="1">
+                        <option label="&nbsp;"></option>
+                        <option value="1">ТОО Рога и копыта</option>
+                        <option value="2">ИП Баймуханов</option>
+                        <option value="3">ТОО ТиОиОи</option>
+                        <option value="3">ОАО БанкАстаны</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3 mb-2">
+                <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
+                    <span>Сформировать</span>
+                </button>
+            </div>
+        </form>
+
+        
+        <div class="nested_table first_big">
+
+            <div class="outer">
+
+                <div class="tr th">
+                    <p>Название/регион</p>
+                    <p>Долг начальный остаток</p>
+                    <p>Увелечение долга</p>
+                    <p>Уменьшение долга</p>
+                    <p>Долг конечный остаток</p>
+                </div>
+
+                
+                    
+                <div class="tr">
+                    <p data-title="Партнер"><span class="toggle" data-target="AzatAktau"></span>ТОО Рога и копыта</p>
+                    <p data-title="Долг начальный остаток">350 542,33</p>
+                    <p data-title="Увелечение долга">544 232,34</p>
+                    <p data-title="Уменьшение долга">244 232,43</p>
+                    <p data-title="Долг конечный остаток">344 232,11</p>
+                </div>
+
+                <div class="outer" id="AzatAktau">
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000627 от 27.12.2022 16:34:21</p>
+                        <p data-title="Долг начальный остаток">10 834 789,34</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">32 286,02</p>
+                        <p data-title="Долг конечный остаток">10 802 503,32</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000254 от 13.12.2022 16:01:59</p>
+                        <p data-title="Долг начальный остаток">11 072 230,44</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">28 029,5</p>
+                        <p data-title="Долг конечный остаток">11 044 200,94</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000114 от 06.12.2022 16:43:02</p>
+                        <p data-title="Долг начальный остаток">11 046 251,47</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">25 236,59</p>
+                        <p data-title="Долг конечный остаток">11 021 014,88</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000404 от 20.12.2022 11:15:30</p>
+                        <p data-title="Долг начальный остаток">10 825 760,53</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">19 189,77</p>
+                        <p data-title="Долг конечный остаток">10 806 570,76</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000628 от 27.12.2022 16:34:40</p>
+                        <p data-title="Долг начальный остаток">10 802 503,32</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">7 600</p>
+                        <p data-title="Долг конечный остаток">10 794 903,32</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000255 от 13.12.2022 16:02:14</p>
+                        <p data-title="Долг начальный остаток">11 044 200,94</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">6 120</p>
+                        <p data-title="Долг конечный остаток">11 038 080,94</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000013 от 04.01.2023 23:59:59</p>
+                        <p data-title="Долг начальный остаток">10 140 378,4</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">1 487,78</p>
+                        <p data-title="Долг конечный остаток">10 138 890,62</p>
+                    </div>
+                </div>
+
+
+
+
+                <div class="tr">
+                    <p data-title="Партнер"><span class="toggle" data-target="123"></span>ТОО Рога и копыта</p>
+                    <p data-title="Долг начальный остаток">350 542,33</p>
+                    <p data-title="Увелечение долга">544 232,34</p>
+                    <p data-title="Уменьшение долга">244 232,43</p>
+                    <p data-title="Долг конечный остаток">344 232,11</p>
+                </div>
+
+                <div class="outer" id="123">
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000627 от 27.12.2022 16:34:21</p>
+                        <p data-title="Долг начальный остаток">10 834 789,34</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">32 286,02</p>
+                        <p data-title="Долг конечный остаток">10 802 503,32</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000254 от 13.12.2022 16:01:59</p>
+                        <p data-title="Долг начальный остаток">11 072 230,44</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">28 029,5</p>
+                        <p data-title="Долг конечный остаток">11 044 200,94</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000114 от 06.12.2022 16:43:02</p>
+                        <p data-title="Долг начальный остаток">11 046 251,47</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">25 236,59</p>
+                        <p data-title="Долг конечный остаток">11 021 014,88</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000404 от 20.12.2022 11:15:30</p>
+                        <p data-title="Долг начальный остаток">10 825 760,53</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">19 189,77</p>
+                        <p data-title="Долг конечный остаток">10 806 570,76</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000628 от 27.12.2022 16:34:40</p>
+                        <p data-title="Долг начальный остаток">10 802 503,32</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">7 600</p>
+                        <p data-title="Долг конечный остаток">10 794 903,32</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000255 от 13.12.2022 16:02:14</p>
+                        <p data-title="Долг начальный остаток">11 044 200,94</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">6 120</p>
+                        <p data-title="Долг конечный остаток">11 038 080,94</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000013 от 04.01.2023 23:59:59</p>
+                        <p data-title="Долг начальный остаток">10 140 378,4</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">1 487,78</p>
+                        <p data-title="Долг конечный остаток">10 138 890,62</p>
+                    </div>
+                </div>
+
+
+                <div class="tr">
+                    <p data-title="Партнер"><span class="toggle" data-target="444"></span>ТОО Рога и копыта</p>
+                    <p data-title="Долг начальный остаток">350 542,33</p>
+                    <p data-title="Увелечение долга">544 232,34</p>
+                    <p data-title="Уменьшение долга">244 232,43</p>
+                    <p data-title="Долг конечный остаток">344 232,11</p>
+                </div>
+
+                <div class="outer" id="444">
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000627 от 27.12.2022 16:34:21</p>
+                        <p data-title="Долг начальный остаток">10 834 789,34</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">32 286,02</p>
+                        <p data-title="Долг конечный остаток">10 802 503,32</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000254 от 13.12.2022 16:01:59</p>
+                        <p data-title="Долг начальный остаток">11 072 230,44</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">28 029,5</p>
+                        <p data-title="Долг конечный остаток">11 044 200,94</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000114 от 06.12.2022 16:43:02</p>
+                        <p data-title="Долг начальный остаток">11 046 251,47</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">25 236,59</p>
+                        <p data-title="Долг конечный остаток">11 021 014,88</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000404 от 20.12.2022 11:15:30</p>
+                        <p data-title="Долг начальный остаток">10 825 760,53</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">19 189,77</p>
+                        <p data-title="Долг конечный остаток">10 806 570,76</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000628 от 27.12.2022 16:34:40</p>
+                        <p data-title="Долг начальный остаток">10 802 503,32</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">7 600</p>
+                        <p data-title="Долг конечный остаток">10 794 903,32</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000255 от 13.12.2022 16:02:14</p>
+                        <p data-title="Долг начальный остаток">11 044 200,94</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">6 120</p>
+                        <p data-title="Долг конечный остаток">11 038 080,94</p>
+                    </div>
+                
+                    <div class="tr">
+                        <p data-title="Документ">Приходный кассовый ордер 00ЦБ-000013 от 04.01.2023 23:59:59</p>
+                        <p data-title="Долг начальный остаток">10 140 378,4</p>
+                        <p data-title="Увелечение долга">0</p>
+                        <p data-title="Уменьшение долга">1 487,78</p>
+                        <p data-title="Долг конечный остаток">10 138 890,62</p>
+                    </div>
+                </div>
+                
+                
+
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block scripts %}
+    <script src="{% static 'site/js/forms/controls.select2.js' %}"></script>
+
+    <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
+    <script src="{% static 'site/js/forms/controls.datepicker.js' %}"></script>
+{% endblock scripts %}
