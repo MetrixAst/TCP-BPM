@@ -46,3 +46,8 @@ htmlcov/
 # Celery
 celerybeat-schedule
 celerybeat.pid
+
+# Local planning docs
+DEVELOPMENT_PLAN.md
+DEVELOPMENT_PLAN_A.md
+DEVELOPMENT_PLAN_B.md
