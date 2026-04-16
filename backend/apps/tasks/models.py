@@ -4,12 +4,13 @@ from django.http import Http404
 
 from account.models import UserAccount, Notification
 from project.utils import get_or_error, get_or_none
-from .enums import TaskStatusEnum
+from .enums import TaskStatusEnum, PriorityEnum
 
 
 class Task(models.Model):
 
     STATUSES = TaskStatusEnum.list()
+    PRIORITIES = PriorityEnum.list()
     
     author = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, related_name="created_tasks", verbose_name="Автор", null=True, blank=True)
     responsible = models.ManyToManyField(UserAccount, related_name="responsible_tasks", verbose_name="Ответсвенные")
@@ -22,7 +23,7 @@ class Task(models.Model):
     title = models.CharField("Заголовок", max_length=120)
     text = models.TextField("Текст", max_length=2000, null=True, blank=True)
 
-    important = models.BooleanField("Важная задача", default=False, blank=True)
+    priority = models.SlugField("Приоритет", choices=PRIORITIES, default='medium')
     views = models.IntegerField("Просмотры", default=0)
 
 

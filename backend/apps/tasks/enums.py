@@ -129,3 +129,10 @@ class TaskStatusEnum(CustomEnum):
         }
 
         return res.get(status, None)
+
+
+class PriorityEnum(CustomEnum):
+    LOW = ("low", "Низкий")
+    MEDIUM = ("medium", "Средний")
+    HIGH = ("high", "Высокий")
+    CRITICAL = ("critical", "Критический")
