@@ -28,4 +28,25 @@ class CalendarItem(models.Model):
     @property
     def end(self):
         return self.end_date
+
+
+class Company(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Название")
+    bin_number = models.CharField(
+        max_length=12, 
+        unique=True, 
+        verbose_name="БИН"
+    )
+
+    address = models.TextField(blank=True, null=True, verbose_name="Адрес")
+    phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Телефон")
+    email = models.EmailField(blank=True, null=True, verbose_name="Email")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Компания"
+        verbose_name_plural = "Компании"
     
