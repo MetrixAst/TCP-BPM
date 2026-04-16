@@ -12,6 +12,7 @@ from project.utils import PathAndRename, get_random_string
 from .role_permissions import RoleEnums
 from .tasks import send_notifications_task
 
+
 class UserAccount(AbstractUser):
 
     ROLES = [
@@ -76,11 +77,26 @@ class UserAccount(AbstractUser):
         return user
     
 
-
-
-
 class Department(MPTTModel):
-
+    company = models.ForeignKey(
+        'hr.Company',
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='departments',
+        verbose_name="Компания"
+    )
+    LEVEL_TYPES = (
+        ('department', 'Department'),
+        ('division', 'Division'),
+    )
+    level_type = models.CharField(
+        "Тип уровня",
+        max_length=20, 
+        choices=LEVEL_TYPES, 
+        default='department'
+    )
+    
     name = models.CharField(verbose_name="Название", max_length=50, unique=True)
     parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
 

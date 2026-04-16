@@ -3,6 +3,7 @@ from account.models import UserAccount
 
 from .enums import CalendarItemType
 
+
 class CalendarItem(models.Model):
 
     TYPES = CalendarItemType.list()
@@ -49,4 +50,23 @@ class Company(models.Model):
     class Meta:
         verbose_name = "Компания"
         verbose_name_plural = "Компании"
-    
+
+
+
+class Position(models.Model):
+    title = models.CharField("Наименование должности", max_length=255)
+    department = models.ForeignKey(
+        'account.Department', 
+        on_delete=models.CASCADE, 
+        related_name='positions',
+        verbose_name="Департамент"
+    )
+    description = models.TextField("Описание", blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Должность"
+        verbose_name_plural = "Должности"
+        unique_together = ['title', 'department']
+
+    def __str__(self):
+        return f"{self.title} ({self.department.name})"    
