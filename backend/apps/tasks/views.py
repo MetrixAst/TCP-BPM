@@ -27,8 +27,6 @@ def tasks_list(request, action):
 
     if action != 'all':
         queryset = queryset.filter(status=action)
-    else:
-        queryset = queryset.exclude(status=TaskStatusEnum.ARCHIVE.value[0])
 
     paginator = CustomPaginator(queryset, page)
 

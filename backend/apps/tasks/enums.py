@@ -52,7 +52,7 @@ class TaskStatusEnum(CustomEnum):
                 {
                     'title': 'Принять',
                     'color': 'primary',
-                    'action': 'confirm',
+                    'action': 'accept',
                     'next': cls.ACCEPTED.value[0],
                 },
                 {
@@ -69,16 +69,23 @@ class TaskStatusEnum(CustomEnum):
             ],
             cls.ACCEPTED.value[0]: [
                 {
+                    'title': 'Завершить',
+                    'color': 'success',
+                    'action': 'complete',
+                    'next': cls.COMPLETED.value[0],
+                },
+                {
+                    'title': 'Отмена',
+                    'color': 'outline-dark',
+                    'action': 'cancel',
+                },
+            ],
+            cls.COMPLETED.value[0]: [
+                {
                     'title': 'На доработку',
                     'color': 'warning',
                     'action': 'revision',
                     'next': cls.REVISION.value[0],
-                },
-                {
-                    'title': 'Завершить',
-                    'color': 'success',
-                    'action': 'confirm',
-                    'next': cls.COMPLETED.value[0],
                 },
                 {
                     'title': 'Отмена',
@@ -90,8 +97,21 @@ class TaskStatusEnum(CustomEnum):
                 {
                     'title': 'Принять',
                     'color': 'primary',
-                    'action': 'confirm',
+                    'action': 'accept',
                     'next': cls.ACCEPTED.value[0],
+                },
+                {
+                    'title': 'Отмена',
+                    'color': 'outline-dark',
+                    'action': 'cancel',
+                },
+            ],
+            cls.REJECTED.value[0]: [
+                {
+                    'title': 'Переоткрыть',
+                    'color': 'secondary',
+                    'action': 'reopen',
+                    'next': cls.CREATED.value[0],
                 },
                 {
                     'title': 'Отмена',
