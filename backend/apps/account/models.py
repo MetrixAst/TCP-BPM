@@ -166,7 +166,6 @@ class Employee(models.Model):
     )
 
     head = models.BooleanField("Руководитель отдела", default=False)
-    job_title = models.CharField("Должность", max_length=80, null=True, blank=True)
 
     def __str__(self):
         return self.user.username 

@@ -40,7 +40,7 @@ class EmployeeForm(CustomModelForm):
 
     class Meta:
         model = Employee
-        fields = ('department', 'head', 'job_title')
+        fields = ('department', 'head', 'position')
 
 
 class EditProfileForm(CustomModelForm):
