@@ -12,6 +12,8 @@ from project.utils import PathAndRename, get_random_string
 from .role_permissions import RoleEnums
 from .tasks import send_notifications_task
 
+from apps.hr.enums import EmployeeStatusEnum 
+
 
 class UserAccount(AbstractUser):
 
@@ -134,16 +136,45 @@ class Employee(models.Model):
 
     user = models.OneToOneField(UserAccount, on_delete=models.CASCADE, related_name="employee_info")
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="employees")
+    iin = models.CharField("ИИН", max_length=12, unique=True, null=True, blank=True)
+    status = models.CharField(
+        "Статус",
+        max_length=20,
+        choices=EmployeeStatusEnum.choices,
+        default=EmployeeStatusEnum.ACTIVE,
+    )
+    hire_date = models.DateField("Дата приема на работу", null=True, blank=True)
+    supervisor = models.ForeignKey(
+        'self', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='subordinates',
+        verbose_name="Руководитель"
+    )
+
+    phone = models.CharField("Телефон", max_length=20, blank=True, default='')
+    personal_email = models.EmailField("Личная почта", blank=True, null=True)
+
+    position = models.ForeignKey(
+        'hr.Position', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='employees',
+        verbose_name="Должность"
+    )
+
     head = models.BooleanField("Руководитель отдела", default=False)
-    job_title = models.CharField("Должность", max_length=80, null=False, blank=False)
+    job_title = models.CharField("Должность", max_length=80, null=True, blank=True)
 
     def __str__(self):
-        return self.user.get_name
+        return self.user.username 
     
     class Meta:
-        verbose_name = "Сотрудник отдела"
-        verbose_name_plural = "Сотрудники отдела"
-        ordering = ['-head']
+        verbose_name = "Сотрудник"
+        verbose_name_plural = "Сотрудники"
+        ordering = ['-head', 'user__last_name']
 
     
     def set_head(self):
