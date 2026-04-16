@@ -34,8 +34,10 @@ admin.site.register(UserAccount, CustomUserAdmin)
 
 
 class EmployeeInline(admin.TabularInline):
-    autocomplete_fields = ('user', )
     model = Employee
+    fields = ('user', 'iin', 'status', 'supervisor', 'head') 
+    autocomplete_fields = ('user', 'supervisor') 
+    extra = 1
 
 
 class DepartmentA(DjangoMpttAdmin):
@@ -56,3 +58,26 @@ class NotificationA(admin.ModelAdmin):
     list_display = ('title', 'text', 'created_date', 'sended')
     autocomplete_fields = ('users', )
     # inlines = (GalleryImageInline, )
+
+@admin.register(Employee)
+class EmployeeAdmin(admin.ModelAdmin):
+    list_display = ('user', 'department', 'position', 'status', 'iin', 'head')
+    
+    list_filter = ('status', 'department', 'position', 'head')
+    
+    search_fields = ('user__username', 'user__last_name', 'iin', 'phone')
+
+    autocomplete_fields = ('user', 'supervisor')
+    
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('user', 'department', 'position', 'status', 'head')
+        }),
+        ('Личные данные', {
+            'fields': ('iin', 'hire_date', 'phone', 'personal_email')
+        }),
+        ('Иерархия', {
+            'fields': ('supervisor',)
+        }),
+    )
+
