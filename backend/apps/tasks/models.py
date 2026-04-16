@@ -8,13 +8,39 @@ from .enums import TaskStatusEnum, PriorityEnum
 
 
 class Task(models.Model):
-
     STATUSES = TaskStatusEnum.list()
     PRIORITIES = PriorityEnum.list()
-    
-    author = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, related_name="created_tasks", verbose_name="Автор", null=True, blank=True)
-    responsible = models.ManyToManyField(UserAccount, related_name="responsible_tasks", verbose_name="Ответсвенные")
-    observers = models.ManyToManyField(UserAccount, related_name="observe_tasks", verbose_name="Наблюдатели")
+
+    author = models.ForeignKey(
+        UserAccount,
+        on_delete=models.SET_NULL,
+        related_name="created_tasks",
+        verbose_name="Автор",
+        null=True,
+        blank=True
+    )
+
+    executor = models.ForeignKey(
+        UserAccount,
+        on_delete=models.SET_NULL,
+        related_name="executed_tasks",
+        verbose_name="Исполнитель",
+        null=True,
+        blank=True
+    )
+
+    co_executors = models.ManyToManyField(
+        UserAccount,
+        related_name="co_executed_tasks",
+        verbose_name="Соисполнители",
+        blank=True
+    )
+
+    observers = models.ManyToManyField(
+        UserAccount,
+        related_name="observe_tasks",
+        verbose_name="Наблюдатели"
+    )
 
     date = models.DateTimeField(auto_now_add=True, verbose_name="Дата")
     deadline = models.DateField(verbose_name="Срок")
@@ -26,7 +52,6 @@ class Task(models.Model):
     priority = models.SlugField("Приоритет", choices=PRIORITIES, default='medium')
     views = models.IntegerField("Просмотры", default=0)
 
-
     def __str__(self):
         return self.title
 
@@ -35,20 +60,19 @@ class Task(models.Model):
         verbose_name_plural = "Задачи"
         ordering = ['-id']
 
-
     @staticmethod
     def get_available_queryset(request):
         queryset = Task.objects.filter(
-            Q(author=request.user) | 
-            Q(responsible=request.user) | 
+            Q(author=request.user) |
+            Q(executor=request.user) |
+            Q(co_executors=request.user) |
             Q(observers=request.user)
         )
 
         return queryset.distinct()
-    
+
     @staticmethod
-    def get_by_id(request, id, exception = True):
-        
+    def get_by_id(request, id, exception=True):
         qs = Task.get_available_queryset(request).filter(pk=id)
         if qs.count() > 0:
             if exception:
@@ -62,24 +86,23 @@ class Task(models.Model):
     @property
     def status_info(self):
         return TaskStatusEnum.get_info(self.status)
-    
+
     def get_status_notification(self):
         return TaskStatusEnum.get_notification_text(self.status)
-    
-    def actions(self, request):
-        #TODO check can action
-        return TaskStatusEnum.get_actions(self.status)
-    
-    def set_action(self, request, action):
 
+    def actions(self, request):
+        # TODO check can action
+        return TaskStatusEnum.get_actions(self.status)
+
+    def set_action(self, request, action):
         actions = self.actions(request)
         if action == "confirm":
             confirm_action = next((item for item in actions if item["action"] == "confirm"), None)
             if confirm_action is not None:
                 self.status = confirm_action['next']
         elif action == "create":
-            self.status = TaskStatusEnum.TO_DO.value[0]
-            
+            self.status = TaskStatusEnum.CREATED.value[0]
+
         self.save()
         TaskHistory.objects.create(task=self, user=request.user, status=self.status)
 
@@ -87,10 +110,9 @@ class Task(models.Model):
 
     @staticmethod
     def get_statistic(request):
-
         tasks = Task.get_available_queryset(request)
         statuses = TaskStatusEnum.list()
-        
+
         res = []
         for current in statuses:
             res.append({
@@ -101,7 +123,6 @@ class Task(models.Model):
             })
 
         return res
-
 
 
 class TaskHistory(models.Model):
