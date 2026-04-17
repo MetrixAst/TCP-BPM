@@ -69,4 +69,4 @@ class Position(models.Model):
         unique_together = ['title', 'department']
 
     def __str__(self):
-        return f"{self.title} ({self.department.name})"    
+        return f"{self.title} ({self.department.name})"

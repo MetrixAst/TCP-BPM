@@ -13,7 +13,7 @@ from .role_permissions import RoleEnums
 from .tasks import send_notifications_task
 
 from apps.hr.enums import EmployeeStatusEnum 
-
+from django.core.exceptions import ValidationError
 
 class UserAccount(AbstractUser):
 
@@ -82,7 +82,7 @@ class UserAccount(AbstractUser):
 class Department(MPTTModel):
     company = models.ForeignKey(
         'hr.Company',
-        on_delete=models.SET_NULL, 
+        on_delete=models.CASCADE, 
         null=True, 
         blank=True, 
         related_name='departments',
@@ -99,11 +99,11 @@ class Department(MPTTModel):
         default='department'
     )
     
-    name = models.CharField(verbose_name="Название", max_length=50, unique=True)
+    name = models.CharField(verbose_name="Название", max_length=50)
     parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.company.name if self.company else '---'})"
 
     class MPTTMeta:
         order_insertion_by = ['name']
@@ -111,29 +111,27 @@ class Department(MPTTModel):
     class Meta:
         verbose_name = "Отдел"
         verbose_name_plural = "Отделы"
+        unique_together = ('name', 'company')
 
-    
     @property
     def get_head_info(self):
         res = {
             'name': self.name,
             'photo': "/static/site/img/profile/profile-11.webp",
-            'job_title': '',
+            'job_title': 'Отдел',
         }
-        heads = self.employees.filter(head=True)
-        if heads.count() > 0:
-            head = heads.first()
+        head = self.employees.filter(head=True, status=EmployeeStatusEnum.ACTIVE).first()
+        if head:
             res = {
                 'name': head.user.get_name,
                 'photo': head.user.get_avatar_url(),
-                'job_title': head.job_title,
+                'job_title': head.position.title if head.position else 'Руководитель',
             }
-
         return res
 
 
-class Employee(models.Model):
 
+class Employee(models.Model):
     user = models.OneToOneField(UserAccount, on_delete=models.CASCADE, related_name="employee_info")
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="employees")
     iin = models.CharField("ИИН", max_length=12, unique=True, null=True, blank=True)
@@ -167,6 +165,19 @@ class Employee(models.Model):
 
     head = models.BooleanField("Руководитель отдела", default=False)
 
+    def clean(self):
+        super().clean()
+        if self.position and self.department:
+            if self.position.department != self.department:
+                raise ValidationError(
+                    f"Должность '{self.position.title}' принадлежит отделу '{self.position.department.name}'. "
+                    f"Вы не можете назначить её сотруднику из отдела '{self.department.name}'."
+                )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.user.username 
     
@@ -175,12 +186,8 @@ class Employee(models.Model):
         verbose_name_plural = "Сотрудники"
         ordering = ['-head', 'user__last_name']
 
-    
     def set_head(self):
-
-        head = self.department.employees.all().filter(head=True)
-        head.update(head=False)
-
+        self.department.employees.all().filter(head=True).update(head=False)
         self.head = True
         self.save()
 
