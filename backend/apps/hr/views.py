@@ -41,13 +41,16 @@ def employees(request):
         if department is not None:
             queryset = queryset.filter(department=department)
 
-        job_title = filters.get('job_title', '')
-        if job_title != '':
-            queryset = queryset.filter(job_title=job_title)
+        position = filters.get('position', None)
+        if position is not None:
+            queryset = queryset.filter(position=position)
+
+        status = filters.get('status', '')
+        if status != '':
+            queryset = queryset.filter(status=status)
 
         ordering = filters.get('ordering', '')
         if ordering != '':
-            #name, department, id
             if ordering == 'name':
                 queryset = queryset.order_by('user__first_name')
                 ordered = True
@@ -57,12 +60,11 @@ def employees(request):
             elif ordering == 'id':
                 queryset = queryset.order_by('-id')
                 ordered = True
-    
+
     if not ordered:
         queryset = queryset.order_by('user__username')
 
     paginator = CustomPaginator(queryset, page)
-
 
     context = {
         'form': form,
@@ -88,13 +90,12 @@ def create_employee(request):
                 employee.set_head()
 
             return redirect('hr:employees')
-    
+
     context = {
         'form': form,
     }
 
     return render(request, 'site/hr/create_employee.html', context)
-
 
 
 @need_permission(PermissionEnums.HR)
@@ -112,7 +113,7 @@ def edit_employee(request, pk):
                 employee.set_head()
 
             return redirect('hr:employees')
-    
+
     context = {
         'form': form,
         'employee': employee,
@@ -163,7 +164,7 @@ def edit_calendar_item(request, pk):
 def delete_calendar_item(request, pk):
     current = get_or_none(CalendarItem, id=pk)
     category = current.category
-    
+
     current.delete()
 
     return redirect('hr:calendar', category=category)

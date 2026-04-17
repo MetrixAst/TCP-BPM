@@ -5,6 +5,11 @@ from addits.forms import CustomModelForm
 
 from .models import UserAccount, Employee
 
+from django.core.exceptions import ValidationError 
+from hr.models import Position
+
+
+
 class CustomAuthenticationForm(AuthenticationForm):
 
     username = forms.CharField(widget=forms.TextInput(attrs={"autofocus": True, "class": 'form-control', "placeholder": 'Введите логин'}))
@@ -33,15 +38,88 @@ class UserAccountForm(UserCreationForm):
         fields = ("username", "password1", "password2", "role", "first_name")
     
 
-
 class EmployeeForm(CustomModelForm):
+    iin = forms.CharField(
+        label="ИИН",
+        min_length=12, 
+        max_length=12,
+        required=True, 
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ИИН (12 цифр)'})
+    )
 
-    head = forms.BooleanField(widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}), required=False)
+    hire_date = forms.DateField(
+        widget=forms.TextInput(attrs={'class':'form-control single_date_picker', 'placeholder': 'Дата приема'}),
+        required=False
+    )
+    phone = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Телефон'}), required=False)
+    personal_email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Личная почта'}), required=False)
 
     class Meta:
         model = Employee
-        fields = ('department', 'head', 'position')
+   
+        fields = (
+            'department', 'position', 'supervisor', 'status', 
+            'iin', 'hire_date', 'phone', 'personal_email', 'head'
+        )
 
+    def clean_iin(self):
+        iin = self.cleaned_data.get('iin')
+        
+        if not iin:
+            raise ValidationError("ИИН обязателен для заполнения.")
+            
+        if not iin.isdigit():
+            raise ValidationError("ИИН должен содержать только цифры.")
+            
+        if len(iin) != 12:
+            raise ValidationError("ИИН должен состоять ровно из 12 цифр.")
+            
+        return iin
+
+    def clean(self):
+        cleaned_data = super().clean()
+        department = cleaned_data.get("department")
+        position = cleaned_data.get("position")
+
+        if department and position:
+            if position.department != department:
+                error_msg = f"Выбранная должность '{position}' не принадлежит отделу '{department}'."
+                self.add_error('position', error_msg)
+                self.add_error('department', "Проверьте соответствие отдела должности.")
+        
+        return cleaned_data
+
+    def clean(self):
+        cleaned_data = super().clean()
+        iin = cleaned_data.get("iin")
+        if iin and len(iin) != 12:
+            self.add_error('iin', "Ошибка длины ИИН зафиксирована в clean()")
+        return cleaned_data
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'supervisor' in self.fields:
+            self.fields['supervisor'].widget.attrs.update({'class': 'select2'})
+        if 'position' in self.fields:
+            self.fields['position'].widget.attrs.update({'class': 'select2'})
+        if 'status' in self.fields:
+            self.fields['status'].widget.attrs.update({'class': 'select2'})
+
+class EmployeeAdminForm(forms.ModelForm):
+    
+    class Meta:
+        model = Employee
+        fields = '__all__'
+    
+    def clean_iin(self):
+        iin = self.cleaned_data.get('iin')
+        if not iin:
+            return iin
+        if not iin.isdigit():
+            raise ValidationError("ИИН должен содержать только цифры.")
+        if len(iin) != 12:
+            raise ValidationError("ИИН должен состоять ровно из 12 цифр.")
+        return iin
 
 class EditProfileForm(CustomModelForm):
 
