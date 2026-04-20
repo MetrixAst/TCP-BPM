@@ -14,8 +14,9 @@ from .forms import CalendarItemForm, EmployeeCreationForm, EmployeesListForm
 from .models import CalendarItem
 from .serializers import CalendarItemSerializer
 from .enums import CalendarItemType
+from .models import Company, Position
 
-
+@need_permission(PermissionEnums.HR)
 def structure(request):
     return render(request, 'site/hr/org.html')
 
@@ -168,3 +169,19 @@ def delete_calendar_item(request, pk):
     current.delete()
 
     return redirect('hr:calendar', category=category)
+
+@need_permission(PermissionEnums.HR)
+def companies(request):
+    queryset = Company.objects.all().order_by('name')
+    context = {
+        'companies': queryset,
+    }
+    return render(request, 'site/hr/companies.html', context)
+
+@need_permission(PermissionEnums.HR)
+def positions(request):
+    queryset = Position.objects.all().order_by('department__name', 'title')
+    context = {
+        'positions': queryset,
+    }
+    return render(request, 'site/hr/positions.html', context)

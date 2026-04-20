@@ -73,12 +73,8 @@ def profile_view(request):
 
 
 def structure_csv(request, get):
+    response = HttpResponse(content_type='text/csv')
     
-    response = HttpResponse(
-        content_type='text/csv',
-        headers={'Content-Disposition': 'attachment; filename="data.csv"'},
-    )
-
     data = get_structure_data(request, get == 'all')
     writer = csv.writer(response)
 
