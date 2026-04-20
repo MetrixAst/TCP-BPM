@@ -17,7 +17,6 @@ from .forms import CustomAuthenticationForm, EditProfileForm, CustomPasswordChan
 from .utils import get_structure_data
 from .models import UserAccount, PushToken, NotificationIndicator
 
-
 #AUTH
 from account.forms import CustomAuthenticationForm
 from django.contrib.auth import login as auth_login
@@ -37,9 +36,7 @@ class CustomLogoutView(LogoutView):
 
 class GuestView(View):
     def post(self, request):
-
         user = UserAccount.create_guest()
-        
         auth_login(request, user)
         return redirect('dashboard:base')
 
@@ -57,7 +54,7 @@ def profile_view(request):
             profile_form = EditProfileForm(request.POST, instance=request.user, prefix="profile")
             if profile_form.is_valid():
                 profile_form.save()
-                
+
         elif form_type == 'password':
             password_form = CustomPasswordChangeForm(request.user, data=request.POST or None, prefix="password")
             if password_form.is_valid():
@@ -74,7 +71,7 @@ def profile_view(request):
 
 def structure_csv(request, get):
     response = HttpResponse(content_type='text/csv')
-    
+
     data = get_structure_data(request, get == 'all')
     writer = csv.writer(response)
 
@@ -86,29 +83,35 @@ def structure_csv(request, get):
 
 @need_permission(PermissionEnums.USERS_LIST)
 def users_ajax(request, selection):
-
-    #queryset
-    # if selection == 'self':
-
-    queryset = UserAccount.objects.all().exclude(employee_info=None)
+    queryset = UserAccount.objects.all()
 
     query = request.GET.get('term', '')
     if query != '':
-        queryset = queryset.filter(Q(first_name__icontains=query) | Q(username__icontains=query))
+        queryset = queryset.filter(
+            Q(first_name__icontains=query) | Q(username__icontains=query)
+        )
 
-
-    #paginator
     page_number = request.GET.get('page', 1)
     paginator = Paginator(queryset, 25)
     objects = paginator.get_page(page_number)
 
-    #prepare results
     results = []
     for current in objects:
-        info = current.employee_info
+        try:
+            addit = current.employee_info.position.title if current.employee_info.position else ''
+        except Exception:
+            addit = ''
 
-        results.append({'id': current.id, 'text': current.get_title, 'addit': info.job_title})
-    
+        text = current.get_name
+        if not text or not str(text).strip():
+            text = current.username
+
+        results.append({
+            'id': current.id,
+            'text': text,
+            'addit': addit,
+        })
+
     return JsonResponse({
         'results': results,
         'pagination': {
@@ -116,17 +119,14 @@ def users_ajax(request, selection):
         },
     })
 
+
 def indicator_readed(request, target_id, target_type):
     if request.user.is_authenticated:
         NotificationIndicator.readed(request.user, target_id, target_type)
         return JsonResponse({'success': True})
-    
+
     return JsonResponse({'success': False})
 
-
-
-
-#MOBILE VIEWS
 
 
 @csrf_exempt
@@ -139,7 +139,6 @@ def auth(request):
         else:
             return JsonResponse({'success': False, 'error': 'Не удалось авторизоваться'})
 
-
     return JsonResponse({'success': False, 'error': 'Ошибка'})
 
 
@@ -150,25 +149,22 @@ def push_token(request):
             token = request.POST.get('token', None)
             if token is not None:
                 PushToken.objects.get_or_create(user=request.user, fcm=token)
-                
                 return JsonResponse({'success': True})
         elif request.method == 'DELETE':
             request.user.push_tokens.all().delete()
-                
             return JsonResponse({'success': True})
 
-
     return JsonResponse({'success': False, 'error': 'Ошибка'})
+
 
 def get_side_menu(request):
     if request.user.is_authenticated:
         indicators = NotificationIndicator.get_data(request.user)
         res = {
-            'success': True, 
+            'success': True,
             'menu': [],
         }
 
-        #MENU
         menu_items = MenuItem.generate_menu(request.user)
         for current in menu_items:
             item = {
@@ -181,21 +177,16 @@ def get_side_menu(request):
             if current.submenu is not None:
                 item['submenu'] = []
                 for sub in current.submenu:
-                    item['submenu'].append(
-                        {
-                            'id': sub.id,
-                            'title': sub.title,
-                            'url': sub.url,
-                        }
-                    )
-            
+                    item['submenu'].append({
+                        'id': sub.id,
+                        'title': sub.title,
+                        'url': sub.url,
+                    })
+
             res['menu'].append(item)
-        
 
         res['first_page'] = MenuItem.first_page_as_string(request.user)
-        
 
-        #NAME
         res['user'] = {
             'name': request.user.get_name,
             'role': '',
@@ -205,13 +196,11 @@ def get_side_menu(request):
         employee = request.user.get_info()
         if employee is not None:
             res['user']['role'] = employee.position.title if employee.position else ''
-        
-        print(res)
 
         return JsonResponse(res)
     else:
         return JsonResponse({'success': False, 'error': 'Требуется авторизация'})
-    
+
 
 def notifications_view(request):
     notifications = request.user.notifications.all()[:50]
