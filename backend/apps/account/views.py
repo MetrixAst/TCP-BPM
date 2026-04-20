@@ -107,7 +107,7 @@ def users_ajax(request, selection):
     for current in objects:
         info = current.employee_info
 
-        results.append({'id': current.id, 'text': current.get_name, 'addit': info.job_title})
+        results.append({'id': current.id, 'text': current.get_title, 'addit': info.job_title})
     
     return JsonResponse({
         'results': results,
@@ -204,7 +204,7 @@ def get_side_menu(request):
 
         employee = request.user.get_info()
         if employee is not None:
-            res['user']['role'] = employee.job_title
+            res['user']['role'] = employee.position.title if employee.position else ''
         
         print(res)
 
