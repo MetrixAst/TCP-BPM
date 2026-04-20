@@ -16,13 +16,13 @@
                             <div class="row g-3">
                                 <div class="col-md-9">
                                     <label class="top-label">
-                                        {{ form.title }}
+                                        {{form.title}}
                                         <span>ЗАГОЛОВОК</span>
                                     </label>
                                 </div>
                                 <div class="col-md-3">
                                     <label class="top-label">
-                                        {{ form.deadline }}
+                                        {{form.deadline}}
                                         <span>СРОК</span>
                                     </label>
                                 </div>
@@ -31,38 +31,32 @@
                             <div class="row g-3 mt-3">
                                 <div class="col">
                                     <div class="top-label">
-                                        {{ form.text }}
+                                        {{form.text}}
                                         <span>ТЕКСТ</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="row g-3 mt-3">
-                                <div class="col-md-6">
-                                    <div class="w-100">
-                                        <label class="form-label">Исполнитель</label>
-                                        {{ form.executor }}
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="w-100">
-                                        <label class="form-label">Приоритет</label>
-                                        {{ form.priority }}
-                                    </div>
+                            <div class="mt-3 position-relative tooltip-label-end form-group">
+                                <div class="form-check">
+                                    <label class="form-check-label">
+                                        {{form.important}}
+                                        Это важная задача
+                                    </label>
                                 </div>
                             </div>
 
                             <div class="row g-3 mt-2">
                                 <div class="col-md-6">
                                     <div class="w-100">
-                                        <label class="form-label">Соисполнители</label>
-                                        {{ form.co_executors }}
+                                        <label class="form-label">Ответственные</label>
+                                        {{form.responsible}}
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="w-100">
                                         <label class="form-label">Наблюдатели</label>
-                                        {{ form.observers }}
+                                        {{form.observers}}
                                     </div>
                                 </div>
                             </div>

@@ -241,28 +241,17 @@ class Notification(models.Model):
     
     @staticmethod
     def create_for_task(task):
-        users_qs = task.co_executors.all() | task.observers.all()
-
-        if task.executor:
-            users_qs = users_qs | UserAccount.objects.filter(pk=task.executor.pk)
-
-        if task.author:
-            users_qs = users_qs | UserAccount.objects.filter(pk=task.author.pk)
-
+        users_qs = task.responsible.all() | task.observers.all() | UserAccount.objects.filter(pk=task.author.pk)
         users_qs = users_qs.distinct()
 
         text = task.get_status_notification()
         if text is None:
             text = {
+                # 'title': document,
                 'text': 'Уведомление задачи',
             }
 
-        notification = Notification.objects.create(
-            title=task.title,
-            text=text['text'],
-            target_id=task.id,
-            target_type="task"
-        )
+        notification = Notification.objects.create(title=task.title, text=text['text'], target_id=task.id, target_type="task")
         notification.users.add(*users_qs)
 
     @staticmethod
