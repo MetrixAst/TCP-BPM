@@ -120,15 +120,6 @@ def users_ajax(request, selection):
     })
 
 
-def indicator_readed(request, target_id, target_type):
-    if request.user.is_authenticated:
-        NotificationIndicator.readed(request.user, target_id, target_type)
-        return JsonResponse({'success': True})
-
-    return JsonResponse({'success': False})
-
-
-
 @csrf_exempt
 def auth(request):
     if request.method == 'POST':
@@ -210,3 +201,10 @@ def notifications_view(request):
     }
 
     return render(request, 'site/account/notifications.html', context)
+
+def indicator_readed(request, target_id, target_type):
+    if request.user.is_authenticated:
+        NotificationIndicator.readed(request.user, target_id, target_type)
+        return JsonResponse({'success': True})
+    
+    return JsonResponse({'success': False})
