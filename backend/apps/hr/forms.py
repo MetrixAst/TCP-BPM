@@ -46,12 +46,9 @@ class EmployeesListForm(PaginatorForm):
     ]
     
     search = forms.CharField(widget=forms.TextInput(attrs={'class':'form-control', 'placeholder': 'Поиск'}), required=False)
+    
     department = Select2FieldDefault(queryset=Department.objects.all(), placeholder='Отдел', required=False)
-    position = Select2FieldDefault(
-        queryset=Position.objects.all(), 
-        placeholder='Должность', 
-        required=False
-    )
+    position = Select2FieldDefault(queryset=Position.objects.all(), placeholder='Должность', required=False)
 
     status = Select2ChoiceField(
         choices=[('', 'Статус')] + EmployeeStatusEnum.choices, 
@@ -59,3 +56,22 @@ class EmployeesListForm(PaginatorForm):
         placeholder='Статус'
     )
     ordering = Select2ChoiceField(ORDERING, required=False, placeholder='Сортировка')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        placeholders = {
+            'department': 'Отдел',
+            'position': 'Должность',
+            'status': 'Статус',
+            'ordering': 'Сортировка'
+        }
+        
+        for field_name, text in placeholders.items():
+            if field_name in self.fields:
+                self.fields[field_name].widget.attrs.update({
+                    'data-allow-clear': 'true',
+                    'data-placeholder': text
+                })
+
+

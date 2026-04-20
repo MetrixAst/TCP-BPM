@@ -70,7 +70,7 @@
                                         </div>
                                         
                                         <div class="col-1 col-md-2 d-flex align-items-center order-4">
-                                            <span class="badge {% if current.status == 'active' %}bg-outline-success{% elif current.status == 'fired' %}bg-outline-danger{% else %}bg-outline-warning{% endif %}">
+                                            <span class="badge {% if current.status == 'active' %}bg-outline-success{% elif current.status == 'dismissed' %}bg-outline-danger{% else %}bg-outline-warning{% endif %}">
                                                 {{current.get_status_display}}
                                             </span>
                                         </div>

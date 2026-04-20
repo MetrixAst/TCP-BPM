@@ -8,7 +8,7 @@ def migrate_job_titles_to_positions(apps, schema_editor):
     
     for emp in queryset:
         position_obj, created = Position.objects.get_or_create(
-            name=emp.job_title,
+            title=emp.job_title,
             department=emp.department
         )
         
@@ -18,7 +18,7 @@ def migrate_job_titles_to_positions(apps, schema_editor):
 def reverse_migration(apps, schema_editor):
     Employee = apps.get_model('account', 'Employee')
     for emp in Employee.objects.filter(position__isnull=False):
-        emp.job_title = emp.position.name
+        emp.job_title = emp.position.title
         emp.save()
 
 class Migration(migrations.Migration):
