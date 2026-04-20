@@ -90,43 +90,44 @@ def structure_csv(request, get):
 
 @need_permission(PermissionEnums.USERS_LIST)
 def users_ajax(request, selection):
-
-    #queryset
-    # if selection == 'self':
-
-    queryset = UserAccount.objects.all().exclude(employee_info=None)
+    queryset = UserAccount.objects.all()
 
     query = request.GET.get('term', '')
     if query != '':
-        queryset = queryset.filter(Q(first_name__icontains=query) | Q(username__icontains=query))
+        queryset = queryset.filter(
+            Q(first_name__icontains=query) | Q(username__icontains=query)
+        )
 
-
-    #paginator
     page_number = request.GET.get('page', 1)
     paginator = Paginator(queryset, 25)
     objects = paginator.get_page(page_number)
 
-    #prepare results
     results = []
     for current in objects:
-        info = current.employee_info
+        try:
+            addit = current.employee_info.job_title
+        except UserAccount.employee_info.RelatedObjectDoesNotExist:
+            addit = ''
 
-        results.append({'id': current.id, 'text': current.get_name, 'addit': info.job_title})
-    
+        text = ''
+        if getattr(current, 'get_name', None):
+            text = current.get_name
+
+        if not text or not str(text).strip():
+            text = current.username
+
+        results.append({
+            'id': current.id,
+            'text': text,
+            'addit': addit,
+        })
+
     return JsonResponse({
         'results': results,
         'pagination': {
             'more': objects.has_next(),
         },
     })
-
-def indicator_readed(request, target_id, target_type):
-    if request.user.is_authenticated:
-        NotificationIndicator.readed(request.user, target_id, target_type)
-        return JsonResponse({'success': True})
-    
-    return JsonResponse({'success': False})
-
 
 
 
@@ -225,3 +226,10 @@ def notifications_view(request):
     }
 
     return render(request, 'site/account/notifications.html', context)
+
+def indicator_readed(request, target_id, target_type):
+    if request.user.is_authenticated:
+        NotificationIndicator.readed(request.user, target_id, target_type)
+        return JsonResponse({'success': True})
+    
+    return JsonResponse({'success': False})

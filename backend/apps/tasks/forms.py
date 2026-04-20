@@ -8,9 +8,9 @@ class TaskForm(forms.ModelForm):
     deadline = forms.DateField(widget=forms.TextInput(attrs={'class': 'form-control single_date_picker'}))
     text = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4}))
 
-    executor = UserSelect2Field(required=False)
-    co_executors = UserSelect2MultipleField(required=False)
-    observers = UserSelect2MultipleField(required=True)
+    executor = UserSelect2Field(required=False, all=True)
+    co_executors = UserSelect2MultipleField(required=False, all=True)
+    observers = UserSelect2MultipleField(required=False, all=True)
 
     class Meta:
         model = Task

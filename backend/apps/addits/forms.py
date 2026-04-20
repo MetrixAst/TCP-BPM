@@ -29,37 +29,52 @@ class Select2MultipleFieldDefault(forms.ModelChoiceField):
 
 
 class Select2Field(forms.ModelChoiceField):
-    def __init__(self, queryset, url, required = False, placeholder=""):
-        super().__init__(queryset, required=required, widget=forms.Select(attrs={'class': 'select2_ajax', 'data-url': url, 'placeholder': placeholder}), empty_label="")
-    
-    def clean(self, value):
-        return value
+    def __init__(self, queryset, url, required=False, placeholder=""):
+        super().__init__(
+            queryset=queryset,
+            required=required,
+            widget=forms.Select(attrs={
+                'class': 'select2_ajax',
+                'data-url': url,
+                'placeholder': placeholder
+            }),
+            empty_label=""
+        )
 
 
 class Select2MultipleField(forms.ModelMultipleChoiceField):
-    def __init__(self, queryset, url, required = False, placeholder=""):
-        super().__init__(queryset, required=required, widget=forms.SelectMultiple(attrs={'class': 'select2_ajax', 'data-url': url, 'placeholder': placeholder}))
-    
-    def clean(self, value):
-        return value
+    def __init__(self, queryset, url, required=False, placeholder=""):
+        super().__init__(
+            queryset=queryset,
+            required=required,
+            widget=forms.SelectMultiple(attrs={
+                'class': 'select2_ajax',
+                'data-url': url,
+                'placeholder': placeholder
+            })
+        )
 
 
 class UserSelect2Field(Select2Field):
-    def __init__(self, required = False, all = False, placeholder = ''):
-        selection = 'all' if all is True else 'self'
-        super().__init__(UserAccount.objects.all(), url=f'/account/ajax/users/'+selection, required=required, placeholder=placeholder)
-    
-    def clean(self, value):
-        return value
+    def __init__(self, required=False, all=False, placeholder=""):
+        selection = 'all' if all else 'self'
+        super().__init__(
+            queryset=UserAccount.objects.all(),
+            url=f'/account/ajax/users/{selection}',
+            required=required,
+            placeholder=placeholder
+        )
 
 
 class UserSelect2MultipleField(Select2MultipleField):
-    def __init__(self, required = False, all = False, placeholder = ""):
-        selection = 'all' if all is True else 'self'
-        super().__init__(UserAccount.objects.all(), url=f'/account/ajax/users/'+selection, required=required, placeholder=placeholder)
-    
-    def clean(self, value):
-        return value
+    def __init__(self, required=False, all=False, placeholder=""):
+        selection = 'all' if all else 'self'
+        super().__init__(
+            queryset=UserAccount.objects.all(),
+            url=f'/account/ajax/users/{selection}',
+            required=required,
+            placeholder=placeholder
+        )
 
 
 

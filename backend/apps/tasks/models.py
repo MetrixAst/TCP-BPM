@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.http import Http404
+from django.core.exceptions import PermissionDenied
 
 from account.models import UserAccount, Notification
 from project.utils import get_or_error, get_or_none
@@ -39,7 +40,8 @@ class Task(models.Model):
     observers = models.ManyToManyField(
         UserAccount,
         related_name="observe_tasks",
-        verbose_name="Наблюдатели"
+        verbose_name="Наблюдатели",
+        blank=True
     )
 
     date = models.DateTimeField(auto_now_add=True, verbose_name="Дата")
@@ -51,6 +53,43 @@ class Task(models.Model):
 
     priority = models.SlugField("Приоритет", choices=PRIORITIES, default='medium')
     views = models.IntegerField("Просмотры", default=0)
+
+    TRANSITIONS = {
+        TaskStatusEnum.CREATED.value[0]: {
+            'accept': {
+                'next': TaskStatusEnum.ACCEPTED.value[0],
+                'roles': ['executor', 'co_executor'],
+            },
+            'reject': {
+                'next': TaskStatusEnum.REJECTED.value[0],
+                'roles': ['executor'],
+            },
+        },
+        TaskStatusEnum.ACCEPTED.value[0]: {
+            'complete': {
+                'next': TaskStatusEnum.COMPLETED.value[0],
+                'roles': ['executor', 'co_executor'],
+            },
+        },
+        TaskStatusEnum.COMPLETED.value[0]: {
+            'revision': {
+                'next': TaskStatusEnum.REVISION.value[0],
+                'roles': ['author'],
+            },
+        },
+        TaskStatusEnum.REVISION.value[0]: {
+            'accept': {
+                'next': TaskStatusEnum.ACCEPTED.value[0],
+                'roles': ['executor', 'co_executor'],
+            },
+        },
+        TaskStatusEnum.REJECTED.value[0]: {
+            'reopen': {
+                'next': TaskStatusEnum.CREATED.value[0],
+                'roles': ['author'],
+            },
+        },
+    }
 
     def __str__(self):
         return self.title
@@ -68,7 +107,6 @@ class Task(models.Model):
             Q(co_executors=request.user) |
             Q(observers=request.user)
         )
-
         return queryset.distinct()
 
     @staticmethod
@@ -83,6 +121,37 @@ class Task(models.Model):
                 raise Http404
             return None
 
+    def _get_user_role(self, user):
+        if not user or not user.is_authenticated:
+            return None
+
+        if self.author_id == user.id:
+            return 'author'
+        if self.executor_id == user.id:
+            return 'executor'
+        if self.co_executors.filter(id=user.id).exists():
+            return 'co_executor'
+        if self.observers.filter(id=user.id).exists():
+            return 'observer'
+
+        return None
+
+    def _get_transition(self, action):
+        return self.TRANSITIONS.get(self.status, {}).get(action)
+
+    def _check_action_permission(self, user, action):
+        transition = self._get_transition(action)
+        if not transition:
+            raise PermissionDenied("Недоступное действие для текущего статуса.")
+
+        user_role = self._get_user_role(user)
+        allowed_roles = transition.get('roles', [])
+
+        if user_role not in allowed_roles:
+            raise PermissionDenied("У вас нет прав на выполнение этого действия.")
+
+        return transition
+
     @property
     def status_info(self):
         return TaskStatusEnum.get_info(self.status)
@@ -91,21 +160,42 @@ class Task(models.Model):
         return TaskStatusEnum.get_notification_text(self.status)
 
     def actions(self, request):
-        # TODO check can action
-        return TaskStatusEnum.get_actions(self.status)
+        all_actions = TaskStatusEnum.get_actions(self.status) or []
+        user_role = self._get_user_role(request.user)
+        available_actions = []
+
+        for item in all_actions:
+            action_name = item.get('action')
+
+            if action_name == 'cancel':
+                available_actions.append(item)
+                continue
+
+            transition = self.TRANSITIONS.get(self.status, {}).get(action_name)
+            if not transition:
+                continue
+
+            if user_role in transition.get('roles', []):
+                available_actions.append(item)
+
+        return available_actions
 
     def set_action(self, request, action):
-        actions = self.actions(request)
-        if action == "confirm":
-            confirm_action = next((item for item in actions if item["action"] == "confirm"), None)
-            if confirm_action is not None:
-                self.status = confirm_action['next']
-        elif action == "create":
+        if action == 'cancel':
+            return
+
+        if action == 'create':
             self.status = TaskStatusEnum.CREATED.value[0]
+            self.save()
+            TaskHistory.objects.create(task=self, user=request.user, status=self.status)
+            Notification.create_for_task(self)
+            return
 
+        transition = self._check_action_permission(request.user, action)
+        self.status = transition['next']
         self.save()
-        TaskHistory.objects.create(task=self, user=request.user, status=self.status)
 
+        TaskHistory.objects.create(task=self, user=request.user, status=self.status)
         Notification.create_for_task(self)
 
     @staticmethod
