@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django_mptt_admin.admin import DjangoMpttAdmin
 from .models import UserAccount, Department, Employee, Notification, PushToken
+from .forms import EmployeeAdminForm
 
 
 class CustomUserAdmin(UserAdmin):
@@ -61,6 +62,7 @@ class NotificationA(admin.ModelAdmin):
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
+    form = EmployeeAdminForm
     list_display = ('user', 'department', 'position', 'status', 'iin', 'head')
     
     list_filter = ('status', 'department', 'position', 'head')
