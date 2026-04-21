@@ -203,3 +203,8 @@ ONE_C_BASIC_AUTH_USER = config('ONE_C_BASIC_AUTH_USER', default='')
 ONE_C_BASIC_AUTH_PASSWORD = config('ONE_C_BASIC_AUTH_PASSWORD', default='')
 ONE_C_API_USER = config('ONE_C_API_USER', default='')
 ONE_C_API_PASSWORD = config('ONE_C_API_PASSWORD', default='')
+
+ENBEK_BASE_URL = config('ENBEK_BASE_URL', default='http://web:8000/api/enbek')
+ENBEK_USERNAME = config('ENBEK_USERNAME', default='test')
+ENBEK_PASSWORD = config('ENBEK_PASSWORD', default='test')
+ENBEK_TIMEOUT = config('ENBEK_TIMEOUT', default=10, cast=int)
