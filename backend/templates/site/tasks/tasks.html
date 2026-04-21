@@ -80,11 +80,20 @@
                                             <span class="text-muted d-block text-small mb-2 mt-1">Срок: {{current.deadline}}</span>
                                             <span class="text-alternate mb-4 flex-grow-1 detail">{{current.text|truncatechars:130}}</span>
                                             
-                                            <div class="tags mb-1">    
-                                                {% if current.important %}
-                                                    <span class="badge bg-danger text-uppercase">Важная задача</span>
+                                            <div class="tags mb-1">
+                                                <span class="badge opacity-75 text-decoration-none me-1 bg-outline-{{current.status_info.color}}">
+                                                    {{current.status_info.title}}
+                                                </span>
+                                            
+                                                {% if current.priority == 'low' %}
+                                                    <span class="badge bg-light text-dark text-uppercase">Низкий</span>
+                                                {% elif current.priority == 'medium' %}
+                                                    <span class="badge bg-secondary text-uppercase">Средний</span>
+                                                {% elif current.priority == 'high' %}
+                                                    <span class="badge bg-warning text-dark text-uppercase">Высокий</span>
+                                                {% elif current.priority == 'critical' %}
+                                                    <span class="badge bg-danger text-uppercase">Критический</span>
                                                 {% endif %}
-                                                <span class="badge opacity-75 text-decoration-none me-1 bg-outline-{{current.status_info.color}}">{{current.status_info.title}}</span>
                                             </div>
                                         </div>
                                     </div>
