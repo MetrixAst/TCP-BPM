@@ -60,18 +60,21 @@
                                             <a href="{% url 'hr:edit_employee' current.id %}" class="mobile_link">{{current.user.username}}</a>
                                             <div class="text-small text-muted text-truncate">{{current.user.get_name}}</div>
                                         </div>
-                                        <div class="col-12 col-md-3 d-flex align-items-center order-3 {% if current.head %}text-success{% endif %}">
+                                        
+                                        <div class="col-12 col-md-3 d-flex align-items-center order-2 {% if current.head %}text-success{% endif %}">
                                             {{current.department}}
                                         </div>
-                                        <div class="col-12 col-md-3 d-flex align-items-center order-4 text-muted">
+                                        
+                                        <div class="col-12 col-md-3 d-flex align-items-center order-3 text-muted">
                                             {% if current.position %}{{current.position.title}}{% else %}—{% endif %}
                                         </div>
-                                        <div class="col-1 col-md-2 d-flex align-items-center order-2">
+                                        
+                                        <div class="col-1 col-md-2 d-flex align-items-center order-4">
                                             <span class="badge {% if current.status == 'active' %}bg-outline-success{% elif current.status == 'fired' %}bg-outline-danger{% else %}bg-outline-warning{% endif %}">
                                                 {{current.get_status_display}}
                                             </span>
                                         </div>
-                                    </div>
+                                    </div>                     
                                 </div>
                             </div>
                         {% endfor %}

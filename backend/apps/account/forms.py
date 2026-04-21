@@ -80,20 +80,15 @@ class EmployeeForm(CustomModelForm):
         cleaned_data = super().clean()
         department = cleaned_data.get("department")
         position = cleaned_data.get("position")
+        iin = cleaned_data.get("iin")
 
         if department and position:
             if position.department != department:
-                error_msg = f"Выбранная должность '{position}' не принадлежит отделу '{department}'."
-                self.add_error('position', error_msg)
-                self.add_error('department', "Проверьте соответствие отдела должности.")
+                self.add_error('position', f"Выбранная должность '{position}' не принадлежит отделу '{department}'.")
         
-        return cleaned_data
-
-    def clean(self):
-        cleaned_data = super().clean()
-        iin = cleaned_data.get("iin")
         if iin and len(iin) != 12:
             self.add_error('iin', "Ошибка длины ИИН зафиксирована в clean()")
+            
         return cleaned_data
 
     def __init__(self, *args, **kwargs):
@@ -104,6 +99,8 @@ class EmployeeForm(CustomModelForm):
             self.fields['position'].widget.attrs.update({'class': 'select2'})
         if 'status' in self.fields:
             self.fields['status'].widget.attrs.update({'class': 'select2'})
+        if 'head' in self.fields:
+            self.fields['head'].widget.attrs.update({'class': 'form-check-input'})
 
 class EmployeeAdminForm(forms.ModelForm):
     
