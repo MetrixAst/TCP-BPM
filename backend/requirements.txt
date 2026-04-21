@@ -15,7 +15,7 @@ sqlparse==0.5.3
 # Task queue
 celery==5.4.0
 redis==5.2.1
-django-celery-beat==2.7.0
+
 
 # Web server
 gunicorn==23.0.0
