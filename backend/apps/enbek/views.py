@@ -59,7 +59,6 @@ def login(request):
         "expires_in": 3600
     })
 
-    return JsonResponse({"detail": "Method not allowed"}, status=405)
 
 def contracts(request):
     if request.method != "GET":
