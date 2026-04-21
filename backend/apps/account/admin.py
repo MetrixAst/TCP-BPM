@@ -67,7 +67,7 @@ class EmployeeAdmin(admin.ModelAdmin):
     
     search_fields = ('user__username', 'user__last_name', 'iin', 'phone')
 
-    autocomplete_fields = ('user', 'supervisor')
+    autocomplete_fields = ('user', 'supervisor', 'position')
     
     fieldsets = (
         ('Основная информация', {
