@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.db.utils import IntegrityError
-from .models import Counterparty
+from .models import Counterparty, Invoice, InvoiceItem
 from django.utils import timezone
 
 class CounterpartyModelTest(TestCase):
@@ -65,3 +65,54 @@ class CounterpartyModelTest(TestCase):
             short_name=""
         )
         self.assertEqual(str(cp_no_short), "Только Полное Имя")
+
+class InvoiceIntegrationTest(TestCase):
+    def setUp(self):
+        self.counterparty = Counterparty.objects.create(
+            id_1c="TEST-ID-001",
+            full_name="Тестовый Контрагент",
+            short_name="ТестКорп",
+            bin_number="123456789012"
+        )
+
+    def test_invoice_with_counterparty_relationship(self):
+        invoice = Invoice.objects.create(
+            counterparty=self.counterparty,
+            number="INV-001",
+            status='created',
+            Date=timezone.now()
+        )
+        self.assertEqual(invoice.counterparty.short_name, "ТестКорп")
+        self.assertIn(invoice, self.counterparty.invoices.all())
+
+    def test_invoice_items_aggregation(self):
+        invoice = Invoice.objects.create(number="INV-002", status='created')
+        item1 = InvoiceItem.objects.create(invoice=invoice, name="Услуга 1", quantity=1, price=100)
+        item2 = InvoiceItem.objects.create(invoice=invoice, name="Услуга 2", quantity=1, price=200)
+        
+        self.assertEqual(invoice.items.count(), 2)
+        self.assertIn(item1, invoice.items.all())
+
+    def test_invoice_status_choices(self):
+        invoice = Invoice.objects.create(number="INV-003", status='created')
+        self.assertEqual(invoice.status, 'created')
+
+    def test_cascade_deletion(self):
+        invoice = Invoice.objects.create(number="INV-DELETE")
+        InvoiceItem.objects.create(invoice=invoice, name="На удаление", quantity=1, price=50)
+        
+        invoice_id = invoice.id
+        invoice.delete()
+        
+        self.assertEqual(InvoiceItem.objects.filter(invoice_id=invoice_id).count(), 0)
+
+    def test_invoice_item_calculation(self):
+        invoice = Invoice.objects.create(number="INV-CALC")
+        item = InvoiceItem.objects.create(
+            invoice=invoice,
+            name="Товар",
+            quantity=5.0,
+            price=200.0
+        )
+        self.assertEqual(item.total, 1000.0) 
+        self.assertEqual(item.vat_amount, 120.0) 
