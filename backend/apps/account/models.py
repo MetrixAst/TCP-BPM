@@ -12,7 +12,7 @@ from project.utils import PathAndRename, get_random_string
 from .role_permissions import RoleEnums
 from .tasks import send_notifications_task
 
-from apps.hr.enums import EmployeeStatusEnum 
+from hr.enums import EmployeeStatusEnum 
 
 
 class UserAccount(AbstractUser):
