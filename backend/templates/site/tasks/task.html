@@ -78,7 +78,19 @@
                 <div class="card-body row g-0">
                   <div class="col-12">
                     <div class="cta-3">Срок задачи: {{task.deadline}}</div>
-                    <div class="mb-0 cta-3 text-{{status_info.color}}">{{status_info.title}}</div>
+                    <div class="mb-2 cta-3 text-{{status_info.color}}">{{status_info.title}}</div>
+
+                    <div class="mb-0">
+                        {% if task.priority == 'low' %}
+                            <span class="badge bg-light text-dark text-uppercase">Низкий</span>
+                        {% elif task.priority == 'medium' %}
+                            <span class="badge bg-secondary text-uppercase">Средний</span>
+                        {% elif task.priority == 'high' %}
+                            <span class="badge bg-warning text-dark text-uppercase">Высокий</span>
+                        {% elif task.priority == 'critical' %}
+                            <span class="badge bg-danger text-uppercase">Критический</span>
+                        {% endif %}
+                    </div>
                     <div class="d-grid gap-2 mt-3">
                         {% for current in actions %}
                           <a href="{% url 'tasks:task_action' task.id current.action %}" class="btn btn-{{current.color}}" type="button" data-type="{{current.action}}">{{current.title}}</a>
@@ -102,21 +114,23 @@
 
                       {% if task.executor %}
                       <div class="row g-0 sh-6">
-                        <div class="col-auto">
-                          <img src="{{task.executor.get_avatar_url}}" class="card-img rounded-xl sh-6 sw-6" alt="thumb" />
-                        </div>
-                        <div class="col">
-                          <div class="card-body d-flex flex-row pt-0 pb-0 ps-3 pe-0 h-100 align-items-center justify-content-between">
-                            <div class="d-flex flex-column">
-                              <div>{{task.executor}}</div>
-                              <div class="text-small text-muted">{{task.executor.employee_info.job_title}}</div>
+                          <div class="col-auto">
+                            <img src="{{task.executor.get_avatar_url}}" class="card-img rounded-xl sh-6 sw-6" alt="thumb" />
+                          </div>
+                          <div class="col">
+                            <div class="card-body d-flex flex-row pt-0 pb-0 ps-3 pe-0 h-100 align-items-center justify-content-between">
+                              <div class="d-flex flex-column">
+                                <div>{{task.executor}}</div>
+                                {% if task.executor.employee_info %}
+                                  <div class="text-small text-muted">{{task.executor.employee_info.job_title}}</div>
+                                {% endif %}
+                              </div>
                             </div>
                           </div>
-                        </div>
                       </div>
-                    {% endif %}
+                      {% endif %}
 
-                    {% for current in task.co_executors.all %}
+                      {% for current in task.co_executors.all %}
                       <div class="row g-0 sh-6 mt-3">
                         <div class="col-auto">
                           <img src="{{current.get_avatar_url}}" class="card-img rounded-xl sh-6 sw-6" alt="thumb" />
@@ -125,7 +139,9 @@
                           <div class="card-body d-flex flex-row pt-0 pb-0 ps-3 pe-0 h-100 align-items-center justify-content-between">
                             <div class="d-flex flex-column">
                               <div>{{current}}</div>
-                              <div class="text-small text-muted">{{current.employee_info.job_title}}</div>
+                              {% if current.employee_info %}
+                                <div class="text-small text-muted">{{current.employee_info.job_title}}</div>
+                              {% endif %}
                             </div>
                           </div>
                         </div>

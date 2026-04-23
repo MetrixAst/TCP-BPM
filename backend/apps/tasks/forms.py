@@ -1,17 +1,36 @@
 from django import forms
-from addits.forms import UserSelect2Field, UserSelect2MultipleField
+from addits.forms import UserSelect2Field, UserSelect2MultipleField, Select2ChoiceField
 from .models import Task
 
 
 class TaskForm(forms.ModelForm):
-    title = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
-    deadline = forms.DateField(widget=forms.TextInput(attrs={'class': 'form-control single_date_picker'}))
-    text = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4}))
+    title = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    deadline = forms.DateField(
+        widget=forms.TextInput(attrs={'class': 'form-control single_date_picker'})
+    )
+    text = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4})
+    )
 
-    executor = UserSelect2Field(required=False, all=True)
+    executor = UserSelect2Field(required=True, all=True)
     co_executors = UserSelect2MultipleField(required=False, all=True)
     observers = UserSelect2MultipleField(required=False, all=True)
+    priority = Select2ChoiceField(
+        choices=Task.PRIORITIES.copy(),
+        required=True,
+        placeholder="Приоритет"
+    )
 
     class Meta:
         model = Task
-        fields = ('executor', 'co_executors', 'observers', 'deadline', 'title', 'text', 'priority')
+        fields = (
+            'executor',
+            'co_executors',
+            'observers',
+            'deadline',
+            'title',
+            'text',
+            'priority',
+        )
