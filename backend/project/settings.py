@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from decouple import config, Csv
 from datetime import timedelta
+from celery.schedules import crontab
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -188,6 +189,12 @@ REST_FRAMEWORK = {
 # CELERY
 CELERY_BROKER_URL = config('CELERY_BROKER_URL')
 CELERY_RESULT_BACKEND = 'django-db'
+CELERY_BEAT_SCHEDULE = {
+    'sync-enbek-every-6-hours': {
+        'task': 'hr.tasks.sync_enbek_data',
+        'schedule': crontab(minute=0, hour='*/6'),
+    },
+}
 
 
 #ADDIT

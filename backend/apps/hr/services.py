@@ -40,8 +40,8 @@ class EnbekSyncService:
             logger.info(
                 "sync_completed",
                 extra={
-                    "created": created,
-                    "updated": updated,
+                    "created_count": created,
+                    "updated_count": updated,
                     "vacations_count": len(vacations),
                     "sick_leaves_count": len(sick_leaves),
                     "employment_contracts_count": len(employment_contracts),

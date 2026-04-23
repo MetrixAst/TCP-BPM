@@ -13,6 +13,7 @@ from hr.enbek_client import (
 from account.models import UserAccount, Department, Employee
 from hr.models import Company, Vacation, SickLeave, EmploymentContract
 from hr.services import EnbekSyncService
+from hr.tasks import sync_enbek_data
 
 
 @override_settings(
@@ -582,3 +583,43 @@ class EnbekSyncServiceTestCase(TestCase):
         self.assertEqual(second_result['updated'], 1)
 
         self.assertEqual(Vacation.objects.filter(enbek_id='vac_1').count(), 1)
+
+class EnbekCeleryTaskTestCase(TestCase):
+
+    @patch('hr.tasks.EnbekSyncService')
+    def test_task_calls_sync_service_and_returns_result(self, mock_service_class):
+        mock_service = mock_service_class.return_value
+        mock_service.sync_all.return_value = {
+            "created": 2,
+            "updated": 1,
+        }
+
+        result = sync_enbek_data()
+
+        self.assertEqual(result, {
+            "created": 2,
+            "updated": 1,
+        })
+
+        mock_service.sync_all.assert_called_once()
+
+    @patch('hr.tasks.logger')
+    @patch('hr.tasks.EnbekSyncService')
+    def test_task_logs_error_and_raises_exception(self, mock_service_class, mock_logger):
+        mock_service = mock_service_class.return_value
+        mock_service.sync_all.side_effect = Exception("API error")
+
+        with self.assertRaises(Exception):
+            sync_enbek_data()
+
+        mock_logger.exception.assert_called_once_with("celery_sync_error")
+
+    @patch('hr.tasks.cache')
+    @patch('hr.tasks.EnbekSyncService')
+    def test_task_skips_when_locked(self, mock_service_class, mock_cache):
+        mock_cache.get.return_value = True  # lock уже есть
+
+        result = sync_enbek_data()
+
+        self.assertEqual(result, {"status": "skipped"})
+        mock_service_class.assert_not_called()
