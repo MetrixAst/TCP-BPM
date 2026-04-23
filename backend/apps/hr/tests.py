@@ -14,6 +14,7 @@ from account.models import UserAccount, Department, Employee
 from hr.models import Company, Vacation, SickLeave, EmploymentContract
 from hr.services import EnbekSyncService
 from hr.tasks import sync_enbek_data
+from account.role_permissions import MenuItem
 
 
 @override_settings(
@@ -380,8 +381,8 @@ class EnbekSyncServiceTestCase(TestCase):
         mock_logger.info.assert_any_call(
             "sync_completed",
             extra={
-                "created": 3,
-                "updated": 0,
+                "created_count": 3,
+                "updated_count": 0,
                 "vacations_count": 1,
                 "sick_leaves_count": 1,
                 "employment_contracts_count": 1,
@@ -543,13 +544,13 @@ class EnbekSyncServiceTestCase(TestCase):
         mock_logger.info.assert_any_call(
             "sync_completed",
             extra={
-                "created": 0,
-                "updated": 0,
+                "created_count": 0,
+                "updated_count": 0,
                 "vacations_count": 0,
                 "sick_leaves_count": 0,
                 "employment_contracts_count": 0,
             }
-        )
+        )   
 
     @patch('hr.services.EnbekClient.get_employment_contracts')
     @patch('hr.services.EnbekClient.get_sick_leaves')
@@ -623,3 +624,131 @@ class EnbekCeleryTaskTestCase(TestCase):
 
         self.assertEqual(result, {"status": "skipped"})
         mock_service_class.assert_not_called()
+
+class EnbekViewsTestCase(TestCase):
+    def setUp(self):
+        self.company = Company.objects.create(
+            name='View Test Company',
+            bin_number='999999999999',
+        )
+
+        self.department = Department.objects.create(
+            name='HR View Department',
+            company=self.company,
+        )
+
+        self.admin_user = UserAccount.objects.create_user(
+            username='hr_admin',
+            password='testpass123',
+            role='administrator',
+        )
+
+        self.employee_user_1 = UserAccount.objects.create_user(
+            username='emp1',
+            password='testpass123',
+            role='staff',
+            first_name='Ivan',
+        )
+
+        self.employee_user_2 = UserAccount.objects.create_user(
+            username='emp2',
+            password='testpass123',
+            role='staff',
+            first_name='Petr',
+        )
+
+        self.employee_1 = Employee.objects.create(
+            user=self.employee_user_1,
+            department=self.department,
+            iin='100000000001',
+            status='active',
+        )
+
+        self.employee_2 = Employee.objects.create(
+            user=self.employee_user_2,
+            department=self.department,
+            iin='100000000002',
+            status='active',
+        )
+
+        Vacation.objects.create(
+            employee=self.employee_1,
+            type='annual',
+            start_date='2024-06-01',
+            end_date='2024-06-14',
+            status='approved',
+            enbek_id='vac_1',
+        )
+        Vacation.objects.create(
+            employee=self.employee_2,
+            type='study',
+            start_date='2024-07-01',
+            end_date='2024-07-10',
+            status='approved',
+            enbek_id='vac_2',
+        )
+
+        SickLeave.objects.create(
+            employee=self.employee_1,
+            start_date='2024-03-01',
+            end_date='2024-03-05',
+            document_number='SL-001',
+            enbek_id='sick_1',
+        )
+
+        EmploymentContract.objects.create(
+            employee=self.employee_1,
+            number='CTR-001',
+            date='2024-01-10',
+            type='labor',
+            status='active',
+            enbek_id='contract_1',
+        )
+
+        self.client.force_login(self.admin_user)
+
+    def test_get_hr_vacations_returns_200_and_list(self):
+        response = self.client.get('/hr/vacations/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Отпуска (Enbek)')
+        self.assertContains(response, 'vac_1')
+        self.assertContains(response, 'vac_2')
+
+    def test_get_hr_sick_leaves_returns_200_and_list(self):
+        response = self.client.get('/hr/sick-leaves/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Больничные (Enbek)')
+        self.assertContains(response, 'sick_1')
+
+    def test_get_hr_contracts_returns_200_and_list(self):
+        response = self.client.get('/hr/contracts/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Договоры (Enbek)')
+        self.assertContains(response, 'contract_1')
+
+    def test_filter_by_employee_returns_only_employee_data(self):
+        response = self.client.get(f'/hr/vacations/?employee={self.employee_1.id}')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'vac_1')
+        self.assertNotContains(response, 'vac_2')
+
+    def test_views_are_read_only(self):
+        response = self.client.get('/hr/vacations/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Редактировать')
+        self.assertNotContains(response, 'Удалить')
+
+    def test_hr_menu_contains_new_enbek_items(self):
+        menu = MenuItem.generate_menu(self.admin_user)
+
+        hr_item = next(item for item in menu if item.id == 'hr')
+        submenu_titles = [item.title for item in hr_item.submenu]
+
+        self.assertIn('Отпуска (Enbek)', submenu_titles)
+        self.assertIn('Больничные (Enbek)', submenu_titles)
+        self.assertIn('Договоры (Enbek)', submenu_titles)

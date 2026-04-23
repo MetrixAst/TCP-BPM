@@ -11,9 +11,12 @@ urlpatterns = [
     path('companies/', views.companies, name="companies"),
     path('positions/', views.positions, name="positions"),
 
+    path('vacations/', views.vacations, name="vacations"),
+    path('sick-leaves/', views.sick_leaves, name="sick_leaves"),
+    path('contracts/', views.contracts, name="contracts"),
+
     path('calendar/<slug:category>/', views.calendar, name="calendar"),
     path('calendar/<slug:category>/json/', views.calendar_json, name="calendar_json"),
     path('calendar/edit/<int:pk>/', views.edit_calendar_item, name="edit_calendar"),
     path('calendar/delete/<int:pk>/', views.delete_calendar_item, name="delete_calendar"),
-    
 ]
