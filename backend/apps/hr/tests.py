@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 import requests
 
+from django.db import IntegrityError
 from django.test import TestCase, override_settings
 
 from hr.enbek_client import (
@@ -9,6 +10,8 @@ from hr.enbek_client import (
     AuthenticationError,
     ConnectionError,
 )
+from account.models import UserAccount, Department, Employee
+from hr.models import Company, Vacation, SickLeave, EmploymentContract
 
 
 @override_settings(
@@ -161,3 +164,127 @@ class EnbekClientTestCase(TestCase):
 
         with self.assertRaises(EnbekClientError):
             self.client._handle_response(mock_response)
+
+class EnbekModelsTestCase(TestCase):
+    def setUp(self):
+        self.company = Company.objects.create(
+            name='Test Company',
+            bin_number='123456789012',
+        )
+
+        self.department = Department.objects.create(
+            name='IT Department',
+            company=self.company,
+        )
+
+        self.user = UserAccount.objects.create_user(
+            username='employee1',
+            password='testpass123',
+            role='staff',
+        )
+
+        self.employee = Employee.objects.create(
+            user=self.user,
+            department=self.department,
+            iin='123456789012',
+            status='active',
+        )
+
+    def test_create_vacation_with_unique_enbek_id(self):
+        vacation = Vacation.objects.create(
+            employee=self.employee,
+            type='annual',
+            start_date='2024-06-01',
+            end_date='2024-06-14',
+            status='approved',
+            enbek_id='vac_1',
+        )
+
+        self.assertIsNotNone(vacation.id)
+        self.assertEqual(vacation.enbek_id, 'vac_1')
+        self.assertEqual(vacation.employee, self.employee)
+
+    def test_duplicate_vacation_enbek_id_raises_integrity_error(self):
+        Vacation.objects.create(
+            employee=self.employee,
+            type='annual',
+            start_date='2024-06-01',
+            end_date='2024-06-14',
+            status='approved',
+            enbek_id='vac_1',
+        )
+
+        with self.assertRaises(IntegrityError):
+            Vacation.objects.create(
+                employee=self.employee,
+                type='annual',
+                start_date='2024-07-01',
+                end_date='2024-07-10',
+                status='approved',
+                enbek_id='vac_1',
+            )
+
+    def test_sick_leave_is_linked_to_employee(self):
+        sick_leave = SickLeave.objects.create(
+            employee=self.employee,
+            start_date='2024-03-01',
+            end_date='2024-03-05',
+            document_number='SL-001',
+            enbek_id='sick_1',
+        )
+
+        self.assertEqual(sick_leave.employee, self.employee)
+        self.assertIn(sick_leave, self.employee.sick_leaves.all())
+
+    def test_employment_contract_saved_with_type_and_status(self):
+        contract = EmploymentContract.objects.create(
+            employee=self.employee,
+            number='CTR-001',
+            date='2024-01-10',
+            type='labor',
+            status='active',
+            enbek_id='contract_1',
+        )
+
+        self.assertEqual(contract.number, 'CTR-001')
+        self.assertEqual(contract.type, 'labor')
+        self.assertEqual(contract.status, 'active')
+        self.assertEqual(contract.enbek_id, 'contract_1')
+        self.assertEqual(contract.employee, self.employee)
+
+    def test_delete_employee_sets_null_in_related_enbek_models(self):
+        vacation = Vacation.objects.create(
+            employee=self.employee,
+            type='annual',
+            start_date='2024-06-01',
+            end_date='2024-06-14',
+            status='approved',
+            enbek_id='vac_1',
+        )
+
+        sick_leave = SickLeave.objects.create(
+            employee=self.employee,
+            start_date='2024-03-01',
+            end_date='2024-03-05',
+            document_number='SL-001',
+            enbek_id='sick_1',
+        )
+
+        contract = EmploymentContract.objects.create(
+            employee=self.employee,
+            number='CTR-001',
+            date='2024-01-10',
+            type='labor',
+            status='active',
+            enbek_id='contract_1',
+        )
+
+        self.employee.delete()
+
+        vacation.refresh_from_db()
+        sick_leave.refresh_from_db()
+        contract.refresh_from_db()
+
+        self.assertIsNone(vacation.employee)
+        self.assertIsNone(sick_leave.employee)
+        self.assertIsNone(contract.employee)
