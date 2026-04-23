@@ -1,7 +1,8 @@
 from enum import Enum
-from django.core.exceptions import PermissionDenied
+from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.urls import reverse
+
 
 class RoleEnums(Enum):
     ADMINISTRATOR = "administrator"
@@ -11,93 +12,64 @@ class RoleEnums(Enum):
     @staticmethod
     def tenant_roles():
         return [RoleEnums.ADMINISTRATOR.value, RoleEnums.STAFF.value]
-    
+
 
 class PermissionEnums(Enum):
-
     PROFILE = "profile"
-    
-    #dashboard
     DASHBOARD = "dashboard"
-
-    #tasks
     TASKS = "tasks"
     EDIT_TASK = "edit_task"
-
-    #documents
     DOCUMENTS = "documents"
     EDIT_DOCUMENT = "edit_document"
-
-    #tenants
     TENANTS = "tenants"
-
-    #purchases
     PURCHASES = "purchases"
     SUPPLIERS = "suppliers"
     EDIT_SUPPLIERS = "edit_suppliers"
-
-    #finances
     FINANCES = "finances"
-
-    #hr
     HR = "hr"
-
-    #ecopark
+    HR_COMPANIES = "hr_companies"
+    HR_POSITIONS = "hr_positions"
     ECOPARK = "ecopark"
-
-    #requistions
     REQUISTIONS = "requistions"
-
-    #reports
     REPORTS = "reports"
-
-    #ADDITS
     COMMENT = "comment"
     USERS_LIST = "users_list"
-    
-    
+
 
 class RolePermissions:
     permissions = {
         RoleEnums.ADMINISTRATOR.value: [
-
             PermissionEnums.PROFILE,
             PermissionEnums.USERS_LIST,
-            
             PermissionEnums.DASHBOARD,
             PermissionEnums.TASKS,
             PermissionEnums.EDIT_TASK,
-            
             PermissionEnums.DOCUMENTS,
             PermissionEnums.EDIT_DOCUMENT,
-
             PermissionEnums.TENANTS,
             PermissionEnums.PURCHASES,
             PermissionEnums.SUPPLIERS,
             PermissionEnums.EDIT_SUPPLIERS,
-
             PermissionEnums.FINANCES,
-
             PermissionEnums.HR,
+            PermissionEnums.HR_COMPANIES,
+            PermissionEnums.HR_POSITIONS,
             PermissionEnums.ECOPARK,
             PermissionEnums.REQUISTIONS,
             PermissionEnums.REPORTS,
             PermissionEnums.COMMENT,
         ],
-
         RoleEnums.STAFF.value: [
             PermissionEnums.PROFILE,
             PermissionEnums.DASHBOARD,
             PermissionEnums.TASKS,
             PermissionEnums.EDIT_TASK,
             PermissionEnums.USERS_LIST,
-            
             PermissionEnums.DOCUMENTS,
             PermissionEnums.TENANTS,
             PermissionEnums.HR,
             PermissionEnums.COMMENT,
         ],
-
         RoleEnums.GUEST.value: [
             PermissionEnums.DASHBOARD,
             PermissionEnums.REQUISTIONS,
@@ -106,11 +78,8 @@ class RolePermissions:
 
     @staticmethod
     def checkPermission(role, permission):
-        return permission in RolePermissions.permissions[role]
+        return permission in RolePermissions.permissions.get(role, [])
 
-
-
-#DECORATORS
 
 def login_required(function):
     def wrap(request, *args, **kwargs):
@@ -120,39 +89,40 @@ def login_required(function):
             response = redirect('account:auth')
             response['Location'] += f"?next={request.path}"
             return response
-
     wrap.__doc__ = function.__doc__
     wrap.__name__ = function.__name__
     return wrap
 
+
 def need_permission(permission):
     def _method_wrapper(view_method):
-        def _arguments_wrapper(request, *args, **kwargs) :
+        def _arguments_wrapper(request, *args, **kwargs):
             if request.user.is_authenticated:
                 role = request.user.role
-                if role is not None:
-                    if RolePermissions.checkPermission(role, permission):
-                        return view_method(request, *args, **kwargs)
-                
-                raise PermissionDenied()
-                
+                if hasattr(role, 'value'):
+                    role = role.value
+
+                if role is not None and RolePermissions.checkPermission(role, permission):
+                    return view_method(request, *args, **kwargs)
+
+                return HttpResponseForbidden("Permission Denied")
             else:
                 response = redirect('account:auth')
                 response['Location'] += f"?next={request.path}"
                 return response
+        _arguments_wrapper.__doc__ = view_method.__doc__
+        _arguments_wrapper.__name__ = view_method.__name__
         return _arguments_wrapper
     return _method_wrapper
 
 
-#MENU
-class MenuItem():
-    def __init__(self, id, url, icon, title, submenu = None, url_param = None, indicator_alias = None):
+class MenuItem:
+    def __init__(self, id, url, icon, title, submenu=None, url_param=None, indicator_alias=None):
         self.id = id
         self.title = title
         self.icon = icon
         self.submenu = submenu
         self.indicator_alias = indicator_alias or self.id
-
         self.url = url
         if url != '#' and not url.startswith("#"):
             if url_param is not None:
@@ -166,16 +136,13 @@ class MenuItem():
             RoleEnums.STAFF.value: 'dashboard:dashboard',
             RoleEnums.GUEST.value: 'requistions:home',
         }
-
         return items.get(user.role, None)
-    
+
     def first_page_as_string(user):
         route = MenuItem.first_page(user)
         if route is not None:
             return reverse(route)
         return None
-
-    
 
     @staticmethod
     def generate_menu(user):
@@ -183,7 +150,6 @@ class MenuItem():
             RoleEnums.ADMINISTRATOR.value: [
                 MenuItem('tasks', 'tasks:list', 'grid-1', 'Менеджер задач', indicator_alias='task'),
                 MenuItem('documents', 'documents:list', 'file-text', 'Документооборот', url_param=['documents']),
-                # MenuItem('tenants', 'tenants:list', 'home', 'Арендаторы'),
                 MenuItem('tenants', '#tenants', 'home', 'Компании', submenu=[
                     MenuItem('suppliers', 'purchases:suppliers', '', 'Контрагенты'),
                     MenuItem('tenants_list', 'tenants:list', '', 'Арендаторы'),
@@ -196,30 +162,32 @@ class MenuItem():
                     MenuItem('bill', 'finances:bill', '', 'Счет компании'),
                 ]),
                 MenuItem('hr', '#hr', 'user', 'HR', submenu=[
-                    MenuItem('org', 'hr:org', '', 'Орг. структура'),
-                    MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
+                    MenuItem('org',          'hr:org',       '', 'Орг. структура'),
+                    MenuItem('employees',    'hr:employees', '', 'Сотрудники'),
+                    MenuItem('companies_hr', 'hr:companies', '', 'Компании'),
+                    MenuItem('positions_hr', 'hr:positions', '', 'Должности'),
                     MenuItem('secondment', 'hr:calendar', '', 'Командировки', url_param=['secondment']),
-                    MenuItem('vacation', 'hr:calendar', '', 'Отпуски', url_param=['vacation']),
-                    # MenuItem('vacancies', 'hr:home', '', 'Вакансии'),
-                    # MenuItem('templates', 'hr:home', '', 'Шаблон (документов)'),
+                    MenuItem('vacation',   'hr:calendar', '', 'Отпуски',      url_param=['vacation']),
+                    MenuItem('enbek_contracts', '#', '', 'Enbek: Договоры'),
+                    MenuItem('enbek_orders',    '#', '', 'Enbek: Приказы'),
                 ]),
-                MenuItem('ecopark', 'ecopark:home', 'water', 'Эксплуатация'),
+                MenuItem('ecopark',     'ecopark:home',     'water',      'Эксплуатация'),
                 MenuItem('requistions', 'requistions:home', 'notebook-1', 'Заявки от арендаторов'),
-                MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
+                MenuItem('reports',     'reports:home',     'eye',        'Показатели'),
             ],
 
             RoleEnums.STAFF.value: [
-                MenuItem('tasks', 'tasks:list', 'grid-1', 'Менеджер задач', indicator_alias='task'),
+                MenuItem('tasks',     'tasks:list',     'grid-1',    'Менеджер задач', indicator_alias='task'),
                 MenuItem('documents', 'documents:list', 'file-text', 'Документооборот', url_param=['documents']),
-                MenuItem('tenants', 'tenants:list', 'home', 'Арендаторы'),
+                MenuItem('tenants',   'tenants:list',   'home',      'Арендаторы'),
+                MenuItem('hr', '#hr', 'user', 'HR', submenu=[
+                    MenuItem('org',       'hr:org',       '', 'Орг. структура'),
+                    MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
+                ]),
             ],
-
 
             RoleEnums.GUEST.value: [
                 MenuItem('requistions', 'requistions:home', 'notebook-1', 'Заявки'),
             ],
         }
-
-        result = items.get(user.role, [])
-
-        return result
+        return items.get(user.role, [])
