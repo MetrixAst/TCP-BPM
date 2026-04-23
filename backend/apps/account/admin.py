@@ -2,6 +2,9 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django_mptt_admin.admin import DjangoMpttAdmin
 from .models import UserAccount, Department, Employee, Notification, PushToken
+from .forms import EmployeeAdminForm
+from .models import Employee
+from hr.models import Position
 
 
 class CustomUserAdmin(UserAdmin):
@@ -59,14 +62,14 @@ class NotificationA(admin.ModelAdmin):
     autocomplete_fields = ('users', )
     # inlines = (GalleryImageInline, )
 
+
+
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
+    form = EmployeeAdminForm
     list_display = ('user', 'department', 'position', 'status', 'iin', 'head')
-    
     list_filter = ('status', 'department', 'position', 'head')
-    
     search_fields = ('user__username', 'user__last_name', 'iin', 'phone')
-
     autocomplete_fields = ('user', 'supervisor')
     
     fieldsets = (
@@ -80,4 +83,25 @@ class EmployeeAdmin(admin.ModelAdmin):
             'fields': ('supervisor',)
         }),
     )
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "position":
+            resolved = request.resolver_match
+            if resolved and 'object_id' in resolved.kwargs:
+                employee = self.get_object(request, resolved.kwargs['object_id'])
+                if employee and employee.department:
+                    kwargs["queryset"] = Position.objects.filter(department=employee.department)
+                else:
+                    kwargs["queryset"] = Position.objects.none()
+        
+        if db_field.name == "supervisor":
+            resolved = request.resolver_match
+            if resolved and 'object_id' in resolved.kwargs:
+                employee = self.get_object(request, resolved.kwargs['object_id'])
+                if employee and employee.department and employee.department.company:
+                    kwargs["queryset"] = Employee.objects.filter(
+                        department__company=employee.department.company
+                    ).exclude(id=employee.id)
+
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 

@@ -11,29 +11,56 @@
                     {% csrf_token %}
                     <div class="card mb-5">
                         <div class="card-body">
-
                             <h1 class="mb-3 mt-1 pb-0 display-4">{{employee.user.get_name}}</h1>
 
                             <div class="row g-3 mt-2">
                                 <div class="col-md-6">
-                                    <label class="top-label">
-                                        {{form.department}}
-                                        <span>ОТДЕЛ</span>
-                                    </label>
+                                    <label class="top-label">{{form.department}}<span>ОТДЕЛ</span></label>
+                                    {{form.department.errors}}
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="top-label">
-                                        {{form.job_title}}
-                                        <span>Должность</span>
-                                    </label>
+                                    <label class="top-label">{{form.position}}<span>ДОЛЖНОСТЬ</span></label>
+                                    {{form.position.errors}}
                                 </div>
                             </div>
 
-                            <div class="mt-3 position-relative tooltip-label-end form-group">
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6">
+                                    <label class="top-label">{{form.status}}<span>СТАТУС</span></label>
+                                    {{form.status.errors}}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="top-label">{{form.supervisor}}<span>РУКОВОДИТЕЛЬ</span></label>
+                                    {{form.supervisor.errors}}
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6">
+                                    <label class="top-label">{{form.iin}}<span>ИИН</span></label>
+                                    {{form.iin.errors}}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="top-label">{{form.hire_date}}<span>ДАТА ПРИЕМА</span></label>
+                                    {{form.hire_date.errors}}
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6">
+                                    <label class="top-label">{{form.phone}}<span>ТЕЛЕФОН</span></label>
+                                    {{form.phone.errors}}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="top-label">{{form.personal_email}}<span>ЛИЧНАЯ ПОЧТА</span></label>
+                                    {{form.personal_email.errors}}
+                                </div>
+                            </div>
+
+                            <div class="mt-3 form-group">
                                 <div class="form-check">
                                     <label class="form-check-label">
-                                        {{form.head}}
-                                        Руководитель отдела
+                                        {{form.head}} Руководитель отдела
                                     </label>
                                 </div>
                             </div>
@@ -49,6 +76,5 @@
                 </form>
             </div>
         </div>
-        
     </div>
 {% endblock %}

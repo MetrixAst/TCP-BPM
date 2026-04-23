@@ -4,7 +4,6 @@
 
 {% block content %}
 
-    <!-- Title and Top Buttons Start -->
     <div class="page-title-container">
         <div class="row g-0">
             <div class="col-auto mb-2 mb-md-0 me-auto">
@@ -15,44 +14,36 @@
                             <li class="breadcrumb-item">
                                 <a href="{% url 'dashboard:dashboard' %}">Главная</a>
                             </li>
-                            <li class="breadcrumb-item">
-                                Сотрудники
-                            </li>
+                            <li class="breadcrumb-item">Сотрудники</li>
                         </ul>
                     </nav>
                 </div>
             </div>
             <div class="col-12 col-md d-flex align-items-start justify-content-end justify-content-lg-end">
-                <a href="{% url 'hr:create_employee' %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1" id="mobile_button" data-icon="plus">
+                <a href="{% url 'hr:create_employee' %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1">
                     <i data-acorn-icon="plus"></i>
                     <span>Новый сотрудник</span>
                 </a>
             </div>
         </div>
     </div>
-    <!-- Title and Top Buttons End -->
 
     {% include 'site/layouts/filter_form.html' with form=form %}
 
-
     <div class="row g-0">
-
         <div class="col">
-
             <div class="row">
                 <div class="col-12 mb-5">
-                    
                     {% if paginator.items %}
                         <div class="card mb-2 bg-transparent no-shadow d-none d-md-block">
                             <div class="row g-0 sh-3">
                                 <div class="col">
                                     <div class="card-body pt-0 pb-0 h-100">
                                         <div class="row g-0 h-100 align-content-center">
-                                            <div class="col-6 col-md-7 d-flex align-items-center text-alternate text-medium text-muted text-small">СОТРУДНИК</div>
-                                            <div class="col-6 col-md-3 d-flex align-items-center text-alternate text-medium text-muted text-small">ОТДЕЛ</div>
-                                            <div class="col-6 col-md-2 d-flex align-items-center justify-content-md-end text-alternate text-medium text-muted text-small">
-                                                ДОЛЖНОСТЬ
-                                            </div>
+                                            <div class="col-md-4 d-flex align-items-center text-muted text-small">СОТРУДНИК</div>
+                                            <div class="col-md-3 d-flex align-items-center text-muted text-small">ОТДЕЛ</div>
+                                            <div class="col-md-3 d-flex align-items-center text-muted text-small">ДОЛЖНОСТЬ</div>
+                                            <div class="col-md-2 d-flex align-items-center text-muted text-small">СТАТУС</div>
                                         </div>
                                     </div>
                                 </div>
@@ -61,37 +52,38 @@
                     {% endif %}
 
                     <div class="mb-5">
-
                         {% for current in paginator.items %}
-
                             <div class="card mb-2 sh-11 sh-md-8">
                                 <div class="card-body pt-0 pb-0 h-100">
                                     <div class="row g-0 h-100 align-content-center">
-
-                                        <div class="col-11 col-md-7 d-flex flex-column mb-1 mb-md-0 order-1 order-md-1 position-static">
+                                        <div class="col-11 col-md-4 d-flex flex-column mb-1 mb-md-0 order-1 position-static">
                                             <a href="{% url 'hr:edit_employee' current.id %}" class="mobile_link">{{current.user.username}}</a>
                                             <div class="text-small text-muted text-truncate">{{current.user.get_name}}</div>
                                         </div>
-                                        <div class="col-12 col-md-3 d-flex align-items-center order-3 order-md-2 {% if current.head %}text-success{% endif %}">{{current.department}}</div>
-                                        <div class="col-1 col-md-2 d-flex align-items-center text-muted text-medium justify-content-end order-2 order-md-3">
-                                            {{current.job_title}}
+                                        
+                                        <div class="col-12 col-md-3 d-flex align-items-center order-2 {% if current.head %}text-success{% endif %}">
+                                            {{current.department}}
                                         </div>
-                                    </div>
+                                        
+                                        <div class="col-12 col-md-3 d-flex align-items-center order-3 text-muted">
+                                            {% if current.position %}{{current.position.title}}{% else %}—{% endif %}
+                                        </div>
+                                        
+                                        <div class="col-1 col-md-2 d-flex align-items-center order-4">
+                                            <span class="badge {% if current.status == 'active' %}bg-outline-success{% elif current.status == 'dismissed' %}bg-outline-danger{% else %}bg-outline-warning{% endif %}">
+                                                {{current.get_status_display}}
+                                            </span>
+                                        </div>
+                                    </div>                     
                                 </div>
                             </div>
-
                         {% endfor %}
-
-                        
                     </div>
-
 
                     {% show_paginator paginator True %}
                 </div>
             </div>
-
         </div>
-
     </div>
 
 {% endblock %}

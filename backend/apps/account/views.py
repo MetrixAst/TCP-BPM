@@ -17,7 +17,6 @@ from .forms import CustomAuthenticationForm, EditProfileForm, CustomPasswordChan
 from .utils import get_structure_data
 from .models import UserAccount, PushToken, NotificationIndicator
 
-
 #AUTH
 from account.forms import CustomAuthenticationForm
 from django.contrib.auth import login as auth_login
@@ -37,9 +36,7 @@ class CustomLogoutView(LogoutView):
 
 class GuestView(View):
     def post(self, request):
-
         user = UserAccount.create_guest()
-        
         auth_login(request, user)
         return redirect('dashboard:base')
 
@@ -57,7 +54,7 @@ def profile_view(request):
             profile_form = EditProfileForm(request.POST, instance=request.user, prefix="profile")
             if profile_form.is_valid():
                 profile_form.save()
-                
+
         elif form_type == 'password':
             password_form = CustomPasswordChangeForm(request.user, data=request.POST or None, prefix="password")
             if password_form.is_valid():
@@ -73,11 +70,7 @@ def profile_view(request):
 
 
 def structure_csv(request, get):
-    
-    response = HttpResponse(
-        content_type='text/csv',
-        headers={'Content-Disposition': 'attachment; filename="data.csv"'},
-    )
+    response = HttpResponse(content_type='text/csv')
 
     data = get_structure_data(request, get == 'all')
     writer = csv.writer(response)
@@ -105,14 +98,11 @@ def users_ajax(request, selection):
     results = []
     for current in objects:
         try:
-            addit = current.employee_info.job_title
-        except UserAccount.employee_info.RelatedObjectDoesNotExist:
+            addit = current.employee_info.position.title if current.employee_info.position else ''
+        except Exception:
             addit = ''
 
-        text = ''
-        if getattr(current, 'get_name', None):
-            text = current.get_name
-
+        text = current.get_name
         if not text or not str(text).strip():
             text = current.username
 
@@ -130,10 +120,6 @@ def users_ajax(request, selection):
     })
 
 
-
-#MOBILE VIEWS
-
-
 @csrf_exempt
 def auth(request):
     if request.method == 'POST':
@@ -143,7 +129,6 @@ def auth(request):
             return JsonResponse({'success': True, 'cookies': request.COOKIES})
         else:
             return JsonResponse({'success': False, 'error': 'Не удалось авторизоваться'})
-
 
     return JsonResponse({'success': False, 'error': 'Ошибка'})
 
@@ -155,25 +140,22 @@ def push_token(request):
             token = request.POST.get('token', None)
             if token is not None:
                 PushToken.objects.get_or_create(user=request.user, fcm=token)
-                
                 return JsonResponse({'success': True})
         elif request.method == 'DELETE':
             request.user.push_tokens.all().delete()
-                
             return JsonResponse({'success': True})
 
-
     return JsonResponse({'success': False, 'error': 'Ошибка'})
+
 
 def get_side_menu(request):
     if request.user.is_authenticated:
         indicators = NotificationIndicator.get_data(request.user)
         res = {
-            'success': True, 
+            'success': True,
             'menu': [],
         }
 
-        #MENU
         menu_items = MenuItem.generate_menu(request.user)
         for current in menu_items:
             item = {
@@ -186,21 +168,16 @@ def get_side_menu(request):
             if current.submenu is not None:
                 item['submenu'] = []
                 for sub in current.submenu:
-                    item['submenu'].append(
-                        {
-                            'id': sub.id,
-                            'title': sub.title,
-                            'url': sub.url,
-                        }
-                    )
-            
+                    item['submenu'].append({
+                        'id': sub.id,
+                        'title': sub.title,
+                        'url': sub.url,
+                    })
+
             res['menu'].append(item)
-        
 
         res['first_page'] = MenuItem.first_page_as_string(request.user)
-        
 
-        #NAME
         res['user'] = {
             'name': request.user.get_name,
             'role': '',
@@ -209,14 +186,12 @@ def get_side_menu(request):
 
         employee = request.user.get_info()
         if employee is not None:
-            res['user']['role'] = employee.job_title
-        
-        print(res)
+            res['user']['role'] = employee.position.title if employee.position else ''
 
         return JsonResponse(res)
     else:
         return JsonResponse({'success': False, 'error': 'Требуется авторизация'})
-    
+
 
 def notifications_view(request):
     notifications = request.user.notifications.all()[:50]
