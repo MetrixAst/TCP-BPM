@@ -10,6 +10,9 @@ from django.db import transaction
 from .models import Counterparty, Invoice, InvoiceItem
 from .client_1c.client import Client1C
 
+from rest_framework import viewsets, filters
+from .serializers import CounterpartySerializer, InvoiceSerializer
+
 logger = logging.getLogger(__name__)
 
 def get_1c_client():
@@ -125,3 +128,14 @@ class InvoiceCreateView(View):
             logger.error(f"Database Error: {e}")
             messages.error(request, f"Произошла ошибка при сохранении: {e}")
             return redirect('onec:invoice_create')
+
+
+class CounterpartyViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Counterparty.objects.all()
+    serializer_class = CounterpartySerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['short_name', 'bin_number']
+
+class InvoiceViewSet(viewsets.ModelViewSet):
+    queryset = Invoice.objects.all().order_by('-Date')
+    serializer_class = InvoiceSerializer

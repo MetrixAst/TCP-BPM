@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'tenants',
     'addits',
     'onec',
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
