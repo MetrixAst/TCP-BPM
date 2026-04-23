@@ -12,6 +12,7 @@ from hr.enbek_client import (
 )
 from account.models import UserAccount, Department, Employee
 from hr.models import Company, Vacation, SickLeave, EmploymentContract
+from hr.services import EnbekSyncService
 
 
 @override_settings(
@@ -288,3 +289,296 @@ class EnbekModelsTestCase(TestCase):
         self.assertIsNone(vacation.employee)
         self.assertIsNone(sick_leave.employee)
         self.assertIsNone(contract.employee)
+
+class EnbekSyncServiceTestCase(TestCase):
+    def setUp(self):
+        self.company = Company.objects.create(
+            name='Test Company',
+            bin_number='123456789012',
+        )
+
+        self.department = Department.objects.create(
+            name='IT Department Sync',
+            company=self.company,
+        )
+
+        self.user = UserAccount.objects.create_user(
+            username='sync_employee',
+            password='testpass123',
+            role='staff',
+        )
+
+        self.employee = Employee.objects.create(
+            user=self.user,
+            department=self.department,
+            iin='111111111111',
+            status='active',
+        )
+
+        self.service = EnbekSyncService()
+
+    @patch('hr.services.logger')
+    @patch('hr.services.EnbekClient.get_employment_contracts')
+    @patch('hr.services.EnbekClient.get_sick_leaves')
+    @patch('hr.services.EnbekClient.get_vacations')
+    def test_sync_with_new_data_creates_records(
+        self,
+        mock_get_vacations,
+        mock_get_sick_leaves,
+        mock_get_contracts,
+        mock_logger
+    ):
+        mock_get_vacations.return_value = [
+            {
+                'id': 'vac_1',
+                'iin': '111111111111',
+                'type': 'annual',
+                'start_date': '2024-06-01',
+                'end_date': '2024-06-14',
+                'status': 'approved',
+            }
+        ]
+        mock_get_sick_leaves.return_value = [
+            {
+                'id': 'sick_1',
+                'iin': '111111111111',
+                'start_date': '2024-03-01',
+                'end_date': '2024-03-05',
+                'document_number': 'SL-001',
+            }
+        ]
+        mock_get_contracts.return_value = [
+            {
+                'id': 'contract_1',
+                'iin': '111111111111',
+                'number': 'CTR-001',
+                'date': '2024-01-10',
+                'type': 'labor',
+                'status': 'active',
+            }
+        ]
+
+        result = self.service.sync_all()
+
+        self.assertEqual(result['created'], 3)
+        self.assertEqual(result['updated'], 0)
+
+        self.assertEqual(Vacation.objects.count(), 1)
+        self.assertEqual(SickLeave.objects.count(), 1)
+        self.assertEqual(EmploymentContract.objects.count(), 1)
+
+        vacation = Vacation.objects.get(enbek_id='vac_1')
+        sick_leave = SickLeave.objects.get(enbek_id='sick_1')
+        contract = EmploymentContract.objects.get(enbek_id='contract_1')
+
+        self.assertEqual(vacation.employee, self.employee)
+        self.assertEqual(sick_leave.employee, self.employee)
+        self.assertEqual(contract.employee, self.employee)
+
+        mock_logger.info.assert_any_call("sync_started")
+        mock_logger.info.assert_any_call(
+            "sync_completed",
+            extra={
+                "created": 3,
+                "updated": 0,
+                "vacations_count": 1,
+                "sick_leaves_count": 1,
+                "employment_contracts_count": 1,
+            }
+        )
+
+    @patch('hr.services.EnbekClient.get_employment_contracts')
+    @patch('hr.services.EnbekClient.get_sick_leaves')
+    @patch('hr.services.EnbekClient.get_vacations')
+    def test_sync_with_existing_data_updates_records(
+        self,
+        mock_get_vacations,
+        mock_get_sick_leaves,
+        mock_get_contracts
+    ):
+        Vacation.objects.create(
+            employee=self.employee,
+            type='annual',
+            start_date='2024-06-01',
+            end_date='2024-06-14',
+            status='approved',
+            enbek_id='vac_1',
+        )
+        SickLeave.objects.create(
+            employee=self.employee,
+            start_date='2024-03-01',
+            end_date='2024-03-05',
+            document_number='SL-001',
+            enbek_id='sick_1',
+        )
+        EmploymentContract.objects.create(
+            employee=self.employee,
+            number='CTR-001',
+            date='2024-01-10',
+            type='labor',
+            status='active',
+            enbek_id='contract_1',
+        )
+
+        mock_get_vacations.return_value = [
+            {
+                'id': 'vac_1',
+                'iin': '111111111111',
+                'type': 'study',
+                'start_date': '2024-07-01',
+                'end_date': '2024-07-10',
+                'status': 'changed',
+            }
+        ]
+        mock_get_sick_leaves.return_value = [
+            {
+                'id': 'sick_1',
+                'iin': '111111111111',
+                'start_date': '2024-03-02',
+                'end_date': '2024-03-06',
+                'document_number': 'SL-002',
+            }
+        ]
+        mock_get_contracts.return_value = [
+            {
+                'id': 'contract_1',
+                'iin': '111111111111',
+                'number': 'CTR-999',
+                'date': '2024-02-15',
+                'type': 'updated_type',
+                'status': 'inactive',
+            }
+        ]
+
+        result = self.service.sync_all()
+
+        self.assertEqual(result['created'], 0)
+        self.assertEqual(result['updated'], 3)
+
+        self.assertEqual(Vacation.objects.count(), 1)
+        self.assertEqual(SickLeave.objects.count(), 1)
+        self.assertEqual(EmploymentContract.objects.count(), 1)
+
+        vacation = Vacation.objects.get(enbek_id='vac_1')
+        sick_leave = SickLeave.objects.get(enbek_id='sick_1')
+        contract = EmploymentContract.objects.get(enbek_id='contract_1')
+
+        self.assertEqual(vacation.type, 'study')
+        self.assertEqual(str(vacation.start_date), '2024-07-01')
+        self.assertEqual(vacation.status, 'changed')
+
+        self.assertEqual(str(sick_leave.start_date), '2024-03-02')
+        self.assertEqual(str(sick_leave.end_date), '2024-03-06')
+        self.assertEqual(sick_leave.document_number, 'SL-002')
+
+        self.assertEqual(contract.number, 'CTR-999')
+        self.assertEqual(str(contract.date), '2024-02-15')
+        self.assertEqual(contract.type, 'updated_type')
+        self.assertEqual(contract.status, 'inactive')
+
+    @patch('hr.services.logger')
+    @patch('hr.services.EnbekClient.get_vacations')
+    def test_sync_on_api_error_logs_error_and_existing_data_not_changed(
+        self,
+        mock_get_vacations,
+        mock_logger
+    ):
+        vacation = Vacation.objects.create(
+            employee=self.employee,
+            type='annual',
+            start_date='2024-06-01',
+            end_date='2024-06-14',
+            status='approved',
+            enbek_id='vac_1',
+        )
+
+        mock_get_vacations.side_effect = Exception('API is down')
+
+        with self.assertRaises(Exception):
+            self.service.sync_all()
+
+        vacation.refresh_from_db()
+        self.assertEqual(vacation.type, 'annual')
+        self.assertEqual(vacation.status, 'approved')
+        self.assertEqual(Vacation.objects.count(), 1)
+
+        mock_logger.info.assert_any_call("sync_started")
+        mock_logger.exception.assert_called_once_with("sync_error")
+
+    @patch('hr.services.logger')
+    @patch('hr.services.EnbekClient.get_employment_contracts')
+    @patch('hr.services.EnbekClient.get_sick_leaves')
+    @patch('hr.services.EnbekClient.get_vacations')
+    def test_sync_with_empty_response_changes_nothing(
+        self,
+        mock_get_vacations,
+        mock_get_sick_leaves,
+        mock_get_contracts,
+        mock_logger
+    ):
+        Vacation.objects.create(
+            employee=self.employee,
+            type='annual',
+            start_date='2024-06-01',
+            end_date='2024-06-14',
+            status='approved',
+            enbek_id='vac_1',
+        )
+
+        mock_get_vacations.return_value = []
+        mock_get_sick_leaves.return_value = []
+        mock_get_contracts.return_value = []
+
+        result = self.service.sync_all()
+
+        self.assertEqual(result['created'], 0)
+        self.assertEqual(result['updated'], 0)
+
+        self.assertEqual(Vacation.objects.count(), 1)
+        self.assertEqual(SickLeave.objects.count(), 0)
+        self.assertEqual(EmploymentContract.objects.count(), 0)
+
+        mock_logger.info.assert_any_call("sync_started")
+        mock_logger.info.assert_any_call(
+            "sync_completed",
+            extra={
+                "created": 0,
+                "updated": 0,
+                "vacations_count": 0,
+                "sick_leaves_count": 0,
+                "employment_contracts_count": 0,
+            }
+        )
+
+    @patch('hr.services.EnbekClient.get_employment_contracts')
+    @patch('hr.services.EnbekClient.get_sick_leaves')
+    @patch('hr.services.EnbekClient.get_vacations')
+    def test_sync_does_not_create_duplicates_for_same_enbek_id(
+        self,
+        mock_get_vacations,
+        mock_get_sick_leaves,
+        mock_get_contracts
+    ):
+        mock_get_vacations.return_value = [
+            {
+                'id': 'vac_1',
+                'iin': '111111111111',
+                'type': 'annual',
+                'start_date': '2024-06-01',
+                'end_date': '2024-06-14',
+                'status': 'approved',
+            }
+        ]
+        mock_get_sick_leaves.return_value = []
+        mock_get_contracts.return_value = []
+
+        first_result = self.service.sync_all()
+        second_result = self.service.sync_all()
+
+        self.assertEqual(first_result['created'], 1)
+        self.assertEqual(first_result['updated'], 0)
+
+        self.assertEqual(second_result['created'], 0)
+        self.assertEqual(second_result['updated'], 1)
+
+        self.assertEqual(Vacation.objects.filter(enbek_id='vac_1').count(), 1)
