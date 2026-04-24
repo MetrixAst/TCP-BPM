@@ -6,7 +6,7 @@ django-celery-results==2.5.1
 django-js-asset==2.1.0
 django-mptt==0.16.0
 django-mptt-admin==2.7.2
-django-celery-beat==2.6.0
+django-celery-beat==2.7.0
 
 # Database
 psycopg2-binary==2.9.10
@@ -15,7 +15,7 @@ sqlparse==0.5.3
 # Task queue
 celery==5.4.0
 redis==5.2.1
-django-celery-beat==2.7.0
+
 
 # Web server
 gunicorn==23.0.0

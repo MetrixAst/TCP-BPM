@@ -194,6 +194,7 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': timedelta(hours=4),
     },
 }
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 
 #ADDIT
