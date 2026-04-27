@@ -39,3 +39,29 @@ class Invoice(models.Model):
         verbose_name = "Расходы/доходы"
         verbose_name_plural = "Расходы/доходы"
         ordering = ['id']
+
+class Counterparty(models.Model):
+    id_1c = models.CharField("ID 1C", max_length=50, unique=True)
+    full_name = models.CharField("Полное наименование", max_length=500)
+    short_name = models.CharField("Краткое наименование", max_length=255)
+    bin_number = models.CharField("БИН", max_length=12, unique=True, null=True, blank=True)
+    iin = models.CharField("ИИН", max_length=12, null=True, blank=True)
+    address = models.TextField("Адрес", null=True, blank=True)
+    phone = models.CharField("Телефон", max_length=100, null=True, blank=True)
+    email = models.EmailField("Email", null=True, blank=True)
+    
+    is_supplier = models.BooleanField("Поставщик", default=False)
+    is_customer = models.BooleanField("Клиент", default=False)
+    
+    bank_accounts = models.JSONField("Банковские счета", default=list, blank=True)
+    contracts = models.JSONField("Договоры", default=list, blank=True)
+    
+    synced_at = models.DateTimeField("Дата синхронизации", null=True, blank=True)
+
+    def __str__(self):
+        return self.short_name or self.full_name
+
+    class Meta:
+        verbose_name = "Контрагент"
+        verbose_name_plural = "Контрагенты"
+        ordering = ['short_name']
