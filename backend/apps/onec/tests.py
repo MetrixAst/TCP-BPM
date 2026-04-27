@@ -3,6 +3,9 @@ from django.db.utils import IntegrityError
 from .models import Counterparty, Invoice, InvoiceItem
 from django.utils import timezone
 from django.urls import reverse
+from rest_framework.test import APITestCase
+from rest_framework import status
+
 
 class CounterpartyModelTest(TestCase):
 
@@ -179,3 +182,52 @@ class OneCViewsTest(TestCase):
     def test_onec_url_prefix(self):
         list_url = reverse('onec:counterparty_list')
         self.assertTrue(list_url.startswith('/onec/'))
+
+class OneCAPITestCase(APITestCase):
+    def setUp(self):
+        self.cp = Counterparty.objects.create(
+            id_1c="API-001",
+            short_name="API Test Company",
+            bin_number="111222333444",
+            bank_accounts=[{"bank": "TestBank", "account": "KZ000"}]
+        )
+        self.cp_list_url = reverse('onec:api_counterparty-list')
+        self.invoice_list_url = reverse('onec:api_invoice-list')
+
+    def test_get_counterparties_list(self):
+        response = self.client.get(self.cp_list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data[0]['short_name'], "API Test Company")
+        self.assertIn('bank_accounts', response.data[0])
+
+    def test_post_counterparty_fails(self):
+        data = {"short_name": "New Comp", "bin_number": "000"}
+        response = self.client.post(self.cp_list_url, data)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_get_invoices_nested(self):
+        inv = Invoice.objects.create(counterparty=self.cp, number="INV-100")
+        InvoiceItem.objects.create(invoice=inv, name="Item 1", quantity=1, price=100)
+        
+        response = self.client.get(self.invoice_list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data[0]['items']), 1)
+        self.assertEqual(response.data[0]['items'][0]['name'], "Item 1")
+
+    def test_create_invoice_with_items_nested(self):
+        data = {
+            "counterparty": self.cp.id,
+            "comment": "API Nested Order",
+            "items": [
+                {"name": "Товар 1", "quantity": 2, "price": 500},
+                {"name": "Товар 2", "quantity": 1, "price": 1000}
+            ]
+        }
+        response = self.client.post(self.invoice_list_url, data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Invoice.objects.count(), 1)
+        self.assertEqual(InvoiceItem.objects.count(), 2)
+        
+        invoice = Invoice.objects.first()
+        self.assertEqual(invoice.items.count(), 2)
