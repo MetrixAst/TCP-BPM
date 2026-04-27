@@ -188,6 +188,12 @@ REST_FRAMEWORK = {
 # CELERY
 CELERY_BROKER_URL = config('CELERY_BROKER_URL')
 CELERY_RESULT_BACKEND = 'django-db'
+CELERY_BEAT_SCHEDULE = {
+    'sync-counterparties-every-4-hours': {
+        'task': 'sync_counterparties_task',
+        'schedule': timedelta(hours=4),
+    },
+}
 
 
 #ADDIT
@@ -203,3 +209,4 @@ ONE_C_BASIC_AUTH_USER = config('ONE_C_BASIC_AUTH_USER', default='')
 ONE_C_BASIC_AUTH_PASSWORD = config('ONE_C_BASIC_AUTH_PASSWORD', default='')
 ONE_C_API_USER = config('ONE_C_API_USER', default='')
 ONE_C_API_PASSWORD = config('ONE_C_API_PASSWORD', default='')
+
