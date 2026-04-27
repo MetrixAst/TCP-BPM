@@ -2,6 +2,7 @@ from django.test import TestCase
 from django.db.utils import IntegrityError
 from .models import Counterparty, Invoice, InvoiceItem
 from django.utils import timezone
+from django.urls import reverse
 
 class CounterpartyModelTest(TestCase):
 
@@ -116,3 +117,65 @@ class InvoiceIntegrationTest(TestCase):
         )
         self.assertEqual(item.total, 1000.0) 
         self.assertEqual(item.vat_amount, 120.0) 
+
+class OneCViewsTest(TestCase):
+    def setUp(self):
+        self.cp = Counterparty.objects.create(
+            id_1c="VIEW-TEST-01",
+            full_name="Тестовая Компания для Views",
+            short_name="ТОО Тест",
+            bin_number="987654321098"
+        )
+
+    def test_counterparty_list_view_status(self):
+        url = reverse('onec:counterparty_list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "ТОО Тест")
+
+    def test_counterparty_search_api_filtering(self):
+        url = reverse('onec:counterparty_search_api')
+        response = self.client.get(f"{url}?q=Тест")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(any(item['text'].startswith("ТОО Тест") for item in data['results']))
+        
+        response_empty = self.client.get(f"{url}?q=qwerty")
+        self.assertEqual(len(response_empty.json()['results']), 0)
+
+    def test_counterparty_detail_view(self):
+        url = reverse('onec:counterparty_detail', kwargs={'pk': self.cp.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "987654321098")
+        self.assertNotContains(response, "<form") 
+
+    def test_invoice_create_get_page(self):
+        url = reverse('onec:invoice_create')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Выставить новый счет")
+
+    def test_invoice_create_post_success(self):
+        url = reverse('onec:invoice_create')
+        post_data = {
+            'counterparty': self.cp.id,
+            'comment': 'Тест создания через POST',
+            'item_name[]': ['Товар А', 'Товар Б'],
+            'item_qty[]': ['10', '5'],
+            'item_price[]': ['100', '200'],
+        }
+        
+        response = self.client.post(url, post_data)
+        
+        self.assertEqual(response.status_code, 302)
+        
+        invoice = Invoice.objects.filter(comment='Тест создания через POST').first()
+        self.assertIsNotNone(invoice)
+        self.assertEqual(invoice.counterparty, self.cp)
+        self.assertEqual(invoice.items.count(), 2)
+        self.assertEqual(invoice.Sum, 2000.0)
+
+    def test_onec_url_prefix(self):
+        list_url = reverse('onec:counterparty_list')
+        self.assertTrue(list_url.startswith('/onec/'))

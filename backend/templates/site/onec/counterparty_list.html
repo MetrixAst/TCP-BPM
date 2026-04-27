@@ -1,0 +1,51 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Контрагенты 1С</h2>
+        <a href="{% url 'onec:invoice_create' %}" class="btn btn-primary">Создать счет</a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="">
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Поиск по названию или БИН..." 
+                           value="{{ request.GET.search|default:'' }}">
+                    <button class="btn btn-outline-primary" type="submit">Найти</button>
+                    {% if request.GET.search %}
+                        <a href="{% url 'onec:counterparty_list' %}" class="btn btn-outline-secondary">Сбросить</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <table class="table table-hover mt-3">
+        <thead class="table-light">
+            <tr>
+                <th>Название</th>
+                <th>БИН</th>
+                <th class="text-end">Действие</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cp in counterparties %}
+            <tr>
+                <td>{{ cp.short_name }}</td>
+                <td>{{ cp.bin_number|default:"---" }}</td>
+                <td class="text-end">
+                    <a href="{% url 'onec:counterparty_detail' cp.pk %}" class="btn btn-sm btn-outline-secondary">Детали</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3" class="text-center text-muted">Контрагенты не найдены</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
