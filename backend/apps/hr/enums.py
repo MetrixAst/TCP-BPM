@@ -21,3 +21,9 @@ class EmployeeStatusEnum(models.TextChoices):
     DISMISSED = 'dismissed', 'Уволен'
     VACATION = 'vacation', 'В отпуске'
     SICK_LEAVE = 'sick_leave', 'На больничном'
+
+
+class DayTypeEnum(models.TextChoices):
+    WORKING = 'working', 'Рабочий'
+    WEEKEND = 'weekend', 'Выходной'
+    HOLIDAY = 'holiday', 'Праздник'
