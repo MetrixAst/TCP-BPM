@@ -1,0 +1,109 @@
+body {
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    font-family: var(--font-family-base);
+  }
+  
+  
+  .btn {
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+  
+  .card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    background-color: var(--bg-card);
+  }
+  
+  .sidebar {
+    width: 260px;
+    height: 100vh;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border-color);
+    padding: var(--space-16);
+  }
+  
+  .topbar {
+    height: 60px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-16);
+  }
+  
+  .table {
+    border-collapse: collapse;
+  }
+  
+  .table th {
+    background: var(--color-neutral-200);
+  }
+  
+  .table td {
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .form-control {
+    border-radius: var(--radius-md);
+    border-color: var(--border-color);
+    background-color: var(--bg-body);
+    color: var(--text-main);
+  }
+  
+  .form-control::placeholder {
+    color: var(--text-muted);
+  }
+  
+  .badge {
+    text-transform: uppercase;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+  }
+  
+  .modal-content {
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .alert {
+    border-radius: var(--radius-md);
+  }
+  
+  .pagination {
+    gap: 4px;
+  }
+  
+  .page-link {
+    border-radius: var(--radius-md);
+  }
+  
+  .nav-tabs .nav-link {
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+  }
+
+  .breadcrumb {
+    font-size: var(--body-md);
+    margin-bottom: var(--space-16);
+  }
+  
+  .breadcrumb-item a {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+  
+  .breadcrumb-item a:hover {
+    text-decoration: underline;
+  }
+  
+  .breadcrumb-item.active {
+    color: var(--text-muted);
+  }
