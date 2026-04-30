@@ -1,118 +1,214 @@
-$primary:       #3B82F6;
-$secondary:     #6B7280;
-$success:       #22C55E;
-$danger:        #EF4444;
-$warning:       #FACC15;
-$info:          #0EA5E9;
+// =============================================================================
+// metriX BPM — Design Tokens
+// Extracted from Figma screens: metriX BPM design system
+// Source: Figma → CSS variable mapping
+// =============================================================================
 
-$gray-100: #F9FAFB;
-$gray-200: #F3F4F6;
-$gray-300: #E5E7EB;
-$gray-400: #D1D5DB;
-$gray-500: #9CA3AF;
-$gray-600: #6B7280;
-$gray-700: #4B5563;
-$gray-800: #374151;
-$gray-900: #1F2937;
-
-$font-family-sans-serif: 'Inter', sans-serif;
-
-$h1-font-size: 1.75rem; 
-$h2-font-size: 1.5rem;  
-$h3-font-size: 1.125rem; 
-$h4-font-size: 1rem;     
-$h5-font-size: 0.875rem; 
-$h6-font-size: 0.75rem;  
-
-$body-font-size: 0.875rem;
-
-$spacer: 1rem;
-
-$spacers: (
-  0: 0,
-  1: ($spacer * .25), 
-  2: ($spacer * .5),  
-  3: ($spacer * .75), 
-  4: $spacer,         
-  5: ($spacer * 1.5), 
-  6: ($spacer * 2),   
-  7: ($spacer * 3)    
-);
+// -----------------------------------------------------------------------------
+// COLOR TOKENS
+// -----------------------------------------------------------------------------
 
 :root {
-  --color-primary: #{$primary};
-  --color-secondary: #{$secondary};
-  --color-success: #{$success};
-  --color-danger: #{$danger};
-  --color-warning: #{$warning};
-  --color-info: #{$info};
+  // --- Primary (Blue) ---
+  --color-primary:           #2563EB;   // Main blue: buttons, active nav, links
+  --color-primary-hover:     #1D4ED8;
+  --color-primary-light:     #EFF6FF;   // Light blue bg (icon containers)
+  --color-primary-50:        #EFF6FF;
+  --color-primary-100:       #DBEAFE;
+  --color-primary-500:       #3B82F6;
+  --color-primary-600:       #2563EB;
+  --color-primary-700:       #1D4ED8;
 
-  --color-neutral-100: #{$gray-100};
-  --color-neutral-200: #{$gray-200};
-  --color-neutral-300: #{$gray-300};
-  --color-neutral-400: #{$gray-400};
-  --color-neutral-500: #{$gray-500};
-  --color-neutral-600: #{$gray-600};
-  --color-neutral-700: #{$gray-700};
-  --color-neutral-800: #{$gray-800};
-  --color-neutral-900: #{$gray-900};
+  // --- Secondary (Cyan/Teal) ---
+  --color-secondary:         #06B6D4;
+  --color-secondary-light:   #ECFEFF;
 
-  --font-family-base: #{$font-family-sans-serif};
+  // --- Success (Green) ---
+  --color-success:           #16A34A;   // "Оплачено" badge
+  --color-success-bg:        #DCFCE7;
+  --color-success-text:      #15803D;
 
-  --h1: #{$h1-font-size};
-  --h2: #{$h2-font-size};
-  --h3: #{$h3-font-size};
-  --h4: #{$h4-font-size};
-  --h5: #{$h5-font-size};
-  --h6: #{$h6-font-size};
+  // --- Danger (Red) ---
+  --color-danger:            #DC2626;   // "Просрочено" badge, delete btn
+  --color-danger-bg:         #FEE2E2;
+  --color-danger-text:       #B91C1C;
+  --color-danger-hover:      #B91C1C;
 
-  --body-lg: 16px;
-  --body-md: 14px;
-  --body-sm: 12px;
+  // --- Warning (Orange/Yellow) ---
+  --color-warning:           #F59E0B;   // "Не оплачено" badge dot
+  --color-warning-bg:        #FEF3C7;
+  --color-warning-text:      #D97706;
 
-  --space-4: 4px;
-  --space-8: 8px;
-  --space-12: 12px;
-  --space-16: 16px;
-  --space-24: 24px;
-  --space-32: 32px;
-  --space-48: 48px;
+  // --- Info (Blue-light) ---
+  --color-info:              #3B82F6;
+  --color-info-bg:           #EFF6FF;
+  --color-info-text:         #1D4ED8;
 
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  // --- Neutral / Gray ---
+  --color-neutral-50:        #F9FAFB;
+  --color-neutral-100:       #F3F4F6;
+  --color-neutral-200:       #E5E7EB;
+  --color-neutral-300:       #D1D5DB;
+  --color-neutral-400:       #9CA3AF;
+  --color-neutral-500:       #6B7280;
+  --color-neutral-600:       #4B5563;
+  --color-neutral-700:       #374151;
+  --color-neutral-800:       #1F2937;
+  --color-neutral-900:       #111827;
 
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
-  --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+  // --- Base ---
+  --color-white:             #FFFFFF;
+  --color-black:             #000000;
+  --color-bg:                #F5F7FA;   // Page background (light gray)
+  --color-surface:           #FFFFFF;   // Card / panel surface
 
-  --bp-sm: 576px;
-  --bp-md: 768px;
-  --bp-lg: 992px;
-  --bp-xl: 1200px;
+  // --- Text ---
+  --color-text-primary:      #111827;   // Main text
+  --color-text-secondary:    #6B7280;   // Labels, meta text
+  --color-text-muted:        #9CA3AF;   // Placeholder, disabled
+  --color-text-link:         #2563EB;   // Hyperlinks (nikanika.kz style)
+  --color-text-inverse:      #FFFFFF;
 
-  --bg-body: #ffffff;
-  --bg-card: #ffffff;
-  --border-color: #{$gray-300};
-  --text-main: #{$gray-900};
-  --text-muted: #{$gray-500};
+  // --- Border ---
+  --color-border:            #E5E7EB;   // Default border (dashed in figma = #E5E7EB)
+  --color-border-focus:      #2563EB;
+  --color-border-error:      #DC2626;
+
+  // --- Sidebar ---
+  --color-sidebar-bg:        #FFFFFF;
+  --color-sidebar-text:      #374151;
+  --color-sidebar-active:    #2563EB;
+  --color-sidebar-active-bg: #EFF6FF;
+  --color-sidebar-hover:     #F3F4F6;
+
+  // --- Topbar ---
+  --color-topbar-bg:         #FFFFFF;
+  --color-topbar-border:     #E5E7EB;
+
+
+  // -----------------------------------------------------------------------------
+  // TYPOGRAPHY
+  // -----------------------------------------------------------------------------
+
+  // Font families
+  --font-family-base:        'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-mono:        'JetBrains Mono', 'Fira Code', monospace;
+
+  // Font sizes
+  --font-size-h1:            2rem;        // 32px — large stat numbers (35, 25...)
+  --font-size-h2:            1.5rem;      // 24px
+  --font-size-h3:            1.25rem;     // 20px — section headings (Контрагенты)
+  --font-size-h4:            1.125rem;    // 18px — card titles (ТОО "metriX Company")
+  --font-size-h5:            1rem;        // 16px
+  --font-size-h6:            0.875rem;    // 14px
+  --font-size-body:          0.875rem;    // 14px — default body text
+  --font-size-caption:       0.75rem;     // 12px — meta, timestamps
+
+  // Font weights
+  --font-weight-regular:     400;
+  --font-weight-medium:      500;
+  --font-weight-semibold:    600;
+  --font-weight-bold:        700;
+
+  // Line heights
+  --line-height-tight:       1.25;
+  --line-height-normal:      1.5;
+  --line-height-relaxed:     1.75;
+
+
+  // -----------------------------------------------------------------------------
+  // SPACING SCALE
+  // -----------------------------------------------------------------------------
+
+  --space-1:    4px;
+  --space-2:    8px;
+  --space-3:    12px;
+  --space-4:    16px;
+  --space-5:    20px;    // Figma: Padding top/bottom panels
+  --space-6:    24px;    // Figma: Gap, Padding
+  --space-7:    28px;
+  --space-8:    32px;
+  --space-9:    36px;
+  --space-10:   40px;
+  --space-12:   48px;
+
+
+  // -----------------------------------------------------------------------------
+  // BORDER RADIUS
+  // -----------------------------------------------------------------------------
+
+  --radius-sm:    4px;    // Inputs, small elements
+  --radius-md:    6px;    // Buttons, badges
+  --radius-lg:    8px;    // Cards, panels (Figma: radius 20px on main card)
+  --radius-xl:    12px;
+  --radius-2xl:   20px;   // Main content card (Figma: Radius 20px)
+  --radius-full:  9999px; // Pills, avatar circles
+
+
+  // -----------------------------------------------------------------------------
+  // SHADOWS
+  // -----------------------------------------------------------------------------
+
+  --shadow-sm:    0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md:    0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg:    0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  --shadow-xl:    0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+
+  // -----------------------------------------------------------------------------
+  // BREAKPOINTS (used in JS / media queries reference)
+  // -----------------------------------------------------------------------------
+
+  // --breakpoint-sm:  576px;
+  // --breakpoint-md:  768px;
+  // --breakpoint-lg:  992px;
+  // --breakpoint-xl:  1200px;
+  // --breakpoint-xxl: 1400px;
+
+
+  // -----------------------------------------------------------------------------
+  // LAYOUT
+  // -----------------------------------------------------------------------------
+
+  --sidebar-width:      260px;    // Figma: left nav width ~260px
+  --topbar-height:      56px;     // Figma: topbar height
+  --content-padding:    var(--space-6);
+  --card-padding:       var(--space-6);
 }
 
-[data-bs-theme="dark"] {
-  --color-neutral-100: #1F2937;
-  --color-neutral-200: #374151;
-  --color-neutral-300: #4B5563;
-  --color-neutral-400: #6B7280;
-  --color-neutral-500: #9CA3AF;
-  --color-neutral-600: #D1D5DB;
-  --color-neutral-700: #E5E7EB;
-  --color-neutral-800: #F3F4F6;
-  --color-neutral-900: #F9FAFB;
 
-  --bg-body: #0D1117;
-  --bg-card: #161B22;
-  --border-color: #30363D;
+// =============================================================================
+// SCSS VARIABLE ALIASES (Bootstrap 5 override–compatible)
+// =============================================================================
 
-  --text-main: #F9FAFB;
-  --text-muted: #9CA3AF;
-}
+// Colors
+$primary:        var(--color-primary)    !default;
+$secondary:      var(--color-secondary)  !default;
+$success:        var(--color-success)    !default;
+$danger:         var(--color-danger)     !default;
+$warning:        var(--color-warning)    !default;
+$info:           var(--color-info)       !default;
+$light:          var(--color-neutral-100) !default;
+$dark:           var(--color-neutral-800) !default;
+
+// Typography
+$font-family-base:    var(--font-family-base) !default;
+$font-size-base:      var(--font-size-body)   !default;
+$font-weight-normal:  var(--font-weight-regular) !default;
+$font-weight-bold:    var(--font-weight-bold)    !default;
+$line-height-base:    var(--line-height-normal)  !default;
+
+// Spacing
+$spacer: 1rem !default;
+
+// Border
+$border-radius:    var(--radius-md) !default;
+$border-radius-sm: var(--radius-sm) !default;
+$border-radius-lg: var(--radius-lg) !default;
+$border-color:     var(--color-border) !default;
+
+// Shadows
+$box-shadow:    var(--shadow-md) !default;
+$box-shadow-sm: var(--shadow-sm) !default;
+$box-shadow-lg: var(--shadow-lg) !default;
