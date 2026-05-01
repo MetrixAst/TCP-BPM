@@ -1,149 +1,60 @@
 {% load static %}
-{# ─────────────────────────────────────────────────────────────────
-   SIDEBAR — metriX BPM
-   Данные приходят из account.context_processors.info:
-     menu         → список MenuItem (url, title, icon, submenu, indicator_alias)
-     user         → request.user
-     indicators   → объект с индикаторами
-   ───────────────────────────────────────────────────────────────── #}
-
 <aside class="bpm-sidebar" id="bpmSidebar">
-
-  <!-- ── Logo ── -->
-  <a href="/dashboard" class="bpm-sidebar__logo">
+  <a href="/" class="bpm-sidebar__logo">
     <span class="bpm-sidebar__logo-icon">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="7" height="7" rx="1.5" fill="currentColor"/>
-        <rect x="12" y="1" width="7" height="7" rx="1.5" fill="currentColor"/>
-        <rect x="1" y="12" width="7" height="7" rx="1.5" fill="currentColor"/>
-        <rect x="12" y="12" width="7" height="7" rx="1.5" fill="currentColor"/>
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <rect x="1" y="3" width="3" height="14" rx="0.5" fill="currentColor"/>
+        <rect x="6.5" y="3" width="13" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
       </svg>
     </span>
-    <span class="bpm-sidebar__logo-text">metriX BPM</span>
+    <span>metri<span class="bpm-sidebar__logo-x">X</span> BPM</span>
   </a>
 
-  <!-- ── Navigation ── -->
-  <nav class="bpm-sidebar__nav" aria-label="Основная навигация">
-
+  <nav class="bpm-sidebar__nav">
     {% for item in menu %}
-
       {% if item.submenu %}
-        {# Пункт с подменю (Компании, Финансы, HR...) #}
         <div class="bpm-sidebar__group">
-          <button
-            class="bpm-sidebar__item bpm-sidebar__item--parent {% if item.is_active %}is-active{% endif %}"
-            data-bs-toggle="collapse"
-            data-bs-target="#sidebar-group-{{ forloop.counter }}"
-            aria-expanded="{{ item.is_active|yesno:'true,false' }}"
-            type="button"
-          >
+          <button type="button"
+                  class="bpm-sidebar__item bpm-sidebar__item--parent {% if item.is_active %}is-open{% endif %}"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#bpm-sg-{{ forloop.counter }}"
+                  aria-expanded="{{ item.is_active|yesno:'true,false' }}">
             <i class="bi bi-{{ item.icon }} bpm-sidebar__icon"></i>
             <span class="bpm-sidebar__label">{{ item.title }}</span>
             <i class="bi bi-chevron-down bpm-sidebar__chevron"></i>
           </button>
-
-          <div
-            class="collapse {% if item.is_active %}show{% endif %}"
-            id="sidebar-group-{{ forloop.counter }}"
-          >
+          <div class="collapse {% if item.is_active %}show{% endif %}" id="bpm-sg-{{ forloop.counter }}">
             {% for sub in item.submenu %}
-              <a
-                href="{{ sub.url }}"
-                class="bpm-sidebar__item bpm-sidebar__item--sub indicator_counter {% if sub.is_active %}is-active{% endif %}"
-                data-type="{{ sub.indicator_alias }}"
-                {% if sub.is_active %}aria-current="page"{% endif %}
-              >
-                {{ sub.title }}
+              <a href="{{ sub.url }}"
+                 class="bpm-sidebar__item bpm-sidebar__item--sub indicator_counter {% if sub.is_active %}is-active{% endif %}"
+                 data-type="{{ sub.indicator_alias }}"
+                 {% if sub.is_active %}aria-current="page"{% endif %}>
+                <span class="bpm-sidebar__label">{{ sub.title }}</span>
               </a>
             {% endfor %}
           </div>
         </div>
-
       {% else %}
-        {# Одиночный пункт #}
-        <a
-          href="{{ item.url }}"
-          class="bpm-sidebar__item indicator_counter {% if item.is_active %}is-active{% endif %}"
-          data-type="{{ item.indicator_alias }}"
-          {% if item.is_active %}aria-current="page"{% endif %}
-        >
+        <a href="{{ item.url }}"
+           class="bpm-sidebar__item indicator_counter {% if item.is_active %}is-active{% endif %}"
+           data-type="{{ item.indicator_alias }}"
+           {% if item.is_active %}aria-current="page"{% endif %}>
           <i class="bi bi-{{ item.icon }} bpm-sidebar__icon"></i>
           <span class="bpm-sidebar__label">{{ item.title }}</span>
         </a>
       {% endif %}
-
-    {% empty %}
-      {# ── Статический fallback (если generate_menu не передал данные) ── #}
-      <a href="{% url 'tasks:index' %}" class="bpm-sidebar__item {% if request.resolver_match.app_name == 'tasks' %}is-active{% endif %}">
-        <i class="bi bi-check2-square bpm-sidebar__icon"></i>
-        <span class="bpm-sidebar__label">Менеджер задач</span>
-      </a>
-      <a href="{% url 'documents:index' %}" class="bpm-sidebar__item {% if request.resolver_match.app_name == 'documents' %}is-active{% endif %}">
-        <i class="bi bi-file-earmark-text bpm-sidebar__icon"></i>
-        <span class="bpm-sidebar__label">Документооборот</span>
-      </a>
-      <div class="bpm-sidebar__group">
-        <button class="bpm-sidebar__item bpm-sidebar__item--parent"
-                data-bs-toggle="collapse" data-bs-target="#sg-companies"
-                aria-expanded="false" type="button">
-          <i class="bi bi-building bpm-sidebar__icon"></i>
-          <span class="bpm-sidebar__label">Компании</span>
-          <i class="bi bi-chevron-down bpm-sidebar__chevron"></i>
-        </button>
-        <div class="collapse" id="sg-companies">
-          <a href="#" class="bpm-sidebar__item bpm-sidebar__item--sub">Контрагенты</a>
-        </div>
-      </div>
-      <a href="{% url 'purchases:index' %}" class="bpm-sidebar__item {% if request.resolver_match.app_name == 'purchases' %}is-active{% endif %}">
-        <i class="bi bi-cart3 bpm-sidebar__icon"></i>
-        <span class="bpm-sidebar__label">Закупки</span>
-      </a>
-      <div class="bpm-sidebar__group">
-        <button class="bpm-sidebar__item bpm-sidebar__item--parent"
-                data-bs-toggle="collapse" data-bs-target="#sg-finances"
-                aria-expanded="false" type="button">
-          <i class="bi bi-credit-card bpm-sidebar__icon"></i>
-          <span class="bpm-sidebar__label">Финансы</span>
-          <i class="bi bi-chevron-down bpm-sidebar__chevron"></i>
-        </button>
-        <div class="collapse" id="sg-finances">
-          <a href="{% url 'finances:payments' %}" class="bpm-sidebar__item bpm-sidebar__item--sub">Реестр оплат</a>
-          <a href="{% url 'finances:calendar' %}" class="bpm-sidebar__item bpm-sidebar__item--sub">Финансовый календарь</a>
-          <a href="{% url 'finances:budget' %}" class="bpm-sidebar__item bpm-sidebar__item--sub">Бюджет компании</a>
-          <a href="{% url 'finances:accounts' %}" class="bpm-sidebar__item bpm-sidebar__item--sub">Счёт компании</a>
-        </div>
-      </div>
-      <a href="{% url 'hr:index' %}" class="bpm-sidebar__item {% if request.resolver_match.app_name == 'hr' %}is-active{% endif %}">
-        <i class="bi bi-people bpm-sidebar__icon"></i>
-        <span class="bpm-sidebar__label">HR</span>
-      </a>
-      <a href="{% url 'requistions:index' %}" class="bpm-sidebar__item {% if request.resolver_match.app_name == 'requistions' %}is-active{% endif %}">
-        <i class="bi bi-tools bpm-sidebar__icon"></i>
-        <span class="bpm-sidebar__label">Эксплуатация</span>
-      </a>
-      <a href="{% url 'tenants:index' %}" class="bpm-sidebar__item {% if request.resolver_match.app_name == 'tenants' %}is-active{% endif %}">
-        <i class="bi bi-inbox bpm-sidebar__icon"></i>
-        <span class="bpm-sidebar__label">Заявки от арендаторов</span>
-      </a>
-      <a href="{% url 'reports:index' %}" class="bpm-sidebar__item {% if request.resolver_match.app_name == 'reports' %}is-active{% endif %}">
-        <i class="bi bi-bar-chart-line bpm-sidebar__icon"></i>
-        <span class="bpm-sidebar__label">Показатели</span>
-      </a>
-
     {% endfor %}
-
   </nav>
 
-  <!-- ── User footer ── -->
   <div class="bpm-sidebar__footer">
     <div class="bpm-sidebar__avatar">
       {% if user.get_avatar_url %}
         <img src="{{ user.get_avatar_url }}" alt="{{ user.get_name }}" />
       {% else %}
-        {{ user.get_name|slice:":1"|upper }}
+        <i class="bi bi-person-fill"></i>
       {% endif %}
     </div>
-    <div class="bpm-sidebar__user-info">
+    <div class="bpm-sidebar__user">
       <div class="bpm-sidebar__user-name">{{ user.get_name }}</div>
       <div class="bpm-sidebar__user-role">{{ user.role|default:"Администратор" }}</div>
     </div>
@@ -151,5 +62,4 @@
       <i class="bi bi-box-arrow-right"></i>
     </a>
   </div>
-
 </aside>

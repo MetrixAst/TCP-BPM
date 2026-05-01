@@ -6,111 +6,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>{% block title %}metriX BPM{% endblock %}</title>
   <meta name="description" content="metriX BPM" />
-
-  <!-- Favicon -->
   <link rel="apple-touch-icon" sizes="180x180" href="{% static 'site/img/favicon/apple-touch-icon.png' %}">
   <link rel="icon" type="image/png" sizes="32x32" href="{% static 'site/img/favicon/favicon-32x32.png' %}">
   <link rel="icon" type="image/png" sizes="16x16" href="{% static 'site/img/favicon/favicon-16x16.png' %}">
-
-  <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
-  <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
-
-  <!-- Bootstrap 5 CSS -->
   <link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap.min.css' %}" />
-
-  <!-- Design tokens (FE-0.1) -->
-  <link rel="stylesheet" href="{% static 'site/css/_tokens.css' %}" />
-
-  <!-- Layout styles (FE-0.2) -->
+  <link rel="stylesheet" href="{% static 'site/css/main.css' %}?v={{ static_version|default:'1' }}" />
   <link rel="stylesheet" href="{% static 'site/css/layout.css' %}?v={{ static_version|default:'1' }}" />
-
-  <!-- Page-specific styles -->
   {% block styles %}{% endblock styles %}
 </head>
-
 <body class="bpm-body {% block body_classes %}{% endblock body_classes %}">
 
-  <!-- ═══════════════════════════════════════════
-       SIDEBAR
-  ═══════════════════════════════════════════ -->
   {% include "site/components/sidebar.html" %}
 
-  <!-- Mobile overlay -->
   <div class="bpm-overlay" id="bpmOverlay"></div>
 
-  <!-- ═══════════════════════════════════════════
-       MAIN WRAPPER
-  ═══════════════════════════════════════════ -->
   <div class="bpm-main" id="bpmMain">
 
-    <!-- TOPBAR -->
     {% include "site/components/topbar.html" %}
 
-    <!-- PAGE CONTENT -->
     <div class="bpm-content">
-
-      <!-- Django messages -->
       {% if messages %}
         <div class="bpm-messages">
           {% for message in messages %}
-            <div class="bpm-alert bpm-alert--{{ message.tags|default:'info' }}" role="alert">
+            <div class="alert alert--{{ message.tags|default:'info' }}">
               <span>{{ message }}</span>
-              <button type="button" class="bpm-alert__close" onclick="this.parentElement.remove()">
+              <button type="button" onclick="this.parentElement.remove()" class="bpm-alert-close">
                 <i class="bi bi-x"></i>
               </button>
             </div>
           {% endfor %}
         </div>
       {% endif %}
-
-      <!-- Breadcrumbs slot -->
       {% block breadcrumbs %}{% endblock %}
-
-      <!-- Page header slot (title + actions) -->
       {% block page_header %}{% endblock %}
-
-      <!-- Main content -->
       {% block content %}{% endblock content %}
+    </div>
 
-    </div><!-- /bpm-content -->
+    {% block footer %}{% endblock %}
 
-    <!-- FOOTER (optional) -->
-    {% block footer %}
-    <footer class="bpm-footer">
-      <span>© {% now "Y" %} metriX BPM</span>
-      <span class="bpm-footer__version">v1.0.0</span>
-    </footer>
-    {% endblock %}
+  </div>
 
-  </div><!-- /bpm-main -->
-
-  <!-- ═══════════════════════════════════════════
-       VENDOR SCRIPTS (kept from old base)
-  ═══════════════════════════════════════════ -->
   <script src="{% static 'site/js/vendor/jquery-3.5.1.min.js' %}"></script>
   <script src="{% static 'site/js/vendor/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
-  <script src="{% static 'site/js/vendor/bootstrap-datepicker.min.js' %}"></script>
-  <script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
-
-  <!-- indicators data for JS (from context_processors) -->
   <script>
-    const indicatorsData = JSON.parse('{{ indicators_json|default:"{}"|escapejs }}');
+    try { const indicatorsData = JSON.parse('{{ indicators_json|default:"{}"|escapejs }}'); } catch(e) {}
   </script>
-
-  <!-- Layout JS (FE-0.2) -->
   <script src="{% static 'site/js/layout.js' %}?v={{ static_version|default:'1' }}"></script>
-
-  <!-- Existing project scripts -->
-  <script src="{% static 'site/js/common.js' %}"></script>
-  <script src="{% static 'site/js/scripts.js' %}?v={{ static_version|default:'1' }}"></script>
-
-  <!-- Page-specific scripts -->
   {% block scripts %}{% endblock scripts %}
 
 </body>
