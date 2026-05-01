@@ -71,6 +71,11 @@ h6 { font-size: var(--font-size-h6); font-weight: var(--font-weight-medium);  }
     cursor: not-allowed;
   }
 
+  &:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
   // Sizes
   &--sm {
     padding: var(--space-1) var(--space-3);
@@ -179,6 +184,16 @@ h6 { font-size: var(--font-size-h6); font-weight: var(--font-weight-medium);  }
   &--neutral {
     background-color: var(--color-neutral-100);
     color: var(--color-neutral-700);
+  }
+
+  &--dot::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+    margin-right: var(--space-2);
   }
 
   // Priority badges (Высокий, Средний, Низкий)
@@ -455,9 +470,13 @@ h6 { font-size: var(--font-size-h6); font-weight: var(--font-weight-medium);  }
 
   &__body {
     padding: var(--space-6);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: block; 
     gap: var(--space-4) var(--space-6);
+
+    &--grid { 
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
   }
 
   &__footer {
@@ -769,6 +788,17 @@ h6 { font-size: var(--font-size-h6); font-weight: var(--font-weight-medium);  }
   }
 }
 
+.sidebar.collapsed {
+  width: 80px;
+  .sidebar__user-info, .sidebar__item span, .sidebar__section-label {
+    display: none;
+  }
+  .sidebar__item {
+    justify-content: center;
+    padding: var(--space-4);
+  }
+}
+
 
 // =============================================================================
 // TOPBAR
@@ -782,7 +812,8 @@ h6 { font-size: var(--font-size-h6); font-weight: var(--font-weight-medium);  }
   height: var(--topbar-height);
   background-color: var(--color-topbar-bg);
   border-bottom: 1px solid var(--color-topbar-border);
-  display: flex;
+  min-width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-6);
@@ -943,6 +974,7 @@ h6 { font-size: var(--font-size-h6); font-weight: var(--font-weight-medium);  }
   align-items: flex-end;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-6);
+  margin-left: auto;
   background-color: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   flex-wrap: wrap;
