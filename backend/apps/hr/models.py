@@ -45,6 +45,10 @@ class Company(models.Model):
     email = models.EmailField(blank=True, null=True, verbose_name="Email")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
 
+    def get_employees_count(self):
+        from account.models import Employee
+        return Employee.objects.filter(department__company=self).count()
+
     def __str__(self):
         return self.name
 
