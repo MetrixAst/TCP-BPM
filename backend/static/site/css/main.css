@@ -11,10 +11,12 @@
   --color-secondary-light: #ECFEFF;
   --color-success: #16A34A;
   --color-success-bg: #DCFCE7;
+  --color-success-border: #BBF7D0;
   --color-success-text: #15803D;
   --color-danger: #DC2626;
   --color-danger-bg: #FEE2E2;
-  --color-danger-text: #B91C1C;
+  --color-danger-border: #FECACA;
+  --color-danger-text: #991B1B;
   --color-danger-hover: #B91C1C;
   --color-warning: #F59E0B;
   --color-warning-bg: #FEF3C7;
@@ -51,6 +53,8 @@
   --color-sidebar-hover: #F3F4F6;
   --color-topbar-bg: #FFFFFF;
   --color-topbar-border: #E5E7EB;
+  --color-accent-yellow: #FBBF24;
+  --color-accent-yellow-dark: #D97706;
   --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-family-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --font-size-h1: 2rem;
@@ -85,15 +89,26 @@
   --radius-xl: 12px;
   --radius-2xl: 20px;
   --radius-full: 9999px;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --header-height: 64px;
   --sidebar-width: 260px;
+  --sidebar-collapsed-width: 80px;
   --topbar-height: 56px;
   --content-padding: var(--space-6);
   --card-padding: var(--space-6);
+  --table-border-color: var(--color-neutral-200);
+  --table-header-bg: var(--color-neutral-50);
+  --table-row-hover-bg: #F9FAFB;
+  --table-accent-border: #2563EB;
+  --input-bg: var(--color-white);
+  --input-border: var(--color-neutral-300);
+  --input-focus-border: var(--color-primary);
+  --input-placeholder: var(--color-neutral-400);
+  --input-disabled-bg: var(--color-neutral-100);
 }
 
 :root {
@@ -109,10 +124,12 @@
   --color-secondary-light: #ECFEFF;
   --color-success: #16A34A;
   --color-success-bg: #DCFCE7;
+  --color-success-border: #BBF7D0;
   --color-success-text: #15803D;
   --color-danger: #DC2626;
   --color-danger-bg: #FEE2E2;
-  --color-danger-text: #B91C1C;
+  --color-danger-border: #FECACA;
+  --color-danger-text: #991B1B;
   --color-danger-hover: #B91C1C;
   --color-warning: #F59E0B;
   --color-warning-bg: #FEF3C7;
@@ -149,6 +166,8 @@
   --color-sidebar-hover: #F3F4F6;
   --color-topbar-bg: #FFFFFF;
   --color-topbar-border: #E5E7EB;
+  --color-accent-yellow: #FBBF24;
+  --color-accent-yellow-dark: #D97706;
   --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-family-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --font-size-h1: 2rem;
@@ -183,15 +202,26 @@
   --radius-xl: 12px;
   --radius-2xl: 20px;
   --radius-full: 9999px;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --header-height: 64px;
   --sidebar-width: 260px;
+  --sidebar-collapsed-width: 80px;
   --topbar-height: 56px;
   --content-padding: var(--space-6);
   --card-padding: var(--space-6);
+  --table-border-color: var(--color-neutral-200);
+  --table-header-bg: var(--color-neutral-50);
+  --table-row-hover-bg: #F9FAFB;
+  --table-accent-border: #2563EB;
+  --input-bg: var(--color-white);
+  --input-border: var(--color-neutral-300);
+  --input-focus-border: var(--color-primary);
+  --input-placeholder: var(--color-neutral-400);
+  --input-disabled-bg: var(--color-neutral-100);
 }
 
 *, *::before, *::after {
@@ -281,6 +311,10 @@ h6 {
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.btn:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .btn--sm {
   padding: var(--space-1) var(--space-3);
@@ -375,6 +409,15 @@ h6 {
 .badge--neutral {
   background-color: var(--color-neutral-100);
   color: var(--color-neutral-700);
+}
+.badge--dot::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  margin-right: var(--space-2);
 }
 .badge--high {
   background-color: var(--color-danger-bg);
@@ -632,9 +675,12 @@ h6 {
 }
 .modal__body {
   padding: var(--space-6);
+  display: block;
+  gap: var(--space-4) var(--space-6);
+}
+.modal__body--grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-4) var(--space-6);
 }
 .modal__footer {
   padding: var(--space-4) var(--space-6);
@@ -907,6 +953,17 @@ h6 {
   flex-shrink: 0;
 }
 
+.sidebar.collapsed {
+  width: 80px;
+}
+.sidebar.collapsed .sidebar__user-info, .sidebar.collapsed .sidebar__item span, .sidebar.collapsed .sidebar__section-label {
+  display: none;
+}
+.sidebar.collapsed .sidebar__item {
+  justify-content: center;
+  padding: var(--space-4);
+}
+
 .topbar {
   position: fixed;
   top: 0;
@@ -915,7 +972,11 @@ h6 {
   height: var(--topbar-height);
   background-color: var(--color-topbar-bg);
   border-bottom: 1px solid var(--color-topbar-border);
+  min-width: 32px;
+  height: 32px;
   display: flex;
+  align-items: center;
+  justify-content: center;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-6);
@@ -1061,6 +1122,7 @@ h6 {
   align-items: flex-end;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-6);
+  margin-left: auto;
   background-color: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   flex-wrap: wrap;

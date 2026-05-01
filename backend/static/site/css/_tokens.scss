@@ -26,12 +26,14 @@
   // --- Success (Green) ---
   --color-success:           #16A34A;   // "Оплачено" badge
   --color-success-bg:        #DCFCE7;
+  --color-success-border:    #BBF7D0;
   --color-success-text:      #15803D;
 
   // --- Danger (Red) ---
   --color-danger:            #DC2626;   // "Просрочено" badge, delete btn
   --color-danger-bg:         #FEE2E2;
-  --color-danger-text:       #B91C1C;
+  --color-danger-border:     #FECACA; 
+  --color-danger-text:       #991B1B;
   --color-danger-hover:      #B91C1C;
 
   // --- Warning (Orange/Yellow) ---
@@ -84,6 +86,9 @@
   // --- Topbar ---
   --color-topbar-bg:         #FFFFFF;
   --color-topbar-border:     #E5E7EB;
+
+  --color-accent-yellow:     #FBBF24;
+  --color-accent-yellow-dark: #D97706;
 
 
   // -----------------------------------------------------------------------------
@@ -149,8 +154,8 @@
   // SHADOWS
   // -----------------------------------------------------------------------------
 
-  --shadow-sm:    0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md:    0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md:    0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg:    0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
   --shadow-xl:    0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -171,10 +176,25 @@
   // LAYOUT
   // -----------------------------------------------------------------------------
 
-  --sidebar-width:      260px;    // Figma: left nav width ~260px
+  --header-height:           64px;    
+  --sidebar-width:           260px;
+  --sidebar-collapsed-width: 80px;
   --topbar-height:      56px;     // Figma: topbar height
   --content-padding:    var(--space-6);
   --card-padding:       var(--space-6);
+  
+
+  --table-border-color:      var(--color-neutral-200);
+  --table-header-bg:        var(--color-neutral-50);
+  --table-row-hover-bg:      #F9FAFB;
+  --table-accent-border:     #2563EB; 
+
+  // --- Form Controls ---
+  --input-bg:                var(--color-white);
+  --input-border:            var(--color-neutral-300);
+  --input-focus-border:      var(--color-primary);
+  --input-placeholder:       var(--color-neutral-400);
+  --input-disabled-bg:       var(--color-neutral-100);
 }
 
 
