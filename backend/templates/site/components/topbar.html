@@ -1,0 +1,109 @@
+{% load static %}
+{# ─────────────────────────────────────────────────────────────────
+   TOPBAR — metriX BPM
+   Данные из context_processors: notifications, indicators, user
+   ───────────────────────────────────────────────────────────────── #}
+
+<header class="bpm-topbar" id="bpmTopbar">
+
+  <!-- ── Burger (mobile only) ── -->
+  <button class="bpm-topbar__burger" id="bpmBurger" type="button"
+          aria-label="Открыть меню" aria-controls="bpmSidebar" aria-expanded="false">
+    <i class="bi bi-list"></i>
+  </button>
+
+  <!-- ── Logo (mobile only, hidden on desktop where sidebar shows logo) ── -->
+  <a href="/dashboard" class="bpm-topbar__logo d-lg-none">
+    <i class="bi bi-grid-3x3-gap-fill text-primary"></i>
+    <span>metriX BPM</span>
+  </a>
+
+  <!-- ── Spacer pushes right controls to the right (desktop) ── -->
+  <div class="bpm-topbar__spacer"></div>
+
+  <!-- ── Right controls ── -->
+  <div class="bpm-topbar__right">
+
+    <!-- Object switcher "Ритц-Палас" -->
+    {% if current_object %}
+    <div class="dropdown">
+      <button class="bpm-topbar__context dropdown-toggle" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false">
+        {{ current_object.name }}
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        {% for obj in user_objects %}
+          <li>
+            <a class="dropdown-item {% if obj == current_object %}active{% endif %}"
+               href="{% url 'account:switch_object' obj.pk %}">
+              {{ obj.name }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <!-- Timezone "Алматы GMT+5" -->
+    <div class="dropdown d-none d-md-flex">
+      <button class="bpm-topbar__tz dropdown-toggle" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false">
+        {{ current_tz|default:"Алматы GMT +5" }}
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><span class="dropdown-item-text text-muted small">Временная зона</span></li>
+        <li><a class="dropdown-item active" href="#">Алматы GMT +5</a></li>
+        <li><a class="dropdown-item" href="#">Москва GMT +3</a></li>
+      </ul>
+    </div>
+
+    <!-- Language switcher "🌐 Рус | Каз | Eng" -->
+    <div class="bpm-topbar__lang d-none d-md-flex">
+      <i class="bi bi-globe2 bpm-topbar__lang-globe"></i>
+      <a href="?lang=ru" class="bpm-topbar__lang-btn {% if LANGUAGE_CODE == 'ru' or not LANGUAGE_CODE %}bpm-topbar__lang-btn--active{% endif %}">Рус</a>
+      <a href="?lang=kk" class="bpm-topbar__lang-btn {% if LANGUAGE_CODE == 'kk' %}bpm-topbar__lang-btn--active{% endif %}">Каз</a>
+      <a href="?lang=en" class="bpm-topbar__lang-btn {% if LANGUAGE_CODE == 'en' %}bpm-topbar__lang-btn--active{% endif %}">Eng</a>
+    </div>
+
+    <!-- Notifications bell -->
+    <div class="dropdown">
+      <button class="bpm-topbar__icon-btn" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false"
+              aria-label="Уведомления" id="notifBtn">
+        <i class="bi bi-bell"></i>
+        {% if indicators.indicators %}
+          <span class="bpm-topbar__notif-dot"></span>
+        {% endif %}
+      </button>
+
+      <div class="dropdown-menu dropdown-menu-end bpm-notif-dropdown" aria-labelledby="notifBtn">
+        <div class="bpm-notif-dropdown__header">
+          <span>Уведомления</span>
+        </div>
+        <div class="bpm-notif-dropdown__list">
+          {% for notif in notifications %}
+            <a href="{{ notif.url }}" class="bpm-notif-item">
+              <div class="bpm-notif-item__body">
+                <div class="bpm-notif-item__title">{{ notif.title }}</div>
+                <div class="bpm-notif-item__text">{{ notif.text }}</div>
+              </div>
+            </a>
+          {% empty %}
+            <div class="bpm-notif-dropdown__empty">
+              <i class="bi bi-bell-slash"></i>
+              <span>Список уведомлений пуст</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Logout -->
+    <a href="{% url 'account:logout' %}" class="bpm-topbar__icon-btn bpm-topbar__icon-btn--logout"
+       title="Выйти">
+      <i class="bi bi-box-arrow-right"></i>
+    </a>
+
+  </div><!-- /bpm-topbar__right -->
+
+</header>

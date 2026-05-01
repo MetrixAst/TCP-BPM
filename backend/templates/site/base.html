@@ -1,149 +1,117 @@
-{% extends 'site/layouts/base_blank.html' %}
 {% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>{% block title %}metriX BPM{% endblock %}</title>
+  <meta name="description" content="metriX BPM" />
 
-{% block inner %}
-    {% if not is_mobile %}
-        <div id="nav" class="nav-container d-flex dark">
-            <div class="nav-content d-flex">
-            <!-- Logo Start -->
-            <div class="logo position-relative">
-                <a href="/">
-                    <!-- Logo can be added directly -->
-                    <img src="{% static 'site/img/logo/logo-with-title.svg' %}" alt="logo" />
-                </a>
+  <!-- Favicon -->
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'site/img/favicon/apple-touch-icon.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'site/img/favicon/favicon-32x32.png' %}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'site/img/favicon/favicon-16x16.png' %}">
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+  <!-- Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap.min.css' %}" />
+
+  <!-- Design tokens (FE-0.1) -->
+  <link rel="stylesheet" href="{% static 'site/css/_tokens.css' %}" />
+
+  <!-- Layout styles (FE-0.2) -->
+  <link rel="stylesheet" href="{% static 'site/css/layout.css' %}?v={{ static_version|default:'1' }}" />
+
+  <!-- Page-specific styles -->
+  {% block styles %}{% endblock styles %}
+</head>
+
+<body class="bpm-body {% block body_classes %}{% endblock body_classes %}">
+
+  <!-- ═══════════════════════════════════════════
+       SIDEBAR
+  ═══════════════════════════════════════════ -->
+  {% include "site/components/sidebar.html" %}
+
+  <!-- Mobile overlay -->
+  <div class="bpm-overlay" id="bpmOverlay"></div>
+
+  <!-- ═══════════════════════════════════════════
+       MAIN WRAPPER
+  ═══════════════════════════════════════════ -->
+  <div class="bpm-main" id="bpmMain">
+
+    <!-- TOPBAR -->
+    {% include "site/components/topbar.html" %}
+
+    <!-- PAGE CONTENT -->
+    <div class="bpm-content">
+
+      <!-- Django messages -->
+      {% if messages %}
+        <div class="bpm-messages">
+          {% for message in messages %}
+            <div class="bpm-alert bpm-alert--{{ message.tags|default:'info' }}" role="alert">
+              <span>{{ message }}</span>
+              <button type="button" class="bpm-alert__close" onclick="this.parentElement.remove()">
+                <i class="bi bi-x"></i>
+              </button>
             </div>
-            <!-- Logo End -->
-
-            <!-- User Menu Start -->
-            <div class="user-container d-flex">
-                <a href="{% url 'account:profile' %}" class="d-flex user position-relative">
-                    <img class="profile" alt="profile" src="{{user.get_avatar_url}}" />
-                    <div class="name">{{user.get_name}}</div>
-                </a>
-            </div>
-            <!-- User Menu End -->
-
-
-
-
-            <!-- Icons Menu Start -->
-            <ul class="list-unstyled list-inline text-center menu-icons">
-
-                {% comment %} <li class="list-inline-item">
-                    <a href="#" data-bs-toggle="dropdown" data-bs-target="#add_menu" aria-haspopup="true" aria-expanded="false" class="notification-button">
-                        <div class="position-relative d-inline-flex">
-                        <i data-acorn-icon="plus" data-acorn-size="18"></i>
-                        </div>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-end wide notification-dropdown" id="add_menu">
-                        <ul>
-                            <li><a href="{% url 'tasks:edit' 0 %}">Добавить задачу</a></li>
-                            <li><a href="{% url 'documents:edit' 'documents' 0 %}">Добавить документ</a></li>
-                        </ul>
-                    </div>
-                </li> {% endcomment %}
-
-                <li class="list-inline-item">
-                <a href="#" data-bs-toggle="dropdown" data-bs-target="#notifications" aria-haspopup="true" aria-expanded="false" class="notification-button">
-                    <div class="position-relative d-inline-flex">
-                    <i data-acorn-icon="bell" data-acorn-size="18"></i>
-                    {% if indicators.indicators %}
-                        <span class="position-absolute notification-dot rounded-xl"></span>
-                    {% endif %}
-                    </div>
-                </a>
-                <div class="dropdown-menu dropdown-menu-end wide notification-dropdown scroll-out" id="notifications">
-                    <div class="scroll">
-                    <ul class="list-unstyled border-last-none">
-
-                        {% for current in notifications %}
-                        
-                            <li class="mb-3 pb-3 border-bottom border-separator-light d-flex">
-                                <a href="{{current.url}}">
-                                    <div class="d-flex flex-column mb-2 mb-sm-0">
-                                        <div>{{current.title}}</div>
-                                        <div class="text-small text-muted">{{current.text}}</div>
-                                    </div>
-                                </a>
-                            </li>
-
-                        {% empty %}
-                            <div class="text-center text-primary">Список уведомлении пуст</div>
-                        {% endfor %}
-                    </ul>
-                    </div>
-                </div>
-                </li>
-
-                <li class="list-inline-item">
-                    <a href="{% url 'account:logout' %}">
-                        <i data-acorn-icon="logout" data-acorn-size="18"></i>
-                    </a>
-                </li>
-
-            </ul>
-            <!-- Icons Menu End -->
-
-            <!-- Menu Start -->
-            <div class="menu-container flex-grow-1">
-                <ul id="menu" class="menu">
-
-                    {% for current in menu %}
-
-                        <li class="indicator_counter" data-type="{{current.indicator_alias}}">
-                            <a href="{{current.url}}">
-                                <i data-acorn-icon="{{current.icon}}" class="icon" data-acorn-size="18"></i>
-                                <span class="label">{{current.title}}</span>
-                            </a>
-
-                            {% if current.submenu %}
-                                <ul id="{{current.id}}">
-
-                                    {% for submenu in current.submenu %}
-                                        <li class="indicator_counter" data-type="{{submenu.indicator_alias}}">
-                                            <a href="{{submenu.url}}">
-                                                <span class="label">{{submenu.title}}</span>
-                                            </a>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            {% endif %}
-                        </li>
-
-                    {% endfor %}
-
-                </ul>
-            </div>
-            <!-- Menu End -->
-
-            <!-- Mobile Buttons Start -->
-            <div class="mobile-buttons-container">
-                <!-- Scrollspy Mobile Button Start -->
-                <a href="#" id="scrollSpyButton" class="spy-button" data-bs-toggle="dropdown">
-                <i data-acorn-icon="menu-dropdown"></i>
-                </a>
-                <!-- Scrollspy Mobile Button End -->
-
-                <!-- Scrollspy Mobile Dropdown Start -->
-                <div class="dropdown-menu dropdown-menu-end" id="scrollSpyDropdown"></div>
-                <!-- Scrollspy Mobile Dropdown End -->
-
-                <!-- Menu Button Start -->
-                <a href="#" id="mobileMenuButton" class="menu-button">
-                <i data-acorn-icon="menu"></i>
-                </a>
-                <!-- Menu Button End -->
-            </div>
-            <!-- Mobile Buttons End -->
-            </div>
-            <div class="nav-shadow"></div>
+          {% endfor %}
         </div>
-    {% endif %}
+      {% endif %}
 
+      <!-- Breadcrumbs slot -->
+      {% block breadcrumbs %}{% endblock %}
 
-    <main>
-        <div class="container">
-            {% block content %}{% endblock content %}
-        </div>
-    </main>
-{% endblock inner %}
+      <!-- Page header slot (title + actions) -->
+      {% block page_header %}{% endblock %}
+
+      <!-- Main content -->
+      {% block content %}{% endblock content %}
+
+    </div><!-- /bpm-content -->
+
+    <!-- FOOTER (optional) -->
+    {% block footer %}
+    <footer class="bpm-footer">
+      <span>© {% now "Y" %} metriX BPM</span>
+      <span class="bpm-footer__version">v1.0.0</span>
+    </footer>
+    {% endblock %}
+
+  </div><!-- /bpm-main -->
+
+  <!-- ═══════════════════════════════════════════
+       VENDOR SCRIPTS (kept from old base)
+  ═══════════════════════════════════════════ -->
+  <script src="{% static 'site/js/vendor/jquery-3.5.1.min.js' %}"></script>
+  <script src="{% static 'site/js/vendor/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+  <script src="{% static 'site/js/vendor/bootstrap-datepicker.min.js' %}"></script>
+  <script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
+
+  <!-- indicators data for JS (from context_processors) -->
+  <script>
+    const indicatorsData = JSON.parse('{{ indicators_json|default:"{}"|escapejs }}');
+  </script>
+
+  <!-- Layout JS (FE-0.2) -->
+  <script src="{% static 'site/js/layout.js' %}?v={{ static_version|default:'1' }}"></script>
+
+  <!-- Existing project scripts -->
+  <script src="{% static 'site/js/common.js' %}"></script>
+  <script src="{% static 'site/js/scripts.js' %}?v={{ static_version|default:'1' }}"></script>
+
+  <!-- Page-specific scripts -->
+  {% block scripts %}{% endblock scripts %}
+
+</body>
+</html>
