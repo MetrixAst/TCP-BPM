@@ -1,0 +1,1103 @@
+// =============================================================================
+// metriX BPM — Component Library
+// Extracted from Figma: btn, badge, card, table, form, modal, alert,
+//   breadcrumb, pagination, tabs, sidebar, topbar
+// =============================================================================
+
+@import 'tokens';
+
+
+// =============================================================================
+// BASE RESET
+// =============================================================================
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
+  margin: 0;
+}
+
+a {
+  color: var(--color-text-link);
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+
+
+// =============================================================================
+// TYPOGRAPHY HEADINGS
+// =============================================================================
+
+h1 { font-size: var(--font-size-h1); font-weight: var(--font-weight-bold);    line-height: var(--line-height-tight); }
+h2 { font-size: var(--font-size-h2); font-weight: var(--font-weight-bold);    line-height: var(--line-height-tight); }
+h3 { font-size: var(--font-size-h3); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); }
+h4 { font-size: var(--font-size-h4); font-weight: var(--font-weight-semibold); }
+h5 { font-size: var(--font-size-h5); font-weight: var(--font-weight-medium);  }
+h6 { font-size: var(--font-size-h6); font-weight: var(--font-weight-medium);  }
+
+.text-caption  { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+.text-muted    { color: var(--color-text-muted); }
+.text-secondary { color: var(--color-text-secondary); }
+
+
+// =============================================================================
+// BTN — Button
+// =============================================================================
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+  text-decoration: none;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  // Sizes
+  &--sm {
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--font-size-caption);
+    border-radius: var(--radius-sm);
+  }
+  &--lg {
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--font-size-h6);
+  }
+
+  // Variants
+  &--primary {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    border-color: var(--color-primary);
+    &:hover { background-color: var(--color-primary-hover); border-color: var(--color-primary-hover); }
+  }
+
+  &--secondary {
+    background-color: var(--color-white);
+    color: var(--color-primary);
+    border-color: var(--color-border);
+    &:hover { background-color: var(--color-neutral-50); }
+  }
+
+  &--success {
+    background-color: var(--color-success);
+    color: var(--color-white);
+    border-color: var(--color-success);
+    &:hover { background-color: var(--color-success-text); }
+  }
+
+  &--danger {
+    background-color: var(--color-danger);
+    color: var(--color-white);
+    border-color: var(--color-danger);
+    &:hover { background-color: var(--color-danger-hover); }
+  }
+
+  &--outline-danger {
+    background-color: transparent;
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+    &:hover { background-color: var(--color-danger-bg); }
+  }
+
+  &--ghost {
+    background-color: transparent;
+    color: var(--color-text-secondary);
+    border-color: transparent;
+    &:hover { background-color: var(--color-neutral-100); }
+  }
+
+  &--icon {
+    padding: var(--space-2);
+    border-radius: var(--radius-md);
+  }
+}
+
+// Figma: "Применить" button = btn--primary
+// Figma: "Экспортировать Excel" = btn--secondary with icon
+// Figma: "Редактировать" = btn--ghost / link style
+// Figma: "Удалить" = btn--outline-danger
+
+
+// =============================================================================
+// BADGE — Status labels (Оплачено / Просрочено / Не оплачено)
+// =============================================================================
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.5;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+
+  // Figma: "Оплачено" — green
+  &--success {
+    background-color: var(--color-success-bg);
+    color: var(--color-success-text);
+  }
+
+  // Figma: "Просрочено" — red
+  &--danger {
+    background-color: var(--color-danger-bg);
+    color: var(--color-danger-text);
+  }
+
+  // Figma: "Не оплачено" — orange/yellow
+  &--warning {
+    background-color: var(--color-warning-bg);
+    color: var(--color-warning-text);
+  }
+
+  // Figma: "В работе" status
+  &--primary {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
+  }
+
+  &--neutral {
+    background-color: var(--color-neutral-100);
+    color: var(--color-neutral-700);
+  }
+
+  &--dot::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+    margin-right: var(--space-2);
+  }
+
+  // Priority badges (Высокий, Средний, Низкий)
+  &--high    { background-color: var(--color-danger-bg);  color: var(--color-danger-text); }
+  &--medium  { background-color: var(--color-warning-bg); color: var(--color-warning-text); }
+  &--low     { background-color: var(--color-neutral-100); color: var(--color-neutral-600); }
+
+  // Figma: "Завершена", "Приостановлена"
+  &--done    { background-color: var(--color-success-bg); color: var(--color-success-text); }
+  &--paused  { background-color: var(--color-neutral-100); color: var(--color-neutral-500); }
+}
+
+
+// =============================================================================
+// CARD
+// =============================================================================
+
+.card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-2xl);   // Figma: 20px radius
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+
+  &__header {
+    padding: var(--space-5) var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  &__title {
+    font-size: var(--font-size-h4);
+    font-weight: var(--font-weight-semibold);
+    margin: 0;
+  }
+
+  &__body {
+    padding: var(--space-6);
+  }
+
+  &__footer {
+    padding: var(--space-4) var(--space-6);
+    border-top: 1px solid var(--color-border);
+    background-color: var(--color-neutral-50);
+  }
+}
+
+// Figma: Stat cards (Оплачено / Не оплачено / Просрочено)
+.stat-card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  &__label {
+    font-size: var(--font-size-caption);
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
+  }
+
+  &__value {
+    font-size: var(--font-size-h1);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+    line-height: 1;
+  }
+
+  &__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &--success { background-color: var(--color-success-bg); color: var(--color-success); }
+    &--danger  { background-color: var(--color-danger-bg);  color: var(--color-danger); }
+    &--warning { background-color: var(--color-warning-bg); color: var(--color-warning); }
+  }
+}
+
+
+// =============================================================================
+// TABLE
+// =============================================================================
+
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px dashed var(--color-border);   // Figma: dashed border on table
+  border-radius: var(--radius-lg);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-body);
+
+  thead {
+    background-color: var(--color-neutral-50);
+  }
+
+  th {
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: var(--space-3) var(--space-4);
+    color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+  }
+
+  tbody tr {
+    transition: background-color 0.1s;
+    &:hover { background-color: var(--color-neutral-50); }
+    &:last-child td { border-bottom: none; }
+  }
+
+  // Column types
+  .col-actions {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+  }
+}
+
+
+// =============================================================================
+// FORM
+// =============================================================================
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+}
+
+.form-label {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.form-control {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  line-height: 1.5;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+
+  &::placeholder { color: var(--color-text-muted); }
+
+  &:focus {
+    border-color: var(--color-border-focus);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  &.is-invalid {
+    border-color: var(--color-border-error);
+  }
+
+  &:disabled {
+    background-color: var(--color-neutral-100);
+    color: var(--color-text-muted);
+    cursor: not-allowed;
+  }
+}
+
+.form-select {
+  @extend .form-control;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  background-size: 12px;
+  padding-right: var(--space-8);
+}
+
+// Figma: Toggle buttons (Юридическое лицо / Физическое лицо, Мужской / Женский)
+.btn-toggle-group {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+
+  .btn-toggle {
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--font-size-body);
+    background-color: var(--color-white);
+    color: var(--color-text-secondary);
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+
+    &.active, &:checked {
+      background-color: var(--color-primary);
+      color: var(--color-white);
+      font-weight: var(--font-weight-medium);
+    }
+  }
+}
+
+
+// =============================================================================
+// MODAL
+// =============================================================================
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 1040;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1050;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-5) var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  &__title {
+    font-size: var(--font-size-h5);
+    font-weight: var(--font-weight-semibold);
+    margin: 0;
+  }
+
+  &__close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    transition: color 0.15s;
+    &:hover { color: var(--color-text-primary); }
+  }
+
+  &__body {
+    padding: var(--space-6);
+    display: block; 
+    gap: var(--space-4) var(--space-6);
+
+    &--grid { 
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  &__footer {
+    padding: var(--space-4) var(--space-6);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+  }
+}
+
+
+// =============================================================================
+// ALERT
+// =============================================================================
+
+.alert {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-size: var(--font-size-body);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+
+  &--success {
+    background-color: var(--color-success-bg);
+    border-color: var(--color-success);
+    color: var(--color-success-text);
+  }
+  &--danger {
+    background-color: var(--color-danger-bg);
+    border-color: var(--color-danger);
+    color: var(--color-danger-text);
+  }
+  &--warning {
+    background-color: var(--color-warning-bg);
+    border-color: var(--color-warning);
+    color: var(--color-warning-text);
+  }
+  &--info {
+    background-color: var(--color-info-bg);
+    border-color: var(--color-info);
+    color: var(--color-info-text);
+  }
+}
+
+
+// =============================================================================
+// BREADCRUMB
+// =============================================================================
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+
+  // Figma: "Контрагенты / ТОО «metriX Company»"
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+
+    &::after {
+      content: '/';
+      color: var(--color-text-muted);
+    }
+
+    &:last-child::after { content: none; }
+
+    a {
+      color: var(--color-text-secondary);
+      &:hover { color: var(--color-primary); }
+    }
+
+    &.active { color: var(--color-text-primary); font-weight: var(--font-weight-medium); }
+  }
+}
+
+
+// =============================================================================
+// PAGINATION
+// =============================================================================
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  // Figma: «1 2 3 ••• 97 98 99 »
+  &__item {
+    .page-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 28px;
+      padding: 0 var(--space-2);
+      font-size: var(--font-size-caption);
+      color: var(--color-text-secondary);
+      background-color: transparent;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background-color 0.1s, color 0.1s;
+      text-decoration: none;
+
+      &:hover {
+        background-color: var(--color-neutral-100);
+        color: var(--color-text-primary);
+      }
+    }
+
+    &.active .page-link {
+      background-color: var(--color-primary);
+      color: var(--color-white);
+      border-color: var(--color-primary);
+      font-weight: var(--font-weight-semibold);
+    }
+
+    &.disabled .page-link {
+      color: var(--color-text-muted);
+      cursor: not-allowed;
+    }
+
+    &--ellipsis .page-link { border: none; cursor: default; }
+  }
+}
+
+
+// =============================================================================
+// TABS
+// =============================================================================
+
+// Figma: Заявки (1) + / Задачи (12) + / Счета (3) + / Процессы +
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-bottom: 2px solid var(--color-border);
+  overflow-x: auto;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover { color: var(--color-text-primary); }
+
+  &.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+
+  // Count badge inside tab
+  .tab__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 var(--space-1);
+    font-size: 11px;
+    font-weight: var(--font-weight-semibold);
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    border-radius: var(--radius-full);
+  }
+
+  .tab__add {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-caption);
+    &:hover { color: var(--color-primary); }
+  }
+}
+
+
+// =============================================================================
+// SIDEBAR
+// =============================================================================
+
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+  background-color: var(--color-sidebar-bg);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  overflow-y: auto;
+
+  &__logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    font-size: var(--font-size-h5);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border);
+    text-decoration: none;
+    min-height: var(--topbar-height);
+  }
+
+  &__nav {
+    flex: 1;
+    padding: var(--space-3) 0;
+  }
+
+  &__section-label {
+    font-size: 11px;
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    padding: var(--space-3) var(--space-5) var(--space-1);
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-5);
+    font-size: var(--font-size-body);
+    color: var(--color-sidebar-text);
+    cursor: pointer;
+    border-radius: 0;
+    transition: background-color 0.1s, color 0.1s;
+    text-decoration: none;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+
+    &:hover {
+      background-color: var(--color-sidebar-hover);
+      color: var(--color-text-primary);
+    }
+
+    &.active {
+      color: var(--color-sidebar-active);
+      background-color: var(--color-sidebar-active-bg);
+      font-weight: var(--font-weight-medium);
+    }
+
+    // Figma: sub-items (Реестр оплат, Финансовый календарь...)
+    &--sub {
+      padding-left: calc(var(--space-5) + var(--space-6));
+      font-size: var(--font-size-body);
+      color: var(--color-text-secondary);
+
+      &.active { color: var(--color-primary); }
+    }
+  }
+
+  &__icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  &__footer {
+    padding: var(--space-4) var(--space-5);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  &__user-name  { font-size: var(--font-size-body); font-weight: var(--font-weight-medium); }
+  &__user-role  { font-size: var(--font-size-caption); color: var(--color-text-muted); }
+
+  &__avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+    background-color: var(--color-primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary);
+    font-size: var(--font-size-body);
+    flex-shrink: 0;
+  }
+}
+
+.sidebar.collapsed {
+  width: 80px;
+  .sidebar__user-info, .sidebar__item span, .sidebar__section-label {
+    display: none;
+  }
+  .sidebar__item {
+    justify-content: center;
+    padding: var(--space-4);
+  }
+}
+
+
+// =============================================================================
+// TOPBAR
+// =============================================================================
+
+.topbar {
+  position: fixed;
+  top: 0;
+  left: var(--sidebar-width);
+  right: 0;
+  height: var(--topbar-height);
+  background-color: var(--color-topbar-bg);
+  border-bottom: 1px solid var(--color-topbar-border);
+  min-width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+  z-index: 99;
+  gap: var(--space-4);
+
+  &__search {
+    flex: 1;
+    max-width: 400px;
+    position: relative;
+
+    input {
+      width: 100%;
+      padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + 20px);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-body);
+      background-color: var(--color-neutral-50);
+      color: var(--color-text-primary);
+      outline: none;
+      &::placeholder { color: var(--color-text-muted); }
+      &:focus {
+        border-color: var(--color-border-focus);
+        background-color: var(--color-white);
+      }
+    }
+
+    &-icon {
+      position: absolute;
+      left: var(--space-3);
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--color-text-muted);
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  // Figma: "Ритц-Палас" hotel switcher dropdown
+  &__context-switcher {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background-color: var(--color-white);
+    cursor: pointer;
+    font-size: var(--font-size-body);
+    color: var(--color-text-primary);
+    &:hover { background-color: var(--color-neutral-50); }
+  }
+
+  // Figma: "Алматы GMT+5" timezone selector
+  &__timezone {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--font-size-caption);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    &:hover { color: var(--color-text-primary); }
+  }
+
+  // Figma: Language switcher "Рус Каз Eng"
+  &__lang {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--font-size-caption);
+
+    .lang-btn {
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-sm);
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: var(--font-size-caption);
+      color: var(--color-text-secondary);
+      &.active {
+        background-color: var(--color-primary);
+        color: var(--color-white);
+        border-radius: var(--radius-full);
+        font-weight: var(--font-weight-semibold);
+      }
+      &:hover:not(.active) { color: var(--color-text-primary); }
+    }
+  }
+
+  // Figma: logout icon button
+  &__logout {
+    color: var(--color-text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    &:hover { color: var(--color-danger); }
+  }
+}
+
+
+// =============================================================================
+// LAYOUT SHELL
+// =============================================================================
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  margin-left: var(--sidebar-width);
+  padding-top: var(--topbar-height);
+  flex: 1;
+  min-width: 0;
+}
+
+.page-content {
+  padding: var(--space-6);
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+
+  &__title {
+    font-size: var(--font-size-h3);
+    font-weight: var(--font-weight-bold);
+    margin: 0;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+}
+
+
+// =============================================================================
+// FILTER BAR (Figma: Период / ИП / Арендаторы / Статус оплаты / Применить)
+// =============================================================================
+
+.filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  margin-left: auto;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+
+    label {
+      font-size: var(--font-size-caption);
+      color: var(--color-text-secondary);
+      font-weight: var(--font-weight-medium);
+    }
+  }
+}
+
+
+// =============================================================================
+// NOTIFICATION / COMMENT BELL (Figma: Уведомление links in table)
+// =============================================================================
+
+.notification-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-caption);
+  color: var(--color-primary);
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+
+  .notification-icon {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+
+// =============================================================================
+// EMPTY STATE (Figma: "Сообщений пока нет" with bell icon)
+// =============================================================================
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-6);
+  color: var(--color-text-muted);
+  gap: var(--space-3);
+  text-align: center;
+
+  &__icon {
+    width: 48px;
+    height: 48px;
+    color: var(--color-neutral-300);
+  }
+
+  &__text {
+    font-size: var(--font-size-body);
+    color: var(--color-text-muted);
+  }
+}
+
+
+// =============================================================================
+// CHAT / MESSAGES (Figma: Сообщения / Письма section)
+// =============================================================================
+
+.chat-input {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: var(--font-size-body);
+    color: var(--color-text-primary);
+    &::placeholder { color: var(--color-text-muted); }
+  }
+}
+
+
+// =============================================================================
+// COLUMN SETTINGS DROPDOWN (Figma: настройка колонок таблицы)
+// =============================================================================
+
+.column-settings {
+  min-width: 220px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3) 0;
+
+  &__header {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--space-2);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--font-size-body);
+    cursor: pointer;
+    &:hover { background-color: var(--color-neutral-50); }
+
+    .drag-handle {
+      color: var(--color-text-muted);
+      cursor: grab;
+    }
+  }
+}
