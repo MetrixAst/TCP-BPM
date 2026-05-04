@@ -1,20 +1,96 @@
-from unittest.mock import Mock, patch
-import requests
-
-from django.db import IntegrityError
 from django.test import TestCase, override_settings
+from django.db import IntegrityError
+from django.db.models import Q
+from datetime import date
+import requests
+from unittest.mock import Mock, patch
 
-from hr.enbek_client import (
-    EnbekClient,
-    EnbekClientError,
-    AuthenticationError,
-    ConnectionError,
-)
-from account.models import UserAccount, Department, Employee
-from hr.models import Company, Vacation, SickLeave, EmploymentContract
+
+from .models import LeaveRequest, LeaveType, WorkCalendar, Company, Position, Vacation, SickLeave, EmploymentContract
+from .enums import LeaveStatusEnum, DayTypeEnum
+
+try:
+    from account.models import Employee, UserAccount, Department
+except ImportError:
+    from apps.account.models import Employee, UserAccount, Department
+
+from hr.enbek_client import EnbekClient, EnbekClientError, AuthenticationError, ConnectionError
 from hr.services import EnbekSyncService
 from hr.tasks import sync_enbek_data
 from account.role_permissions import MenuItem
+
+class LeaveRequestLogicTest(TestCase):
+    def setUp(self):
+        self.company = Company.objects.create(name="TechCorp", bin_number="123456789012")
+        self.dept = Department.objects.create(name="IT", company=self.company)
+        self.user = UserAccount.objects.create(email="darya@test.kz", first_name="Dar")
+        self.employee = Employee.objects.create(user=self.user, department=self.dept)
+        
+        self.leave_type = LeaveType.objects.create(
+            name="Ежегодный", is_paid=True, max_days_per_year=24
+        )
+
+        WorkCalendar.objects.create(date=date(2026, 1, 1), day_type=DayTypeEnum.HOLIDAY, year=2026)
+        WorkCalendar.objects.create(date=date(2026, 1, 2), day_type=DayTypeEnum.HOLIDAY, year=2026)
+
+    def test_basic_working_days(self):
+        leave = LeaveRequest.objects.create(
+            employee=self.employee,
+            leave_type=self.leave_type,
+            start_date=date(2026, 4, 13),
+            end_date=date(2026, 4, 17)
+        )
+        self.assertEqual(leave.working_days_count, 5)
+
+    def test_holiday_exclusion(self):
+        leave = LeaveRequest.objects.create(
+            employee=self.employee,
+            leave_type=self.leave_type,
+            start_date=date(2025, 12, 31),
+            end_date=date(2026, 1, 5)
+        )
+        self.assertEqual(leave.working_days_count, 2)
+
+    def test_company_specific_override(self):
+        special_date = date(2026, 4, 18) 
+        WorkCalendar.objects.create(
+            date=special_date,
+            day_type=DayTypeEnum.WORKING,
+            company=self.company,
+            year=2026
+        )
+
+        leave = LeaveRequest.objects.create(
+            employee=self.employee,
+            leave_type=self.leave_type,
+            start_date=special_date,
+            end_date=special_date
+        )
+        self.assertEqual(leave.working_days_count, 1)
+
+    def test_status_workflow(self):
+        leave = LeaveRequest.objects.create(
+            employee=self.employee,
+            leave_type=self.leave_type,
+            start_date=date(2026, 6, 1),
+            end_date=date(2026, 6, 5)
+        )
+        self.assertEqual(leave.status, LeaveStatusEnum.DRAFT)
+        
+        leave.status = LeaveStatusEnum.APPROVED
+        leave.save()
+        
+        updated_leave = LeaveRequest.objects.get(pk=leave.pk)
+        self.assertEqual(updated_leave.status, 'approved')
+
+    def test_zero_days_on_weekend_only(self):
+        leave = LeaveRequest.objects.create(
+            employee=self.employee,
+            leave_type=self.leave_type,
+            start_date=date(2026, 4, 18), 
+            end_date=date(2026, 4, 19)    
+        )
+        self.assertEqual(leave.working_days_count, 0)
 
 
 @override_settings(
@@ -618,7 +694,7 @@ class EnbekCeleryTaskTestCase(TestCase):
     @patch('hr.tasks.cache')
     @patch('hr.tasks.EnbekSyncService')
     def test_task_skips_when_locked(self, mock_service_class, mock_cache):
-        mock_cache.get.return_value = True  # lock уже есть
+        mock_cache.get.return_value = True 
 
         result = sync_enbek_data()
 
@@ -752,3 +828,4 @@ class EnbekViewsTestCase(TestCase):
         self.assertIn('Отпуска (Enbek)', submenu_titles)
         self.assertIn('Больничные (Enbek)', submenu_titles)
         self.assertIn('Договоры (Enbek)', submenu_titles)
+
