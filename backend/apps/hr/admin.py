@@ -1,5 +1,9 @@
 from django.contrib import admin
-from .models import Company, Position, WorkCalendar, LeaveRequest, LeaveType
+from .models import (
+    Company, Position, WorkCalendar, 
+    Vacation, SickLeave, EmploymentContract,
+    LeaveRequest, LeaveType
+)
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
@@ -16,9 +20,7 @@ class PositionAdmin(admin.ModelAdmin):
 class WorkCalendarAdmin(admin.ModelAdmin):
     list_display = ('date', 'day_type', 'company', 'year')
     list_filter = ('company', 'year', 'day_type')
-    
     search_fields = ('date',)
-    
     date_hierarchy = 'date'
 
     def get_queryset(self, request):
@@ -39,11 +41,8 @@ class LeaveRequestAdmin(admin.ModelAdmin):
         'working_days_count', 
         'status'
     )
-    
     list_filter = ('status', 'leave_type', 'start_date')
-    
     search_fields = ('employee__user__last_name', 'employee__user__first_name', 'comment')
-
     readonly_fields = ('working_days_count',)
     
     fieldsets = (
@@ -64,3 +63,15 @@ class LeaveRequestAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
+
+@admin.register(Vacation)
+class VacationAdmin(admin.ModelAdmin):
+    list_display = ('employee', 'start_date', 'end_date', 'status', 'enbek_id')
+
+@admin.register(SickLeave)
+class SickLeaveAdmin(admin.ModelAdmin):
+    list_display = ('employee', 'start_date', 'end_date', 'enbek_id')
+
+@admin.register(EmploymentContract)
+class EmploymentContractAdmin(admin.ModelAdmin):
+    list_display = ('employee', 'number', 'date', 'status', 'enbek_id')

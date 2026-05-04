@@ -1,8 +1,9 @@
 from django.shortcuts import redirect, render
 from account.role_permissions import need_permission, PermissionEnums, RolePermissions
 from project.paginator import CustomPaginator
-from django.http import Http404
+from django.http import Http404, HttpResponseForbidden
 from django.db.models import Q
+from django.core.exceptions import PermissionDenied
 
 from .enums import TaskStatusEnum
 from .models import Task
@@ -17,13 +18,14 @@ def tasks(request):
 
 @need_permission(PermissionEnums.TASKS)
 def tasks_list(request, action):
-
     queryset = Task.get_available_queryset(request)
     search = request.GET.get('search', '')
     page = int(request.GET.get('page', 1))
 
     if search != '':
-        queryset = queryset.filter(Q(title__icontains=search) | Q(text__icontains=search))
+        queryset = queryset.filter(
+            Q(title__icontains=search) | Q(text__icontains=search)
+        )
 
     if action != 'all':
         queryset = queryset.filter(status=action)
@@ -34,7 +36,10 @@ def tasks_list(request, action):
         'action': action,
         'statuses': TaskStatusEnum.get_full(),
         'paginator': paginator,
-        'can_create': RolePermissions.checkPermission(request.user.role, PermissionEnums.EDIT_TASK)
+        'can_create': RolePermissions.checkPermission(
+            request.user.role,
+            PermissionEnums.EDIT_TASK
+        )
     }
 
     return render(request, 'site/tasks/tasks.html', context)
@@ -42,10 +47,9 @@ def tasks_list(request, action):
 
 @need_permission(PermissionEnums.TASKS)
 def task(request, pk):
-
     current = Task.get_by_id(request, pk)
     current.views = current.views + 1
-    current.save()
+    current.save(update_fields=['views'])
 
     context = {
         'task': current,
@@ -55,6 +59,7 @@ def task(request, pk):
 
     return render(request, 'site/tasks/task.html', context)
 
+
 @need_permission(PermissionEnums.TASKS)
 def task_action(request, pk, action):
     current = Task.get_by_id(request, pk)
@@ -63,13 +68,16 @@ def task_action(request, pk, action):
         current.delete()
         return redirect('tasks:list')
 
-    current.set_action(request, action)
+    try:
+        current.set_action(request, action)
+    except PermissionDenied:
+        return HttpResponseForbidden('403 Forbidden')
+
     return redirect('tasks:task', pk=pk)
 
 
 @need_permission(PermissionEnums.EDIT_TASK)
 def edit_task(request, pk):
-
     current = Task.get_by_id(request, pk, exception=False)
     if current is not None and current.author != request.user:
         raise Http404
@@ -84,10 +92,9 @@ def edit_task(request, pk):
             new.save()
             form.save_m2m()
 
-            if new.status is None or new.status == "": #if is NEW
-                new.set_action(request, "create")
-            
-            # return redirect('tasks:list')
+            if new.status is None or new.status == "":
+                new.set_action(request, 'create')
+
             return redirect('tasks:task', pk=new.pk)
 
     context = {

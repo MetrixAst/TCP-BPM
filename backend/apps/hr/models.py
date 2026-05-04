@@ -1,5 +1,5 @@
 from django.db import models
-from account.models import UserAccount
+from account.models import UserAccount, Employee
 from datetime import timedelta
 from .enums import CalendarItemType, DayTypeEnum, LeaveStatusEnum
 
@@ -168,3 +168,69 @@ class LeaveRequest(models.Model):
 
     def __str__(self):
         return f"{self.employee} - {self.leave_type} ({self.start_date})"
+        
+        return date_to_check.weekday() < 5
+
+class Vacation(models.Model):
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='vacations',
+        verbose_name="Сотрудник"
+    )
+    type = models.CharField("Тип", max_length=50)
+    start_date = models.DateField("Дата начала")
+    end_date = models.DateField("Дата окончания")
+    status = models.CharField("Статус", max_length=50)
+    enbek_id = models.CharField("ID Enbek", max_length=100, unique=True)
+
+    def __str__(self):
+        return f"{self.employee} | {self.start_date}"
+
+    class Meta:
+        verbose_name = "Отпуск (Enbek)"
+        verbose_name_plural = "Отпуска (Enbek)"
+
+
+class SickLeave(models.Model):
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='sick_leaves',
+        verbose_name="Сотрудник"
+    )
+    start_date = models.DateField("Дата начала")
+    end_date = models.DateField("Дата окончания")
+    document_number = models.CharField("Номер документа", max_length=100, null=True, blank=True)
+    enbek_id = models.CharField("ID Enbek", max_length=100, unique=True)
+
+    def __str__(self):
+        return f"{self.employee} | {self.start_date}"
+
+    class Meta:
+        verbose_name = "Больничный (Enbek)"
+        verbose_name_plural = "Больничные (Enbek)"
+
+
+class EmploymentContract(models.Model):
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='employment_contracts',
+        verbose_name="Сотрудник"
+    )
+    number = models.CharField("Номер", max_length=100, null=True, blank=True)
+    date = models.DateField("Дата", null=True, blank=True)
+    type = models.CharField("Тип", max_length=50)
+    status = models.CharField("Статус", max_length=50)
+    enbek_id = models.CharField("ID Enbek", max_length=100, unique=True)
+
+    def __str__(self):
+        return f"{self.employee} | {self.number}"
+
+    class Meta:
+        verbose_name = "Трудовой договор (Enbek)"
+        verbose_name_plural = "Трудовые договоры (Enbek)"

@@ -14,7 +14,7 @@ from .forms import CalendarItemForm, EmployeeCreationForm, EmployeesListForm
 from .models import CalendarItem
 from .serializers import CalendarItemSerializer
 from .enums import CalendarItemType
-from .models import Company, Position
+from .models import CalendarItem, Company, Position, Vacation, SickLeave, EmploymentContract
 
 @need_permission(PermissionEnums.HR)
 def structure(request):
@@ -185,3 +185,47 @@ def positions(request):
         'positions': queryset,
     }
     return render(request, 'site/hr/positions.html', context)
+
+@need_permission(PermissionEnums.HR)
+def vacations(request):
+    queryset = Vacation.objects.select_related('employee', 'employee__user').order_by('-start_date', '-id')
+
+    employee_id = request.GET.get('employee')
+    if employee_id:
+        queryset = queryset.filter(employee_id=employee_id)
+
+    context = {
+        'vacations': queryset,
+        'selected_employee': employee_id,
+    }
+    return render(request, 'site/hr/vacations.html', context)
+
+
+@need_permission(PermissionEnums.HR)
+def sick_leaves(request):
+    queryset = SickLeave.objects.select_related('employee', 'employee__user').order_by('-start_date', '-id')
+
+    employee_id = request.GET.get('employee')
+    if employee_id:
+        queryset = queryset.filter(employee_id=employee_id)
+
+    context = {
+        'sick_leaves': queryset,
+        'selected_employee': employee_id,
+    }
+    return render(request, 'site/hr/sick_leaves.html', context)
+
+
+@need_permission(PermissionEnums.HR)
+def contracts(request):
+    queryset = EmploymentContract.objects.select_related('employee', 'employee__user').order_by('-date', '-id')
+
+    employee_id = request.GET.get('employee')
+    if employee_id:
+        queryset = queryset.filter(employee_id=employee_id)
+
+    context = {
+        'contracts': queryset,
+        'selected_employee': employee_id,
+    }
+    return render(request, 'site/hr/contracts.html', context)

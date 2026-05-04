@@ -1,0 +1,42 @@
+{% extends 'site/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Договоры (Enbek)</h2>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID Enbek</th>
+                <th>Сотрудник</th>
+                <th>Номер</th>
+                <th>Дата</th>
+                <th>Тип</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in contracts %}
+                <tr>
+                    <td>{{ item.enbek_id }}</td>
+                    <td>
+                        {% if item.employee %}
+                            {{ item.employee.user.get_name|default:item.employee.user.username }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>{{ item.number|default:"—" }}</td>
+                    <td>{{ item.date|date:"d.m.Y" }}</td>
+                    <td>{{ item.type }}</td>
+                    <td>{{ item.status }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6">Нет данных</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
