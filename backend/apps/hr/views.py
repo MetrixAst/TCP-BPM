@@ -3,10 +3,10 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
-from django.db.models import Count 
+from django.db.models import Q, Count
 from django.db import transaction
 from django.utils.dateparse import parse_date
+from datetime import datetime
 
 from project.utils import get_or_none, get_or_error
 from project.paginator import CustomPaginator
@@ -15,11 +15,17 @@ from account.role_permissions import need_permission, PermissionEnums, RolePermi
 from account.models import Employee
 from account.forms import EmployeeForm
 
-from .forms import CalendarItemForm, EmployeeCreationForm, EmployeesListForm, LeaveFilterForm, LeaveRequestForm
-from .models import CalendarItem
+from .forms import (
+    CalendarItemForm, EmployeeCreationForm, EmployeesListForm, 
+    LeaveFilterForm, LeaveRequestForm
+)
+from .models import (
+    CalendarItem, Company, Position, LeaveRequest, 
+    LeaveType, Vacation, SickLeave, EmploymentContract
+)
 from .serializers import CalendarItemSerializer
 from .enums import CalendarItemType, LeaveStatusEnum
-from .models import Company, Position, LeaveRequest
+
 
 
 @need_permission(PermissionEnums.HR)
@@ -462,3 +468,49 @@ def leave_export_excel(request):
     
     wb.save(response)
     return response
+
+
+@need_permission(PermissionEnums.HR)
+def vacations(request):
+    queryset = Vacation.objects.select_related('employee', 'employee__user').order_by('-start_date', '-id')
+
+    employee_id = request.GET.get('employee')
+    if employee_id:
+        queryset = queryset.filter(employee_id=employee_id)
+
+    context = {
+        'vacations': queryset,
+        'selected_employee': employee_id,
+    }
+    return render(request, 'site/hr/vacations.html', context)
+
+
+@need_permission(PermissionEnums.HR)
+def sick_leaves(request):
+    queryset = SickLeave.objects.select_related('employee', 'employee__user').order_by('-start_date', '-id')
+
+    employee_id = request.GET.get('employee')
+    if employee_id:
+        queryset = queryset.filter(employee_id=employee_id)
+
+    context = {
+        'sick_leaves': queryset,
+        'selected_employee': employee_id,
+    }
+    return render(request, 'site/hr/sick_leaves.html', context)
+
+
+@need_permission(PermissionEnums.HR)
+def contracts(request):
+    queryset = EmploymentContract.objects.select_related('employee', 'employee__user').order_by('-date', '-id')
+
+    employee_id = request.GET.get('employee')
+    if employee_id:
+        queryset = queryset.filter(employee_id=employee_id)
+
+    context = {
+        'contracts': queryset,
+        'selected_employee': employee_id,
+    }
+    return render(request, 'site/hr/contracts.html', context)
+
