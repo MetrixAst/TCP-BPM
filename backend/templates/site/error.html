@@ -1,36 +1,102 @@
-{% extends 'site/layouts/base_blank.html' %}
 {% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title|default:"Ошибка" }} — metriX BPM</title>
 
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'site/img/favicon/apple-touch-icon.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'site/img/favicon/favicon-32x32.png' %}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'site/img/favicon/favicon-16x16.png' %}">
 
-{% block body_classes %}h-100{% endblock %}
-{% block root_classes %}h-100{% endblock %}
-{% block inner %}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="{% static 'site/css/main.css' %}" />
+  <link rel="stylesheet" href="{% static 'site/css/auth.css' %}?v={{ static_version|default:'1' }}" />
+</head>
+<body class="error-body">
 
-    <div class="fixed-background"></div>
-        <div class="container-fluid p-0 h-100 position-relative">
-        <div class="row g-0 h-100">
-            <div class="offset-0 col-12 d-none d-lg-flex offset-md-1 col-lg h-lg-100"></div>
-            <div class="col-12 col-lg-auto h-100 pb-4 px-4 pt-0 p-lg-0">
-                <div class="sw-lg-80 min-h-100 bg-foreground d-flex justify-content-center align-items-center shadow-deep py-5 full-page-content-right-border">
-                    <div class="sw-lg-60 px-5">
-                    <div class="mb-2">
-                        <h2 class="cta-1 mb-0 text-primary">{{title}}</h2>
-                    </div>
-                    <div class="mb-5">
-                        <p class="h6">
-                            {{text}}
-                        </p>
-                    </div>
-                    <div>
-                        <a href="/" class="btn btn-icon btn-icon-start btn-primary">
-                        <i data-acorn-icon="arrow-left"></i>
-                        <span>Вернуться на главную</span>
-                        </a>
-                    </div>
-                    </div>
-                </div>
-            </div>
+  <header class="error-page__header">
+    <a href="/" class="error-page__logo">
+      <span class="error-page__logo-icon">
+        <svg width="22" height="22" viewBox="0 0 20 20" fill="none">
+          <rect x="1" y="3" width="3" height="14" rx="0.5" fill="currentColor"/>
+          <rect x="6.5" y="3" width="13" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+        </svg>
+      </span>
+      <span>metri<span class="error-page__logo-x">X</span> BPM</span>
+    </a>
+  </header>
+
+  <main class="error-page">
+
+    {% if code == 404 or '404' in title %}
+      <div class="error-page__illustration error-page__illustration--404" aria-hidden="true">
+        <div class="error-page__digit error-page__digit--float-1">4</div>
+        <div class="error-page__digit error-page__digit--zero">
+          <svg viewBox="0 0 200 200" fill="none">
+            <circle cx="100" cy="100" r="80" stroke="currentColor" stroke-width="24" fill="none"/>
+            <circle cx="100" cy="100" r="14" fill="currentColor"/>
+          </svg>
         </div>
+        <div class="error-page__digit error-page__digit--float-2">4</div>
+      </div>
+    {% elif code == 403 or '403' in title %}
+      <div class="error-page__illustration error-page__illustration--403" aria-hidden="true">
+        <div class="error-page__digit">4</div>
+        <div class="error-page__digit error-page__digit--icon">
+          <svg viewBox="0 0 200 200" fill="none">
+            <rect x="50" y="80" width="100" height="80" rx="8" fill="currentColor"/>
+            <path d="M65 80 V60 a35 35 0 0 1 70 0 V80" stroke="currentColor" stroke-width="14" fill="none" stroke-linecap="round"/>
+            <circle cx="100" cy="115" r="8" fill="white"/>
+            <rect x="96" y="120" width="8" height="20" rx="3" fill="white"/>
+          </svg>
+        </div>
+        <div class="error-page__digit">3</div>
+      </div>
+    {% elif code == 500 or '500' in title %}
+      <div class="error-page__illustration error-page__illustration--500" aria-hidden="true">
+        <div class="error-page__digit">5</div>
+        <div class="error-page__digit error-page__digit--icon">
+          <svg viewBox="0 0 200 200" fill="none">
+            <path d="M100 30 L170 160 L30 160 Z" stroke="currentColor" stroke-width="14" fill="currentColor" fill-opacity="0.15" stroke-linejoin="round"/>
+            <rect x="94" y="80" width="12" height="40" rx="3" fill="currentColor"/>
+            <circle cx="100" cy="138" r="7" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="error-page__digit">0</div>
+      </div>
+    {% else %}
+      <div class="error-page__illustration" aria-hidden="true">
+        <div class="error-page__digit">!</div>
+      </div>
+    {% endif %}
+
+    <h1 class="error-page__title">{{ title|default:"Что-то пошло не так" }}</h1>
+
+    <p class="error-page__text">
+      {{ text|default:"Не удалось обработать ваш запрос. Попробуйте обновить страницу или вернитесь на главную." }}
+    </p>
+
+    <div class="error-page__actions">
+      <a href="/" class="btn auth-form__submit error-page__btn">
+        <i class="bi bi-arrow-left"></i>
+        Вернуться на главную
+      </a>
+      <button type="button" class="btn auth-form__guest-btn error-page__btn" onclick="window.history.back()">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        Назад
+      </button>
     </div>
 
-{% endblock inner %}
+  </main>
+
+  <footer class="error-page__footer">
+    © {% now "Y" %} metriX BPM
+  </footer>
+
+</body>
+</html>
