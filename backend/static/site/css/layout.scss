@@ -1,0 +1,601 @@
+// ── Локальные переменные для media queries ──────────────────────────────────
+$bp-lg: 992px;
+$bp-md: 768px;
+$bp-sm: 576px;
+$transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+// =============================================================================
+// BODY
+// =============================================================================
+.bpm-body {
+  font-family: var(--font-family-base);
+  font-size:   var(--font-size-body);
+  color:       var(--color-text-primary);
+  background:  var(--color-bg);
+  margin:      0;
+  overflow-x:  hidden;
+}
+
+// =============================================================================
+// SIDEBAR  (точно как в Figma — белый, узкий, с логотипом сверху)
+// =============================================================================
+.bpm-sidebar {
+  position:        fixed;
+  top:             0;
+  left:            0;
+  bottom:          0;
+  width:           var(--sidebar-width);
+  background:     var(--color-sidebar-bg);
+  border-right:    1px solid var(--color-border);
+  display:         flex;
+  flex-direction:  column;
+  z-index:         300;
+  overflow-y:      auto;
+  overflow-x:      hidden;
+  transition:      transform $transition;
+
+  // тонкий скроллбар
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-200) transparent;
+  &::-webkit-scrollbar       { width: 3px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: var(--color-neutral-200); border-radius: 4px; }
+
+  // ── Логотип ──
+  &__logo {
+    display:         flex;
+    align-items:     center;
+    gap:             10px;
+    height:          var(--topbar-height);
+    padding:         0 20px;
+    font-size:       16px;
+    font-weight:     700;
+    color:           var(--color-text-primary);
+    text-decoration: none;
+    flex-shrink:     0;
+    white-space:     nowrap;
+    &:hover         { color: var(--color-text-primary); text-decoration: none; }
+  }
+  &__logo-icon {
+    color:       var(--color-primary);
+    display:     flex;
+    flex-shrink: 0;
+  }
+  &__logo-text { letter-spacing: -0.01em; }
+  &__logo-x    { color: var(--color-primary); font-weight: 700; }
+
+  // ── Nav ──
+  &__nav { flex: 1; padding: 12px 0 16px; }
+
+  &__group { display: flex; flex-direction: column; }
+
+  &__item {
+    display:         flex;
+    align-items:     center;
+    gap:             12px;
+    padding:         10px 20px;
+    font-size:       var(--font-size-body);
+    font-weight:     400;
+    color:           var(--color-sidebar-text);
+    text-decoration: none;
+    background:      none;
+    border:          none;
+    width:           100%;
+    text-align:      left;
+    cursor:          pointer;
+    white-space:     nowrap;
+    position:        relative;
+    transition:      background-color 0.15s, color 0.15s;
+
+    &:hover {
+      background:      var(--color-sidebar-hover);
+      color:           var(--color-text-primary);
+      text-decoration: none;
+    }
+
+    &.is-active {
+      color:       var(--color-sidebar-active);
+      background:  var(--color-sidebar-active-bg);
+      font-weight: 500;
+
+      // синяя полоса слева — как в Figma
+      &::before {
+        content:    '';
+        position:   absolute;
+        left:       0;
+        top:        0;
+        bottom:     0;
+        width:      3px;
+        background: var(--color-sidebar-active);
+      }
+    }
+
+    &--parent {
+      &.is-open .bpm-sidebar__chevron { transform: rotate(180deg); }
+      &[aria-expanded="true"] .bpm-sidebar__chevron { transform: rotate(180deg); }
+    }
+
+    // Sub-items без иконки, с маленькой точкой
+    &--sub {
+      padding-left: 52px; // выравнивание с текстом родителя
+      font-size:    var(--font-size-body);
+      color:        var(--color-text-secondary);
+      font-weight:  400;
+
+      &:hover { color: var(--color-text-primary); background: var(--color-sidebar-hover); }
+
+      &.is-active {
+        color:       var(--color-sidebar-active);
+        background:  var(--color-sidebar-active-bg);
+        font-weight: 500;
+
+        .bpm-sidebar__sub-dot {
+          background: var(--color-sidebar-active);
+        }
+      }
+    }
+  }
+
+  &__icon {
+    font-size:    16px;
+    width:        18px;
+    text-align:   center;
+    flex-shrink:  0;
+  }
+
+  &__sub-dot {
+    width:        4px;
+    height:       4px;
+    border-radius: 50%;
+    background:   var(--color-text-muted);
+    flex-shrink:  0;
+    display:      none; // в figma точек нет, оставляем как опцию
+  }
+
+  &__label    { flex: 1; }
+  &__chevron  {
+    font-size:  12px;
+    color:      var(--color-text-muted);
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+  }
+
+  // ── Footer (пользователь + выход) ──
+  &__footer {
+    display:      flex;
+    align-items:  center;
+    gap:          10px;
+    padding:      14px 20px;
+    border-top:   1px solid var(--color-border);
+    flex-shrink:  0;
+  }
+
+  &__avatar {
+    width:           36px;
+    height:          36px;
+    border-radius:   var(--radius-full);
+    background:      var(--color-neutral-100);
+    color:           var(--color-text-muted);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-size:       18px;
+    flex-shrink:     0;
+    overflow:        hidden;
+
+    img { width: 100%; height: 100%; object-fit: cover; }
+  }
+
+  &__user      { flex: 1; min-width: 0; }
+  &__user-name {
+    font-size:    var(--font-size-body);
+    font-weight:  500;
+    color:        var(--color-text-primary);
+    white-space:  nowrap;
+    overflow:     hidden;
+    text-overflow: ellipsis;
+  }
+  &__user-role {
+    font-size: var(--font-size-caption);
+    color:     var(--color-text-muted);
+  }
+
+  &__logout {
+    color:           var(--color-text-muted);
+    font-size:       18px;
+    display:         flex;
+    align-items:     center;
+    text-decoration: none;
+    padding:         4px;
+    border-radius:   var(--radius-sm);
+    transition:      color 0.15s;
+    &:hover { color: var(--color-danger); }
+  }
+}
+
+// =============================================================================
+// TOPBAR  (точно как в Figma)
+// =============================================================================
+.bpm-topbar {
+  position:      fixed;
+  top:           0;
+  left:          var(--sidebar-width);
+  right:         0;
+  height:        var(--topbar-height);
+  background:    var(--color-topbar-bg);
+  border-bottom: 1px solid var(--color-topbar-border);
+  display:       flex;
+  align-items:   center;
+  gap:           12px;
+  padding:       0 20px;
+  z-index:       200;
+  transition:    left $transition;
+
+  // ── Toggle (свернуть/развернуть sidebar) — слева в углу как в Figma ──
+  &__toggle {
+    width:           36px;
+    height:          36px;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    background:      none;
+    border:          none;
+    font-size:       18px;
+    color:           var(--color-text-secondary);
+    cursor:          pointer;
+    border-radius:   var(--radius-sm);
+    flex-shrink:     0;
+    transition:      background-color 0.15s, color 0.15s;
+    &:hover {
+      background: var(--color-neutral-100);
+      color:      var(--color-text-primary);
+    }
+  }
+
+  // ── Поиск ──
+  &__search {
+    flex:     0 1 320px;
+    position: relative;
+  }
+  &__search-icon {
+    position:       absolute;
+    left:           12px;
+    top:            50%;
+    transform:      translateY(-50%);
+    color:          var(--color-text-muted);
+    font-size:      14px;
+    pointer-events: none;
+  }
+  &__search-input {
+    width:         100%;
+    height:        36px;
+    padding:       0 12px 0 36px;
+    font-family:   var(--font-family-base);
+    font-size:     var(--font-size-body);
+    color:         var(--color-text-primary);
+    background:    var(--color-neutral-50);
+    border:        1px solid transparent;
+    border-radius: var(--radius-md);
+    outline:       none;
+    transition:    border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+
+    &::placeholder { color: var(--color-text-muted); }
+    &:focus {
+      background:   var(--color-white);
+      border-color: var(--color-border-focus);
+      box-shadow:   0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+  }
+  &__search-results {
+    position:      absolute;
+    top:           calc(100% + 4px);
+    left:          0;
+    right:         0;
+    background:    var(--color-white);
+    border:        1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow:    var(--shadow-lg);
+    max-height:    360px;
+    overflow-y:    auto;
+    z-index:       400;
+  }
+  &__search-result-item {
+    display:         block;
+    padding:         10px 14px;
+    text-decoration: none;
+    color:           var(--color-text-primary);
+    font-size:       var(--font-size-body);
+    border-bottom:   1px solid var(--color-border);
+    &:last-child  { border-bottom: none; }
+    &:hover       { background: var(--color-neutral-50); text-decoration: none; }
+    .text-muted   { font-size: var(--font-size-caption); color: var(--color-text-muted); }
+  }
+  &__search-empty {
+    padding:    14px;
+    text-align: center;
+    color:      var(--color-text-muted);
+    font-size:  var(--font-size-body);
+  }
+
+  &__spacer { flex: 1; }
+
+  // ── Right side ──
+  &__right {
+    display:     flex;
+    align-items: center;
+    gap:         8px;
+  }
+
+  // Pill-кнопки (Ритц-Палас, Алматы GMT+5)
+  &__pill {
+    display:       flex;
+    align-items:   center;
+    gap:           6px;
+    height:        32px;
+    padding:       0 12px;
+    font-size:     var(--font-size-body);
+    font-weight:   500;
+    color:         var(--color-text-primary);
+    background:    var(--color-neutral-50);
+    border:        1px solid transparent;
+    border-radius: var(--radius-full);
+    cursor:        pointer;
+    white-space:   nowrap;
+    transition:    background-color 0.15s, border-color 0.15s;
+
+    .bi-chevron-down {
+      font-size: 11px;
+      color:     var(--color-text-muted);
+      margin-left: 2px;
+    }
+
+    &:hover { background: var(--color-neutral-100); }
+
+    &--object {
+      color: var(--color-primary);
+      background: var(--color-primary-light);
+      &:hover { background: var(--color-primary-100); }
+    }
+
+    &--tz {
+      font-weight: 400;
+      color: var(--color-text-secondary);
+    }
+  }
+
+  // Глобус
+  &__globe {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    width:           28px;
+    height:          28px;
+    color:           var(--color-text-muted);
+    font-size:       16px;
+  }
+
+  // Языки
+  &__lang {
+    display:     flex;
+    align-items: center;
+    gap:         4px;
+  }
+
+  &__lang-btn {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    min-width:       30px;
+    height:          26px;
+    padding:         0 10px;
+    font-size:       var(--font-size-caption);
+    font-weight:     500;
+    color:           var(--color-text-secondary);
+    text-decoration: none;
+    border-radius:   var(--radius-full);
+    transition:      background-color 0.15s, color 0.15s;
+    line-height:     1;
+
+    &:hover { color: var(--color-text-primary); text-decoration: none; }
+
+    &.is-active {
+      background:    var(--color-primary);
+      color:         var(--color-white) !important;
+      font-weight:   600;
+    }
+  }
+
+  // Иконки-кнопки (bell, logout)
+  &__icon-btn {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    width:           36px;
+    height:          36px;
+    color:           var(--color-text-secondary);
+    background:      none;
+    border:          none;
+    border-radius:   var(--radius-md);
+    cursor:          pointer;
+    text-decoration: none;
+    position:        relative;
+    font-size:       16px;
+    transition:      background-color 0.15s, color 0.15s;
+    &:hover { background: var(--color-neutral-100); color: var(--color-text-primary); }
+  }
+
+  &__notif-dot {
+    position:      absolute;
+    top:           8px;
+    right:         8px;
+    width:         8px;
+    height:        8px;
+    background:    var(--color-danger);
+    border-radius: 50%;
+    border:        2px solid var(--color-white);
+  }
+}
+
+// =============================================================================
+// NOTIFICATIONS DROPDOWN
+// =============================================================================
+.bpm-notif {
+  min-width:      320px;
+  border-radius:  var(--radius-lg) !important;
+  box-shadow:     var(--shadow-lg) !important;
+  border:         1px solid var(--color-border) !important;
+  padding:        0 !important;
+  overflow:       hidden;
+
+  &__header {
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    padding:         12px 16px;
+    font-weight:     600;
+    font-size:       var(--font-size-body);
+    border-bottom:   1px solid var(--color-border);
+  }
+  &__count {
+    background:    var(--color-primary-light);
+    color:         var(--color-primary);
+    font-size:     var(--font-size-caption);
+    padding:       2px 8px;
+    border-radius: var(--radius-full);
+    font-weight:   600;
+  }
+  &__list      { max-height: 360px; overflow-y: auto; }
+  &__item {
+    display:         block;
+    padding:         12px 16px;
+    text-decoration: none;
+    color:           var(--color-text-primary);
+    border-bottom:   1px solid var(--color-border);
+    transition:      background-color 0.1s;
+    &:last-child { border-bottom: none; }
+    &:hover      { background: var(--color-neutral-50); text-decoration: none; }
+  }
+  &__title { font-size: var(--font-size-body); font-weight: 500; }
+  &__text  {
+    font-size:  var(--font-size-caption);
+    color:      var(--color-text-muted);
+    margin-top: 2px;
+  }
+  &__empty {
+    display:        flex;
+    flex-direction: column;
+    align-items:    center;
+    gap:            8px;
+    padding:        32px 16px;
+    color:          var(--color-text-muted);
+    font-size:      var(--font-size-body);
+    i { font-size: 28px; }
+  }
+}
+
+// =============================================================================
+// MAIN SHELL
+// =============================================================================
+.bpm-main {
+  margin-left:    var(--sidebar-width);
+  min-height:     100vh;
+  display:        flex;
+  flex-direction: column;
+  transition:     margin-left $transition;
+}
+
+.bpm-content {
+  flex:        1;
+  padding:     24px;
+  padding-top: calc(var(--topbar-height) + 24px);
+  min-width:   0;
+}
+
+// =============================================================================
+// MOBILE OVERLAY
+// =============================================================================
+.bpm-overlay {
+  display:    none;
+  position:   fixed;
+  inset:      0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index:    299;
+  cursor:     pointer;
+
+  &.is-visible { display: block; }
+}
+
+// =============================================================================
+// MESSAGES (Django messages framework)
+// =============================================================================
+.bpm-messages { margin-bottom: 16px; }
+
+.bpm-alert-close {
+  background: none;
+  border:     none;
+  cursor:     pointer;
+  color:      inherit;
+  font-size:  18px;
+  margin-left: auto;
+  opacity:    0.7;
+  &:hover { opacity: 1; }
+}
+
+// =============================================================================
+// ─────────  COLLAPSED SIDEBAR (toggle сворачивает sidebar) ────────
+// =============================================================================
+// Когда у body класс .sidebar-collapsed:
+//  - sidebar уезжает за левый край
+//  - main растягивается на всю ширину
+//  - topbar тоже сдвигается влево
+
+body.sidebar-collapsed {
+  .bpm-sidebar { transform: translateX(-100%); }
+  .bpm-main    { margin-left: 0; }
+  .bpm-topbar  { left: 0; }
+}
+
+// =============================================================================
+// RESPONSIVE
+// =============================================================================
+
+// ── Tablet & Mobile (< 992px): sidebar по умолчанию off-canvas ──
+@media (max-width: #{$bp-lg - 1px}) {
+
+  .bpm-sidebar {
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+
+    &.is-open { transform: translateX(0); }
+  }
+
+  .bpm-main   { margin-left: 0; }
+  .bpm-topbar { left: 0; }
+
+  // На мобильном toggle не сворачивает, а открывает overlay
+  body.sidebar-collapsed {
+    .bpm-sidebar { transform: translateX(-100%); }
+  }
+}
+
+// ── Mobile ──
+@media (max-width: #{$bp-md - 1px}) {
+
+  .bpm-content {
+    padding:     16px;
+    padding-top: calc(var(--topbar-height) + 16px);
+  }
+
+  .bpm-topbar {
+    padding: 0 12px;
+    gap:     6px;
+
+    &__search { display: none; } // на маленьких экранах прячем поиск
+    &__pill   { padding: 0 8px; font-size: var(--font-size-caption); }
+  }
+}
+
+// ── Small mobile ──
+@media (max-width: #{$bp-sm - 1px}) {
+  .bpm-notif { min-width: calc(100vw - 24px); }
+}

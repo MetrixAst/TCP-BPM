@@ -1,68 +1,69 @@
+{% load static %}
+
 {% if paginator.pages_count > 1 %}
-    <section class="mt-4">
-        <div class="row">
-            <div class="col-sm-12">
-                <nav>
-                    <input type="hidden" name="page" value="1" id="page_value">
-                    <ul class="pagination justify-content-center mt-2 {% if as_paginator_handler %}paginator_handler{% endif %}">
+  <nav class="bpm-pagination" aria-label="Pagination">
+    <ul class="pagination {% if as_paginator_handler %}paginator_handler{% endif %}">
 
-                        {% if paginator.items.has_previous %}
-                            <li class="page-item prev-item">
-                                {% if as_paginator_handler %}
-                                    <span class="page-link" data-page="{{paginator.items.previous_page_number}}">
-                                        <i data-acorn-icon="chevron-left"></i>
-                                    </span>
-                                {% else %}
-                                    <a href="?page={{paginator.items.previous_page_number}}" class="page-link" data-page="">
-                                        <i data-acorn-icon="chevron-left"></i>
-                                    </a>
-                                {% endif %}
-                            </li>
-                        {% endif %}
+      {% if paginator.items.has_previous %}
+        <li class="page-item">
+          {% if as_paginator_handler %}
+            <span class="page-link" data-page="{{ paginator.items.previous_page_number }}">
+              <i class="bi bi-chevron-left"></i>
+            </span>
+          {% else %}
+            <a href="?page={{ paginator.items.previous_page_number }}" class="page-link">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          {% endif %}
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+        </li>
+      {% endif %}
 
-                        {% for current in paginator.pages %}
-                            <li class="page-item{% if current == paginator.current %} active{% endif %}">
-                                {% if current != '…' %}
-                                    {% if as_paginator_handler %}
-                                        <span data-page="{{current}}" class="page-link">{{current}}</span>
-                                    {% else %}
-                                        <a href="?page={{current}}" class="page-link">{{current}}</a>
-                                    {% endif %}
-                                {% else %}
-                                    <span class="page-link not_link">…</span>
-                                {% endif %}
-                            </li>
-                        {% endfor %}
+      {% for current in paginator.pages %}
+        <li class="page-item {% if current == paginator.current %}active{% endif %} {% if current == '…' %}page-item--ellipsis{% endif %}">
+          {% if current == '…' %}
+            <span class="page-link page-link--ellipsis">…</span>
+          {% else %}
+            {% if as_paginator_handler %}
+              <span class="page-link" data-page="{{ current }}">{{ current }}</span>
+            {% else %}
+              <a href="?page={{ current }}" class="page-link">{{ current }}</a>
+            {% endif %}
+          {% endif %}
+        </li>
+      {% endfor %}
 
-                        {% if paginator.items.has_next %}
-                            <li class="page-item next-item">
-                                {% if as_paginator_handler %}
-                                    <span class="page-link" data-page="{{paginator.items.next_page_number}}">
-                                        <i data-acorn-icon="chevron-right"></i>
-                                    </span>
-                                {% else %}
-                                    <a href="?page={{paginator.items.next_page_number}}" class="page-link" data-page="">
-                                        <i data-acorn-icon="chevron-right"></i>
-                                    </a>
-                                {% endif %}
-                            </li>
-                        {% endif %}
-                        
-                    </ul>
-                </nav>
-            </div>
-        </div>
-    </section>
+      {% if paginator.items.has_next %}
+        <li class="page-item">
+          {% if as_paginator_handler %}
+            <span class="page-link" data-page="{{ paginator.items.next_page_number }}">
+              <i class="bi bi-chevron-right"></i>
+            </span>
+          {% else %}
+            <a href="?page={{ paginator.items.next_page_number }}" class="page-link">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          {% endif %}
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+        </li>
+      {% endif %}
+
+    </ul>
+  </nav>
 {% endif %}
 
 {% if paginator.count == 0 %}
-<div class="w-100">
-    <div class="text-center">
-        <div class="mb-2">
-            <h1 class="display-3">Список пуст...</h1>
-        </div>
-        <p class="h6 lh-1-5 mb-5">В этом списке ничего нет</p>
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <i class="bi bi-inbox"></i>
     </div>
-</div>
-    
+    <div class="empty-state__title">Список пуст</div>
+    <div class="empty-state__text">В этом списке пока ничего нет</div>
+  </div>
 {% endif %}

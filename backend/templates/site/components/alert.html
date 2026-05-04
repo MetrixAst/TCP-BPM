@@ -1,0 +1,43 @@
+{% load static %}
+
+{% with t=type|default:'info' %}
+  <div class="alert alert--{{ t }} {% if dismissible %}alert--dismissible{% endif %}"
+       role="alert"
+       {% if id %}id="{{ id }}"{% endif %}>
+
+    <div class="alert__icon">
+      {% if icon %}
+        <i class="bi bi-{{ icon }}"></i>
+      {% elif t == 'success' %}
+        <i class="bi bi-check-circle-fill"></i>
+      {% elif t == 'danger' %}
+        <i class="bi bi-exclamation-octagon-fill"></i>
+      {% elif t == 'warning' %}
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      {% else %}
+        <i class="bi bi-info-circle-fill"></i>
+      {% endif %}
+    </div>
+
+    <div class="alert__content">
+      {% if title %}
+        <div class="alert__title">{{ title }}</div>
+      {% endif %}
+      {% if text %}
+        <div class="alert__text">{{ text }}</div>
+      {% endif %}
+      {% if not text and not title %}
+        <div class="alert__text">{% block alert_body %}{% endblock %}</div>
+      {% endif %}
+    </div>
+
+    {% if dismissible %}
+      <button type="button" class="alert__close"
+              onclick="this.parentElement.remove()"
+              aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </button>
+    {% endif %}
+
+  </div>
+{% endwith %}

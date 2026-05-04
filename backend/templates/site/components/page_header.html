@@ -1,0 +1,67 @@
+{% load static %}
+
+<div class="page-header">
+
+  {% if breadcrumbs %}
+    <nav class="page-header__breadcrumbs" aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        {% for crumb in breadcrumbs %}
+          <li class="breadcrumb-item {% if forloop.last %}active{% endif %}"
+              {% if forloop.last %}aria-current="page"{% endif %}>
+            {% if crumb.url and not forloop.last %}
+              <a href="{{ crumb.url }}">{{ crumb.title }}</a>
+            {% else %}
+              {{ crumb.title }}
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    </nav>
+  {% endif %}
+
+  <div class="page-header__row">
+
+    <div class="page-header__left">
+      {% if back_url %}
+        <a href="{{ back_url }}" class="page-header__back" title="Назад">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+      {% endif %}
+
+      <div class="page-header__titles">
+        <h1 class="page-header__title">{{ title }}</h1>
+        {% if subtitle %}
+          <div class="page-header__subtitle">{{ subtitle }}</div>
+        {% endif %}
+      </div>
+
+      {% if starred is not None or editable or deletable %}
+        <div class="page-header__icon-actions">
+          {% if starred is not None %}
+            <button type="button" class="page-header__icon-btn {% if starred %}is-active{% endif %}" title="В избранное">
+              <i class="bi bi-star{% if starred %}-fill{% endif %}"></i>
+            </button>
+          {% endif %}
+          {% if editable %}
+            <button type="button" class="page-header__icon-btn" title="Редактировать">
+              <i class="bi bi-pencil"></i>
+            </button>
+          {% endif %}
+          {% if deletable %}
+            <button type="button" class="page-header__icon-btn page-header__icon-btn--danger" title="Удалить">
+              <i class="bi bi-trash"></i>
+            </button>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    {% if actions %}
+      <div class="page-header__actions">
+        {{ actions|safe }}
+      </div>
+    {% endif %}
+
+  </div>
+
+</div>
