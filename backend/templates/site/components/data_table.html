@@ -1,0 +1,64 @@
+{% load static site_tags %}
+
+<div class="data-table">
+
+  <div class="data-table__wrapper">
+    <table class="table data-table__table">
+      <thead>
+        <tr>
+          {% for col in columns %}
+            <th class="data-table__th {% if col.sortable %}data-table__th--sortable{% endif %}"
+                {% if col.width %}style="width: {{ col.width }};"{% endif %}>
+              {% if col.sortable %}
+                {% if sort_by == col.key and sort_order == 'asc' %}
+                  <a href="?sort={{ col.key }}&order=desc" class="data-table__sort data-table__sort--asc">
+                    {{ col.title }}
+                    <i class="bi bi-arrow-up"></i>
+                  </a>
+                {% elif sort_by == col.key and sort_order == 'desc' %}
+                  <a href="?sort={{ col.key }}&order=asc" class="data-table__sort data-table__sort--desc">
+                    {{ col.title }}
+                    <i class="bi bi-arrow-down"></i>
+                  </a>
+                {% else %}
+                  <a href="?sort={{ col.key }}&order=asc" class="data-table__sort">
+                    {{ col.title }}
+                    <i class="bi bi-arrow-down-up data-table__sort-icon-default"></i>
+                  </a>
+                {% endif %}
+              {% else %}
+                {{ col.title }}
+              {% endif %}
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% if rows %}
+          {% for row in rows %}
+            <tr class="data-table__row {% if row_url %}data-table__row--clickable{% endif %}"
+                {% if row_url %}data-href="{{ row_url|stringformat:row.pk }}"{% endif %}>
+              {% for col in columns %}
+                <td class="data-table__td">
+                  {# Универсальный доступ через .{key} (только для словарей) #}
+                  {% if col.key in row %}{{ row|get_item:col.key|default:"—" }}{% else %}—{% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="{{ columns|length }}" class="data-table__empty-cell">
+              {% include "site/components/empty_state.html" with text=empty_text|default:"Данных пока нет" %}
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if paginator %}
+    {% show_paginator paginator %}
+  {% endif %}
+
+</div>

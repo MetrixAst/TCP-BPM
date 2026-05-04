@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap.min.css' %}" />
   <link rel="stylesheet" href="{% static 'site/css/main.css' %}?v={{ static_version|default:'1' }}" />
   <link rel="stylesheet" href="{% static 'site/css/layout.css' %}?v={{ static_version|default:'1' }}" />
+  <link rel="stylesheet" href="{% static 'site/css/components.css' %}?v={{ static_version|default:'1' }}" />
   {% block styles %}{% endblock styles %}
 </head>
 <body class="bpm-body {% block body_classes %}{% endblock body_classes %}">
