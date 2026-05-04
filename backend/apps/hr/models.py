@@ -104,11 +104,19 @@ class WorkCalendar(models.Model):
         return f"{self.date} ({company_name})"
 
     def save(self, *args, **kwargs):
+        if isinstance(self.date, str):
+            from datetime import datetime
+            self.date = datetime.strptime(self.date, '%Y-%m-%d').date()
+            
         self.year = self.date.year
         super().save(*args, **kwargs)
 
     @staticmethod
     def is_working_day(date_to_check, company):
+        if isinstance(date_to_check, str):
+            from datetime import datetime
+            date_to_check = datetime.strptime(date_to_check, '%Y-%m-%d').date()
+
         day_record = WorkCalendar.objects.filter(company=company, date=date_to_check).first()
         
         if not day_record:
