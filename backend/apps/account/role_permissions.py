@@ -147,21 +147,21 @@ class MenuItem:
     @staticmethod
     def generate_menu(user):
         items = {
-            RoleEnums.ADMINISTRATOR.value: [
-                MenuItem('tasks', 'tasks:list', 'grid-1', 'Менеджер задач', indicator_alias='task'),
-                MenuItem('documents', 'documents:list', 'file-text', 'Документооборот', url_param=['documents']),
-                MenuItem('tenants', '#tenants', 'home', 'Компании', submenu=[
-                    MenuItem('suppliers', 'purchases:suppliers', '', 'Контрагенты'),
-                    MenuItem('tenants_list', 'tenants:list', '', 'Арендаторы'),
+                      RoleEnums.ADMINISTRATOR.value: [
+                MenuItem('tasks',       'tasks:list',       'check2-square',    'Менеджер задач',         indicator_alias='task'),
+                MenuItem('documents',   'documents:list',   'file-earmark-text','Документооборот',         url_param=['documents']),
+                MenuItem('tenants',     '#tenants',         'building',         'Компании',               submenu=[
+                    MenuItem('suppliers',     'purchases:suppliers', '', 'Контрагенты'),
+                    MenuItem('tenants_list',  'tenants:list',       '', 'Арендаторы'),
                 ]),
-                MenuItem('purchases', 'documents:list', 'folders', 'Закупки', url_param=['purchases']),
-                MenuItem('finances', '#finances', 'form', 'Финансы', submenu=[
-                    MenuItem('reg', 'finances:reg', '', 'Реестр оплат'),
+                MenuItem('purchases',   'documents:list',   'folder2',          'Закупки',                url_param=['purchases']),
+                MenuItem('finances',    '#finances',        'credit-card',      'Финансы',                submenu=[
+                    MenuItem('reg',      'finances:reg',      '', 'Реестр оплат'),
                     MenuItem('calendar', 'finances:calendar', '', 'Финансовый календарь'),
-                    MenuItem('budget', 'documents:list', '', 'Бюджет компании', url_param=['budget']),
-                    MenuItem('bill', 'finances:bill', '', 'Счет компании'),
+                    MenuItem('budget',   'documents:list',    '', 'Бюджет компании', url_param=['budget']),
+                    MenuItem('bill',     'finances:bill',     '', 'Счет компании'),
                 ]),
-                MenuItem('hr', '#hr', 'user', 'HR', submenu=[
+                MenuItem('hr',          '#hr',              'people',           'HR',                     submenu=[
                     MenuItem('org',               'hr:org',         '', 'Орг. структура'),
                     MenuItem('employees',         'hr:employees',   '', 'Сотрудники'),
                     MenuItem('companies_hr',      'hr:companies',   '', 'Компании'),
@@ -172,13 +172,13 @@ class MenuItem:
                     MenuItem('enbek_sick_leaves', 'hr:sick_leaves', '', 'Больничные (Enbek)'),
                     MenuItem('enbek_contracts',   'hr:contracts',   '', 'Договоры (Enbek)'),
                 ]),
-                MenuItem('ecopark',     'ecopark:home',     'water',      'Эксплуатация'),
-                MenuItem('requistions', 'requistions:home', 'notebook-1', 'Заявки от арендаторов'),
-                MenuItem('reports',     'reports:home',     'eye',        'Показатели'),
+                MenuItem('ecopark',     'ecopark:home',     'tools',            'Эксплуатация'),
+                MenuItem('requistions', 'requistions:home', 'inbox',            'Заявки от арендаторов'),
+                MenuItem('reports',     'reports:home',     'bar-chart-line',   'Показатели'),
             ],
-
+ 
             RoleEnums.STAFF.value: [
-                MenuItem('hr', '#hr', 'user', 'HR', submenu=[
+                MenuItem('hr', '#hr', 'people', 'HR', submenu=[
                     MenuItem('org',               'hr:org',         '', 'Орг. структура'),
                     MenuItem('employees',         'hr:employees',   '', 'Сотрудники'),
                     MenuItem('enbek_vacations',   'hr:vacations',   '', 'Отпуска (Enbek)'),
@@ -186,9 +186,9 @@ class MenuItem:
                     MenuItem('enbek_contracts',   'hr:contracts',   '', 'Договоры (Enbek)'),
                 ]),
             ],
-
+ 
             RoleEnums.GUEST.value: [
-                MenuItem('requistions', 'requistions:home', 'notebook-1', 'Заявки'),
+                MenuItem('requistions', 'requistions:home', 'inbox', 'Заявки'),
             ],
         }
         return items.get(user.role, [])

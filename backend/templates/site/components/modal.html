@@ -1,0 +1,53 @@
+{% load static %}
+
+<div class="modal fade {% if scrollable %}modal-scrollable{% endif %}"
+     id="{{ id }}"
+     tabindex="-1"
+     aria-labelledby="{{ id }}_label"
+     aria-hidden="true">
+  <div class="modal-dialog
+              {% if centered|default_if_none:True %}modal-dialog-centered{% endif %}
+              {% if scrollable %}modal-dialog-scrollable{% endif %}
+              {% if size and size != 'md' %}modal-{{ size }}{% endif %}">
+    <div class="modal-content">
+
+      {% if form_action %}
+        <form method="{{ form_method|default:'post' }}"
+              action="{{ form_action }}"
+              {% if form_enctype %}enctype="{{ form_enctype }}"{% endif %}>
+          {% csrf_token %}
+      {% endif %}
+
+      <div class="modal-header">
+        <h5 class="modal-title" id="{{ id }}_label">{{ title }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+
+      <div class="modal-body">
+        {% if body %}{{ body|safe }}{% endif %}
+        {% block modal_body %}{% endblock %}
+      </div>
+
+      {% if not hide_footer %}
+        <div class="modal-footer">
+          {% if footer %}
+            {{ footer|safe }}
+          {% else %}
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              {{ cancel_label|default:"Отмена" }}
+            </button>
+            <button type="{% if form_action %}submit{% else %}button{% endif %}"
+                    class="btn {{ submit_class|default:'btn-primary' }}">
+              {{ submit_label|default:"Сохранить" }}
+            </button>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {% if form_action %}
+        </form>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
