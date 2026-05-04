@@ -1,3 +1,5 @@
+import io
+import openpyxl
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.http import Http404
@@ -808,3 +810,89 @@ class LeaveFormTest(TestCase):
         from .forms import LeaveFilterForm
         form = LeaveFilterForm(data={'date_from': 'notadate'})
         self.assertFalse(form.is_valid())
+
+class LeaveTimelineAndExportTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.company = Company.objects.create(name="ExportCorp", bin_number="888888888888")
+        self.dept1 = Department.objects.create(name="Analytics", company=self.company)
+        self.dept2 = Department.objects.create(name="Support", company=self.company)
+
+        self.u_emp1 = UserAccount.objects.create_user(username='emp_export1', password='123')
+        self.employee1 = Employee.objects.create(user=self.u_emp1, department=self.dept1)
+
+        self.u_emp2 = UserAccount.objects.create_user(username='emp_export2', password='123')
+        self.employee2 = Employee.objects.create(user=self.u_emp2, department=self.dept2)
+
+        self.leave_type = LeaveType.objects.create(name="Ежегодный_exp", max_days_per_year=24)
+
+        self.leave1 = LeaveRequest.objects.create(
+            employee=self.employee1, leave_type=self.leave_type,
+            start_date=date(2026, 8, 1), end_date=date(2026, 8, 10),
+            status=LeaveStatusEnum.APPROVED,
+        )
+        self.leave2 = LeaveRequest.objects.create(
+            employee=self.employee2, leave_type=self.leave_type,
+            start_date=date(2026, 9, 1), end_date=date(2026, 9, 10),
+            status=LeaveStatusEnum.PENDING,
+        )
+
+    def test_timeline_anonymous_redirected(self):
+        response = self.client.get(reverse('hr:leave_timeline'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_timeline_returns_json(self):
+        self.client.login(username='emp_export1', password='123')
+        response = self.client.get(reverse('hr:leave_timeline'))
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/json', response.headers.get('Content-Type', ''))
+
+        data = response.json()
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]['id'], self.leave1.id)
+        self.assertIn('content', data[0])
+        self.assertIn('group', data[0])
+        self.assertIn('className', data[0])
+
+    def test_timeline_filters_by_department(self):
+        self.client.login(username='emp_export1', password='123')
+        response = self.client.get(reverse('hr:leave_timeline'), {'department': self.dept1.pk})
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], self.leave1.id)
+
+    def test_export_anonymous_redirected(self):
+        response = self.client.get(reverse('hr:leave_export_excel'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_export_returns_excel_headers(self):
+        self.client.login(username='emp_export1', password='123')
+        response = self.client.get(reverse('hr:leave_export_excel'))
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', response.headers.get('Content-Type', ''))
+        self.assertIn('attachment; filename="leaves_export.xlsx"', response.headers.get('Content-Disposition', ''))
+
+    def test_export_excel_valid_content(self):
+        self.client.login(username='emp_export1', password='123')
+        response = self.client.get(reverse('hr:leave_export_excel'))
+        
+        wb = openpyxl.load_workbook(filename=io.BytesIO(response.content))
+        ws = wb.active
+        
+        self.assertEqual(ws.title, "Отпуска")
+        
+        headers = [cell.value for cell in ws[1]]
+        self.assertIn("ФИО сотрудника", headers)
+        self.assertIn("Тип отпуска", headers)
+        self.assertIn("Статус", headers)
+        
+        self.assertEqual(ws.max_row, 3)
+
+    def test_export_filters_by_date(self):
+        self.client.login(username='emp_export1', password='123')
+        response = self.client.get(reverse('hr:leave_export_excel'), {'start_date': '2026-09-01'})
+        wb = openpyxl.load_workbook(filename=io.BytesIO(response.content))
+        ws = wb.active
+        self.assertEqual(ws.max_row, 2)

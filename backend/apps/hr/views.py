@@ -1,16 +1,17 @@
+import openpyxl
 from django.shortcuts import redirect, render, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.db.models import Count 
 from django.db import transaction
-
+from django.utils.dateparse import parse_date
 
 from project.utils import get_or_none, get_or_error
 from project.paginator import CustomPaginator
 
-from account.role_permissions import need_permission, PermissionEnums
+from account.role_permissions import need_permission, PermissionEnums, RolePermissions
 from account.models import Employee
 from account.forms import EmployeeForm
 
@@ -19,8 +20,6 @@ from .models import CalendarItem
 from .serializers import CalendarItemSerializer
 from .enums import CalendarItemType, LeaveStatusEnum
 from .models import Company, Position, LeaveRequest
-
-
 
 
 @need_permission(PermissionEnums.HR)
@@ -200,6 +199,14 @@ def _is_manager(user):
     employee = getattr(user, 'employee_info', None)
     if employee and employee.head:
         return True
+        
+    role = user.role
+    if hasattr(role, 'value'):
+        role = role.value
+        
+    if RolePermissions.checkPermission(role, PermissionEnums.HR):
+        return True
+        
     return False
 
 @login_required
@@ -366,3 +373,92 @@ def ajax_calculate_days(request):
         return JsonResponse({'days': 0, 'error': 'Некорректный формат даты'})
     except Exception as e:
         return JsonResponse({'days': 0, 'error': str(e)})
+
+@login_required
+def leave_timeline(request):
+    queryset = LeaveRequest.objects.all().select_related(
+        'employee__user', 'employee__department__company', 'leave_type'
+    )
+
+    company_id = request.GET.get('company')
+    department_id = request.GET.get('department')
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+
+    if company_id:
+        queryset = queryset.filter(employee__department__company_id=company_id)
+    if department_id:
+        queryset = queryset.filter(employee__department_id=department_id)
+    if start_date_str:
+        queryset = queryset.filter(end_date__gte=parse_date(start_date_str))
+    if end_date_str:
+        queryset = queryset.filter(start_date__lte=parse_date(end_date_str))
+
+    data = []
+    for leave in queryset:
+        user = leave.employee.user
+        name = f"{user.first_name or ''} {user.last_name or ''}".strip() or user.username
+        
+        data.append({
+            'id': leave.id,
+            'content': f"{name} ({leave.leave_type.name})",
+            'start': leave.start_date.isoformat(),
+            'end': leave.end_date.isoformat(),
+            'group': leave.employee.department.name if leave.employee.department else 'Без отдела',
+            'status': leave.status,
+            'className': f"leave-status-{leave.status}" 
+        })
+
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+def leave_export_excel(request):
+    queryset = LeaveRequest.objects.all().select_related(
+        'employee__user', 'employee__department', 'leave_type'
+    ).order_by('-start_date')
+
+    company_id = request.GET.get('company')
+    department_id = request.GET.get('department')
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+
+    if company_id:
+        queryset = queryset.filter(employee__department__company_id=company_id)
+    if department_id:
+        queryset = queryset.filter(employee__department_id=department_id)
+    if start_date_str:
+        queryset = queryset.filter(end_date__gte=parse_date(start_date_str))
+    if end_date_str:
+        queryset = queryset.filter(start_date__lte=parse_date(end_date_str))
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Отпуска"
+
+    headers = ["ФИО сотрудника", "Отдел", "Тип отпуска", "Начало", "Конец", "Дней", "Статус"]
+    ws.append(headers)
+
+    for leave in queryset:
+        user = leave.employee.user
+        name = f"{user.first_name or ''} {user.last_name or ''}".strip() or user.username
+        dept = leave.employee.department.name if leave.employee.department else "-"
+        status_display = dict(LeaveStatusEnum.choices).get(leave.status, leave.status)
+
+        ws.append([
+            name,
+            dept,
+            leave.leave_type.name,
+            leave.start_date.strftime("%d.%m.%Y"),
+            leave.end_date.strftime("%d.%m.%Y"),
+            leave.working_days_count,
+            status_display
+        ])
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="leaves_export.xlsx"'
+    
+    wb.save(response)
+    return response
