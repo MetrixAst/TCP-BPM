@@ -1,0 +1,90 @@
+{% load static %}
+<header class="bpm-topbar" id="bpmTopbar">
+  <button class="bpm-topbar__toggle" id="bpmSidebarToggle" type="button"
+          aria-label="Открыть/закрыть меню" aria-controls="bpmSidebar" aria-expanded="true">
+    <i class="bi bi-layout-sidebar"></i>
+  </button>
+  <div class="bpm-topbar__search">
+    <i class="bi bi-search bpm-topbar__search-icon"></i>
+    <input type="search" id="bpmSearch" class="bpm-topbar__search-input"
+           placeholder="Поиск..." autocomplete="off" />
+    <div class="bpm-topbar__search-results" id="bpmSearchResults" hidden></div>
+  </div>
+  <div class="bpm-topbar__spacer"></div>
+  <div class="bpm-topbar__right">
+    {% if current_object %}
+      <div class="dropdown">
+        <button class="bpm-topbar__pill bpm-topbar__pill--object dropdown-toggle" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false">
+          <span>{{ current_object.name }}</span>
+          <i class="bi bi-chevron-down"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          {% for obj in user_objects %}
+            <li>
+              <a class="dropdown-item {% if obj.pk == current_object.pk %}active{% endif %}"
+                 href="{% url 'account:switch_object' obj.pk %}">{{ obj.name }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+    <div class="dropdown d-none d-md-block">
+      <button class="bpm-topbar__pill bpm-topbar__pill--tz dropdown-toggle" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false">
+        <span>{{ current_tz|default:"Алматы GMT +5" }}</span>
+        <i class="bi bi-chevron-down"></i>
+      </button>
+      {% if available_tz %}
+        <ul class="dropdown-menu dropdown-menu-end">
+          {% for tz in available_tz %}
+            <li>
+              <a class="dropdown-item {% if tz.label == current_tz %}active{% endif %}"
+                 href="?tz={{ tz.value }}">{{ tz.label }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+    <span class="bpm-topbar__globe d-none d-md-flex">
+      <i class="bi bi-globe2"></i>
+    </span>
+    <div class="bpm-topbar__lang d-none d-md-flex">
+      <a href="?lang=ru" class="bpm-topbar__lang-btn {% if LANGUAGE_CODE == 'ru' or not LANGUAGE_CODE %}is-active{% endif %}">Рус</a>
+      <a href="?lang=kk" class="bpm-topbar__lang-btn {% if LANGUAGE_CODE == 'kk' %}is-active{% endif %}">Қаз</a>
+      <a href="?lang=en" class="bpm-topbar__lang-btn {% if LANGUAGE_CODE == 'en' %}is-active{% endif %}">Eng</a>
+    </div>
+    <div class="dropdown">
+      <button class="bpm-topbar__icon-btn" type="button"
+              data-bs-toggle="dropdown" data-bs-auto-close="outside"
+              aria-expanded="false" aria-label="Уведомления">
+        <i class="bi bi-bell"></i>
+        {% if indicators.indicators %}
+          <span class="bpm-topbar__notif-dot"></span>
+        {% endif %}
+      </button>
+      <div class="dropdown-menu dropdown-menu-end bpm-notif">
+        <div class="bpm-notif__header">
+          <span>Уведомления</span>
+          {% if notifications %}<span class="bpm-notif__count">{{ notifications|length }}</span>{% endif %}
+        </div>
+        <div class="bpm-notif__list">
+          {% for n in notifications %}
+            <a href="{{ n.url }}" class="bpm-notif__item">
+              <div class="bpm-notif__title">{{ n.title }}</div>
+              {% if n.text %}<div class="bpm-notif__text">{{ n.text }}</div>{% endif %}
+            </a>
+          {% empty %}
+            <div class="bpm-notif__empty">
+              <i class="bi bi-bell-slash"></i>
+              <span>Список уведомлений пуст</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <a href="{% url 'account:logout' %}" class="bpm-topbar__icon-btn" title="Выйти">
+      <i class="bi bi-box-arrow-right"></i>
+    </a>
+  </div>
+</header>
