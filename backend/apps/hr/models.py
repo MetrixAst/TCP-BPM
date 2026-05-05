@@ -1,7 +1,10 @@
 from django.db import models
+from django.core.exceptions import ValidationError
+from django.utils import timezone
 from account.models import UserAccount, Employee
 from datetime import timedelta
-from .enums import CalendarItemType, DayTypeEnum, LeaveStatusEnum
+from .enums import CalendarItemType, DayTypeEnum, LeaveStatusEnum, CheckInEnum
+
 
 
 class CalendarItem(models.Model):
@@ -242,3 +245,77 @@ class EmploymentContract(models.Model):
     class Meta:
         verbose_name = "Трудовой договор (Enbek)"
         verbose_name_plural = "Трудовые договоры (Enbek)"
+
+class AttendanceRecord(models.Model):
+    employee = models.ForeignKey(
+        'account.Employee', 
+        on_delete=models.CASCADE, 
+        related_name='attendance_records',
+        verbose_name="Сотрудник"
+    )
+    event_type = models.CharField(
+        "Тип события", 
+        max_length=20, 
+        choices=CheckInEnum.choices
+    )
+    timestamp = models.DateTimeField("Время", default=timezone.now)
+    photo = models.ImageField(
+        "Фотофиксация", 
+        upload_to='attendance/%Y/%m/%d/', 
+        null=True, 
+        blank=True
+    )
+    ip_address = models.GenericIPAddressField("IP адрес", null=True, blank=True)
+    workstation = models.CharField("Рабочая станция", max_length=255, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Запись посещаемости"
+        verbose_name_plural = "Записи посещаемости"
+        ordering = ['-timestamp']
+
+    def clean(self):
+        today = self.timestamp.date() if self.timestamp else timezone.now().date()
+        exists = AttendanceRecord.objects.filter(
+            employee=self.employee,
+            event_type=self.event_type,
+            timestamp__date=today
+        ).exclude(pk=self.pk).exists()
+
+        if exists:
+            raise ValidationError(
+                f"Событие '{self.get_event_type_display()}' уже зафиксировано на сегодня ({today})."
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def get_daily_summary(employee, target_date):
+        records = AttendanceRecord.objects.filter(
+            employee=employee, 
+            timestamp__date=target_date
+        ).order_by('timestamp')
+
+        events = {r.event_type: r.timestamp for r in records}
+        
+        result = {
+            'total_work_time': timedelta(0),
+            'is_complete': False,
+            'details': events
+        }
+
+        if CheckInEnum.DAY_START in events and CheckInEnum.DAY_END in events:
+            total_duration = events[CheckInEnum.DAY_END] - events[CheckInEnum.DAY_START]
+            
+            lunch_duration = timedelta(0)
+            if CheckInEnum.LUNCH_START in events and CheckInEnum.LUNCH_END in events:
+                lunch_duration = events[CheckInEnum.LUNCH_END] - events[CheckInEnum.LUNCH_START]
+            
+            result['total_work_time'] = total_duration - lunch_duration
+            result['is_complete'] = True
+            
+        return result
+
+    def __str__(self):
+        return f"{self.employee} - {self.event_type} ({self.timestamp.strftime('%d.%m %H:%M')})"

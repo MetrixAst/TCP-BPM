@@ -1,17 +1,19 @@
 import io
 import openpyxl
 from django.test import TestCase, Client, override_settings
+from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.http import Http404
 from django.db import IntegrityError
 from django.db.models import Q
-from datetime import date
+from django.utils import timezone
+from datetime import date, timedelta, datetime
 import requests
 from unittest.mock import Mock, patch
 
 from .models import (
     LeaveRequest, LeaveType, WorkCalendar, Company, 
-    Position, Vacation, SickLeave, EmploymentContract
+    Position, Vacation, SickLeave, EmploymentContract, AttendanceRecord
 )
 from .enums import LeaveStatusEnum, DayTypeEnum
 from account.role_permissions import RoleEnums, MenuItem
@@ -1643,4 +1645,117 @@ class EnbekViewsTestCase(TestCase):
         self.assertIn('Отпуска (Enbek)', submenu_titles)
         self.assertIn('Больничные (Enbek)', submenu_titles)
         self.assertIn('Договоры (Enbek)', submenu_titles)
+
+
+class AttendanceRecordTestCase(TestCase):
+    def setUp(self):
+        self.company = Company.objects.create(name='Test Tech Company', bin_number='987654321012')
+        self.department = Department.objects.create(name='Data Science', company=self.company)
+        
+        self.user = UserAccount.objects.create_user(
+            username='darya_ds', 
+            password='testpassword123', 
+            role='staff'
+        )
+        self.employee = Employee.objects.create(
+            user=self.user, 
+            department=self.department, 
+            iin='123456789012', 
+            status='active'
+        )
+
+    def test_create_attendance_record_success(self):
+        record = AttendanceRecord.objects.create(
+            employee=self.employee,
+            event_type='day_start',  
+            timestamp=timezone.now()
+        )
+        self.assertIsNotNone(record.id)
+        self.assertEqual(record.employee, self.employee)
+        self.assertEqual(record.event_type, 'day_start')
+
+    def test_duplicate_event_same_day_raises_validation_error(self):
+        today = timezone.now()
+        
+        AttendanceRecord.objects.create(
+            employee=self.employee,
+            event_type='day_start',
+            timestamp=today
+        )
+        
+        duplicate_record = AttendanceRecord(
+            employee=self.employee,
+            event_type='day_start',
+            timestamp=today + timedelta(hours=1)
+        )
+        
+        with self.assertRaises(ValidationError):
+            duplicate_record.clean()
+
+    def test_get_daily_summary_complete_day_with_lunch(self):
+        target_date = date(2026, 5, 5)
+        base_time = timezone.make_aware(datetime(2026, 5, 5, 9, 0, 0)) 
+        
+        AttendanceRecord.objects.create(employee=self.employee, event_type='day_start', timestamp=base_time)
+        AttendanceRecord.objects.create(employee=self.employee, event_type='lunch_start', timestamp=base_time + timedelta(hours=4))
+        AttendanceRecord.objects.create(employee=self.employee, event_type='lunch_end', timestamp=base_time + timedelta(hours=5))
+        AttendanceRecord.objects.create(employee=self.employee, event_type='day_end', timestamp=base_time + timedelta(hours=9))
+
+        summary = AttendanceRecord.get_daily_summary(self.employee, target_date)
+        
+        self.assertTrue(summary['is_complete'])
+        self.assertEqual(summary['total_work_time'], timedelta(hours=8))
+
+    def test_get_daily_summary_incomplete_day(self):
+        target_date = date(2026, 5, 5)
+        base_time = timezone.make_aware(datetime(2026, 5, 5, 9, 0, 0))
+        
+        AttendanceRecord.objects.create(employee=self.employee, event_type='day_start', timestamp=base_time)
+        
+        summary = AttendanceRecord.get_daily_summary(self.employee, target_date)
+        self.assertFalse(summary['is_complete'])
+        self.assertEqual(summary['total_work_time'], timedelta(0))
+
+    def test_get_daily_summary_without_lunch(self):
+        target_date = date(2026, 5, 6)
+        base_time = timezone.make_aware(datetime(2026, 5, 6, 10, 0, 0))
+        
+        AttendanceRecord.objects.create(employee=self.employee, event_type='day_start', timestamp=base_time)
+
+        AttendanceRecord.objects.create(employee=self.employee, event_type='day_end', timestamp=base_time + timedelta(hours=6))
+
+        summary = AttendanceRecord.get_daily_summary(self.employee, target_date)
+        
+        self.assertTrue(summary['is_complete'])
+        self.assertEqual(summary['total_work_time'], timedelta(hours=6))
+
+    def test_allow_same_event_type_on_different_days(self):
+        base_time_day1 = timezone.make_aware(datetime(2026, 5, 5, 9, 0, 0))
+        base_time_day2 = timezone.make_aware(datetime(2026, 5, 6, 9, 0, 0))
+
+        record1 = AttendanceRecord.objects.create(employee=self.employee, event_type='day_start', timestamp=base_time_day1)
+        record2 = AttendanceRecord.objects.create(employee=self.employee, event_type='day_start', timestamp=base_time_day2)
+
+        self.assertEqual(AttendanceRecord.objects.count(), 2)
+
+    def test_allow_same_event_same_day_for_different_employees(self):
+        user2 = UserAccount.objects.create_user(username='ivan_ds', password='testpassword123', role='staff')
+        employee2 = Employee.objects.create(user=user2, department=self.department, iin='987654321098', status='active')
+
+        today = timezone.now()
+        AttendanceRecord.objects.create(employee=self.employee, event_type='day_start', timestamp=today)
+        AttendanceRecord.objects.create(employee=employee2, event_type='day_start', timestamp=today)
+
+        self.assertEqual(AttendanceRecord.objects.count(), 2)
+
+    def test_model_str_representation(self):
+        timestamp = timezone.make_aware(datetime(2026, 5, 5, 9, 15, 0))
+        record = AttendanceRecord.objects.create(
+            employee=self.employee,
+            event_type='day_start',
+            timestamp=timestamp
+        )
+        
+        expected_str = f"{self.employee} - day_start (05.05 09:15)"
+        self.assertEqual(str(record), expected_str)
 

@@ -34,3 +34,9 @@ class LeaveStatusEnum(models.TextChoices):
     APPROVED = 'approved', 'Одобрено'
     REJECTED = 'rejected', 'Отклонено'
     COMPLETED = 'completed', 'Завершено'
+
+class CheckInEnum(models.TextChoices):
+    DAY_START = 'day_start', 'Приход (начало дня)'
+    LUNCH_START = 'lunch_start', 'Начало обеда'
+    LUNCH_END = 'lunch_end', 'Конец обеда'
+    DAY_END = 'day_end', 'Уход (конец дня)'
