@@ -1,0 +1,105 @@
+{% load static %}
+
+<form class="filter-bar"
+      method="{{ method|default:'get' }}"
+      action="{{ action|default:'' }}">
+
+  <div class="filter-bar__filters">
+
+    {% for filter in filters %}
+      <div class="filter-bar__group">
+        <label for="filter-{{ filter.name }}" class="filter-bar__label">
+          {{ filter.label }}
+        </label>
+
+        {% if filter.type == 'select' %}
+          <select name="{{ filter.name }}"
+                  id="filter-{{ filter.name }}"
+                  class="form-select filter-bar__input">
+            {% for opt in filter.options %}
+              <option value="{{ opt.value }}"
+                      {% if opt.value|stringformat:'s' == filter.value|stringformat:'s' %}selected{% endif %}>
+                {{ opt.label }}
+              </option>
+            {% endfor %}
+          </select>
+
+        {% elif filter.type == 'select2' %}
+          <select name="{{ filter.name }}"
+                  id="filter-{{ filter.name }}"
+                  class="form-select filter-bar__input filter-bar__select2"
+                  data-placeholder="{{ filter.placeholder|default:'Все' }}"
+                  {% if filter.multiple %}multiple{% endif %}>
+            {% if not filter.multiple %}<option value="">{{ filter.placeholder|default:'Все' }}</option>{% endif %}
+            {% for opt in filter.options %}
+              <option value="{{ opt.value }}"
+                      {% if opt.value|stringformat:'s' == filter.value|stringformat:'s' %}selected{% endif %}>
+                {{ opt.label }}
+              </option>
+            {% endfor %}
+          </select>
+
+        {% elif filter.type == 'date' %}
+          <input type="date"
+                 name="{{ filter.name }}"
+                 id="filter-{{ filter.name }}"
+                 value="{{ filter.value }}"
+                 class="form-control filter-bar__input">
+
+        {% elif filter.type == 'daterange' %}
+          <div class="filter-bar__daterange">
+            <input type="date"
+                   name="{{ filter.name }}_from"
+                   value="{{ filter.value_from }}"
+                   class="form-control filter-bar__input">
+            <span class="filter-bar__daterange-sep">—</span>
+            <input type="date"
+                   name="{{ filter.name }}_to"
+                   value="{{ filter.value_to }}"
+                   class="form-control filter-bar__input">
+          </div>
+
+        {% else %}{# text #}
+          <input type="text"
+                 name="{{ filter.name }}"
+                 id="filter-{{ filter.name }}"
+                 value="{{ filter.value }}"
+                 placeholder="{{ filter.placeholder }}"
+                 class="form-control filter-bar__input">
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    <div class="filter-bar__actions">
+      <button type="submit" class="btn btn-primary filter-bar__apply">
+        {{ submit_label|default:"Применить" }}
+      </button>
+    </div>
+
+  </div>
+
+  {% if export_url %}
+    <div class="filter-bar__export">
+      <span class="filter-bar__export-label">Экспортировать</span>
+      <a href="{{ export_url }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-file-earmark-excel"></i>
+        Excel
+      </a>
+    </div>
+  {% endif %}
+
+</form>
+
+<script>
+  (function() {
+    if (typeof jQuery === 'undefined' || typeof jQuery.fn.select2 === 'undefined') return;
+    jQuery('.filter-bar__select2').each(function() {
+      jQuery(this).select2({
+        theme: 'bootstrap4',
+        width: '100%',
+        placeholder: jQuery(this).data('placeholder'),
+        allowClear: !this.multiple,
+      });
+    });
+  })();
+</script>

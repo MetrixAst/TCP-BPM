@@ -1,0 +1,92 @@
+{% load static %}
+
+{% if status == 'paid' %}{% with class_name='badge--success' default_text='Оплачено' %}
+  <span class="badge {{ class_name }} {% if dot %}badge--dot{% endif %} {% if size %}badge--{{ size }}{% endif %}">
+    {% if icon %}<i class="bi bi-{{ icon }}"></i>{% endif %}
+    {{ text|default:default_text }}
+  </span>
+{% endwith %}
+
+{% elif status == 'overdue' %}{% with class_name='badge--danger' default_text='Просрочено' %}
+  <span class="badge {{ class_name }} {% if dot %}badge--dot{% endif %} {% if size %}badge--{{ size }}{% endif %}">
+    {% if icon %}<i class="bi bi-{{ icon }}"></i>{% endif %}
+    {{ text|default:default_text }}
+  </span>
+{% endwith %}
+
+{% elif status == 'unpaid' %}{% with class_name='badge--warning' default_text='Не оплачено' %}
+  <span class="badge {{ class_name }} {% if dot %}badge--dot{% endif %} {% if size %}badge--{{ size }}{% endif %}">
+    {% if icon %}<i class="bi bi-{{ icon }}"></i>{% endif %}
+    {{ text|default:default_text }}
+  </span>
+{% endwith %}
+
+{% elif status == 'in_work' %}{% with class_name='badge--primary' default_text='В работе' %}
+  <span class="badge {{ class_name }} {% if dot %}badge--dot{% endif %} {% if size %}badge--{{ size }}{% endif %}">
+    {% if icon %}<i class="bi bi-{{ icon }}"></i>{% endif %}
+    {{ text|default:default_text }}
+  </span>
+{% endwith %}
+
+{% elif status == 'done' %}{% with class_name='badge--done' default_text='Завершена' %}
+  <span class="badge {{ class_name }} {% if dot %}badge--dot{% endif %} {% if size %}badge--{{ size }}{% endif %}">
+    {% if icon %}<i class="bi bi-{{ icon }}"></i>{% endif %}
+    {{ text|default:default_text }}
+  </span>
+{% endwith %}
+
+{% elif status == 'paused' %}{% with class_name='badge--paused' default_text='Приостановлена' %}
+  <span class="badge {{ class_name }} {% if dot %}badge--dot{% endif %} {% if size %}badge--{{ size }}{% endif %}">
+    {% if icon %}<i class="bi bi-{{ icon }}"></i>{% endif %}
+    {{ text|default:default_text }}
+  </span>
+{% endwith %}
+
+{% elif status == 'open' %}{% with class_name='badge--primary' default_text='Открыта' %}
+  <span class="badge {{ class_name }} {% if dot %}badge--dot{% endif %} {% if size %}badge--{{ size }}{% endif %}">
+    {% if icon %}<i class="bi bi-{{ icon }}"></i>{% endif %}
+    {{ text|default:default_text }}
+  </span>
+{% endwith %}
+
+{% elif status == 'rejected' %}{% with class_name='badge--danger' default_text='Отклонена' %}
+  <span class="badge {{ class_name }} {% if dot %}badge--dot{% endif %} {% if size %}badge--{{ size }}{% endif %}">
+    {% if icon %}<i class="bi bi-{{ icon }}"></i>{% endif %}
+    {{ text|default:default_text }}
+  </span>
+{% endwith %}
+
+{% elif status == 'pending' %}{% with class_name='badge--warning' default_text='На согласовании' %}
+  <span class="badge {{ class_name }} {% if dot %}badge--dot{% endif %} {% if size %}badge--{{ size }}{% endif %}">
+    {% if icon %}<i class="bi bi-{{ icon }}"></i>{% endif %}
+    {{ text|default:default_text }}
+  </span>
+{% endwith %}
+
+{% elif status == 'high' or status == 'critical' %}{% with class_name='badge--high' default_text='Высокий' %}
+  <span class="badge {{ class_name }} {% if dot %}badge--dot{% endif %} {% if size %}badge--{{ size }}{% endif %}">
+    {% if icon %}<i class="bi bi-{{ icon }}"></i>{% endif %}
+    {{ text|default:default_text }}
+  </span>
+{% endwith %}
+
+{% elif status == 'medium' %}{% with class_name='badge--medium' default_text='Средний' %}
+  <span class="badge {{ class_name }} {% if dot %}badge--dot{% endif %} {% if size %}badge--{{ size }}{% endif %}">
+    {% if icon %}<i class="bi bi-{{ icon }}"></i>{% endif %}
+    {{ text|default:default_text }}
+  </span>
+{% endwith %}
+
+{% elif status == 'low' %}{% with class_name='badge--low' default_text='Низкий' %}
+  <span class="badge {{ class_name }} {% if dot %}badge--dot{% endif %} {% if size %}badge--{{ size }}{% endif %}">
+    {% if icon %}<i class="bi bi-{{ icon }}"></i>{% endif %}
+    {{ text|default:default_text }}
+  </span>
+{% endwith %}
+
+{% else %}
+  <span class="badge badge--neutral {% if dot %}badge--dot{% endif %} {% if size %}badge--{{ size }}{% endif %}">
+    {% if icon %}<i class="bi bi-{{ icon }}"></i>{% endif %}
+    {{ text|default:status }}
+  </span>
+{% endif %}
