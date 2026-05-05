@@ -1,83 +1,271 @@
 {% extends 'site/base.html' %}
-{% load static %}
-{% load site_tags %}
+{% load static site_tags %}
+
+{% block title %}{% if task.pk %}Редактирование задачи{% else %}Новая задача{% endif %} — metriX BPM{% endblock %}
+
+{% block body_classes %}task-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'7' }}" />
+
+<style>
+  body.task-edit-body .bpm-sidebar,
+  body.task-edit-body #bpmSidebar,
+  body.task-edit-body .bpm-topbar,
+  body.task-edit-body #bpmTopbar {
+    display: none !important;
+  }
+
+  body.task-edit-body .bpm-main,
+  body.task-edit-body #bpmMain {
+    margin-left: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    padding: 0 !important;
+  }
+
+  body.task-edit-body .bpm-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100vw !important;
+    min-height: 100vh !important;
+    background: transparent !important;
+  }
+
+  body.task-edit-body .task-edit-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 99999 !important;
+    width: 100vw !important;
+    min-height: 100vh !important;
+    padding: 48px 24px !important;
+    background: rgba(0, 0, 0, 0.35) !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    overflow-y: auto !important;
+  }
+
+  body.task-edit-body .task-edit-modal {
+    width: 760px !important;
+    max-width: 760px !important;
+    background: #fff !important;
+    border-radius: 16px !important;
+    border: none !important;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18) !important;
+    padding: 20px !important;
+  }
+
+  body.task-edit-body .task-edit-modal__header {
+    padding: 0 !important;
+    margin-bottom: 22px !important;
+  }
+
+  body.task-edit-body .task-edit-modal__title {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #25233f !important;
+  }
+
+  body.task-edit-body .task-edit-modal__close {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    background: #f6f4fa !important;
+    color: #25233f !important;
+  }
+
+  body.task-edit-body .task-edit-modal__body {
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px !important;
+  }
+
+  body.task-edit-body .task-edit-grid--2 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px 16px !important;
+  }
+
+  body.task-edit-body .task-edit-route {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px !important;
+  }
+
+  body.task-edit-body .task-edit-control,
+  body.task-edit-body .task-edit-select,
+  body.task-edit-body #taskEditForm input,
+  body.task-edit-body #taskEditForm select,
+  body.task-edit-body #taskEditForm textarea,
+  body.task-edit-body #taskEditForm .select2-selection {
+    height: 32px !important;
+    min-height: 32px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: #f6f4fa !important;
+    font-size: 13px !important;
+    box-shadow: none !important;
+  }
+
+  body.task-edit-body #taskEditForm textarea {
+    height: 92px !important;
+    border-radius: 14px !important;
+    padding: 12px 16px !important;
+  }
+
+  body.task-edit-body .task-edit-plus {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    background: #f6f4fa !important;
+  }
+
+  body.task-edit-body .task-edit-dropzone {
+    height: 250px !important;
+    border: 1px dashed #d8d5e6 !important;
+    border-radius: 16px !important;
+    background: #fff !important;
+  }
+
+  body.task-edit-body .task-edit-modal__footer {
+    padding: 14px 0 0 !important;
+    margin-top: 18px !important;
+    border-top: 1px solid #f0eef6 !important;
+  }
+
+  body.task-edit-body .task-edit-modal__btn {
+    height: 32px !important;
+    padding: 0 16px !important;
+    border-radius: 999px !important;
+    font-size: 13px !important;
+  }
+
+  body.task-edit-body .task-edit-modal__btn--save {
+    background: #3664dc !important;
+    color: #fff !important;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-center">
-        <div class="col-xl-6 mb-5">
-            <div class="mx-auto">
-                <form method="POST">
-                    {% check_form form %}
-                    {% csrf_token %}
-                    <div class="card mb-5">
-                        <div class="card-body">
 
-                            <h1 class="mb-3 mt-1 pb-0 display-4">Новая задача</h1>
-                            <div class="row g-3">
-                                <div class="col-md-9">
-                                    <label class="top-label">
-                                        {{ form.title }}
-                                        <span>ЗАГОЛОВОК</span>
-                                    </label>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="top-label">
-                                        {{ form.deadline }}
-                                        <span>СРОК</span>
-                                    </label>
-                                </div>
-                            </div>
+<div class="task-edit-overlay">
+  <div class="task-edit-modal">
 
-                            <div class="row g-3 mt-3">
-                                <div class="col">
-                                    <div class="top-label">
-                                        {{ form.text }}
-                                        <span>ТЕКСТ</span>
-                                    </div>
-                                </div>
-                            </div>
+    <div class="task-edit-modal__header">
+      <h1 class="task-edit-modal__title">
+        {% if task.pk %}Редактирование задачи{% else %}Новая задача{% endif %}
+      </h1>
 
-                            <div class="row g-3 mt-3">
-                                <div class="col-md-6">
-                                    <div class="w-100">
-                                        <label class="form-label">Исполнитель</label>
-                                        {{ form.executor }}
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="w-100">
-                                        <label class="form-label">Приоритет</label>
-                                        {{ form.priority }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <div class="w-100">
-                                        <label class="form-label">Соисполнители</label>
-                                        {{ form.co_executors }}
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="w-100">
-                                        <label class="form-label">Наблюдатели</label>
-                                        {{ form.observers }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-end mt-3">
-                                <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
-                                    <span>Сохранить</span>
-                                    <i data-acorn-icon="chevron-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-        
+      <a href="{% url 'tasks:list' %}" class="task-edit-modal__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
     </div>
+
+    <form method="POST" enctype="multipart/form-data" class="task-edit-form" id="taskEditForm">
+      {% csrf_token %}
+
+      <div class="task-edit-modal__body">
+
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Данные задачи</h2>
+
+          <div class="task-edit-grid task-edit-grid--2">
+            <div class="task-edit-field {% if form.title.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Название<span>*</span></label>
+              {{ form.title }}
+              {% if form.title.errors %}<div class="task-edit-field__error">{{ form.title.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="task-edit-field {% if form.deadline.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Дедлайн<span>*</span></label>
+              {{ form.deadline }}
+              {% if form.deadline.errors %}<div class="task-edit-field__error">{{ form.deadline.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Тип задачи<span>*</span></label>
+              <select class="task-edit-select" name="task_type">
+                <option value="">Тип задачи</option>
+                <option value="assignment">Поручение</option>
+                <option value="approval">Согласование</option>
+                <option value="document">Документ</option>
+              </select>
+            </div>
+
+            <div class="task-edit-field {% if form.priority.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Приоритет</label>
+              {{ form.priority }}
+              {% if form.priority.errors %}<div class="task-edit-field__error">{{ form.priority.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="task-edit-field {% if form.text.errors %}is-invalid{% endif %}">
+            <label class="task-edit-field__label">Описание</label>
+            {{ form.text }}
+            {% if form.text.errors %}<div class="task-edit-field__error">{{ form.text.errors.0 }}</div>{% endif %}
+          </div>
+        </section>
+
+        <section class="task-edit-section">
+            <h2 class="task-edit-section__title">Маршрут</h2>
+          
+            <div class="task-edit-route task-edit-route--single">
+          
+              <div class="task-edit-field {% if form.executor.errors %}is-invalid{% endif %}">
+                <label class="task-edit-field__label">Исполнитель<span>*</span></label>
+                {{ form.executor }}
+                {% if form.executor.errors %}
+                  <div class="task-edit-field__error">{{ form.executor.errors.0 }}</div>
+                {% endif %}
+              </div>
+          
+              <div class="task-edit-field {% if form.co_executors.errors %}is-invalid{% endif %}">
+                <label class="task-edit-field__label">Соисполнители</label>
+                {{ form.co_executors }}
+                {% if form.co_executors.errors %}
+                  <div class="task-edit-field__error">{{ form.co_executors.errors.0 }}</div>
+                {% endif %}
+              </div>
+              
+              <div class="task-edit-field {% if form.observers.errors %}is-invalid{% endif %}">
+                <label class="task-edit-field__label">Наблюдатели</label>
+                {{ form.observers }}
+                {% if form.observers.errors %}
+                  <div class="task-edit-field__error">{{ form.observers.errors.0 }}</div>
+                {% endif %}
+              </div>
+          
+            </div>
+          </section>
+
+      </div>
+
+      <div class="task-edit-modal__footer">
+        <a href="{% url 'tasks:list' %}" class="task-edit-modal__btn task-edit-modal__btn--cancel">
+          Отменить
+        </a>
+
+        <button type="submit" class="task-edit-modal__btn task-edit-modal__btn--save">
+          Сохранить
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/tasks.js' %}?v={{ static_version|default:'5' }}"></script>
+<script>
+    document.body.classList.add('task-edit-body');
+</script>
 {% endblock %}
