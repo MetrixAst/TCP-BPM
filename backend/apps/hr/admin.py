@@ -2,8 +2,9 @@ from django.contrib import admin
 from .models import (
     Company, Position, WorkCalendar, 
     Vacation, SickLeave, EmploymentContract,
-    LeaveRequest, LeaveType
+    LeaveRequest, LeaveType, AttendanceRecord
 )
+from django.utils.safestring import mark_safe
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
@@ -75,3 +76,17 @@ class SickLeaveAdmin(admin.ModelAdmin):
 @admin.register(EmploymentContract)
 class EmploymentContractAdmin(admin.ModelAdmin):
     list_display = ('employee', 'number', 'date', 'status', 'enbek_id')
+
+@admin.register(AttendanceRecord)
+class AttendanceRecordAdmin(admin.ModelAdmin):
+    list_display = ('employee', 'event_type', 'timestamp', 'ip_address', 'get_photo_preview')
+    list_filter = ('event_type', 'timestamp', 'employee')
+    search_fields = ('employee__user__last_name', 'ip_address', 'workstation')
+    readonly_fields = ('get_photo_preview',)
+
+    def get_photo_preview(self, obj):
+        if obj.photo:
+            return mark_safe(f'<img src="{obj.photo.url}" width="100" />')
+        return "Нет фото"
+    
+    get_photo_preview.short_description = "Превью фото"
