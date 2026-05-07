@@ -18,18 +18,10 @@
   <div class="task-edit-card">
 
     <div class="task-edit-card__header">
-      <div>
-        <div class="task-edit-card__breadcrumb">
-          <a href="{% url 'tasks:list' %}">Менеджер задач</a>
-          <span>/</span>
-          <span>{% if task.pk %}Редактирование задачи{% else %}Новая задача{% endif %}</span>
-        </div>
-
-        <h1 class="task-edit-card__title">
-          {% if task.pk %}Редактирование задачи{% else %}Новая задача{% endif %}
-        </h1>
-      </div>
-
+      <h1 class="task-edit-card__title">
+        {% if task.pk %}Редактирование задачи{% else %}Новая задача{% endif %}
+      </h1>
+    
       <a href="{% url 'tasks:list' %}" class="task-edit-card__close" aria-label="Закрыть">
         <i class="bi bi-x"></i>
       </a>

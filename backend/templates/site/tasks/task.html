@@ -6,7 +6,7 @@
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
-<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'3' }}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999" />
 {% endblock %}
 
 {% block content %}
@@ -27,33 +27,55 @@
         <span class="task-card__crumb task-card__crumb--current">Задача</span>
 
         <div class="task-card__actions">
-          {% if user_role != 'observer' %}
-            <button type="button" class="task-card__icon-btn" title="Срочная">
-              <i class="bi bi-fire"></i>
-            </button>
-          {% endif %}
 
-          <button type="button" class="task-card__icon-btn" title="Печать" onclick="window.print()">
-            <i class="bi bi-printer"></i>
-          </button>
-
-          <button type="button" class="task-card__icon-btn task-card__icon-btn--star" title="В избранное">
-            <i class="bi bi-star"></i>
-          </button>
-
-          {% if user_role == 'author' %}
+          {% if user_role == 'author' and task.status == 'revision' %}
             <a href="{% url 'tasks:edit' task.id %}" class="task-card__icon-btn" title="Редактировать">
               <i class="bi bi-pencil"></i>
             </a>
-
+        
             <button type="button"
                     class="task-card__icon-btn task-card__icon-btn--danger"
                     title="Удалить"
-                    data-action="cancel"
+                    data-task-delete
                     data-url="{% url 'tasks:task_action' task.id 'cancel' %}">
               <i class="bi bi-trash"></i>
             </button>
+        
+          {% else %}
+            <button type="button"
+                    class="task-card__icon-btn task-card__icon-btn--urgent"
+                    title="Срочное"
+                    data-task-toggle="urgent"
+                    data-task-id="{{ task.id }}">
+              <i class="bi bi-fire"></i>
+            </button>
+        
+            <button type="button"
+                    class="task-card__icon-btn"
+                    title="Печать"
+                    onclick="window.print()">
+              <i class="bi bi-printer"></i>
+            </button>
+        
+            <button type="button"
+                    class="task-card__icon-btn task-card__icon-btn--star"
+                    title="В избранное"
+                    data-task-toggle="favorite"
+                    data-task-id="{{ task.id }}">
+              <i class="bi bi-star"></i>
+            </button>
+        
+            {% if user_role == 'author' %}
+              <button type="button"
+                      class="task-card__icon-btn task-card__icon-btn--danger"
+                      title="Удалить"
+                      data-task-delete
+                      data-url="{% url 'tasks:task_action' task.id 'cancel' %}">
+                <i class="bi bi-trash"></i>
+              </button>
+            {% endif %}
           {% endif %}
+        
         </div>
       </div>
 
@@ -111,6 +133,7 @@
           {% for current in actions %}
             <button type="button"
                     class="task-card__btn task-card__btn--{{ current.color|default:'primary' }}"
+                    data-task-action
                     data-action="{{ current.action }}"
                     data-url="{% url 'tasks:task_action' task.id current.action %}"
                     data-task-id="{{ task.id }}">
@@ -127,6 +150,7 @@
 
       <div class="task-history__list" id="taskHistoryList">
         {% for current in task.history.all %}
+        {% load_comments 'task' task.id %}
           <div class="task-history__item">
             <div class="task-history__avatar">
               {% if current.user.get_avatar_url %}
@@ -156,7 +180,21 @@
         {% endfor %}
       </div>
 
-      {% load_comments 'task' task.id %}
+      <form method="post"
+          action="{% url 'addits:comment' 'task' task.id %}"
+          class="task-comment-form"
+          id="taskCommentForm">
+      {% csrf_token %}
+
+      <input type="text"
+            name="text"
+            class="task-comment-form__input"
+            placeholder="Прокомментировать..." />
+
+      <button type="submit" class="task-comment-form__submit">
+        Отправить
+      </button>
+    </form>
     </div>
 
   </div>
@@ -262,8 +300,6 @@
       </div>
     </div>
 
-
-
   </aside>
 
 </div>
@@ -272,5 +308,5 @@
 
 {% block scripts %}
 <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
-<script src="{% static 'site/js/apps/tasks.js' %}?v={{ static_version|default:'3' }}"></script>
+<script src="{% static 'site/js/apps/tasks.js' %}?v=9999"></script>
 {% endblock %}

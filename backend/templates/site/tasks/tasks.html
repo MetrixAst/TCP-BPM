@@ -12,60 +12,61 @@
 {% block content %}
 
 <div class="tasks-page" id="tasksPage">
+  <div class="tasks-page__top">
+    <div class="tasks-page__header">
+      <h1 class="tasks-page__title">Менеджер задач</h1>
 
-  <div class="tasks-page__header">
-    <h1 class="tasks-page__title">Менеджер задач</h1>
-
-    <form method="get" class="tasks-page__toolbar" id="tasksFilterForm">
-      <div class="tasks-page__field">
-        <label class="tasks-page__label" for="taskSearch">Поиск</label>
-        <div class="tasks-page__search">
-          <i class="bi bi-search tasks-page__search-icon"></i>
-          <input type="search"
-                 class="tasks-page__search-input"
-                 id="taskSearch"
-                 name="q"
-                 value="{{ request.GET.q|default:'' }}"
-                 placeholder="Поиск задач"
-                 autocomplete="off" />
+      <form method="get" class="tasks-page__toolbar" id="tasksFilterForm">
+        <div class="tasks-page__field">
+          <label class="tasks-page__label" for="taskSearch">Поиск</label>
+          <div class="tasks-page__search">
+            <i class="bi bi-search tasks-page__search-icon"></i>
+            <input type="search"
+                  class="tasks-page__search-input"
+                  id="taskSearch"
+                  name="q"
+                  value="{{ request.GET.q|default:'' }}"
+                  placeholder="Поиск задач"
+                  autocomplete="off" />
+          </div>
         </div>
-      </div>
 
-      <div class="tasks-page__field">
-        <label class="tasks-page__label" for="taskStateFilter">Состояние</label>
-        <div class="tasks-page__state-control">
-            <select id="taskStateFilter" name="state" class="tasks-page__select">
-                <option value="" {% if not request.GET.state %}selected{% endif %}>Все</option>
-                <option value="created" {% if request.GET.state == 'created' %}selected{% endif %}>Открыта</option>
-                <option value="accepted" {% if request.GET.state == 'accepted' %}selected{% endif %}>В работе</option>
-                <option value="revision" {% if request.GET.state == 'revision' %}selected{% endif %}>На доработке</option>
-                <option value="completed" {% if request.GET.state == 'completed' %}selected{% endif %}>Завершена</option>
-                <option value="rejected" {% if request.GET.state == 'rejected' %}selected{% endif %}>Отклонена</option>
-              </select>
+        <div class="tasks-page__field">
+          <label class="tasks-page__label" for="taskStateFilter">Состояние</label>
+          <div class="tasks-page__state-control">
+              <select id="taskStateFilter" name="state" class="tasks-page__select">
+                  <option value="" {% if not request.GET.state %}selected{% endif %}>Все</option>
+                  <option value="created" {% if request.GET.state == 'created' %}selected{% endif %}>Открыта</option>
+                  <option value="accepted" {% if request.GET.state == 'accepted' %}selected{% endif %}>В работе</option>
+                  <option value="revision" {% if request.GET.state == 'revision' %}selected{% endif %}>На доработке</option>
+                  <option value="completed" {% if request.GET.state == 'completed' %}selected{% endif %}>Завершена</option>
+                  <option value="rejected" {% if request.GET.state == 'rejected' %}selected{% endif %}>Отклонена</option>
+                </select>
 
-          {% if request.GET.state %}
-            <i class="bi bi-check-circle-fill tasks-page__state-check"></i>
-          {% endif %}
+            {% if request.GET.state %}
+              <i class="bi bi-check-circle-fill tasks-page__state-check"></i>
+            {% endif %}
+          </div>
         </div>
-      </div>
 
-      <button type="submit" class="tasks-page__btn tasks-page__btn--ghost">
-        Искать
-      </button>
+        <button type="submit" class="tasks-page__btn tasks-page__btn--ghost">
+          Искать
+        </button>
 
-      <button type="button" class="tasks-page__btn tasks-page__btn--outline" id="taskSettingsBtn">
-        <i class="bi bi-gear"></i>
-        Настроить
-        <i class="bi bi-chevron-down"></i>
-      </button>
+        <button type="button" class="tasks-page__btn tasks-page__btn--outline" id="taskSettingsBtn">
+          <i class="bi bi-gear"></i>
+          Настроить
+          <i class="bi bi-chevron-down"></i>
+        </button>
 
-      {% if can_create %}
-        <a href="{% url 'tasks:edit' 0 %}" class="tasks-page__btn tasks-page__btn--primary">
-          <i class="bi bi-plus-lg"></i>
-          Создать
-        </a>
-      {% endif %}
-    </form>
+        {% if can_create %}
+          <a href="{% url 'tasks:edit' 0 %}" class="tasks-page__btn tasks-page__btn--primary">
+            <i class="bi bi-plus-lg"></i>
+            Создать
+          </a>
+        {% endif %}
+      </form>
+    </div>
   </div>
 
   <div class="tasks-panel">
@@ -118,11 +119,19 @@
               </td>
 
               <td class="tasks-table__td">
-                {{ current.author.get_name|default:"—" }}
+                {% if current.author %}
+                  {% if current.author.first_name or current.author.last_name %}
+                    {{ current.author.first_name }} {{ current.author.last_name }}
+                  {% else %}
+                    {{ current.author.username|default:current.author.email }}
+                  {% endif %}
+                {% else %}
+                  —
+                {% endif %}
               </td>
 
               <td class="tasks-table__td">
-                {{ current.executor.get_name|default:"—" }}
+                {% firstof current.executor.get_name current.executor.username current.executor.email current.executor "—" %}
               </td>
 
               <td class="tasks-table__td tasks-table__td--date">
@@ -166,7 +175,7 @@
       </table>
     </div>
 
-    {% if paginator.pages|length > 1 %}
+    {% if paginator.pages_count > 1 %}
       <div class="tasks-page__pagination">
         {% include 'site/layouts/paginator.html' %}
       </div>
