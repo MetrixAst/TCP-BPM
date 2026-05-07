@@ -1671,3 +1671,39 @@ body.task-edit-body {
   background: #3664dc !important;
   color: #fff !important;
 }
+
+@media (max-width: 767px) {
+  .tasks-page__header {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .tasks-page__toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .tasks-page__search,
+  .tasks-page__select,
+  .tasks-page__btn {
+    width: 100%;
+  }
+
+  .tasks-page__title {
+    font-size: 24px;
+  }
+
+  .tasks-tabs {
+    gap: 10px 14px;
+  }
+
+  .tasks-table-wrap {
+    overflow-x: auto;
+  }
+
+  .tasks-table {
+    min-width: 760px;
+  }
+}

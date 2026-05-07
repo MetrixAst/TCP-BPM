@@ -8,431 +8,287 @@ $transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 // BODY
 // =============================================================================
 .bpm-body {
-  font-family: var(--font-family-base);
-  font-size:   var(--font-size-body);
-  color:       var(--color-text-primary);
-  background:  var(--color-bg);
-  margin:      0;
-  overflow-x:  hidden;
+  font-family: "Inter", var(--font-family-base), sans-serif;
+  font-size: 14px;
+  color: #111827;
+  background: #f4f6fa;
+  margin: 0;
+  overflow-x: hidden;
 }
 
-// =============================================================================
-// SIDEBAR  (точно как в Figma — белый, узкий, с логотипом сверху)
-// =============================================================================
 .bpm-sidebar {
-  position:        fixed;
-  top:             0;
-  left:            0;
-  bottom:          0;
-  width:           var(--sidebar-width);
-  background:     var(--color-sidebar-bg);
-  border-right:    1px solid var(--color-border);
-  display:         flex;
-  flex-direction:  column;
-  z-index:         300;
-  overflow-y:      auto;
-  overflow-x:      hidden;
-  transition:      transform $transition;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 250px;
+  background: #fff;
+  border-right: 1px solid #e8ebf2;
+  display: flex;
+  flex-direction: column;
+  z-index: 300;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: transform 0.25s ease;
 
-  // тонкий скроллбар
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-neutral-200) transparent;
-  &::-webkit-scrollbar       { width: 3px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: var(--color-neutral-200); border-radius: 4px; }
-
-  // ── Логотип ──
   &__logo {
-    display:         flex;
-    align-items:     center;
-    gap:             10px;
-    height:          var(--topbar-height);
-    padding:         0 20px;
-    font-size:       16px;
-    font-weight:     700;
-    color:           var(--color-text-primary);
+    height: 64px;
+    padding: 0 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #15213d;
+    font-size: 18px;
+    font-weight: 700;
     text-decoration: none;
-    flex-shrink:     0;
-    white-space:     nowrap;
-    &:hover         { color: var(--color-text-primary); text-decoration: none; }
-  }
-  &__logo-icon {
-    color:       var(--color-primary);
-    display:     flex;
-    flex-shrink: 0;
-  }
-  &__logo-text { letter-spacing: -0.01em; }
-  &__logo-x    { color: var(--color-primary); font-weight: 700; }
-
-  // ── Nav ──
-  &__nav { flex: 1; padding: 12px 0 16px; }
-
-  &__group { display: flex; flex-direction: column; }
-
-  &__item {
-    display:         flex;
-    align-items:     center;
-    gap:             12px;
-    padding:         10px 20px;
-    font-size:       var(--font-size-body);
-    font-weight:     400;
-    color:           var(--color-sidebar-text);
-    text-decoration: none;
-    background:      none;
-    border:          none;
-    width:           100%;
-    text-align:      left;
-    cursor:          pointer;
-    white-space:     nowrap;
-    position:        relative;
-    transition:      background-color 0.15s, color 0.15s;
+    border-bottom: 1px solid #e8ebf2;
 
     &:hover {
-      background:      var(--color-sidebar-hover);
-      color:           var(--color-text-primary);
+      color: #15213d;
+      text-decoration: none;
+    }
+  }
+
+  &__logo-icon,
+  &__logo-x {
+    color: #2f6bed;
+  }
+
+  &__nav {
+    flex: 1;
+    padding: 12px 0;
+  }
+
+  &__item {
+    min-height: 46px;
+    padding: 0 22px;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    color: #111a35;
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+    border: 0;
+    background: transparent;
+    width: 100%;
+    position: relative;
+
+    &:hover {
+      background: #f4f7ff;
+      color: #111a35;
       text-decoration: none;
     }
 
     &.is-active {
-      color:       var(--color-sidebar-active);
-      background:  var(--color-sidebar-active-bg);
-      font-weight: 500;
+      background: #eaf2ff;
+      color: #2563eb;
 
-      // синяя полоса слева — как в Figma
       &::before {
-        content:    '';
-        position:   absolute;
-        left:       0;
-        top:        0;
-        bottom:     0;
-        width:      3px;
-        background: var(--color-sidebar-active);
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: #2563eb;
       }
     }
 
-    &--parent {
-      &.is-open .bpm-sidebar__chevron { transform: rotate(180deg); }
-      &[aria-expanded="true"] .bpm-sidebar__chevron { transform: rotate(180deg); }
-    }
-
-    // Sub-items без иконки, с маленькой точкой
     &--sub {
-      padding-left: 52px; // выравнивание с текстом родителя
-      font-size:    var(--font-size-body);
-      color:        var(--color-text-secondary);
-      font-weight:  400;
-
-      &:hover { color: var(--color-text-primary); background: var(--color-sidebar-hover); }
-
-      &.is-active {
-        color:       var(--color-sidebar-active);
-        background:  var(--color-sidebar-active-bg);
-        font-weight: 500;
-
-        .bpm-sidebar__sub-dot {
-          background: var(--color-sidebar-active);
-        }
-      }
+      min-height: 38px;
+      padding-left: 54px;
+      font-size: 13px;
+      color: #111a35;
     }
   }
 
   &__icon {
-    font-size:    16px;
-    width:        18px;
-    text-align:   center;
-    flex-shrink:  0;
+    width: 18px;
+    font-size: 17px;
   }
 
-  &__sub-dot {
-    width:        4px;
-    height:       4px;
-    border-radius: 50%;
-    background:   var(--color-text-muted);
-    flex-shrink:  0;
-    display:      none; // в figma точек нет, оставляем как опцию
+  &__chevron {
+    font-size: 12px;
+    color: #9aa3b5;
   }
 
-  &__label    { flex: 1; }
-  &__chevron  {
-    font-size:  12px;
-    color:      var(--color-text-muted);
-    flex-shrink: 0;
-    transition: transform 0.2s ease;
-  }
-
-  // ── Footer (пользователь + выход) ──
   &__footer {
-    display:      flex;
-    align-items:  center;
-    gap:          10px;
-    padding:      14px 20px;
-    border-top:   1px solid var(--color-border);
-    flex-shrink:  0;
-  }
-
-  &__avatar {
-    width:           36px;
-    height:          36px;
-    border-radius:   var(--radius-full);
-    background:      var(--color-neutral-100);
-    color:           var(--color-text-muted);
-    display:         flex;
-    align-items:     center;
-    justify-content: center;
-    font-size:       18px;
-    flex-shrink:     0;
-    overflow:        hidden;
-
-    img { width: 100%; height: 100%; object-fit: cover; }
-  }
-
-  &__user      { flex: 1; min-width: 0; }
-  &__user-name {
-    font-size:    var(--font-size-body);
-    font-weight:  500;
-    color:        var(--color-text-primary);
-    white-space:  nowrap;
-    overflow:     hidden;
-    text-overflow: ellipsis;
-  }
-  &__user-role {
-    font-size: var(--font-size-caption);
-    color:     var(--color-text-muted);
-  }
-
-  &__logout {
-    color:           var(--color-text-muted);
-    font-size:       18px;
-    display:         flex;
-    align-items:     center;
-    text-decoration: none;
-    padding:         4px;
-    border-radius:   var(--radius-sm);
-    transition:      color 0.15s;
-    &:hover { color: var(--color-danger); }
+    height: 72px;
+    padding: 12px 18px;
+    border-top: 1px solid #e8ebf2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 }
 
-// =============================================================================
-// TOPBAR  (точно как в Figma)
-// =============================================================================
 .bpm-topbar {
-  position:      fixed;
-  top:           0;
-  left:          var(--sidebar-width);
-  right:         0;
-  height:        var(--topbar-height);
-  background:    var(--color-topbar-bg);
-  border-bottom: 1px solid var(--color-topbar-border);
-  display:       flex;
-  align-items:   center;
-  gap:           12px;
-  padding:       0 20px;
-  z-index:       200;
-  transition:    left $transition;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: #fff;
+  border-bottom: 1px solid #e8ebf2;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px 0 286px;
+  z-index: 200;
+  transition: padding-left 0.25s ease;
 
-  // ── Toggle (свернуть/развернуть sidebar) — слева в углу как в Figma ──
   &__toggle {
-    width:           36px;
-    height:          36px;
-    display:         flex;
-    align-items:     center;
-    justify-content: center;
-    background:      none;
-    border:          none;
-    font-size:       18px;
-    color:           var(--color-text-secondary);
-    cursor:          pointer;
-    border-radius:   var(--radius-sm);
-    flex-shrink:     0;
-    transition:      background-color 0.15s, color 0.15s;
-    &:hover {
-      background: var(--color-neutral-100);
-      color:      var(--color-text-primary);
-    }
-  }
-
-  // ── Поиск ──
-  &__search {
-    flex:     0 1 320px;
-    position: relative;
-  }
-  &__search-icon {
-    position:       absolute;
-    left:           12px;
-    top:            50%;
-    transform:      translateY(-50%);
-    color:          var(--color-text-muted);
-    font-size:      14px;
-    pointer-events: none;
-  }
-  &__search-input {
-    width:         100%;
-    height:        36px;
-    padding:       0 12px 0 36px;
-    font-family:   var(--font-family-base);
-    font-size:     var(--font-size-body);
-    color:         var(--color-text-primary);
-    background:    var(--color-neutral-50);
-    border:        1px solid transparent;
-    border-radius: var(--radius-md);
-    outline:       none;
-    transition:    border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
-
-    &::placeholder { color: var(--color-text-muted); }
-    &:focus {
-      background:   var(--color-white);
-      border-color: var(--color-border-focus);
-      box-shadow:   0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-  }
-  &__search-results {
-    position:      absolute;
-    top:           calc(100% + 4px);
-    left:          0;
-    right:         0;
-    background:    var(--color-white);
-    border:        1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    box-shadow:    var(--shadow-lg);
-    max-height:    360px;
-    overflow-y:    auto;
-    z-index:       400;
-  }
-  &__search-result-item {
-    display:         block;
-    padding:         10px 14px;
-    text-decoration: none;
-    color:           var(--color-text-primary);
-    font-size:       var(--font-size-body);
-    border-bottom:   1px solid var(--color-border);
-    &:last-child  { border-bottom: none; }
-    &:hover       { background: var(--color-neutral-50); text-decoration: none; }
-    .text-muted   { font-size: var(--font-size-caption); color: var(--color-text-muted); }
-  }
-  &__search-empty {
-    padding:    14px;
-    text-align: center;
-    color:      var(--color-text-muted);
-    font-size:  var(--font-size-body);
-  }
-
-  &__spacer { flex: 1; }
-
-  // ── Right side ──
-  &__right {
-    display:     flex;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #536078;
+    display: flex;
     align-items: center;
-    gap:         8px;
+    justify-content: center;
+    font-size: 19px;
+    cursor: pointer;
+
+    &:hover {
+      background: #f3f6fb;
+      color: #15213d;
+    }
   }
 
-  // Pill-кнопки (Ритц-Палас, Алматы GMT+5)
-  &__pill {
-    display:       flex;
-    align-items:   center;
-    gap:           6px;
-    height:        32px;
-    padding:       0 12px;
-    font-size:     var(--font-size-body);
-    font-weight:   500;
-    color:         var(--color-text-primary);
-    background:    var(--color-neutral-50);
-    border:        1px solid transparent;
-    border-radius: var(--radius-full);
-    cursor:        pointer;
-    white-space:   nowrap;
-    transition:    background-color 0.15s, border-color 0.15s;
+  &__brand {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    color: #15213d;
+    font-size: 18px;
+    font-weight: 700;
+    text-decoration: none;
 
-    .bi-chevron-down {
-      font-size: 11px;
-      color:     var(--color-text-muted);
-      margin-left: 2px;
+    span span {
+      color: #2f6bed;
     }
 
-    &:hover { background: var(--color-neutral-100); }
+    &:hover {
+      color: #15213d;
+      text-decoration: none;
+    }
+  }
+
+  &__brand-icon {
+    color: #2f6bed;
+    font-size: 18px;
+  }
+
+  &__search {
+    position: relative;
+    width: 340px;
+    flex: 0 0 340px;
+  }
+
+  &__search-input {
+    width: 100%;
+    height: 38px;
+    border: 0;
+    border-radius: 999px;
+    background: #f5f6fb;
+    padding: 0 16px 0 42px;
+    color: #15213d;
+    font-size: 15px;
+    outline: none;
+
+    &::placeholder {
+      color: #9aa3b5;
+    }
+
+    &:focus {
+      background: #fff;
+      box-shadow: 0 0 0 2px rgba(47, 107, 237, 0.14);
+    }
+  }
+
+  &__search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #7c879a;
+    font-size: 16px;
+  }
+
+  &__pill {
+    height: 34px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: #f5f6fb;
+    color: #15213d;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+
+    &:hover {
+      background: #eef2f8;
+    }
 
     &--object {
-      color: var(--color-primary);
-      background: var(--color-primary-light);
-      &:hover { background: var(--color-primary-100); }
+      color: #2563eb;
+      background: #f3f6ff;
     }
-
-    &--tz {
-      font-weight: 400;
-      color: var(--color-text-secondary);
-    }
-  }
-
-  // Глобус
-  &__globe {
-    display:         flex;
-    align-items:     center;
-    justify-content: center;
-    width:           28px;
-    height:          28px;
-    color:           var(--color-text-muted);
-    font-size:       16px;
-  }
-
-  // Языки
-  &__lang {
-    display:     flex;
-    align-items: center;
-    gap:         4px;
   }
 
   &__lang-btn {
-    display:         flex;
-    align-items:     center;
-    justify-content: center;
-    min-width:       30px;
-    height:          26px;
-    padding:         0 10px;
-    font-size:       var(--font-size-caption);
-    font-weight:     500;
-    color:           var(--color-text-secondary);
-    text-decoration: none;
-    border-radius:   var(--radius-full);
-    transition:      background-color 0.15s, color 0.15s;
-    line-height:     1;
-
-    &:hover { color: var(--color-text-primary); text-decoration: none; }
+    min-width: 34px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    color: #344054;
+    font-size: 13px;
+    font-weight: 500;
 
     &.is-active {
-      background:    var(--color-primary);
-      color:         var(--color-white) !important;
-      font-weight:   600;
+      background: #2563eb;
+      color: #fff !important;
     }
   }
 
-  // Иконки-кнопки (bell, logout)
   &__icon-btn {
-    display:         flex;
-    align-items:     center;
-    justify-content: center;
-    width:           36px;
-    height:          36px;
-    color:           var(--color-text-secondary);
-    background:      none;
-    border:          none;
-    border-radius:   var(--radius-md);
-    cursor:          pointer;
-    text-decoration: none;
-    position:        relative;
-    font-size:       16px;
-    transition:      background-color 0.15s, color 0.15s;
-    &:hover { background: var(--color-neutral-100); color: var(--color-text-primary); }
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    color: #536078;
+  }
+}
+
+.bpm-main {
+  margin-left: 250px;
+  min-height: 100vh;
+  background: #f4f6fa;
+  transition: margin-left 0.25s ease;
+}
+
+.bpm-content {
+  padding: 88px 24px 24px;
+}
+
+body.sidebar-collapsed {
+  .bpm-sidebar {
+    transform: translateX(-100%);
   }
 
-  &__notif-dot {
-    position:      absolute;
-    top:           8px;
-    right:         8px;
-    width:         8px;
-    height:        8px;
-    background:    var(--color-danger);
-    border-radius: 50%;
-    border:        2px solid var(--color-white);
+  .bpm-main {
+    margin-left: 0;
+  }
+
+  .bpm-topbar {
+    padding-left: 20px;
+  }
+
+  .bpm-topbar__brand {
+    display: flex;
   }
 }
 
@@ -595,7 +451,127 @@ body.sidebar-collapsed {
   }
 }
 
+@media (max-width: 991px) {
+  .bpm-topbar {
+    left: 0 !important;
+    padding: 0 14px !important;
+    height: 64px;
+    gap: 10px;
+  }
+
+  .bpm-topbar__brand {
+    display: flex;
+  }
+
+  .bpm-topbar__search {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  .bpm-topbar__search-input {
+    height: 36px;
+    font-size: 13px;
+  }
+
+  .bpm-topbar__right {
+    gap: 6px;
+  }
+
+  .bpm-topbar__object,
+  .bpm-topbar__pill--tz,
+  .bpm-topbar__globe,
+  .bpm-topbar__lang {
+    display: none !important;
+  }
+
+  .bpm-main {
+    margin-left: 0 !important;
+  }
+
+  .bpm-content {
+    padding: 82px 14px 18px !important;
+  }
+
+  .bpm-sidebar {
+    transform: translateX(-100%);
+    width: 250px;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.22);
+  }
+
+  .bpm-sidebar.is-open {
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 575px) {
+  .bpm-topbar {
+    justify-content: space-between;
+  }
+
+  .bpm-topbar__brand {
+    font-size: 16px;
+  }
+
+  .bpm-topbar__search {
+    display: none;
+  }
+
+  .bpm-topbar__icon-btn[title="Выйти"],
+  .bpm-topbar__lang,
+  .bpm-topbar__globe {
+    display: none !important;
+  }
+
+  .bpm-content {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
 // ── Small mobile ──
 @media (max-width: #{$bp-sm - 1px}) {
   .bpm-notif { min-width: calc(100vw - 24px); }
+}
+
+
+.bpm-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bpm-topbar__object,
+.bpm-topbar__tz {
+  margin: 0;
+}
+
+.bpm-topbar__pill {
+  height: 40px;
+  border-radius: 999px;
+  background: #f4f5ff;
+  border: 1px solid transparent;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #101938;
+  box-shadow: none;
+}
+
+.bpm-topbar__pill i {
+  font-size: 10px;
+  color: #7b84a3;
+}
+
+.bpm-topbar__object .bpm-topbar__pill {
+  border-top-right-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+
+.bpm-topbar__tz .bpm-topbar__pill {
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
 }
