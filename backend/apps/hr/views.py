@@ -10,13 +10,13 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
 from django.db import transaction
 from django.utils.dateparse import parse_date
-from datetime import datetime
+from datetime import datetime, date, timedelta, time
 
 from project.utils import get_or_none, get_or_error
 from project.paginator import CustomPaginator
 
 from account.role_permissions import need_permission, PermissionEnums, RolePermissions
-from account.models import Employee
+from account.models import Employee, Department
 from account.forms import EmployeeForm
 
 from .forms import (
@@ -25,11 +25,12 @@ from .forms import (
 )
 from .models import (
     CalendarItem, Company, Position, LeaveRequest, 
-    LeaveType, Vacation, SickLeave, EmploymentContract, AttendanceRecord
+    LeaveType, Vacation, SickLeave, EmploymentContract, AttendanceRecord, CheckInEnum
 )
 from .serializers import CalendarItemSerializer
 from .enums import CalendarItemType, LeaveStatusEnum
 
+import calendar as calendar_module
 
 
 @need_permission(PermissionEnums.HR)
@@ -563,3 +564,141 @@ def attendance_checkin(request):
         return JsonResponse({'error': e.messages[0]}, status=400)
     except Exception as e:
         return JsonResponse({'error': f"Внутренняя ошибка сервера: {str(e)}"}, status=500)
+
+
+@login_required
+def attendance_journal(request):
+    import pytz
+    LOCAL_TZ = pytz.timezone('Asia/Almaty')
+
+    target_date_str = request.GET.get('date', date.today().isoformat())
+    target_date = parse_date(target_date_str) or date.today()
+    
+    employees_qs = Employee.objects.filter(status='active').select_related('user', 'department')
+    
+    department_id = request.GET.get('department')
+    if department_id:
+        employees_qs = employees_qs.filter(department_id=department_id)
+
+    journal = []
+    for emp in employees_qs:
+        summary = AttendanceRecord.get_daily_summary(emp, target_date)
+        events = summary.get('details', {})
+        has_records = len(events) > 0
+
+        late = False
+        early_leave = False
+        start_dt = None
+        end_dt = None
+
+        if has_records:
+            start_dt = events.get(CheckInEnum.DAY_START)
+            if start_dt:
+                local_start = start_dt.astimezone(LOCAL_TZ)
+                start_dt = local_start
+                if local_start.hour > 9 or (local_start.hour == 9 and local_start.minute > 0):
+                    late = True
+
+            end_dt = events.get(CheckInEnum.DAY_END)
+            if end_dt:
+                local_end = end_dt.astimezone(LOCAL_TZ)
+                end_dt = local_end
+                if local_end.hour < 18:
+                    early_leave = True
+
+        total_work = summary.get('total_work_time', timedelta(0))
+        total_hours = total_work.total_seconds() / 3600 if total_work else 0
+
+        journal.append({
+            'employee': emp,
+            'day_start': start_dt,
+            'day_end': end_dt,
+            'total_hours': total_hours,
+            'late': late,
+            'early_leave': early_leave,
+            'no_record': not has_records
+        })
+
+    return render(request, 'site/hr/attendance_journal.html', {
+        'journal': journal,
+        'target_date': target_date,
+        'departments': Department.objects.all()
+    })
+
+
+
+@login_required
+def attendance_my(request):
+    import pytz
+    LOCAL_TZ = pytz.timezone('Asia/Almaty')
+
+    employee = getattr(request.user, 'employee_info', None)
+    if not employee:
+        return redirect('dashboard:dashboard')
+
+    try:
+        view_month = int(request.GET.get('month', date.today().month))
+        view_year = int(request.GET.get('year', date.today().year))
+    except ValueError:
+        view_month = date.today().month
+        view_year = date.today().year
+
+    _, num_days = calendar_module.monthrange(view_year, view_month)
+    
+    attendance_list = []
+    for day in range(num_days, 0, -1):
+        current_day = date(view_year, view_month, day)
+        
+        if current_day > date.today():
+            continue
+
+        summary = AttendanceRecord.get_daily_summary(employee, current_day)
+        events = summary.get('details', {})  
+
+        late = False
+        early_leave = False
+
+        start_dt = events.get(CheckInEnum.DAY_START)
+        if start_dt:
+            start_dt = start_dt.astimezone(LOCAL_TZ)
+            if start_dt.hour > 9 or (start_dt.hour == 9 and start_dt.minute > 0):
+                late = True
+
+        end_dt = events.get(CheckInEnum.DAY_END)
+        if end_dt:
+            end_dt = end_dt.astimezone(LOCAL_TZ)
+            if end_dt.hour < 18:
+                early_leave = True
+
+        lunch_start = events.get(CheckInEnum.LUNCH_START)
+        if lunch_start:
+            lunch_start = lunch_start.astimezone(LOCAL_TZ)
+
+        lunch_end = events.get(CheckInEnum.LUNCH_END)
+        if lunch_end:
+            lunch_end = lunch_end.astimezone(LOCAL_TZ)
+
+        total_hours = summary.get('total_work_time', timedelta(0)).total_seconds() / 3600
+        
+        attendance_list.append({
+            'date': current_day,
+            'day_start': start_dt,
+            'day_end': end_dt,
+            'lunch_start': lunch_start,
+            'lunch_end': lunch_end,
+            'total_hours': total_hours,
+            'late': late,
+            'early_leave': early_leave,
+            'no_record': len(events) == 0
+        })
+
+    prev_month_date = date(view_year, view_month, 1) - timedelta(days=1)
+    next_month_date = date(view_year, view_month, 28) + timedelta(days=5)
+    
+    return render(request, 'site/hr/attendance_my.html', {
+        'attendance_list': attendance_list,
+        'view_date': date(view_year, view_month, 1),
+        'prev_month': prev_month_date,
+        'next_month': next_month_date if next_month_date <= date.today() else None,
+        'employee': employee
+    })
