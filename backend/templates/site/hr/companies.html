@@ -1,42 +1,197 @@
 {% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Компании | metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Список компаний</h2>
+<div class="hr-page">
+  <div class="hr-page__header">
+    <div>
+      <div class="hr-page__eyebrow">HR / Справочники</div>
+      <h1 class="hr-page__title">Компании</h1>
+    </div>
+
+    <div class="hr-page__actions">
+      <div class="hr-search">
+        <i class="bi bi-search"></i>
+        <input type="search" class="hr-table-search" placeholder="Поиск компании">
+      </div>
+
+      <button type="button"
+              class="hr-btn hr-btn--primary"
+              data-hr-modal-open="companyCreateModal">
+        <i class="bi bi-plus-lg"></i>
+        <span>Новая компания</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="hr-card">
+    <div class="hr-table hr-table--companies">
+      <div class="hr-table__head">
+        <div>Название</div>
+        <div>БИН</div>
+        <div>Юр адрес</div>
+        <div>Сотрудники</div>
+        <div></div>
+      </div>
+
+      <div class="hr-table__body">
+        {% for company in companies %}
+        <div class="hr-table__row">
+          <div><strong>{{ company.name }}</strong></div>
+          <div class="hr-muted">{{ company.bin_number|default:"—" }}</div>
+          <div class="hr-muted">{{ company.address|default:"—" }}</div>
+          <div><span class="hr-count">{{ company.get_employees_count }}</span></div>
+
+          <div class="hr-row-actions">
+            <button type="button"
+                    class="hr-icon-action"
+                    data-hr-modal-open="companyEditModal{{ company.id }}">
+              <i class="bi bi-pencil"></i>
+            </button>
+          </div>
         </div>
 
-    <div class="card">
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Название</th>
-                        <th>БИН</th>
-                        <th>Адрес</th>
-                        <th class="text-center">Количество сотрудников</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for company in companies %}
-                    <tr>
-                        <td><strong>{{ company.name }}</strong></td>
-                        <td>{{ company.bin_number|default:"—" }}</td>
-                        <td>{{ company.address|default:"—" }}</td>
-                        <td class="text-center">
-                            <span class="badge bg-info text-dark">
-                                {{ company.get_employees_count }}
-                            </span>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" class="text-center py-4 text-muted">Компании не найдены</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="hr-inline-modal" id="companyEditModal{{ company.id }}" hidden>
+          <div class="hr-inline-modal__backdrop" data-hr-modal-close></div>
+
+          <div class="hr-inline-modal__card">
+            <div class="hr-inline-modal__header">
+              <h2>Редактирование компании</h2>
+              <button type="button" class="hr-inline-modal__close" data-hr-modal-close>
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+
+            <form class="hr-inline-form">
+              <div class="hr-inline-grid">
+                <label class="hr-inline-field">
+                  <span>Название</span>
+                  <input type="text" value="{{ company.name }}" placeholder="Название компании">
+                </label>
+
+                <label class="hr-inline-field">
+                  <span>БИН</span>
+                  <input type="text" value="{{ company.bin_number|default:'' }}" placeholder="БИН">
+                </label>
+
+                <label class="hr-inline-field">
+                  <span>Дата регистрации</span>
+                  <input type="text" class="hr-inline-date" placeholder="дд.мм.гггг">
+                </label>
+
+                <label class="hr-inline-field">
+                  <span>Руководитель</span>
+                  <input type="text" placeholder="Руководитель">
+                </label>
+
+                <label class="hr-inline-field hr-inline-field--full">
+                  <span>Юр адрес</span>
+                  <input type="text" value="{{ company.address|default:'' }}" placeholder="Юридический адрес">
+                </label>
+
+                <label class="hr-inline-field">
+                  <span>ОКЭД</span>
+                  <input type="text" placeholder="ОКЭД">
+                </label>
+
+                <label class="hr-inline-field">
+                  <span>Контактный номер</span>
+                  <input type="text" placeholder="Контактный номер">
+                </label>
+              </div>
+
+              <div class="hr-inline-modal__footer">
+                <button type="button" class="hr-edit-btn hr-edit-btn--cancel" data-hr-modal-close>
+                  Отменить
+                </button>
+                <button type="button" class="hr-edit-btn hr-edit-btn--save" disabled>
+                  Сохранить
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
+        {% empty %}
+        <div class="hr-empty">
+          <i class="bi bi-buildings"></i>
+          <h3>Компании не найдены</h3>
+          <p>Пока список компаний пустой.</p>
+        </div>
+        {% endfor %}
+      </div>
     </div>
+  </div>
+
+  <div class="hr-inline-modal" id="companyCreateModal" hidden>
+    <div class="hr-inline-modal__backdrop" data-hr-modal-close></div>
+
+    <div class="hr-inline-modal__card">
+      <div class="hr-inline-modal__header">
+        <h2>Новая компания</h2>
+        <button type="button" class="hr-inline-modal__close" data-hr-modal-close>
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+
+      <form class="hr-inline-form">
+        <div class="hr-inline-grid">
+          <label class="hr-inline-field">
+            <span>Название</span>
+            <input type="text" placeholder="Название компании">
+          </label>
+
+          <label class="hr-inline-field">
+            <span>БИН</span>
+            <input type="text" placeholder="БИН">
+          </label>
+
+          <label class="hr-inline-field">
+            <span>Дата регистрации</span>
+            <input type="text" class="hr-inline-date" placeholder="дд.мм.гггг">
+          </label>
+
+          <label class="hr-inline-field">
+            <span>Руководитель</span>
+            <input type="text" placeholder="Руководитель">
+          </label>
+
+          <label class="hr-inline-field hr-inline-field--full">
+            <span>Юр адрес</span>
+            <input type="text" placeholder="Юридический адрес">
+          </label>
+
+          <label class="hr-inline-field">
+            <span>ОКЭД</span>
+            <input type="text" placeholder="ОКЭД">
+          </label>
+
+          <label class="hr-inline-field">
+            <span>Контактный номер</span>
+            <input type="text" placeholder="Контактный номер">
+          </label>
+        </div>
+
+        <div class="hr-inline-modal__footer">
+          <button type="button" class="hr-edit-btn hr-edit-btn--cancel" data-hr-modal-close>
+            Отменить
+          </button>
+          <button type="button" class="hr-edit-btn hr-edit-btn--save" disabled>
+            Сохранить
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/apps/hr.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock scripts %}
