@@ -1,0 +1,130 @@
+{% load static %}
+
+{# === ВАРИАНТ 1: рендер из Django form field === #}
+{% if field %}
+  <div class="form-field {% if field.errors %}is-invalid{% endif %}">
+    {% if field.label %}
+      <label for="{{ field.id_for_label }}" class="form-field__label">
+        {{ field.label }}
+        {% if field.field.required %}<span class="form-field__required">*</span>{% endif %}
+      </label>
+    {% endif %}
+
+    <div class="form-field__input-wrapper">
+      {{ field }}
+    </div>
+
+    {% if field.help_text %}
+      <div class="form-field__help">{{ field.help_text }}</div>
+    {% endif %}
+
+    {% if field.errors %}
+      <div class="form-field__error">
+        {% for err in field.errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+{# === ВАРИАНТ 2: ручной рендер === #}
+{% else %}
+  <div class="form-field {% if error %}is-invalid{% endif %}">
+    {% if label %}
+      <label {% if name %}for="id_{{ name }}"{% endif %} class="form-field__label">
+        {{ label }}
+        {% if required %}<span class="form-field__required">*</span>{% endif %}
+      </label>
+    {% endif %}
+
+    <div class="form-field__input-wrapper">
+      {% if type == 'textarea' %}
+        <textarea name="{{ name }}" id="id_{{ name }}"
+                  class="form-control"
+                  rows="{{ rows|default:'4' }}"
+                  placeholder="{{ placeholder|default:'' }}"
+                  {% if required %}required{% endif %}
+                  {% if disabled %}disabled{% endif %}
+                  {% if readonly %}readonly{% endif %}>{{ value|default:'' }}</textarea>
+
+      {% elif type == 'select' %}
+        <select name="{{ name }}" id="id_{{ name }}"
+                class="form-select {% if select2 %}form-field__select2{% endif %}"
+                {% if required %}required{% endif %}
+                {% if disabled %}disabled{% endif %}
+                {% if multiple %}multiple{% endif %}
+                {% if select2 %}data-placeholder="{{ placeholder|default:'Выберите...' }}"{% endif %}>
+          {% if not multiple %}
+            <option value="">{{ placeholder|default:'Выберите...' }}</option>
+          {% endif %}
+          {% for opt in options %}
+            <option value="{{ opt.value }}"
+                    {% if opt.value|stringformat:'s' == value|stringformat:'s' %}selected{% endif %}>
+              {{ opt.label }}
+            </option>
+          {% endfor %}
+        </select>
+
+      {% elif type == 'checkbox' %}
+        <div class="form-check">
+          <input type="checkbox"
+                 name="{{ name }}" id="id_{{ name }}"
+                 class="form-check-input"
+                 value="{{ value|default:'1' }}"
+                 {% if checked %}checked{% endif %}
+                 {% if required %}required{% endif %}
+                 {% if disabled %}disabled{% endif %}>
+          {% if checkbox_label %}
+            <label class="form-check-label" for="id_{{ name }}">{{ checkbox_label }}</label>
+          {% endif %}
+        </div>
+
+      {% elif type == 'radio' %}
+        {% for opt in options %}
+          <div class="form-check">
+            <input type="radio"
+                   name="{{ name }}" id="id_{{ name }}_{{ forloop.counter }}"
+                   class="form-check-input"
+                   value="{{ opt.value }}"
+                   {% if opt.value|stringformat:'s' == value|stringformat:'s' %}checked{% endif %}
+                   {% if required %}required{% endif %}>
+            <label class="form-check-label" for="id_{{ name }}_{{ forloop.counter }}">{{ opt.label }}</label>
+          </div>
+        {% endfor %}
+
+      {% elif type == 'file' %}
+        <input type="file"
+               name="{{ name }}" id="id_{{ name }}"
+               class="form-control"
+               {% if accept %}accept="{{ accept }}"{% endif %}
+               {% if required %}required{% endif %}
+               {% if disabled %}disabled{% endif %}
+               {% if multiple %}multiple{% endif %}>
+
+      {% elif type == 'hidden' %}
+        <input type="hidden" name="{{ name }}" id="id_{{ name }}" value="{{ value|default:'' }}">
+
+      {% else %}{# text, email, password, number, tel, url, date, time #}
+        <input type="{{ type|default:'text' }}"
+               name="{{ name }}" id="id_{{ name }}"
+               class="form-control"
+               value="{{ value|default:'' }}"
+               placeholder="{{ placeholder|default:'' }}"
+               {% if required %}required{% endif %}
+               {% if disabled %}disabled{% endif %}
+               {% if readonly %}readonly{% endif %}
+               {% if min %}min="{{ min }}"{% endif %}
+               {% if max %}max="{{ max }}"{% endif %}
+               {% if step %}step="{{ step }}"{% endif %}
+               {% if maxlength %}maxlength="{{ maxlength }}"{% endif %}
+               {% if pattern %}pattern="{{ pattern }}"{% endif %}>
+      {% endif %}
+    </div>
+
+    {% if help_text %}
+      <div class="form-field__help">{{ help_text }}</div>
+    {% endif %}
+
+    {% if error %}
+      <div class="form-field__error">{{ error }}</div>
+    {% endif %}
+  </div>
+{% endif %}
