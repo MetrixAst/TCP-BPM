@@ -29,6 +29,7 @@ class PermissionEnums(Enum):
     HR = "hr"
     HR_COMPANIES = "hr_companies"
     HR_POSITIONS = "hr_positions"
+    HR_JOURNAL = "hr_journal"
     ECOPARK = "ecopark"
     REQUISTIONS = "requistions"
     REPORTS = "reports"
@@ -58,6 +59,7 @@ class RolePermissions:
             PermissionEnums.REQUISTIONS,
             PermissionEnums.REPORTS,
             PermissionEnums.COMMENT,
+            PermissionEnums.HR_JOURNAL, 
         ],
         RoleEnums.STAFF.value: [
             PermissionEnums.PROFILE,
@@ -171,22 +173,25 @@ class MenuItem:
                     MenuItem('enbek_vacations',   'hr:vacations',   '', 'Отпуска (Enbek)'),
                     MenuItem('enbek_sick_leaves', 'hr:sick_leaves', '', 'Больничные (Enbek)'),
                     MenuItem('enbek_contracts',   'hr:contracts',   '', 'Договоры (Enbek)'),
+                    MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
+                    MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
                 ]),
                 MenuItem('ecopark',     'ecopark:home',     'water',      'Эксплуатация'),
                 MenuItem('requistions', 'requistions:home', 'notebook-1', 'Заявки от арендаторов'),
                 MenuItem('reports',     'reports:home',     'eye',        'Показатели'),
+                
             ],
 
             RoleEnums.STAFF.value: [
                 MenuItem('hr', '#hr', 'user', 'HR', submenu=[
-                    MenuItem('org',               'hr:org',         '', 'Орг. структура'),
-                    MenuItem('employees',         'hr:employees',   '', 'Сотрудники'),
-                    MenuItem('enbek_vacations',   'hr:vacations',   '', 'Отпуска (Enbek)'),
-                    MenuItem('enbek_sick_leaves', 'hr:sick_leaves', '', 'Больничные (Enbek)'),
-                    MenuItem('enbek_contracts',   'hr:contracts',   '', 'Договоры (Enbek)'),
+                MenuItem('org',               'hr:org',           '', 'Орг. структура'),
+                MenuItem('employees',         'hr:employees',     '', 'Сотрудники'),
+                MenuItem('enbek_vacations',   'hr:vacations',     '', 'Отпуска (Enbek)'),
+                MenuItem('enbek_sick_leaves', 'hr:sick_leaves',   '', 'Больничные (Enbek)'),
+                MenuItem('enbek_contracts',   'hr:contracts',     '', 'Договоры (Enbek)'),
+                MenuItem('attendance_my',     'hr:attendance_my', '', 'Моя посещаемость'),
                 ]),
             ],
-
             RoleEnums.GUEST.value: [
                 MenuItem('requistions', 'requistions:home', 'notebook-1', 'Заявки'),
             ],

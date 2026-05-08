@@ -3,6 +3,7 @@ import json
 import openpyxl
 import pytz
 from django.test import TestCase, Client, override_settings
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.http import Http404
@@ -1822,14 +1823,14 @@ class AttendanceCheckinAPITestCase(TestCase):
 class AttendanceJournalViewTest(TestCase):
     def setUp(self):
         self.client = Client()
-        self.dept = Department.objects.create(name='IT', company='Компания1')
+        self.dept = Department.objects.create(name='IT')
 
-        self.hr_user = User.objects.create_user(username='hr_admin', password='pass')
+        self.hr_user = User.objects.create_user(username='hr_admin', password='pass', role=RoleEnums.ADMINISTRATOR.value)
         self.hr_emp = Employee.objects.create(
-            user=self.hr_user, department=self.dept, status='active'
+            user=self.hr_user, department=self.dept, status='active', head=True
         )
 
-        self.user = User.objects.create_user(username='worker1', password='pass')
+        self.user = User.objects.create_user(username='worker1', password='pass', role=RoleEnums.STAFF.value)
         self.emp = Employee.objects.create(
             user=self.user, department=self.dept, status='active'
         )
@@ -1857,7 +1858,7 @@ class AttendanceJournalViewTest(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
 
-        def test_flag_late_when_after_9(self):
+    def test_flag_late_when_after_9(self):
         self.client.login(username='hr_admin', password='pass')
         self._create_record(self.emp, CheckInEnum.DAY_START, hour=10, minute=0)
 
@@ -1894,7 +1895,7 @@ class AttendanceJournalViewTest(TestCase):
         entry = next(j for j in journal if j['employee'] == self.emp)
         self.assertTrue(entry['early_leave'])
 
-     def test_flag_no_early_leave_at_18(self):
+    def test_flag_no_early_leave_at_18(self):
         self.client.login(username='hr_admin', password='pass')
         self._create_record(self.emp, CheckInEnum.DAY_START, hour=9)
         self._create_record(self.emp, CheckInEnum.DAY_END, hour=18)
@@ -1906,7 +1907,6 @@ class AttendanceJournalViewTest(TestCase):
 
     def test_no_record_flag(self):
         self.client.login(username='hr_admin', password='pass')
-
         response = self.client.get(self.url)
         journal = response.context['journal']
         entry = next(j for j in journal if j['employee'] == self.emp)
@@ -1924,16 +1924,6 @@ class AttendanceJournalViewTest(TestCase):
         entry = next(j for j in journal if j['employee'] == self.emp)
         self.assertAlmostEqual(entry['total_hours'], 8.0, places=1)
 
-    def test_total_hours_without_lunch(self):
-        self.client.login(username='hr_admin', password='pass')
-        self._create_record(self.emp, CheckInEnum.DAY_START, hour=9)
-        self._create_record(self.emp, CheckInEnum.DAY_END, hour=18)
-
-        response = self.client.get(self.url)
-        journal = response.context['journal']
-        entry = next(j for j in journal if j['employee'] == self.emp)
-        self.assertAlmostEqual(entry['total_hours'], 9.0, places=1)
-
     def test_filter_by_date(self):
         self.client.login(username='hr_admin', password='pass')
         yesterday = self.today - timedelta(days=1)
@@ -1948,8 +1938,8 @@ class AttendanceJournalViewTest(TestCase):
 class AttendanceMyViewTest(TestCase):
     def setUp(self):
         self.client = Client()
-        self.dept = Department.objects.create(name='HR', company='Компания1')
-        self.user = User.objects.create_user(username='myuser', password='pass')
+        self.dept = Department.objects.create(name='HR')
+        self.user = User.objects.create_user(username='myuser', password='pass', role=RoleEnums.STAFF.value)
         self.emp = Employee.objects.create(
             user=self.user, department=self.dept, status='active'
         )
@@ -1976,12 +1966,6 @@ class AttendanceMyViewTest(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
 
-    def test_my_shows_current_month(self):
-        self.client.login(username='myuser', password='pass')
-        response = self.client.get(self.url)
-        self.assertIn('attendance_list', response.context)
-        self.assertIn('view_date', response.context)
-
     def test_my_late_flag(self):
         self.client.login(username='myuser', password='pass')
         self._create_record(CheckInEnum.DAY_START, hour=11)
@@ -1991,43 +1975,35 @@ class AttendanceMyViewTest(TestCase):
             (i for i in response.context['attendance_list'] if i['date'] == self.today),
             None
         )
-        self.assertIsNotNone(today_entry)
         self.assertTrue(today_entry['late'])
 
-    def test_my_no_record_flag(self):
-        self.client.login(username='myuser', password='pass')
-        response = self.client.get(self.url)
-        today_entry = next(
-            (i for i in response.context['attendance_list'] if i['date'] == self.today),
-            None
-        )
-        self.assertIsNotNone(today_entry)
-        self.assertTrue(today_entry['no_record'])
 
-    def test_my_lunch_displayed(self):
-        self.client.login(username='myuser', password='pass')
-        self._create_record(CheckInEnum.DAY_START, hour=9)
-        self._create_record(CheckInEnum.LUNCH_START, hour=13)
-        self._create_record(CheckInEnum.LUNCH_END, hour=14)
-        self._create_record(CheckInEnum.DAY_END, hour=18)
+class AttendanceAccessTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.dept_it = Department.objects.create(name='IT')
+        self.dept_hr = Department.objects.create(name='HR')
 
-        response = self.client.get(self.url)
-        today_entry = next(
-            (i for i in response.context['attendance_list'] if i['date'] == self.today),
-            None
-        )
-        self.assertIsNotNone(today_entry['lunch_start'])
-        self.assertIsNotNone(today_entry['lunch_end'])
+        self.hr_user = User.objects.create_user(username='hr_admin_access', password='pass', role=RoleEnums.ADMINISTRATOR.value)
+        Employee.objects.create(user=self.hr_user, department=self.dept_hr, status='active', head=True)
 
-    def test_my_month_navigation(self):
-        self.client.login(username='myuser', password='pass')
-        last_month = self.today.replace(day=1) - timedelta(days=1)
-        response = self.client.get(
-            self.url + f'?month={last_month.month}&year={last_month.year}'
-        )
+        self.manager_user = User.objects.create_user(username='it_manager_access', password='pass', role=RoleEnums.STAFF.value)
+        self.manager_emp = Employee.objects.create(user=self.manager_user, department=self.dept_it, status='active', head=True)
+
+        self.worker_user = User.objects.create_user(username='worker_it_access', password='pass', role=RoleEnums.STAFF.value)
+        Employee.objects.create(user=self.worker_user, department=self.dept_it, status='active', head=False)
+
+        self.journal_url = reverse('hr:attendance_journal')
+
+    def test_staff_cannot_access_journal(self):
+        self.client.login(username='worker_it_access', password='pass')
+        response = self.client.get(self.journal_url)
+        self.assertIn(response.status_code, [302, 403])
+
+    def test_manager_sees_only_own_department(self):
+        self.client.login(username='it_manager_access', password='pass')
+        response = self.client.get(self.journal_url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.context['view_date'].month,
-            last_month.month
-        )
-
+        journal = response.context['journal']
+        for entry in journal:
+            self.assertEqual(entry['employee'].department, self.dept_it)

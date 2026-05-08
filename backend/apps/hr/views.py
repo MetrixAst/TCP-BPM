@@ -4,13 +4,14 @@ import base64
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.shortcuts import redirect, render, get_object_or_404
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
 from django.db import transaction
 from django.utils.dateparse import parse_date
 from datetime import datetime, date, timedelta, time
+
 
 from project.utils import get_or_none, get_or_error
 from project.paginator import CustomPaginator
@@ -571,10 +572,22 @@ def attendance_journal(request):
     import pytz
     LOCAL_TZ = pytz.timezone('Asia/Almaty')
 
+    user = request.user
+    employee = getattr(user, 'employee_info', None)
+    
+    is_hr = RolePermissions.checkPermission(user.role, PermissionEnums.HR_JOURNAL)
+    is_head = employee and employee.head
+
+    if not is_hr and not is_head:
+        return redirect('hr:attendance_my')
+
     target_date_str = request.GET.get('date', date.today().isoformat())
     target_date = parse_date(target_date_str) or date.today()
     
     employees_qs = Employee.objects.filter(status='active').select_related('user', 'department')
+    
+    if not is_hr and is_head:
+        employees_qs = employees_qs.filter(department=employee.department)
     
     department_id = request.GET.get('department')
     if department_id:
@@ -619,20 +632,36 @@ def attendance_journal(request):
             'no_record': not has_records
         })
 
+    departments = Department.objects.all() if is_hr else [employee.department]
+
     return render(request, 'site/hr/attendance_journal.html', {
         'journal': journal,
         'target_date': target_date,
-        'departments': Department.objects.all()
+        'departments': departments,
+        'is_hr': is_hr
     })
-
-
 
 @login_required
 def attendance_my(request):
     import pytz
     LOCAL_TZ = pytz.timezone('Asia/Almaty')
 
-    employee = getattr(request.user, 'employee_info', None)
+    curr_employee = getattr(request.user, 'employee_info', None)
+    
+    target_emp_id = request.GET.get('employee_id')
+    if target_emp_id:
+        is_hr = RolePermissions.checkPermission(request.user.role, PermissionEnums.HR_JOURNAL)
+        is_head = curr_employee and curr_employee.head
+        
+        if is_hr:
+            employee = get_object_or_404(Employee, id=target_emp_id)
+        elif is_head:
+            employee = get_object_or_404(Employee, id=target_emp_id, department=curr_employee.department)
+        else:
+            return redirect('hr:attendance_my')
+    else:
+        employee = curr_employee
+
     if not employee:
         return redirect('dashboard:dashboard')
 
@@ -643,17 +672,17 @@ def attendance_my(request):
         view_month = date.today().month
         view_year = date.today().year
 
+    import calendar as calendar_module
     _, num_days = calendar_module.monthrange(view_year, view_month)
     
     attendance_list = []
     for day in range(num_days, 0, -1):
         current_day = date(view_year, view_month, day)
-        
         if current_day > date.today():
             continue
 
         summary = AttendanceRecord.get_daily_summary(employee, current_day)
-        events = summary.get('details', {})  
+        events = summary.get('details', {})
 
         late = False
         early_leave = False
@@ -673,7 +702,6 @@ def attendance_my(request):
         lunch_start = events.get(CheckInEnum.LUNCH_START)
         if lunch_start:
             lunch_start = lunch_start.astimezone(LOCAL_TZ)
-
         lunch_end = events.get(CheckInEnum.LUNCH_END)
         if lunch_end:
             lunch_end = lunch_end.astimezone(LOCAL_TZ)
@@ -700,5 +728,6 @@ def attendance_my(request):
         'view_date': date(view_year, view_month, 1),
         'prev_month': prev_month_date,
         'next_month': next_month_date if next_month_date <= date.today() else None,
-        'employee': employee
+        'employee': employee,
+        'is_own_profile': employee == curr_employee
     })
