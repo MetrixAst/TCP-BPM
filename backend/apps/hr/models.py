@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from account.models import UserAccount, Employee
 from datetime import timedelta
-from .enums import CalendarItemType, DayTypeEnum, LeaveStatusEnum, CheckInEnum
+from .enums import CalendarItemType, DayTypeEnum, LeaveStatusEnum, CheckInEnum, DocumentTypeEnum, DocumentStatusEnum
 
 
 
@@ -319,3 +319,56 @@ class AttendanceRecord(models.Model):
 
     def __str__(self):
         return f"{self.employee} - {self.event_type} ({self.timestamp.strftime('%d.%m %H:%M')})"
+
+class EmployeeDocument(models.Model):
+    employee = models.ForeignKey(
+        'account.Employee',
+        on_delete=models.CASCADE,
+        related_name='documents',
+        verbose_name="Сотрудник"
+    )
+    doc_type = models.CharField(
+        "Тип документа",
+        max_length=30,
+        choices=DocumentTypeEnum.choices,
+        default=DocumentTypeEnum.OTHER
+    )
+    title = models.CharField("Название", max_length=255)
+    version = models.PositiveIntegerField("Версия", default=1)
+    status = models.CharField(
+        "Статус",
+        max_length=20,
+        choices=DocumentStatusEnum.choices,
+        default=DocumentStatusEnum.DRAFT
+    )
+    file = models.FileField(
+        "Файл",
+        upload_to='employee_documents/%Y/%m/',
+        null=True,
+        blank=True
+    )
+    signed_at = models.DateField("Дата подписания", null=True, blank=True)
+    expires_at = models.DateField("Дата истечения", null=True, blank=True)
+    notes = models.TextField("Примечания", blank=True, null=True)
+    external_enbek_id = models.CharField(
+        "ID в Enbek",
+        max_length=100,
+        null=True,
+        blank=True
+    )
+    sync_status = models.CharField(
+        "Статус синхронизации",
+        max_length=20,
+        default='local'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Документ сотрудника"
+        verbose_name_plural = "Документы сотрудников"
+        ordering = ['-created_at']
+        unique_together = ['employee', 'doc_type', 'version']
+
+    def __str__(self):
+        return f"{self.employee} | {self.get_doc_type_display()} v{self.version}"

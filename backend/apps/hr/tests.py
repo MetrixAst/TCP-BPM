@@ -16,9 +16,9 @@ from unittest.mock import Mock, patch
 
 from .models import (
     LeaveRequest, LeaveType, WorkCalendar, Company, 
-    Position, Vacation, SickLeave, EmploymentContract, AttendanceRecord, CheckInEnum
+    Position, Vacation, SickLeave, EmploymentContract, AttendanceRecord, CheckInEnum, EmployeeDocument
 )
-from .enums import LeaveStatusEnum, DayTypeEnum
+from .enums import LeaveStatusEnum, DayTypeEnum, DocumentStatusEnum, DocumentTypeEnum
 from account.role_permissions import RoleEnums, MenuItem
 
 try:
@@ -29,6 +29,7 @@ except ImportError:
 from hr.enbek_client import EnbekClient, EnbekClientError, AuthenticationError, ConnectionError
 from hr.services import EnbekSyncService
 from hr.tasks import sync_enbek_data
+
 
 User = get_user_model()
 LOCAL_TZ = pytz.timezone('Asia/Almaty')
@@ -2007,3 +2008,142 @@ class AttendanceAccessTest(TestCase):
         journal = response.context['journal']
         for entry in journal:
             self.assertEqual(entry['employee'].department, self.dept_it)
+
+
+class EmployeeDocumentModelTest(TestCase):
+    def setUp(self):
+        self.dept = Department.objects.create(name='IT')
+        self.user = User.objects.create_user(username='doc_worker', password='pass', role=RoleEnums.STAFF.value)
+        self.emp = Employee.objects.create(user=self.user, department=self.dept, status='active')
+
+    def test_create_employment_contract(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type=DocumentTypeEnum.EMPLOYMENT_CONTRACT,
+            title='Трудовой договор №1',
+            version=1,
+            status=DocumentStatusEnum.ACTIVE,
+        )
+        self.assertEqual(doc.doc_type, DocumentTypeEnum.EMPLOYMENT_CONTRACT)
+        self.assertEqual(doc.status, DocumentStatusEnum.ACTIVE)
+        self.assertEqual(doc.version, 1)
+        self.assertEqual(doc.sync_status, 'local')
+
+    def test_create_nda(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type=DocumentTypeEnum.NDA,
+            title='NDA',
+            version=1,
+            status=DocumentStatusEnum.DRAFT,
+        )
+        self.assertEqual(doc.doc_type, DocumentTypeEnum.NDA)
+        self.assertEqual(doc.status, DocumentStatusEnum.DRAFT)
+
+    def test_create_liability_agreement(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type=DocumentTypeEnum.LIABILITY_AGREEMENT,
+            title='Договор о мат. ответственности',
+            version=1,
+        )
+        self.assertEqual(doc.doc_type, DocumentTypeEnum.LIABILITY_AGREEMENT)
+
+    def test_default_status_is_draft(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type=DocumentTypeEnum.OTHER,
+            title='Прочий документ',
+            version=1,
+        )
+        self.assertEqual(doc.status, DocumentStatusEnum.DRAFT)
+
+    def test_default_sync_status_is_local(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type=DocumentTypeEnum.OTHER,
+            title='Тест синхронизации',
+            version=1,
+        )
+        self.assertEqual(doc.sync_status, 'local')
+
+    def test_versioning_unique_together(self):
+        EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type=DocumentTypeEnum.EMPLOYMENT_CONTRACT,
+            title='Договор v1',
+            version=1,
+        )
+        from django.db import IntegrityError
+        with self.assertRaises(IntegrityError):
+            EmployeeDocument.objects.create(
+                employee=self.emp,
+                doc_type=DocumentTypeEnum.EMPLOYMENT_CONTRACT,
+                title='Дубль',
+                version=1,
+            )
+
+    def test_versioning_allows_new_version(self):
+        EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type=DocumentTypeEnum.EMPLOYMENT_CONTRACT,
+            title='Договор v1',
+            version=1,
+        )
+        doc2 = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type=DocumentTypeEnum.EMPLOYMENT_CONTRACT,
+            title='Договор v2',
+            version=2,
+        )
+        self.assertEqual(doc2.version, 2)
+
+    def test_str_representation(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type=DocumentTypeEnum.NDA,
+            title='NDA',
+            version=1,
+        )
+        self.assertIn('NDA', str(doc))
+        self.assertIn('v1', str(doc))
+
+    def test_external_enbek_id_optional(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type=DocumentTypeEnum.OTHER,
+            title='Без Enbek ID',
+            version=1,
+        )
+        self.assertIsNone(doc.external_enbek_id)
+
+    def test_expired_status(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type=DocumentTypeEnum.EMPLOYMENT_CONTRACT,
+            title='Истёкший договор',
+            version=1,
+            status=DocumentStatusEnum.EXPIRED,
+        )
+        self.assertEqual(doc.status, DocumentStatusEnum.EXPIRED)
+
+    def test_revoked_status(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type=DocumentTypeEnum.EMPLOYMENT_CONTRACT,
+            title='Отозванный договор',
+            version=1,
+            status=DocumentStatusEnum.REVOKED,
+        )
+        self.assertEqual(doc.status, DocumentStatusEnum.REVOKED)
+
+    def test_employee_cascade_delete(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type=DocumentTypeEnum.NDA,
+            title='NDA',
+            version=1,
+        )
+        doc_id = doc.id
+        self.emp.delete()
+        self.assertFalse(EmployeeDocument.objects.filter(id=doc_id).exists())
