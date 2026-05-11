@@ -9,37 +9,40 @@
 
 {% block content %}
 <div class="hr-page hr-org-page">
-  <div class="hr-page__header">
-    <div>
-      <div class="hr-page__eyebrow">HR / Организация</div>
-      <h1 class="hr-page__title">Оргструктура</h1>
+
+  <div class="hr-org-top">
+    <div class="hr-org-top__title">
+      <h1>Оргструктура</h1>
     </div>
 
-    <div class="hr-page__actions">
-      <div class="hr-search">
+    <div class="hr-org-top__actions">
+      <div class="hr-org-search">
         <i class="bi bi-search"></i>
         <input type="search" id="hrOrgSearch" placeholder="Поиск сотрудника">
       </div>
 
-      <button class="hr-btn hr-btn--light" type="button" id="hrOrgZoomOut">
+      <button class="hr-org-action" type="button" id="hrOrgZoomOut" title="Уменьшить">
         <i class="bi bi-dash-lg"></i>
       </button>
-      <button class="hr-btn hr-btn--light" type="button" id="hrOrgZoomIn">
+
+      <button class="hr-org-action" type="button" id="hrOrgZoomIn" title="Увеличить">
         <i class="bi bi-plus-lg"></i>
       </button>
-      <button class="hr-btn hr-btn--primary" type="button" id="hrOrgFit">
+
+      <button class="hr-org-fit" type="button" id="hrOrgFit">
         <i class="bi bi-arrows-fullscreen"></i>
         <span>Подогнать</span>
       </button>
     </div>
   </div>
 
-  <div class="hr-card hr-org-card">
-    <div class="hr-org-toolbar">
+  <div class="hr-org-panel">
+    <div class="hr-org-panel__head">
       <div>
         <h2>Структура компании</h2>
         <p>Компания → отделы → сотрудники</p>
       </div>
+
       <div class="hr-org-legend">
         <span><i class="hr-dot hr-dot--blue"></i>Компания</span>
         <span><i class="hr-dot hr-dot--green"></i>Отдел</span>
@@ -49,17 +52,19 @@
 
     <div class="hr-org-shell">
       <div
-        class="chart-container hr-org-chart"
+        class="hr-org-chart"
         id="hrOrgChart"
-        data-url="{% url 'account:structure' 'all' %}">
+        data-url="/account/structure/all">
       </div>
     </div>
   </div>
+
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-flextree@2.1.2/build/d3-flextree.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-org-chart@3"></script>
-<script src="{% static 'site/js/apps/hr.js' %}?v={{ static_version|default:'1' }}"></script>
+<script src="{% static 'site/js/apps/hr.js' %}?v=9999"></script>
 {% endblock scripts %}

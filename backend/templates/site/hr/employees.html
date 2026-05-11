@@ -10,13 +10,10 @@
 
 {% block content %}
 <div class="hr-page hr-employees-page">
-  <div class="hr-page__header">
-    <div>
-      <div class="hr-page__eyebrow">HR / Сотрудники</div>
-      <h1 class="hr-page__title">Сотрудники</h1>
-    </div>
-
-    <div class="hr-page__actions">
+  <div class="hr-list-top">
+    <h1>Сотрудники</h1>
+  
+    <div class="hr-list-top__actions">
       <a href="{% url 'hr:create_employee' %}" class="hr-btn hr-btn--primary">
         <i class="bi bi-plus-lg"></i>
         <span>Новый сотрудник</span>
