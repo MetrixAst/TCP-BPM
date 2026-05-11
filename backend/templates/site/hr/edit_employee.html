@@ -2,53 +2,147 @@
 {% load static %}
 {% load site_tags %}
 
+{% block title %}Редактирование сотрудника — metriX BPM{% endblock %}
+
+{% block body_classes %}hr-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
 {% block content %}
-    <div class="d-flex justify-content-center">
-        <div class="col-xl-6 mb-5">
-            <div class="mx-auto">
-                <form method="POST">
-                    {% check_form form %}
-                    {% csrf_token %}
-                    <div class="card mb-5">
-                        <div class="card-body">
 
-                            <h1 class="mb-3 mt-1 pb-0 display-4">{{employee.user.get_name}}</h1>
+<div class="hr-edit-page">
 
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <label class="top-label">
-                                        {{form.department}}
-                                        <span>ОТДЕЛ</span>
-                                    </label>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="top-label">
-                                        {{form.job_title}}
-                                        <span>Должность</span>
-                                    </label>
-                                </div>
-                            </div>
+  <div class="hr-edit-card">
 
-                            <div class="mt-3 position-relative tooltip-label-end form-group">
-                                <div class="form-check">
-                                    <label class="form-check-label">
-                                        {{form.head}}
-                                        Руководитель отдела
-                                    </label>
-                                </div>
-                            </div>
+    <div class="hr-edit-card__header">
+      <h1 class="hr-edit-card__title">
+        {% if employee.user.get_name %}{{ employee.user.get_name }}{% else %}{{ employee.user.username }}{% endif %}
+      </h1>
 
-                            <div class="d-flex justify-content-end mt-3">
-                                <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
-                                    <span>Сохранить</span>
-                                    <i data-acorn-icon="chevron-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-        
+      <a href="{% url 'hr:employees' %}" class="hr-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
     </div>
+
+    <form method="POST" class="hr-edit-form" id="hrEmployeeForm">
+      {% csrf_token %}
+      {% check_form form %}
+
+      <div class="hr-edit-card__body">
+
+        <section class="hr-edit-section">
+          <h2 class="hr-edit-section__title">Рабочая информация</h2>
+
+          <div class="hr-edit-grid hr-edit-grid--2">
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Отдел</label>
+              {{ form.department }}
+              {% if form.department.errors %}
+                <div class="hr-edit-field__error">{{ form.department.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Должность</label>
+              {{ form.position }}
+              {% if form.position.errors %}
+                <div class="hr-edit-field__error">{{ form.position.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Статус</label>
+              {{ form.status }}
+              {% if form.status.errors %}
+                <div class="hr-edit-field__error">{{ form.status.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Руководитель</label>
+              {{ form.supervisor }}
+              {% if form.supervisor.errors %}
+                <div class="hr-edit-field__error">{{ form.supervisor.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">ИИН</label>
+              {{ form.iin }}
+              {% if form.iin.errors %}
+                <div class="hr-edit-field__error">{{ form.iin.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Дата приема</label>
+              <input type="text"
+                     name="{{ form.hire_date.html_name }}"
+                     id="{{ form.hire_date.id_for_label }}"
+                     value="{{ form.hire_date.value|date:'d.m.Y' }}"
+                     class="hr-edit-date"
+                     placeholder="дд.мм.гггг">
+              {% if form.hire_date.errors %}
+                <div class="hr-edit-field__error">{{ form.hire_date.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Телефон</label>
+              {{ form.phone }}
+              {% if form.phone.errors %}
+                <div class="hr-edit-field__error">{{ form.phone.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Личная почта</label>
+              {{ form.personal_email }}
+              {% if form.personal_email.errors %}
+                <div class="hr-edit-field__error">{{ form.personal_email.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+          </div>
+
+          <label class="hr-edit-switch">
+            {{ form.head }}
+            <span></span>
+            <strong>Руководитель отдела</strong>
+          </label>
+
+          {% if form.head.errors %}
+            <div class="hr-edit-field__error">{{ form.head.errors.0 }}</div>
+          {% endif %}
+        </section>
+
+      </div>
+
+      <div class="hr-edit-card__footer">
+        <a href="{% url 'hr:employees' %}" class="hr-edit-btn hr-edit-btn--cancel">
+          Отменить
+        </a>
+
+        <button type="submit" class="hr-edit-btn hr-edit-btn--save">
+          Сохранить
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
 {% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/hr.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock scripts %}

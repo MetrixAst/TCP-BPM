@@ -1,0 +1,15 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>{{ counterparty.short_name }}</h3>
+    <div class="card">
+        <div class="card-body">
+            <p><b>Полное название:</b> {{ counterparty.full_name }}</p>
+            <p><b>БИН:</b> {{ counterparty.bin_number }}</p>
+            <p><b>ID в 1С:</b> {{ counterparty.id_1c }}</p>
+        </div>
+    </div>
+    <a href="{% url 'onec:counterparty_list' %}" class="btn btn-secondary mt-3">Назад</a>
+</div>
+{% endblock %}

@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from decouple import config, Csv
 from datetime import timedelta
+from celery.schedules import crontab
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -47,7 +48,9 @@ INSTALLED_APPS = [
     'tasks',
     'tenants',
     'addits',
+    'enbek',
     'onec',
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
@@ -186,6 +189,18 @@ REST_FRAMEWORK = {
 # CELERY
 CELERY_BROKER_URL = config('CELERY_BROKER_URL')
 CELERY_RESULT_BACKEND = 'django-db'
+CELERY_BEAT_SCHEDULE = {
+    'sync_counterparties_every_4_hours': {
+        'task': 'sync_counterparties_task',
+        'schedule': timedelta(hours=4),
+    },
+    'sync-enbek-every-6-hours': {
+        'task': 'hr.tasks.sync_enbek_data',
+        'schedule': crontab(minute=0, hour='*/6'),
+    },
+}
+
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 
 #ADDIT
@@ -201,3 +216,8 @@ ONE_C_BASIC_AUTH_USER = config('ONE_C_BASIC_AUTH_USER', default='')
 ONE_C_BASIC_AUTH_PASSWORD = config('ONE_C_BASIC_AUTH_PASSWORD', default='')
 ONE_C_API_USER = config('ONE_C_API_USER', default='')
 ONE_C_API_PASSWORD = config('ONE_C_API_PASSWORD', default='')
+
+ENBEK_BASE_URL = config('ENBEK_BASE_URL', default='http://web:8000/api/enbek')
+ENBEK_USERNAME = config('ENBEK_USERNAME', default='test')
+ENBEK_PASSWORD = config('ENBEK_PASSWORD', default='test')
+ENBEK_TIMEOUT = config('ENBEK_TIMEOUT', default=10, cast=int)

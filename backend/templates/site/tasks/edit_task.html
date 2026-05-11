@@ -1,77 +1,137 @@
 {% extends 'site/base.html' %}
-{% load static %}
-{% load site_tags %}
+{% load static site_tags %}
+
+{% block title %}{% if task.pk %}Редактирование задачи{% else %}Новая задача{% endif %} — metriX BPM{% endblock %}
+
+{% block body_classes %}task-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999" />
+{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-center">
-        <div class="col-xl-6 mb-5">
-            <div class="mx-auto">
-                <form method="POST">
-                    {% check_form form %}
-                    {% csrf_token %}
-                    <div class="card mb-5">
-                        <div class="card-body">
 
-                            <h1 class="mb-3 mt-1 pb-0 display-4">Новая задача</h1>
-                            <div class="row g-3">
-                                <div class="col-md-9">
-                                    <label class="top-label">
-                                        {{form.title}}
-                                        <span>ЗАГОЛОВОК</span>
-                                    </label>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="top-label">
-                                        {{form.deadline}}
-                                        <span>СРОК</span>
-                                    </label>
-                                </div>
-                            </div>
+<div class="task-edit-page">
 
-                            <div class="row g-3 mt-3">
-                                <div class="col">
-                                    <div class="top-label">
-                                        {{form.text}}
-                                        <span>ТЕКСТ</span>
-                                    </div>
-                                </div>
-                            </div>
+  <div class="task-edit-card">
 
-                            <div class="mt-3 position-relative tooltip-label-end form-group">
-                                <div class="form-check">
-                                    <label class="form-check-label">
-                                        {{form.important}}
-                                        Это важная задача
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <div class="w-100">
-                                        <label class="form-label">Ответственные</label>
-                                        {{form.responsible}}
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="w-100">
-                                        <label class="form-label">Наблюдатели</label>
-                                        {{form.observers}}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-end mt-3">
-                                <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
-                                    <span>Сохранить</span>
-                                    <i data-acorn-icon="chevron-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-        
+    <div class="task-edit-card__header">
+      <h1 class="task-edit-card__title">
+        {% if task.pk %}Редактирование задачи{% else %}Новая задача{% endif %}
+      </h1>
+    
+      <a href="{% url 'tasks:list' %}" class="task-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
     </div>
+
+    <form method="POST" enctype="multipart/form-data" class="task-edit-form" id="taskEditForm">
+      {% csrf_token %}
+
+      <div class="task-edit-card__body">
+
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Данные задачи</h2>
+
+          <div class="task-edit-grid task-edit-grid--2">
+            <div class="task-edit-field {% if form.title.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Название<span>*</span></label>
+              {{ form.title }}
+              {% if form.title.errors %}
+                <div class="task-edit-field__error">{{ form.title.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="task-edit-field {% if form.deadline.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Дедлайн<span>*</span></label>
+              {{ form.deadline }}
+              {% if form.deadline.errors %}
+                <div class="task-edit-field__error">{{ form.deadline.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Тип задачи<span>*</span></label>
+              <select class="task-edit-select" name="task_type">
+                <option value="">Тип задачи</option>
+                <option value="assignment">Поручение</option>
+                <option value="approval">Согласование</option>
+                <option value="document">Документ</option>
+              </select>
+            </div>
+
+            <div class="task-edit-field {% if form.priority.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Приоритет</label>
+              {{ form.priority }}
+              {% if form.priority.errors %}
+                <div class="task-edit-field__error">{{ form.priority.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="task-edit-field {% if form.text.errors %}is-invalid{% endif %}">
+            <label class="task-edit-field__label">Описание</label>
+            {{ form.text }}
+            {% if form.text.errors %}
+              <div class="task-edit-field__error">{{ form.text.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Маршрут</h2>
+
+          <div class="task-edit-route task-edit-route--single">
+            <div class="task-edit-field {% if form.executor.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Исполнитель<span>*</span></label>
+              {{ form.executor }}
+              {% if form.executor.errors %}
+                <div class="task-edit-field__error">{{ form.executor.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="task-edit-field {% if form.co_executors.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Соисполнители</label>
+              {{ form.co_executors }}
+              {% if form.co_executors.errors %}
+                <div class="task-edit-field__error">{{ form.co_executors.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="task-edit-field {% if form.observers.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Наблюдатели</label>
+              {{ form.observers }}
+              {% if form.observers.errors %}
+                <div class="task-edit-field__error">{{ form.observers.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <div class="task-edit-card__footer">
+        <a href="{% url 'tasks:list' %}" class="task-edit-btn task-edit-btn--cancel">
+          Отменить
+        </a>
+
+        <button type="submit" class="task-edit-btn task-edit-btn--save">
+          Сохранить
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/tasks.js' %}?v={{ static_version|default:'5' }}"></script>
 {% endblock %}

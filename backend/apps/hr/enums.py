@@ -1,4 +1,6 @@
 from project.enums import CustomEnum
+from django.db import models
+
 
 class CalendarItemType(CustomEnum):
     SECONDMENT = ("secondment", "Командировка")
@@ -12,3 +14,10 @@ class CalendarItemType(CustomEnum):
         }
 
         return res.get(category, '')
+
+
+class EmployeeStatusEnum(models.TextChoices):
+    ACTIVE = 'active', 'Активен'
+    DISMISSED = 'dismissed', 'Уволен'
+    VACATION = 'vacation', 'В отпуске'
+    SICK_LEAVE = 'sick_leave', 'На больничном'

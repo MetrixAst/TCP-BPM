@@ -1,0 +1,92 @@
+{% extends "site/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>Выставить новый счет</h3>
+    <form method="post">
+        {% csrf_token %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <label><b>Контрагент:</b></label>
+                <select name="counterparty" id="cp_select" class="form-control" required></select>
+                <br>
+                <label>Комментарий:</label>
+                <textarea name="comment" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+
+        <h5>Позиции счета</h5>
+        <table class="table table-bordered" id="itemsTable">
+            <thead>
+                <tr>
+                    <th>Наименование</th>
+                    <th width="100">Кол-во</th>
+                    <th width="150">Цена</th>
+                    <th width="40"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><input type="text" name="item_name[]" class="form-control" required></td>
+                    <td><input type="number" name="item_qty[]" class="form-control" value="1" required></td>
+                    <td><input type="number" name="item_price[]" class="form-control" value="0" required></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <button type="button" id="addRow" class="btn btn-sm btn-info">+ Добавить товар</button>
+        <hr>
+        <button type="submit" class="btn btn-success">Создать и отправить в 1С</button>
+    </form>
+</div>
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    window.addEventListener('load', function() {
+        
+        $('#cp_select').select2({
+            ajax: {
+                url: "{% url 'onec:counterparty_search_api' %}",
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return { q: params.term };
+                },
+                processResults: function (data) {
+                    return { results: data.results };
+                },
+                cache: true
+            },
+            placeholder: 'Введите название или БИН',
+            minimumInputLength: 1,
+            width: '100%',
+            dropdownParent: $('#cp_select').parent()
+        });
+
+        $('#addRow').click(function() {
+            const newRow = `
+                <tr>
+                    <td><input type="text" name="item_name[]" class="form-control" required></td>
+                    <td><input type="number" name="item_qty[]" class="form-control" value="1" step="0.1" required></td>
+                    <td><input type="number" name="item_price[]" class="form-control" value="0" step="0.01" required></td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-danger removeRow">×</button>
+                    </td>
+                </tr>`;
+            $('#itemsTable tbody').append(newRow);
+        });
+
+        $(document).on('click', '.removeRow', function() {
+            if ($('#itemsTable tbody tr').length > 1) {
+                $(this).closest('tr').remove();
+            } else {
+                alert("В счете должна быть как минимум одна позиция.");
+            }
+        });
+    });
+</script>
+
+{% endblock %}

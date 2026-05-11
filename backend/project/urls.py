@@ -30,6 +30,7 @@ urlpatterns = [
     path('doc/', include(('documents.urls', 'documents'))),
     path('ecopark/', include(('ecopark.urls', 'ecopark'))),
     path('finances/', include(('finances.urls', 'finances'))),
+    path('onec/', include(('onec.urls', 'onec'))),
     path('hr/', include(('hr.urls', 'hr'))),
     path('purchases/', include(('purchases.urls', 'purchases'))),
     path('reports/', include(('reports.urls', 'reports'))),
@@ -37,6 +38,7 @@ urlpatterns = [
     path('tasks/', include(('tasks.urls', 'tasks'))),
     path('tenants/', include(('tenants.urls', 'tenants'))),
     path('addits/', include(('addits.urls', 'addits'))),
+    path('api/enbek/', include('enbek.urls')),
     path('', include(('dashboard.urls', 'dashboard'))),
 ]
 

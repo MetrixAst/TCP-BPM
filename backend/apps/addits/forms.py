@@ -29,37 +29,52 @@ class Select2MultipleFieldDefault(forms.ModelChoiceField):
 
 
 class Select2Field(forms.ModelChoiceField):
-    def __init__(self, queryset, url, required = False, placeholder=""):
-        super().__init__(queryset, required=required, widget=forms.Select(attrs={'class': 'select2_ajax', 'data-url': url, 'placeholder': placeholder}), empty_label="")
-    
-    def clean(self, value):
-        return value
+    def __init__(self, queryset, url, required=False, placeholder=""):
+        super().__init__(
+            queryset=queryset,
+            required=required,
+            widget=forms.Select(attrs={
+                'class': 'select2_ajax',
+                'data-url': url,
+                'placeholder': placeholder
+            }),
+            empty_label=""
+        )
 
 
 class Select2MultipleField(forms.ModelMultipleChoiceField):
-    def __init__(self, queryset, url, required = False, placeholder=""):
-        super().__init__(queryset, required=required, widget=forms.SelectMultiple(attrs={'class': 'select2_ajax', 'data-url': url, 'placeholder': placeholder}))
-    
-    def clean(self, value):
-        return value
+    def __init__(self, queryset, url, required=False, placeholder=""):
+        super().__init__(
+            queryset=queryset,
+            required=required,
+            widget=forms.SelectMultiple(attrs={
+                'class': 'select2_ajax',
+                'data-url': url,
+                'placeholder': placeholder
+            })
+        )
 
 
 class UserSelect2Field(Select2Field):
-    def __init__(self, required = False, all = False, placeholder = ''):
-        selection = 'all' if all is True else 'self'
-        super().__init__(UserAccount.objects.all(), url=f'/account/ajax/users/'+selection, required=required, placeholder=placeholder)
-    
-    def clean(self, value):
-        return value
+    def __init__(self, required=False, all=False, placeholder=""):
+        selection = 'all' if all else 'self'
+        super().__init__(
+            queryset=UserAccount.objects.all(),
+            url=f'/account/ajax/users/{selection}',
+            required=required,
+            placeholder=placeholder
+        )
 
 
 class UserSelect2MultipleField(Select2MultipleField):
-    def __init__(self, required = False, all = False, placeholder = ""):
-        selection = 'all' if all is True else 'self'
-        super().__init__(UserAccount.objects.all(), url=f'/account/ajax/users/'+selection, required=required, placeholder=placeholder)
-    
-    def clean(self, value):
-        return value
+    def __init__(self, required=False, all=False, placeholder=""):
+        selection = 'all' if all else 'self'
+        super().__init__(
+            queryset=UserAccount.objects.all(),
+            url=f'/account/ajax/users/{selection}',
+            required=required,
+            placeholder=placeholder
+        )
 
 
 
@@ -69,16 +84,26 @@ class CustomModelForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(CustomModelForm, self).__init__(*args, **kwargs)
         for visible in self.visible_fields():
-            if visible.field.widget.attrs.get('class') is None:
-                if isinstance(visible.field.widget, Textarea):
-                    visible.field.widget.attrs['class'] = 'form-control'
-                    visible.field.widget.attrs['rows'] = '3'
-                elif visible.field.widget.input_type == 'select':
-                    visible.field.empty_label = ""
-                    visible.field.widget.attrs['class'] = 'select2'
-                elif visible.field.widget.attrs.get('class') is None:
-                    visible.field.widget.attrs['class'] = 'form-control'
+            existing_classes = visible.field.widget.attrs.get('class', '')
+            
+            if isinstance(visible.field.widget, Textarea):
+                new_class = f"{existing_classes} form-control".strip()
+                visible.field.widget.attrs['class'] = new_class
+                visible.field.widget.attrs['rows'] = '3'
+            
+            elif (getattr(visible.field.widget, 'input_type', None) == 'select' or 
+                  isinstance(visible.field.widget, forms.Select)):
+                visible.field.empty_label = ""
+                new_class = f"{existing_classes} select2".strip()
+                visible.field.widget.attrs['class'] = new_class
+            
             else:
-                visible.label = visible.field.widget.attrs.get('placeholder', "")
-                if visible.label == "":
-                    visible.label = visible.field.label
+                if 'form-control' not in existing_classes:
+                    new_class = f"{existing_classes} form-control".strip()
+                    visible.field.widget.attrs['class'] = new_class
+
+            placeholder = visible.field.widget.attrs.get('placeholder', "")
+            if placeholder:
+                visible.label = placeholder
+            elif not visible.label:
+                visible.label = visible.field.label

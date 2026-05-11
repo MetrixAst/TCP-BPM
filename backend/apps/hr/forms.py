@@ -3,12 +3,16 @@ from betterforms.multiform import MultiForm
 from addits.forms import CustomModelForm
 
 from account.forms import UserAccountForm, EmployeeForm
-from account.models import Department
+from account.models import Department, Employee
 
 from documents.forms import PaginatorForm
 from addits.forms import Select2FieldDefault, Select2ChoiceField
 
 from .models import CalendarItem
+from .models import Position
+
+from .enums import EmployeeStatusEnum 
+
 
 class CalendarItemForm(CustomModelForm):
 
@@ -42,6 +46,32 @@ class EmployeesListForm(PaginatorForm):
     ]
     
     search = forms.CharField(widget=forms.TextInput(attrs={'class':'form-control', 'placeholder': 'Поиск'}), required=False)
+    
     department = Select2FieldDefault(queryset=Department.objects.all(), placeholder='Отдел', required=False)
+    position = Select2FieldDefault(queryset=Position.objects.all(), placeholder='Должность', required=False)
+
+    status = Select2ChoiceField(
+        choices=[('', 'Статус')] + EmployeeStatusEnum.choices, 
+        required=False, 
+        placeholder='Статус'
+    )
     ordering = Select2ChoiceField(ORDERING, required=False, placeholder='Сортировка')
-    job_title = forms.CharField(widget=forms.TextInput(attrs={'class':'form-control', 'placeholder': 'Должность'}), required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        placeholders = {
+            'department': 'Отдел',
+            'position': 'Должность',
+            'status': 'Статус',
+            'ordering': 'Сортировка'
+        }
+        
+        for field_name, text in placeholders.items():
+            if field_name in self.fields:
+                self.fields[field_name].widget.attrs.update({
+                    'data-allow-clear': 'true',
+                    'data-placeholder': text
+                })
+
+
