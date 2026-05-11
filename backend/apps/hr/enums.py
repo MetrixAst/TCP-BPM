@@ -52,3 +52,8 @@ class DocumentStatusEnum(models.TextChoices):
     ACTIVE = 'active', 'Активен'
     EXPIRED = 'expired', 'Истёк'
     REVOKED = 'revoked', 'Отозван'
+
+class WorkPermitStatus(models.TextChoices):
+    ACTIVE = 'active', 'Активен'
+    EXPIRING = 'expiring', 'Истекает'
+    EXPIRED = 'expired', 'Просрочен'
