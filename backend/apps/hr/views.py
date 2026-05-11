@@ -27,6 +27,7 @@ from .serializers import CalendarItemSerializer
 from .enums import CalendarItemType, LeaveStatusEnum
 
 
+
 @need_permission(PermissionEnums.HR)
 def structure(request):
     return render(request, 'site/hr/org.html')
@@ -467,6 +468,7 @@ def leave_export_excel(request):
     
     wb.save(response)
     return response
+
 
 @need_permission(PermissionEnums.HR)
 def vacations(request):
