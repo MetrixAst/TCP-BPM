@@ -4,8 +4,7 @@ from django.utils import timezone
 from datetime import date
 from account.models import UserAccount, Employee
 from datetime import timedelta
-from .enums import CalendarItemType, DayTypeEnum, LeaveStatusEnum, CheckInEnum, DocumentTypeEnum, DocumentStatusEnum
-
+from .enums import CalendarItemType, DayTypeEnum, LeaveStatusEnum, CheckInEnum, DocumentTypeEnum, DocumentStatusEnum, CertificationStatusEnum
 
 
 class CalendarItem(models.Model):
@@ -444,3 +443,69 @@ class EmployeeWorkPermit(models.Model):
         if days < 0: return 'expired'
         if days <= 30: return 'expiring'
         return 'active'
+
+class CertificationType(models.Model):
+    code = models.CharField("Код", max_length=50, unique=True)
+    name = models.CharField("Название", max_length=255)
+    name_en = models.CharField("Название (EN)", max_length=255, blank=True)
+    issuing_body = models.CharField("Выдающий орган", max_length=255, blank=True)
+    validity_months = models.PositiveIntegerField("Срок действия (мес)", default=12)
+    is_mandatory = models.BooleanField("Обязательная", default=False)
+    related_regulations = models.JSONField("Нормативные акты", default=list, blank=True)
+
+    class Meta:
+        verbose_name = "Тип сертификации"
+        verbose_name_plural = "Справочник сертификаций"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class EmployeeCertification(models.Model):
+    employee = models.ForeignKey(
+        'account.Employee',
+        on_delete=models.CASCADE,
+        related_name='certifications',
+        verbose_name="Сотрудник"
+    )
+    cert_type = models.ForeignKey(
+        CertificationType,
+        on_delete=models.PROTECT,
+        related_name='certifications',
+        verbose_name="Тип сертификации"
+    )
+    certificate_number = models.CharField("Номер сертификата", max_length=100, blank=True)
+    issue_date = models.DateField("Дата выдачи")
+    expiry_date = models.DateField("Дата истечения", null=True, blank=True)
+    issuing_body = models.CharField("Выдающий орган", max_length=255, blank=True)
+    scan = models.FileField("Скан", upload_to="hr/certifications/", null=True, blank=True)
+    notes = models.TextField("Примечания", blank=True)
+    is_revoked = models.BooleanField("Отозван", default=False)
+
+    class Meta:
+        verbose_name = "Сертификация сотрудника"
+        verbose_name_plural = "Сертификации сотрудников"
+        ordering = ['-issue_date']
+
+    def __str__(self):
+        return f"{self.employee} | {self.cert_type.name}"
+
+    @property
+    def days_until_expiry(self):
+        if not self.expiry_date:
+            return None
+        return (self.expiry_date - date.today()).days
+
+    @property
+    def status(self):
+        if self.is_revoked:
+            return CertificationStatusEnum.REVOKED
+        if not self.expiry_date:
+            return CertificationStatusEnum.ACTIVE
+        days = self.days_until_expiry
+        if days < 0:
+            return CertificationStatusEnum.EXPIRED
+        if days <= 30:
+            return CertificationStatusEnum.EXPIRING
+        return CertificationStatusEnum.ACTIVE

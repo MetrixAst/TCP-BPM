@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     Company, Position, WorkCalendar, 
     Vacation, SickLeave, EmploymentContract,
-    LeaveRequest, LeaveType, AttendanceRecord, EmployeeDocument, WorkCategory, EmployeeWorkPermit
+    LeaveRequest, LeaveType, AttendanceRecord, EmployeeDocument, WorkCategory, EmployeeWorkPermit, CertificationType, EmployeeCertification
 )
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -179,3 +179,32 @@ class EmployeeWorkPermitAdmin(admin.ModelAdmin):
             obj.status_label
         )
     get_status_display.short_description = 'Статус'
+
+@admin.register(CertificationType)
+class CertificationTypeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'issuing_body', 'validity_months', 'is_mandatory')
+    search_fields = ('code', 'name')
+    list_filter = ('is_mandatory',)
+
+@admin.register(EmployeeCertification)
+class EmployeeCertificationAdmin(admin.ModelAdmin):
+    list_display = ('employee', 'cert_type', 'certificate_number', 'issue_date', 'expiry_date', 'get_status')
+    list_filter = ('cert_type', 'is_revoked', 'employee__department')
+    search_fields = ('employee__user__last_name', 'certificate_number')
+    list_select_related = ('employee__user', 'cert_type')
+
+    def get_status(self, obj):
+        from django.utils.html import format_html
+        colors = {
+            'active': 'green',
+            'expiring': 'orange',
+            'expired': 'red',
+            'revoked': 'gray',
+        }
+        status = obj.status
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            colors.get(status, 'black'),
+            status.upper()
+        )
+    get_status.short_description = 'Статус'
