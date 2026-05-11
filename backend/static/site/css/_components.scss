@@ -812,8 +812,7 @@ h6 { font-size: var(--font-size-h6); font-weight: var(--font-weight-medium);  }
   height: var(--topbar-height);
   background-color: var(--color-topbar-bg);
   border-bottom: 1px solid var(--color-topbar-border);
-  min-width: 32px; height: 32px;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-6);

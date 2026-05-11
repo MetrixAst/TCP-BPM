@@ -13,7 +13,7 @@ class CommentView(View):
             if res is not None:
                 return JsonResponse({
                     'avatar': res.user.get_avatar_url(),
-                    'name': res.user.get_name,
+                    'name': res.user.get_name or getattr(res.user, "username", None) or getattr(res.user, "email", None) or str(res.user) or "User",
                     'date': res.formatted_date,
                     'text': text,
                 })

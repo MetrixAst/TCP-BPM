@@ -1,227 +1,312 @@
 {% extends 'site/base.html' %}
-{% load static %}
-{% load site_tags %}
+{% load static site_tags %}
+
+{% block title %}{{ task.title }} — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999" />
+{% endblock %}
 
 {% block content %}
-    <!-- Title and Top Buttons Start -->
-    <div class="page-title-container">
-        <div class="row g-0">
-            <div class="col-auto mb-2 mb-md-0 me-auto">
-                <div class="w-auto sw-md-25">
-                    <h1 class="mb-0 pb-0 display-4" id="title">Задача</h1>
-                    <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
-                      <ul class="breadcrumb pt-0">
-                        <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'tasks:list' %}">Задачи</a></li>
-                        <li class="breadcrumb-item">{{task.title}}</li>
-                      </ul>
-                    </nav>
-                </div>
-            </div>
-            <div class="col-12 col-md d-flex align-items-start justify-content-end justify-content-lg-end">
-                <a href="{% url 'tasks:edit' task.id %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1" id="mobile_button" data-icon="edit">
-                  <i data-acorn-icon="edit"></i>
-                  <span>Редактировать</span>
-                </a>
-            </div>
-        </div>
-    </div>
-      <!-- Title and Top Buttons End -->
 
-      <div class="row indicator_item_opened" data-type="task" data-id="{{task.id}}">
-        <div class="col-12 col-xl-8 col-xxl-9 mb-5">
-          <div class="card mb-5">
+<div class="task-page indicator_item_opened" data-type="task" data-id="{{ task.id }}">
 
-            <!-- Details Start -->
-            <div class="card-body">
-              <h4 class="mb-3">{{task.title}}</h4>
-              {% if task.text %}
-                <div class="mb-4">
-                  <p class="pre">{{task.text}}</p>
-                </div>
-              {% endif %}
-              <div class="row align-items-center">
-                <!-- Comments and Likes Start -->
-                <div class="col-6 text-muted">
-                  <div class="row g-3">
-                    <div class="col-auto">
-                      <i data-acorn-icon="eye" class="text-primary me-1" data-acorn-size="15"></i>
-                      <span class="align-middle">{{task.views}}</span>
-                    </div>
-                    <div class="col-auto">
-                      <i data-acorn-icon="message" class="text-primary me-1" data-acorn-size="15"></i>
-                      <span class="align-middle total_comments">0</span>
-                    </div>
-                  </div>
-                </div>
-                <!-- Comments and Likes End -->
+  <div class="task-page__main">
 
-              </div>
-            </div>
-            <!-- Details End -->
-          </div>
+    <div class="task-card">
 
-          <!-- Comments Start -->
-          <h2 class="small-title">Комментарии</h2>
-          
-          {% load_comments 'task' task.id %}
-          <!-- Comments End -->
-        </div>
+      <div class="task-card__breadcrumb">
+        <a href="{% url 'tasks:list' %}" class="task-card__back" aria-label="Назад">
+          <i class="bi bi-arrow-left"></i>
+        </a>
 
-        <!-- Right Side Start -->
-        <div class="col-12 col-xl-4 col-xxl-3">
-            
-          <div class="row">
-            <!-- Hire Start -->
-            <div class="col-12">
-              <div class="card mb-5">
-                <div class="card-body row g-0">
-                  <div class="col-12">
-                    <div class="cta-3">Срок задачи: {{task.deadline}}</div>
-                    <div class="mb-2 cta-3 text-{{status_info.color}}">{{status_info.title}}</div>
+        <a href="{% url 'tasks:list' %}" class="task-card__crumb">Менеджер задач</a>
+        <span class="task-card__crumb-sep">/</span>
+        <span class="task-card__crumb task-card__crumb--current">Задача</span>
 
-                    <div class="mb-0">
-                        {% if task.priority == 'low' %}
-                            <span class="badge bg-light text-dark text-uppercase">Низкий</span>
-                        {% elif task.priority == 'medium' %}
-                            <span class="badge bg-secondary text-uppercase">Средний</span>
-                        {% elif task.priority == 'high' %}
-                            <span class="badge bg-warning text-dark text-uppercase">Высокий</span>
-                        {% elif task.priority == 'critical' %}
-                            <span class="badge bg-danger text-uppercase">Критический</span>
-                        {% endif %}
-                    </div>
-                    <div class="d-grid gap-2 mt-3">
-                        {% for current in actions %}
-                          <a href="{% url 'tasks:task_action' task.id current.action %}" class="btn btn-{{current.color}}" type="button" data-type="{{current.action}}">{{current.title}}</a>
-                        {% endfor %}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <!-- Hire End -->
+        <div class="task-card__actions">
 
-            
-
-            
-            <!-- Hire Start -->
-            <div class="col-12">
-                <h2 class="small-title">Исполнители</h2>
-                <div class="card mb-5">
-                  <div class="card-body row g-0">
-                    <div class="col-12">
-
-                      {% if task.executor %}
-                      <div class="row g-0 sh-6">
-                          <div class="col-auto">
-                            <img src="{{task.executor.get_avatar_url}}" class="card-img rounded-xl sh-6 sw-6" alt="thumb" />
-                          </div>
-                          <div class="col">
-                            <div class="card-body d-flex flex-row pt-0 pb-0 ps-3 pe-0 h-100 align-items-center justify-content-between">
-                              <div class="d-flex flex-column">
-                                <div>{{task.executor}}</div>
-                                {% if task.executor.employee_info %}
-                                  <div class="text-small text-muted">{{task.executor.employee_info.job_title}}</div>
-                                {% endif %}
-                              </div>
-                            </div>
-                          </div>
-                      </div>
-                      {% endif %}
-
-                      {% for current in task.co_executors.all %}
-                      <div class="row g-0 sh-6 mt-3">
-                        <div class="col-auto">
-                          <img src="{{current.get_avatar_url}}" class="card-img rounded-xl sh-6 sw-6" alt="thumb" />
-                        </div>
-                        <div class="col">
-                          <div class="card-body d-flex flex-row pt-0 pb-0 ps-3 pe-0 h-100 align-items-center justify-content-between">
-                            <div class="d-flex flex-column">
-                              <div>{{current}}</div>
-                              {% if current.employee_info %}
-                                <div class="text-small text-muted">{{current.employee_info.job_title}}</div>
-                              {% endif %}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    {% endfor %}
-
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <!-- Hire End -->
-
-
-              <!-- Hire Start -->
-                <div class="col-12">
-                    <h2 class="small-title">Наблюдатели</h2>
-                    <div class="card mb-5">
-                        <div class="card-body row g-0">
-                            <div class="col-12">
+          {% if user_role == 'author' and task.status == 'revision' %}
+            <a href="{% url 'tasks:edit' task.id %}" class="task-card__icon-btn" title="Редактировать">
+              <i class="bi bi-pencil"></i>
+            </a>
         
-                            {% for current in task.observers.all %}
-                              <div class="row g-0 sh-6 {% if not forloop.first %}mt-3{% endif %}">
-                                <div class="col-auto">
-                                  <img src="{{current.get_avatar_url}}" class="card-img rounded-xl sh-6 sw-6" alt="thumb" />
-                                </div>
-                                <div class="col">
-                                  <div class="card-body d-flex flex-row pt-0 pb-0 ps-3 pe-0 h-100 align-items-center justify-content-between">
-                                    <div class="d-flex flex-column">
-                                      <div>{{current}}</div>
-                                      {% if current.employee_info %}  <div class="text-small text-muted">{{ current.employee_info.job_title }}</div>{% endif %}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            {% endfor %}
+            <button type="button"
+                    class="task-card__icon-btn task-card__icon-btn--danger"
+                    title="Удалить"
+                    data-task-delete
+                    data-url="{% url 'tasks:task_action' task.id 'cancel' %}">
+              <i class="bi bi-trash"></i>
+            </button>
+        
+          {% else %}
+            <button type="button"
+                    class="task-card__icon-btn task-card__icon-btn--urgent"
+                    title="Срочное"
+                    data-task-toggle="urgent"
+                    data-task-id="{{ task.id }}">
+              <i class="bi bi-fire"></i>
+            </button>
+        
+            <button type="button"
+                    class="task-card__icon-btn"
+                    title="Печать"
+                    onclick="window.print()">
+              <i class="bi bi-printer"></i>
+            </button>
+        
+            <button type="button"
+                    class="task-card__icon-btn task-card__icon-btn--star"
+                    title="В избранное"
+                    data-task-toggle="favorite"
+                    data-task-id="{{ task.id }}">
+              <i class="bi bi-star"></i>
+            </button>
+        
+            {% if user_role == 'author' %}
+              <button type="button"
+                      class="task-card__icon-btn task-card__icon-btn--danger"
+                      title="Удалить"
+                      data-task-delete
+                      data-url="{% url 'tasks:task_action' task.id 'cancel' %}">
+                <i class="bi bi-trash"></i>
+              </button>
+            {% endif %}
+          {% endif %}
+        
+        </div>
+      </div>
 
-                            </div>
-                        </div>
-                    </div>
-                </div>
-              <!-- Hire End -->
+      <h1 class="task-card__title">{{ task.title }}</h1>
 
-
-                <!-- Logs Start -->
-                <div class="col-lg-12 mb-5">
-                    <h2 class="small-title">Активность</h2>
-                    <div class="card sh-40 h-lg-100-card">
-                        <div class="card-body mb-n2">
-
-                          {% for current in task.history.all %}
-                            <div class="row g-0 mb-2">
-                              <div class="col-auto">
-                                  <div class="sw-3 d-inline-block d-flex justify-content-start align-items-center h-100">
-                                      <div class="sh-3">
-                                          <i data-acorn-icon="triangle" class="text-primary align-top"></i>
-                                      </div>
-                                  </div>
-                              </div>
-                              <div class="col">
-                                  <div class="card-body d-flex flex-column pt-0 pb-0 ps-3 pe-4 h-100 justify-content-center">
-                                      <div class="d-flex flex-column">
-                                          <div class="text-alternate mt-n1 lh-1-25">{{current.title}}</div>
-                                      </div>
-                                  </div>
-                              </div>
-                              <div class="col-auto">
-                                  <div class="d-inline-block d-flex justify-content-end align-items-center h-100">
-                                      <div class="text-muted ms-2 mt-n1 lh-1-25">{{current.date|date:"d.m.Y H:m"}}</div>
-                                  </div>
-                              </div>
-                          </div>
-                          {% endfor %}
-
-
-                        </div>
-                    </div>
-                </div>
-                <!-- Logs End -->
+      <div class="task-card__meta">
+        <div class="task-card__meta-item">
+          <div class="task-card__meta-label">Создано</div>
+          <div class="task-card__meta-value">
+            {{ task.date|date:"d.m.Y" }} {{ task.date|time:"H:i" }}
           </div>
         </div>
-        <!-- Right Side End -->
+
+        <div class="task-card__meta-item">
+          <div class="task-card__meta-label">Дедлайн</div>
+          <div class="task-card__meta-value">
+            {{ task.deadline|date:"d.m.Y" }}
+          </div>
+        </div>
+
+        <div class="task-card__meta-item">
+          <div class="task-card__meta-label">Статус</div>
+          <div class="task-card__meta-value">
+            <span id="taskStatus"
+                  class="tasks-status tasks-status--{{ status_info.color|default:'neutral' }}">
+              {{ status_info.title }}
+            </span>
+          </div>
+        </div>
+
+        <div class="task-card__meta-item">
+          <div class="task-card__meta-label">Приоритет</div>
+          <div class="task-card__meta-value">
+            <select class="task-card__priority-select"
+                    data-task-id="{{ task.id }}"
+                    {% if user_role == 'observer' %}disabled{% endif %}>
+              <option value="" {% if not task.priority %}selected{% endif %}>Выбрать</option>
+              <option value="low" {% if task.priority == 'low' %}selected{% endif %}>Низкий</option>
+              <option value="medium" {% if task.priority == 'medium' %}selected{% endif %}>Средний</option>
+              <option value="high" {% if task.priority == 'high' %}selected{% endif %}>Высокий</option>
+              <option value="critical" {% if task.priority == 'critical' %}selected{% endif %}>Критический</option>
+            </select>
+          </div>
+        </div>
       </div>
+
+      {% if task.text %}
+        <div class="task-card__description">
+          {{ task.text|linebreaksbr }}
+        </div>
+      {% endif %}
+
+      {% if actions %}
+        <div class="task-card__workflow" id="taskWorkflow">
+          {% for current in actions %}
+            <button type="button"
+                    class="task-card__btn task-card__btn--{{ current.color|default:'primary' }}"
+                    data-task-action
+                    data-action="{{ current.action }}"
+                    data-url="{% url 'tasks:task_action' task.id current.action %}"
+                    data-task-id="{{ task.id }}">
+              {{ current.title }}
+            </button>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+    </div>
+
+    <div class="task-history">
+      <h2 class="task-section__title">История</h2>
+
+      <div class="task-history__list" id="taskHistoryList">
+        {% for current in task.history.all %}
+        {% load_comments 'task' task.id %}
+          <div class="task-history__item">
+            <div class="task-history__avatar">
+              {% if current.user.get_avatar_url %}
+                <img src="{{ current.user.get_avatar_url }}" alt="{{ current.user.get_name }}">
+              {% else %}
+                <i class="bi bi-person-fill"></i>
+              {% endif %}
+            </div>
+
+            <div class="task-history__content">
+              <div class="task-history__name">
+                {{ current.user.get_name|default:"Система" }}
+              </div>
+              <div class="task-history__text">
+                {{ current.title }}
+              </div>
+            </div>
+
+            <div class="task-history__time">
+              {{ current.date|date:"d.m.Y" }} {{ current.date|time:"H:i" }}
+            </div>
+          </div>
+        {% empty %}
+          <div class="tasks-empty">
+            <div class="tasks-empty__title">История пуста</div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <form method="post"
+          action="{% url 'addits:comment' 'task' task.id %}"
+          class="task-comment-form"
+          id="taskCommentForm">
+      {% csrf_token %}
+
+      <input type="text"
+            name="text"
+            class="task-comment-form__input"
+            placeholder="Прокомментировать..." />
+
+      <button type="submit" class="task-comment-form__submit">
+        Отправить
+      </button>
+    </form>
+    </div>
+
+  </div>
+
+  <aside class="task-page__aside">
+
+    <div class="task-section">
+      <div class="task-section__head">
+        <h3 class="task-section__title">Маршрут</h3>
+
+        {% if user_role == 'author' %}
+          <a href="{% url 'tasks:edit' task.id %}" class="task-section__edit">
+            <i class="bi bi-pencil"></i>
+          </a>
+        {% endif %}
+      </div>
+
+      <div class="task-route">
+
+        {% if task.author %}
+          <div class="task-route__item">
+            <div class="task-route__avatar">
+              {% if task.author.get_avatar_url %}
+                <img src="{{ task.author.get_avatar_url }}" alt="{{ task.author.get_name }}">
+              {% else %}
+                <i class="bi bi-person-fill"></i>
+              {% endif %}
+            </div>
+
+            <div class="task-route__content">
+              <div class="task-route__role">Автор</div>
+              <div class="task-route__name">{{ task.author.get_name }}</div>
+            </div>
+
+            <div class="task-route__status task-route__status--done">
+              <span class="task-route__date">{{ task.date|date:"d.m.Y" }} {{ task.date|time:"H:i" }}</span>
+              <i class="bi bi-check2"></i>
+            </div>
+          </div>
+        {% endif %}
+
+        {% if task.executor %}
+          <div class="task-route__item">
+            <div class="task-route__avatar">
+              {% if task.executor.get_avatar_url %}
+                <img src="{{ task.executor.get_avatar_url }}" alt="{{ task.executor.get_name }}">
+              {% else %}
+                <i class="bi bi-person-fill"></i>
+              {% endif %}
+            </div>
+
+            <div class="task-route__content">
+              <div class="task-route__role">Исполнитель</div>
+              <div class="task-route__name">{{ task.executor.get_name }}</div>
+            </div>
+
+            <div class="task-route__status task-route__status--in-progress">
+              <span>На исполнении</span>
+              <i class="bi bi-clock"></i>
+            </div>
+          </div>
+        {% endif %}
+
+        {% for user in task.co_executors.all %}
+          <div class="task-route__item">
+            <div class="task-route__avatar">
+              {% if user.get_avatar_url %}
+                <img src="{{ user.get_avatar_url }}" alt="{{ user.get_name }}">
+              {% else %}
+                <i class="bi bi-person-fill"></i>
+              {% endif %}
+            </div>
+
+            <div class="task-route__content">
+              <div class="task-route__role">Соисполнитель</div>
+              <div class="task-route__name">{{ user.get_name }}</div>
+            </div>
+
+            <div class="task-route__status task-route__status--in-progress">
+              <span>На исполнении</span>
+              <i class="bi bi-clock"></i>
+            </div>
+          </div>
+        {% endfor %}
+
+        {% for user in task.observers.all %}
+          <div class="task-route__item">
+            <div class="task-route__avatar">
+              {% if user.get_avatar_url %}
+                <img src="{{ user.get_avatar_url }}" alt="{{ user.get_name }}">
+              {% else %}
+                <i class="bi bi-person-fill"></i>
+              {% endif %}
+            </div>
+
+            <div class="task-route__content">
+              <div class="task-route__role">Наблюдатель</div>
+              <div class="task-route__name">{{ user.get_name }}</div>
+            </div>
+          </div>
+        {% endfor %}
+
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/tasks.js' %}?v=9999"></script>
 {% endblock %}
