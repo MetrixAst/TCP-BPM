@@ -1,0 +1,38 @@
+[
+    {
+      "model": "hr.leavetype",
+      "pk": 1,
+      "fields": {
+        "name": "Ежегодный оплачиваемый отпуск",
+        "is_paid": true,
+        "max_days_per_year": 24
+      }
+    },
+    {
+      "model": "hr.leavetype",
+      "pk": 2,
+      "fields": {
+        "name": "Отпуск без сохранения заработной платы",
+        "is_paid": false,
+        "max_days_per_year": 10
+      }
+    },
+    {
+      "model": "hr.leavetype",
+      "pk": 3,
+      "fields": {
+        "name": "Учебный отпуск",
+        "is_paid": true,
+        "max_days_per_year": 30
+      }
+    },
+    {
+      "model": "hr.leavetype",
+      "pk": 4,
+      "fields": {
+        "name": "Больничный",
+        "is_paid": true,
+        "max_days_per_year": 365
+      }
+    }
+  ]
