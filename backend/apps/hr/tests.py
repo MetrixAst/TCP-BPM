@@ -1,4 +1,5 @@
 import io
+import json
 import openpyxl
 from django.test import TestCase, Client, override_settings
 from django.core.exceptions import ValidationError
@@ -1758,4 +1759,54 @@ class AttendanceRecordTestCase(TestCase):
         
         expected_str = f"{self.employee} - day_start (05.05 09:15)"
         self.assertEqual(str(record), expected_str)
+
+class AttendanceCheckinAPITestCase(TestCase):
+    def setUp(self):
+        self.company = Company.objects.create(name='Test Tech', bin_number='111111111111')
+        self.department = Department.objects.create(name='IT', company=self.company)
+        
+        self.user = UserAccount.objects.create_user(username='api_tester', password='testpassword123', role='staff')
+        self.employee = Employee.objects.create(user=self.user, department=self.department, iin='123456789012', status='active')
+        
+        self.client.login(username='api_tester', password='testpassword123')
+
+    def test_checkin_api_success(self):
+        tiny_image_base64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+
+        payload = {
+            "event_type": "day_start",
+            "photo": tiny_image_base64,
+            "ip_address": "192.168.1.100"
+        }
+
+        url = reverse('hr:attendance_checkin')
+        
+        response = self.client.post(
+            url, 
+            data=json.dumps(payload), 
+            content_type='application/json'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        
+        self.assertEqual(AttendanceRecord.objects.count(), 1)
+        
+        record = AttendanceRecord.objects.first()
+        self.assertEqual(record.event_type, "day_start")
+        self.assertTrue(record.photo.name.endswith('.png'))
+        self.assertIn('checkin_', record.photo.name)
+
+    def test_checkin_api_duplicate_fails(self):
+        tiny_image_base64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+        payload = {"event_type": "day_start", "photo": tiny_image_base64}
+        url = reverse('hr:attendance_checkin')
+
+        self.client.post(url, data=json.dumps(payload), content_type='application/json')
+        
+        response = self.client.post(url, data=json.dumps(payload), content_type='application/json')
+        
+        self.assertEqual(response.status_code, 400)
+        
+        response_data = json.loads(response.content)
+        self.assertIn('уже зафиксировано', response_data['error'])
 

@@ -1,4 +1,8 @@
 import openpyxl
+import json
+import base64
+from django.core.files.base import ContentFile
+from django.core.exceptions import ValidationError
 from django.shortcuts import redirect, render, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
@@ -21,7 +25,7 @@ from .forms import (
 )
 from .models import (
     CalendarItem, Company, Position, LeaveRequest, 
-    LeaveType, Vacation, SickLeave, EmploymentContract
+    LeaveType, Vacation, SickLeave, EmploymentContract, AttendanceRecord
 )
 from .serializers import CalendarItemSerializer
 from .enums import CalendarItemType, LeaveStatusEnum
@@ -514,3 +518,48 @@ def contracts(request):
     }
     return render(request, 'site/hr/contracts.html', context)
 
+@login_required
+def attendance_checkin(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Метод не поддерживается. Используйте POST.'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        event_type = data.get('event_type')
+        photo_base64 = data.get('photo')
+        
+        ip_address = data.get('ip_address') or request.META.get('REMOTE_ADDR')
+
+        employee = getattr(request.user, 'employee_info', None)
+        if not employee:
+            return JsonResponse({'error': 'Профиль сотрудника не найден'}, status=403)
+
+        if not event_type or not photo_base64:
+            return JsonResponse({'error': 'Не переданы обязательные параметры (event_type, photo)'}, status=400)
+
+        if ';base64,' in photo_base64:
+            format_str, imgstr = photo_base64.split(';base64,')
+            ext = format_str.split('/')[-1]
+        else:
+            imgstr = photo_base64
+            ext = 'jpg' 
+
+        photo_name = f"checkin_{employee.id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{ext}"
+        photo_file = ContentFile(base64.b64decode(imgstr), name=photo_name)
+
+        record = AttendanceRecord(
+            employee=employee,
+            event_type=event_type,
+            ip_address=ip_address,
+            photo=photo_file
+        )
+        
+        record.full_clean()
+        record.save()
+
+        return JsonResponse({'success': True, 'message': 'Отметка успешно сохранена'})
+
+    except ValidationError as e:
+        return JsonResponse({'error': e.messages[0]}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f"Внутренняя ошибка сервера: {str(e)}"}, status=500)
