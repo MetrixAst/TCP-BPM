@@ -1,6 +1,7 @@
 import io
 import json
 import openpyxl
+import pytz
 from django.test import TestCase, Client, override_settings
 from django.core.exceptions import ValidationError
 from django.urls import reverse
@@ -14,7 +15,7 @@ from unittest.mock import Mock, patch
 
 from .models import (
     LeaveRequest, LeaveType, WorkCalendar, Company, 
-    Position, Vacation, SickLeave, EmploymentContract, AttendanceRecord
+    Position, Vacation, SickLeave, EmploymentContract, AttendanceRecord, CheckInEnum
 )
 from .enums import LeaveStatusEnum, DayTypeEnum
 from account.role_permissions import RoleEnums, MenuItem
@@ -27,6 +28,13 @@ except ImportError:
 from hr.enbek_client import EnbekClient, EnbekClientError, AuthenticationError, ConnectionError
 from hr.services import EnbekSyncService
 from hr.tasks import sync_enbek_data
+
+User = get_user_model()
+LOCAL_TZ = pytz.timezone('Asia/Almaty')
+
+def make_aware_local(dt_naive):
+    aware_local = LOCAL_TZ.localize(dt_naive)
+    return aware_local.astimezone(pytz.utc)
 
 class LeaveRequestLogicTest(TestCase):
     def setUp(self):
@@ -1809,4 +1817,217 @@ class AttendanceCheckinAPITestCase(TestCase):
         
         response_data = json.loads(response.content)
         self.assertIn('уже зафиксировано', response_data['error'])
+
+
+class AttendanceJournalViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.dept = Department.objects.create(name='IT', company='Компания1')
+
+        self.hr_user = User.objects.create_user(username='hr_admin', password='pass')
+        self.hr_emp = Employee.objects.create(
+            user=self.hr_user, department=self.dept, status='active'
+        )
+
+        self.user = User.objects.create_user(username='worker1', password='pass')
+        self.emp = Employee.objects.create(
+            user=self.user, department=self.dept, status='active'
+        )
+
+        self.today = date.today()
+        self.url = reverse('hr:attendance_journal')
+
+    def _create_record(self, employee, event_type, hour, minute=0, target_date=None):
+        from datetime import datetime
+        d = target_date or self.today
+        naive = datetime(d.year, d.month, d.day, hour, minute)
+        timestamp = make_aware_local(naive)
+        return AttendanceRecord.objects.create(
+            employee=employee,
+            event_type=event_type,
+            timestamp=timestamp
+        )
+
+    def test_journal_requires_login(self):
+        response = self.client.get(self.url)
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_journal_loads(self):
+        self.client.login(username='hr_admin', password='pass')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+        def test_flag_late_when_after_9(self):
+        self.client.login(username='hr_admin', password='pass')
+        self._create_record(self.emp, CheckInEnum.DAY_START, hour=10, minute=0)
+
+        response = self.client.get(self.url)
+        journal = response.context['journal']
+        entry = next(j for j in journal if j['employee'] == self.emp)
+        self.assertTrue(entry['late'])
+
+    def test_flag_not_late_when_at_9(self):
+        self.client.login(username='hr_admin', password='pass')
+        self._create_record(self.emp, CheckInEnum.DAY_START, hour=9, minute=0)
+
+        response = self.client.get(self.url)
+        journal = response.context['journal']
+        entry = next(j for j in journal if j['employee'] == self.emp)
+        self.assertFalse(entry['late'])
+
+    def test_flag_not_late_when_before_9(self):
+        self.client.login(username='hr_admin', password='pass')
+        self._create_record(self.emp, CheckInEnum.DAY_START, hour=8, minute=30)
+
+        response = self.client.get(self.url)
+        journal = response.context['journal']
+        entry = next(j for j in journal if j['employee'] == self.emp)
+        self.assertFalse(entry['late'])
+
+    def test_flag_early_leave(self):
+        self.client.login(username='hr_admin', password='pass')
+        self._create_record(self.emp, CheckInEnum.DAY_START, hour=9)
+        self._create_record(self.emp, CheckInEnum.DAY_END, hour=17)
+
+        response = self.client.get(self.url)
+        journal = response.context['journal']
+        entry = next(j for j in journal if j['employee'] == self.emp)
+        self.assertTrue(entry['early_leave'])
+
+     def test_flag_no_early_leave_at_18(self):
+        self.client.login(username='hr_admin', password='pass')
+        self._create_record(self.emp, CheckInEnum.DAY_START, hour=9)
+        self._create_record(self.emp, CheckInEnum.DAY_END, hour=18)
+
+        response = self.client.get(self.url)
+        journal = response.context['journal']
+        entry = next(j for j in journal if j['employee'] == self.emp)
+        self.assertFalse(entry['early_leave'])
+
+    def test_no_record_flag(self):
+        self.client.login(username='hr_admin', password='pass')
+
+        response = self.client.get(self.url)
+        journal = response.context['journal']
+        entry = next(j for j in journal if j['employee'] == self.emp)
+        self.assertTrue(entry['no_record'])
+
+    def test_total_hours_calculated_with_lunch(self):
+        self.client.login(username='hr_admin', password='pass')
+        self._create_record(self.emp, CheckInEnum.DAY_START, hour=9)
+        self._create_record(self.emp, CheckInEnum.LUNCH_START, hour=13)
+        self._create_record(self.emp, CheckInEnum.LUNCH_END, hour=14)
+        self._create_record(self.emp, CheckInEnum.DAY_END, hour=18)
+
+        response = self.client.get(self.url)
+        journal = response.context['journal']
+        entry = next(j for j in journal if j['employee'] == self.emp)
+        self.assertAlmostEqual(entry['total_hours'], 8.0, places=1)
+
+    def test_total_hours_without_lunch(self):
+        self.client.login(username='hr_admin', password='pass')
+        self._create_record(self.emp, CheckInEnum.DAY_START, hour=9)
+        self._create_record(self.emp, CheckInEnum.DAY_END, hour=18)
+
+        response = self.client.get(self.url)
+        journal = response.context['journal']
+        entry = next(j for j in journal if j['employee'] == self.emp)
+        self.assertAlmostEqual(entry['total_hours'], 9.0, places=1)
+
+    def test_filter_by_date(self):
+        self.client.login(username='hr_admin', password='pass')
+        yesterday = self.today - timedelta(days=1)
+        self._create_record(self.emp, CheckInEnum.DAY_START, hour=10, target_date=yesterday)
+
+        response = self.client.get(self.url + f'?date={yesterday.isoformat()}')
+        journal = response.context['journal']
+        entry = next(j for j in journal if j['employee'] == self.emp)
+        self.assertFalse(entry['no_record'])
+
+
+class AttendanceMyViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.dept = Department.objects.create(name='HR', company='Компания1')
+        self.user = User.objects.create_user(username='myuser', password='pass')
+        self.emp = Employee.objects.create(
+            user=self.user, department=self.dept, status='active'
+        )
+        self.today = date.today()
+        self.url = reverse('hr:attendance_my')
+
+    def _create_record(self, event_type, hour, minute=0, target_date=None):
+        from datetime import datetime
+        d = target_date or self.today
+        naive = datetime(d.year, d.month, d.day, hour, minute)
+        timestamp = make_aware_local(naive)
+        return AttendanceRecord.objects.create(
+            employee=self.emp,
+            event_type=event_type,
+            timestamp=timestamp
+        )
+
+    def test_my_requires_login(self):
+        response = self.client.get(self.url)
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_my_loads(self):
+        self.client.login(username='myuser', password='pass')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_my_shows_current_month(self):
+        self.client.login(username='myuser', password='pass')
+        response = self.client.get(self.url)
+        self.assertIn('attendance_list', response.context)
+        self.assertIn('view_date', response.context)
+
+    def test_my_late_flag(self):
+        self.client.login(username='myuser', password='pass')
+        self._create_record(CheckInEnum.DAY_START, hour=11)
+
+        response = self.client.get(self.url)
+        today_entry = next(
+            (i for i in response.context['attendance_list'] if i['date'] == self.today),
+            None
+        )
+        self.assertIsNotNone(today_entry)
+        self.assertTrue(today_entry['late'])
+
+    def test_my_no_record_flag(self):
+        self.client.login(username='myuser', password='pass')
+        response = self.client.get(self.url)
+        today_entry = next(
+            (i for i in response.context['attendance_list'] if i['date'] == self.today),
+            None
+        )
+        self.assertIsNotNone(today_entry)
+        self.assertTrue(today_entry['no_record'])
+
+    def test_my_lunch_displayed(self):
+        self.client.login(username='myuser', password='pass')
+        self._create_record(CheckInEnum.DAY_START, hour=9)
+        self._create_record(CheckInEnum.LUNCH_START, hour=13)
+        self._create_record(CheckInEnum.LUNCH_END, hour=14)
+        self._create_record(CheckInEnum.DAY_END, hour=18)
+
+        response = self.client.get(self.url)
+        today_entry = next(
+            (i for i in response.context['attendance_list'] if i['date'] == self.today),
+            None
+        )
+        self.assertIsNotNone(today_entry['lunch_start'])
+        self.assertIsNotNone(today_entry['lunch_end'])
+
+    def test_my_month_navigation(self):
+        self.client.login(username='myuser', password='pass')
+        last_month = self.today.replace(day=1) - timedelta(days=1)
+        response = self.client.get(
+            self.url + f'?month={last_month.month}&year={last_month.year}'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context['view_date'].month,
+            last_month.month
+        )
 

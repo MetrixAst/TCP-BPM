@@ -1,0 +1,74 @@
+{% extends 'site/base.html' %}
+{% block content %}
+    <div class="page-title-container mb-3">
+        <h1 class="display-4">Моя посещаемость</h1>
+        <p class="text-muted">История отметок за последние 30 дней</p>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">{{ view_date|date:"F Y" }}</h2>
+        <div class="btn-group">
+            <a href="?month={{ prev_month.month }}&year={{ prev_month.year }}" class="btn btn-outline-primary btn-icon btn-icon-start">
+                <i data-acorn-icon="chevron-left"></i>
+                <span>{{ prev_month|date:"F" }}</span>
+            </a>
+            {% if next_month %}
+            <a href="?month={{ next_month.month }}&year={{ next_month.year }}" class="btn btn-outline-primary btn-icon btn-icon-end">
+                <span>{{ next_month|date:"F" }}</span>
+                <i data-acorn-icon="chevron-right"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Приход</th>
+                        <th>Обед (начало/конец)</th>
+                        <th>Уход</th>
+                        <th>Рабочее время</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in attendance_list %}
+                    <tr class="{% if item.no_record %}bg-light{% endif %}">
+                        <td><strong>{{ item.date|date:"d.m.Y" }}</strong></td>
+                        
+                        {# ПРИХОД #}
+                        <td>
+                            <span class="{% if item.late %}text-danger fw-bold{% endif %}">
+                                {{ item.day_start|date:"H:i"|default:"—" }}
+                            </span>
+                        </td>
+                
+                        {# ОБЕД #}
+                        <td>
+                            {{ item.lunch_start|date:"H:i"|default:"—" }} / 
+                            {{ item.lunch_end|date:"H:i"|default:"—" }}
+                        </td>
+                
+                        {# УХОД #}
+                        <td>
+                            <span class="{% if item.early_leave %}text-warning{% endif %}">
+                                {{ item.day_end|date:"H:i"|default:"—" }}
+                            </span>
+                        </td>
+                
+                        {# ЧАСЫ И СТАТУС #}
+                        <td>
+                            {% if item.no_record %}
+                                <span class="badge bg-outline-danger">Нет данных</span>
+                            {% else %}
+                                <strong>{{ item.total_hours|floatformat:1 }} ч.</strong>
+                                {% if item.late %}<small class="text-danger"> (Опоздание)</small>{% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

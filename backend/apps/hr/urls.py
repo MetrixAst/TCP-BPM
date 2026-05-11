@@ -32,4 +32,6 @@ urlpatterns = [
     path('leaves/<int:pk>/cancel/', views.leave_cancel, name='leave_cancel'),
 
     path('attendance/checkin/', views.attendance_checkin, name='attendance_checkin'),
+    path('attendance/my/', views.attendance_my, name='attendance_my'),
+    path('attendance/journal/', views.attendance_journal, name='attendance_journal'),
 ]
