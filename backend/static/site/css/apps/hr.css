@@ -1500,4 +1500,143 @@ body.hr-edit-body .bpm-content {
   grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.4fr) minmax(220px, 1.2fr) 120px 52px !important;
 }
 
+.attendance-page {
+  padding: 0;
+}
+
+.attendance-page__top {
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px 22px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.attendance-page__title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #25233f;
+}
+
+.attendance-page__subtitle {
+  margin: 4px 0 0;
+  color: #74728a;
+  font-size: 13px;
+}
+
+.attendance-page__months {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.attendance-page__month-btn {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: #f5f3fa;
+  color: #25233f;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.attendance-page__month-btn:hover {
+  background: #ece9f4;
+  color: #25233f;
+  text-decoration: none;
+}
+
+.attendance-page__panel {
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.attendance-page__panel-head {
+  margin-bottom: 18px;
+}
+
+.attendance-page__month-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #25233f;
+}
+
+.attendance-page__table-wrap {
+  border: 1px solid #ebeaf1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  overflow-x: auto;
+}
+
+.attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.attendance-table thead th {
+  height: 44px;
+  padding: 0 18px;
+  background: #fbfbfd;
+  color: #66657a;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 1px solid #ebeaf1;
+  white-space: nowrap;
+}
+
+.attendance-table tbody td {
+  height: 44px;
+  padding: 0 18px;
+  color: #25233f;
+  border-bottom: 1px solid #f0eef6;
+  vertical-align: middle;
+}
+
+.attendance-table tbody tr:hover {
+  background: #faf9fd;
+}
+
+.attendance-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.attendance-table__row--empty {
+  opacity: 0.62;
+}
+
+.attendance-table__late {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.attendance-table__warning {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.attendance-table__late-text {
+  margin-left: 8px;
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.attendance-table__empty {
+  color: #9a98aa;
+}
+
 /*# sourceMappingURL=hr.css.map */

@@ -521,6 +521,10 @@ def contracts(request):
 
 @login_required
 def attendance_checkin(request):
+    if request.method == 'GET':
+        return render(request, 'site/hr/attendance/checkin.html')
+
+
     if request.method != 'POST':
         return JsonResponse({'error': 'Метод не поддерживается. Используйте POST.'}, status=405)
 
