@@ -1,0 +1,97 @@
+[
+    {
+      "model": "hr.workcalendar",
+      "pk": 1,
+      "fields": { "company": null, "year": 2026, "date": "2026-01-01", "day_type": "holiday" }
+    },
+    {
+      "model": "hr.workcalendar",
+      "pk": 2,
+      "fields": { "company": null, "year": 2026, "date": "2026-01-02", "day_type": "holiday" }
+    },
+    {
+      "model": "hr.workcalendar",
+      "pk": 3,
+      "fields": { "company": null, "year": 2026, "date": "2026-01-07", "day_type": "holiday" }
+    },
+    {
+      "model": "hr.workcalendar",
+      "pk": 4,
+      "fields": { "company": null, "year": 2026, "date": "2026-03-08", "day_type": "holiday" }
+    },
+    {
+      "model": "hr.workcalendar",
+      "pk": 5,
+      "fields": { "company": null, "year": 2026, "date": "2026-03-09", "day_type": "holiday" }
+    },
+    {
+      "model": "hr.workcalendar",
+      "pk": 6,
+      "fields": { "company": null, "year": 2026, "date": "2026-03-21", "day_type": "holiday" }
+    },
+    {
+      "model": "hr.workcalendar",
+      "pk": 7,
+      "fields": { "company": null, "year": 2026, "date": "2026-03-22", "day_type": "holiday" }
+    },
+    {
+      "model": "hr.workcalendar",
+      "pk": 8,
+      "fields": { "company": null, "year": 2026, "date": "2026-03-23", "day_type": "holiday" }
+    },
+    {
+      "model": "hr.workcalendar",
+      "pk": 9,
+      "fields": { "company": null, "year": 2026, "date": "2026-03-24", "day_type": "holiday" }
+    },
+    {
+      "model": "hr.workcalendar",
+      "pk": 10,
+      "fields": { "company": null, "year": 2026, "date": "2026-03-25", "day_type": "holiday" }
+    },
+    {
+      "model": "hr.workcalendar",
+      "pk": 11,
+      "fields": { "company": null, "year": 2026, "date": "2026-05-01", "day_type": "holiday" }
+    },
+    {
+      "model": "hr.workcalendar",
+      "pk": 12,
+      "fields": { "company": null, "year": 2026, "date": "2026-05-07", "day_type": "holiday" }
+    },
+    {
+      "model": "hr.workcalendar",
+      "pk": 13,
+      "fields": { "company": null, "year": 2026, "date": "2026-05-09", "day_type": "holiday" }
+    },
+    {
+        "model": "hr.workcalendar",
+        "pk": 14,
+        "fields": { "company": null, "year": 2026, "date": "2026-05-11", "day_type": "holiday" }
+    }, 
+    {
+        "model": "hr.workcalendar",
+        "pk": 15,
+        "fields": { "company": null, "year": 2026, "date": "2026-05-27", "day_type": "holiday" }
+    }, 
+    {
+        "model": "hr.workcalendar",
+        "pk": 16,
+        "fields": { "company": null, "year": 2026, "date": "2026-07-06", "day_type": "holiday" }
+    }, 
+    {
+        "model": "hr.workcalendar",
+        "pk": 17,
+        "fields": { "company": null, "year": 2026, "date": "2026-10-25", "day_type": "holiday" }
+    }, 
+    {
+        "model": "hr.workcalendar",
+        "pk": 18,
+        "fields": { "company": null, "year": 2026, "date": "2026-10-26", "day_type": "holiday" }
+    }, 
+    {
+        "model": "hr.workcalendar",
+        "pk": 19,
+        "fields": { "company": null, "year": 2026, "date": "2026-12-16", "day_type": "holiday" }
+    }
+]

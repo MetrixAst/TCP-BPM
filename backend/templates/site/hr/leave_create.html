@@ -1,0 +1,109 @@
+{% extends 'site/base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">Подать заявку на отпуск</h4>
+                    <a href="{% url 'hr:leave_list' %}" class="btn btn-outline-secondary btn-sm">Назад</a>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label class="form-label">Тип отпуска</label>
+                            {{ form.leave_type }}
+                            {% if form.leave_type.errors %}
+                                <div class="text-danger small">{{ form.leave_type.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Дата начала</label>
+                                {{ form.start_date }}
+                                {% if form.start_date.errors %}
+                                    <div class="text-danger small">{{ form.start_date.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Дата окончания</label>
+                                {{ form.end_date }}
+                                {% if form.end_date.errors %}
+                                    <div class="text-danger small">{{ form.end_date.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="alert alert-info py-2 px-3" id="days-preview" style="display:none;">
+                                Рабочих дней: <strong id="days-count">—</strong>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Комментарий</label>
+                            {{ form.comment }}
+                            {% if form.comment.errors %}
+                                <div class="text-danger small">{{ form.comment.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                        {% endif %}
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Отправить заявку</button>
+                            <a href="{% url 'hr:leave_list' %}" class="btn btn-outline-secondary">Отмена</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const startInput = document.getElementById('id_start_date');
+    const endInput   = document.getElementById('id_end_date');
+    const preview    = document.getElementById('days-preview');
+    const counter    = document.getElementById('days-count');
+    const ajaxUrl    = '{% url "hr:ajax_calculate_days" %}';
+
+    let debounceTimer = null;
+
+    function calculate() {
+        const start = startInput.value;
+        const end   = endInput.value;
+
+        if (!start || !end) {
+            preview.style.display = 'none';
+            return;
+        }
+
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () {
+            fetch(ajaxUrl + '?start=' + start + '&end=' + end)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.days !== undefined) {
+                        counter.textContent = data.days;
+                        preview.style.display = 'block';
+                    }
+                })
+                .catch(function () {
+                    preview.style.display = 'none';
+                });
+        }, 400);
+    }
+
+    startInput.addEventListener('change', calculate);
+    endInput.addEventListener('change', calculate);
+})();
+</script>
+{% endblock %}
