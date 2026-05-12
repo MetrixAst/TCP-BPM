@@ -236,3 +236,31 @@ class TaskHistory(models.Model):
         verbose_name = "Активность"
         verbose_name_plural = "Активность"
         ordering = ['id']
+
+class TaskFile(models.Model):
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="files",
+        verbose_name="Задача"
+    )
+    file = models.FileField(
+        upload_to="tasks/files/",
+        verbose_name="Файл"
+    )
+    uploaded_by = models.ForeignKey(
+        UserAccount,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Загрузил"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Файл задачи"
+        verbose_name_plural = "Файлы задач"
+        ordering = ["-id"]
+
+    def __str__(self):
+        return self.file.name
