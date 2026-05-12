@@ -1,0 +1,189 @@
+[
+    {
+      "model": "hr.workcategory",
+      "pk": 1,
+      "fields": {
+        "code": "HEIGHT_WORK",
+        "name": "Работы на высоте",
+        "name_en": "Working at Height",
+        "category_group": "high_risk_work",
+        "risk_level": "high",
+        "requires_training": true,
+        "requires_medical_exam": true,
+        "requires_ptw": true,
+        "requires_ppe": true,
+        "certificate_validity_months": 12,
+        "required_ppe": ["helmet", "safety_harness", "safety_shoes"],
+        "related_regulations": ["Приказ МТСЗН РК №109 (Работа на высоте)"]
+      }
+    },
+    {
+      "model": "hr.workcategory",
+      "pk": 2,
+      "fields": {
+        "code": "ELECTRICAL_SAFETY",
+        "name": "Электробезопасность",
+        "name_en": "Electrical Safety",
+        "category_group": "electrical",
+        "risk_level": "critical",
+        "requires_training": true,
+        "requires_medical_exam": true,
+        "requires_ptw": true,
+        "requires_ppe": true,
+        "certificate_validity_months": 12,
+        "required_ppe": ["dielectric_gloves", "arc_flash_face_shield", "dielectric_boots"],
+        "related_regulations": ["ПТБ при эксплуатации электроустановок РК"]
+      }
+    },
+    {
+      "model": "hr.workcategory",
+      "pk": 3,
+      "fields": {
+        "code": "GAS_HAZARDOUS",
+        "name": "Газоопасные работы",
+        "name_en": "Gas Hazardous Work",
+        "category_group": "gas_hazardous",
+        "risk_level": "critical",
+        "requires_training": true,
+        "requires_medical_exam": true,
+        "requires_ptw": true,
+        "requires_gas_test": true,
+        "requires_supervisor": true,
+        "certificate_validity_months": 12,
+        "required_ppe": ["gas_detector", "respirator", "helmet", "gloves"]
+      }
+    },
+    {
+      "model": "hr.workcategory",
+      "pk": 4,
+      "fields": {
+        "code": "HOT_WORK",
+        "name": "Огневые работы",
+        "name_en": "Hot Work",
+        "category_group": "fire_hazard",
+        "risk_level": "high",
+        "requires_training": true,
+        "requires_ptw": true,
+        "certificate_validity_months": 12,
+        "required_ppe": ["welding_mask", "fire_resistant_clothing", "gloves"]
+      }
+    },
+    {
+      "model": "hr.workcategory",
+      "pk": 5,
+      "fields": {
+        "code": "CONFINED_SPACE",
+        "name": "Работы в замкнутом пространстве",
+        "name_en": "Confined Space Entry",
+        "category_group": "confined_space",
+        "risk_level": "critical",
+        "requires_training": true,
+        "requires_ptw": true,
+        "requires_gas_test": true,
+        "requires_supervisor": true,
+        "certificate_validity_months": 12,
+        "required_ppe": ["gas_detector", "tripod", "lifeline", "respirator"]
+      }
+    },
+    {
+      "model": "hr.workcategory",
+      "pk": 6,
+      "fields": {
+        "code": "EXCAVATION_WORK",
+        "name": "Земляные работы",
+        "name_en": "Excavation Work",
+        "category_group": "excavation",
+        "risk_level": "high",
+        "requires_training": true,
+        "requires_ptw": true,
+        "certificate_validity_months": 12,
+        "required_ppe": ["helmet", "high_visibility_vest", "safety_shoes"]
+      }
+    },
+    {
+      "model": "hr.workcategory",
+      "pk": 7,
+      "fields": {
+        "code": "LIFTING_OPERATIONS",
+        "name": "Грузоподъемные работы",
+        "name_en": "Lifting Operations",
+        "category_group": "lifting",
+        "risk_level": "high",
+        "requires_training": true,
+        "requires_license": true,
+        "requires_ptw": true,
+        "certificate_validity_months": 12,
+        "required_ppe": ["helmet", "gloves", "safety_shoes"]
+      }
+    },
+    {
+      "model": "hr.workcategory",
+      "pk": 8,
+      "fields": {
+        "code": "PRESSURE_VESSEL",
+        "name": "Сосуды под давлением",
+        "name_en": "Pressure Vessel Operations",
+        "category_group": "pressure_equipment",
+        "risk_level": "critical",
+        "requires_training": true,
+        "requires_medical_exam": true,
+        "certificate_validity_months": 12
+      }
+    },
+    {
+      "model": "hr.workcategory",
+      "pk": 9,
+      "fields": {
+        "code": "CHEMICAL_HANDLING",
+        "name": "Работы с химическими веществами",
+        "name_en": "Chemical Handling",
+        "category_group": "chemical",
+        "risk_level": "high",
+        "requires_training": true,
+        "requires_ppe": true,
+        "certificate_validity_months": 12,
+        "required_ppe": ["chemical_gloves", "chemical_goggles", "respirator"]
+      }
+    },
+    {
+      "model": "hr.workcategory",
+      "pk": 10,
+      "fields": {
+        "code": "RADIATION_WORK",
+        "name": "Работы с источниками излучения",
+        "name_en": "Radiation Work",
+        "category_group": "radiation",
+        "risk_level": "critical",
+        "requires_training": true,
+        "requires_medical_exam": true,
+        "certificate_validity_months": 12
+      }
+    },
+    {
+      "model": "hr.workcategory",
+      "pk": 11,
+      "fields": {
+        "code": "INDUSTRIAL_DRIVING",
+        "name": "Промышленное вождение",
+        "name_en": "Industrial Driving",
+        "category_group": "transport",
+        "risk_level": "medium",
+        "requires_license": true,
+        "requires_medical_exam": true,
+        "certificate_validity_months": 12
+      }
+    },
+    {
+      "model": "hr.workcategory",
+      "pk": 12,
+      "fields": {
+        "code": "LOTO",
+        "name": "LOTO / Блокировка источников энергии",
+        "name_en": "Lockout Tagout",
+        "category_group": "energy_isolation",
+        "risk_level": "high",
+        "requires_training": true,
+        "certificate_validity_months": 12
+      }
+    }
+  ]

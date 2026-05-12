@@ -29,6 +29,7 @@ except ImportError:
 from hr.enbek_client import EnbekClient, EnbekClientError, AuthenticationError, ConnectionError
 from hr.services import EnbekSyncService
 from hr.tasks import sync_enbek_data
+from hr.models import WorkCategory, EmployeeWorkPermit
 
 
 User = get_user_model()
@@ -2147,3 +2148,189 @@ class EmployeeDocumentModelTest(TestCase):
         doc_id = doc.id
         self.emp.delete()
         self.assertFalse(EmployeeDocument.objects.filter(id=doc_id).exists())
+
+
+class WorkCategoryModelTest(TestCase):
+    def test_create_work_category(self):
+        cat = WorkCategory.objects.create(
+            code='TEST_CAT',
+            name='Тестовая категория',
+            category_group='test_group',
+            risk_level='high',
+            certificate_validity_months=12,
+        )
+        self.assertEqual(cat.code, 'TEST_CAT')
+        self.assertEqual(cat.risk_level, 'high')
+        self.assertEqual(cat.certificate_validity_months, 12)
+
+    def test_unique_code(self):
+        WorkCategory.objects.create(
+            code='UNIQUE_CODE',
+            name='Категория 1',
+            category_group='group',
+            risk_level='low',
+        )
+        from django.db import IntegrityError
+        with self.assertRaises(IntegrityError):
+            WorkCategory.objects.create(
+                code='UNIQUE_CODE',
+                name='Категория 2',
+                category_group='group',
+                risk_level='low',
+            )
+
+    def test_default_booleans(self):
+        cat = WorkCategory.objects.create(
+            code='DEFAULT_TEST',
+            name='Дефолты',
+            category_group='group',
+            risk_level='low',
+        )
+        self.assertTrue(cat.requires_training)
+        self.assertFalse(cat.requires_medical_exam)
+        self.assertFalse(cat.requires_ptw)
+        self.assertFalse(cat.requires_gas_test)
+
+    def test_required_ppe_json(self):
+        cat = WorkCategory.objects.create(
+            code='PPE_TEST',
+            name='СИЗ тест',
+            category_group='group',
+            risk_level='high',
+            required_ppe=['helmet', 'gloves'],
+        )
+        self.assertIn('helmet', cat.required_ppe)
+        self.assertIn('gloves', cat.required_ppe)
+
+    def test_str(self):
+        cat = WorkCategory.objects.create(
+            code='STR_TEST',
+            name='Электробезопасность',
+            category_group='electrical',
+            risk_level='critical',
+        )
+        self.assertEqual(str(cat), 'Электробезопасность')
+
+
+class EmployeeWorkPermitTest(TestCase):
+    def setUp(self):
+        self.dept = Department.objects.create(name='IT')
+        self.user = User.objects.create_user(username='permit_worker', password='pass', role=RoleEnums.STAFF.value)
+        self.emp = Employee.objects.create(user=self.user, department=self.dept, status='active')
+        self.cat = WorkCategory.objects.create(
+            code='HEIGHT_TEST',
+            name='Работы на высоте',
+            category_group='high_risk_work',
+            risk_level='high',
+        )
+
+    def test_create_permit(self):
+        permit = EmployeeWorkPermit.objects.create(
+            employee=self.emp,
+            category=self.cat,
+            issue_date=date.today(),
+            expiry_date=date.today() + timedelta(days=365),
+        )
+        self.assertEqual(permit.employee, self.emp)
+        self.assertEqual(permit.category, self.cat)
+
+    def test_days_until_expiry_future(self):
+        permit = EmployeeWorkPermit.objects.create(
+            employee=self.emp,
+            category=self.cat,
+            issue_date=date.today(),
+            expiry_date=date.today() + timedelta(days=100),
+        )
+        self.assertEqual(permit.days_until_expiry, 100)
+
+    def test_days_until_expiry_past(self):
+        permit = EmployeeWorkPermit.objects.create(
+            employee=self.emp,
+            category=self.cat,
+            issue_date=date.today() - timedelta(days=400),
+            expiry_date=date.today() - timedelta(days=10),
+        )
+        self.assertEqual(permit.days_until_expiry, -10)
+
+    def test_status_active(self):
+        permit = EmployeeWorkPermit.objects.create(
+            employee=self.emp,
+            category=self.cat,
+            issue_date=date.today(),
+            expiry_date=date.today() + timedelta(days=60),
+        )
+        self.assertEqual(permit.status, 'active')
+
+    def test_status_expiring(self):
+        permit = EmployeeWorkPermit.objects.create(
+            employee=self.emp,
+            category=self.cat,
+            issue_date=date.today(),
+            expiry_date=date.today() + timedelta(days=15),
+        )
+        self.assertEqual(permit.status, 'expiring')
+
+    def test_status_expired(self):
+        permit = EmployeeWorkPermit.objects.create(
+            employee=self.emp,
+            category=self.cat,
+            issue_date=date.today() - timedelta(days=400),
+            expiry_date=date.today() - timedelta(days=1),
+        )
+        self.assertEqual(permit.status, 'expired')
+
+    def test_status_label(self):
+        permit = EmployeeWorkPermit.objects.create(
+            employee=self.emp,
+            category=self.cat,
+            issue_date=date.today(),
+            expiry_date=date.today() + timedelta(days=60),
+        )
+        self.assertEqual(permit.status_label, 'АКТИВЕН')
+
+    def test_unique_together(self):
+        EmployeeWorkPermit.objects.create(
+            employee=self.emp,
+            category=self.cat,
+            issue_date=date.today(),
+            expiry_date=date.today() + timedelta(days=365),
+        )
+        from django.db import IntegrityError
+        with self.assertRaises(IntegrityError):
+            EmployeeWorkPermit.objects.create(
+                employee=self.emp,
+                category=self.cat,
+                issue_date=date.today(),
+                expiry_date=date.today() + timedelta(days=365),
+            )
+
+    def test_str(self):
+        permit = EmployeeWorkPermit.objects.create(
+            employee=self.emp,
+            category=self.cat,
+            issue_date=date.today(),
+            expiry_date=date.today() + timedelta(days=365),
+        )
+        self.assertIn('Работы на высоте', str(permit))
+
+
+class WorkCategoryFixtureTest(TestCase):
+    fixtures = ['work_categories_kz.json']
+
+    def test_fixture_loaded(self):
+        self.assertGreater(WorkCategory.objects.count(), 0)
+
+    def test_height_work_exists(self):
+        self.assertTrue(WorkCategory.objects.filter(code='HEIGHT_WORK').exists())
+
+    def test_electrical_safety_exists(self):
+        self.assertTrue(WorkCategory.objects.filter(code='ELECTRICAL_SAFETY').exists())
+
+    def test_gas_hazardous_exists(self):
+        self.assertTrue(WorkCategory.objects.filter(code='GAS_HAZARDOUS').exists())
+
+    def test_critical_categories_require_ptw(self):
+        ptw_required = ['ELECTRICAL_SAFETY', 'GAS_HAZARDOUS', 'CONFINED_SPACE', 'HEIGHT_WORK']
+        for code in ptw_required:
+            cat = WorkCategory.objects.get(code=code)
+            self.assertTrue(cat.requires_ptw, f"{code} должен требовать PTW")

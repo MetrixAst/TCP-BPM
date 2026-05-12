@@ -2,9 +2,10 @@ from django.contrib import admin
 from .models import (
     Company, Position, WorkCalendar, 
     Vacation, SickLeave, EmploymentContract,
-    LeaveRequest, LeaveType, AttendanceRecord, EmployeeDocument
+    LeaveRequest, LeaveType, AttendanceRecord, EmployeeDocument, WorkCategory, EmployeeWorkPermit
 )
 from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
@@ -97,3 +98,84 @@ class EmployeeDocumentAdmin(admin.ModelAdmin):
     list_filter = ['doc_type', 'status', 'sync_status']
     search_fields = ['employee__user__username', 'title', 'external_enbek_id']
     readonly_fields = ['created_at', 'updated_at']
+
+@admin.register(WorkCategory)
+class WorkCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'risk_level', 'certificate_validity_months') 
+    search_fields = ('code', 'name')
+    
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('code', 'name', 'name_en', 'category_group', 'risk_level')
+        }),
+        ('Требования безопасности РК', {
+            'fields': (
+                ('requires_training', 'requires_medical_exam'),
+                ('requires_ptw', 'requires_ppe'),
+                ('requires_gas_test', 'requires_supervisor', 'requires_license'),
+            )
+        }),
+        ('Сроки и Нормативы', {
+            'fields': ('certificate_validity_months', 'required_ppe', 'related_regulations')
+        }),
+    )
+
+class StatusFilter(admin.SimpleListFilter):
+    title = 'Статус допуска'
+    parameter_name = 'status'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('active', 'Активен'),
+            ('expiring', 'Истекает (30 дней)'),
+            ('expired', 'Просрочен'),
+        )
+
+    def queryset(self, request, queryset):
+        from datetime import date, timedelta
+        today = date.today()
+        thirty_days_later = today + timedelta(days=30)
+        
+        if self.value() == 'active':
+            return queryset.filter(expiry_date__gt=thirty_days_later)
+        if self.value() == 'expiring':
+            return queryset.filter(expiry_date__lte=thirty_days_later, expiry_date__gte=today)
+        if self.value() == 'expired':
+            return queryset.filter(expiry_date__lt=today)
+
+@admin.register(EmployeeWorkPermit)
+class EmployeeWorkPermitAdmin(admin.ModelAdmin):
+    list_display = ('get_employee', 'get_category', 'expiry_date', 'get_status_display')
+    
+    list_filter = (
+        StatusFilter,              
+        'category',              
+        'employee__department',   
+    )
+
+    search_fields = ('employee__user__last_name', 'employee__user__first_name', 'category__name', 'document_number')
+    
+    list_select_related = ('employee__user', 'category', 'employee__department')
+
+    def get_employee(self, obj):
+        return obj.employee
+    get_employee.short_description = 'Сотрудник'
+
+    def get_category(self, obj):
+        return obj.category.name
+    get_category.short_description = 'Категория'
+
+    def get_status_display(self, obj):
+        status = obj.status
+        colors = {
+            'expired': 'red',
+            'expiring': 'orange',
+            'active': 'green'
+        }
+        from django.utils.html import format_html
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            colors.get(status, 'black'),
+            obj.status_label
+        )
+    get_status_display.short_description = 'Статус'
