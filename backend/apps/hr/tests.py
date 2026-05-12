@@ -29,7 +29,7 @@ except ImportError:
 from hr.enbek_client import EnbekClient, EnbekClientError, AuthenticationError, ConnectionError
 from hr.services import EnbekSyncService
 from hr.tasks import sync_enbek_data
-from hr.models import WorkCategory, EmployeeWorkPermit
+from hr.models import WorkCategory, EmployeeWorkPermit, CertificationType, EmployeeCertification
 
 
 User = get_user_model()
@@ -2334,3 +2334,156 @@ class WorkCategoryFixtureTest(TestCase):
         for code in ptw_required:
             cat = WorkCategory.objects.get(code=code)
             self.assertTrue(cat.requires_ptw, f"{code} должен требовать PTW")
+
+class CertificationTypeModelTest(TestCase):
+    def test_create_certification_type(self):
+        ct = CertificationType.objects.create(
+            code='TEST_CERT',
+            name='Тестовая сертификация',
+            validity_months=12,
+        )
+        self.assertEqual(ct.code, 'TEST_CERT')
+        self.assertEqual(ct.validity_months, 12)
+        self.assertFalse(ct.is_mandatory)
+
+    def test_unique_code(self):
+        CertificationType.objects.create(code='UNIQUE', name='Уникальная', validity_months=12)
+        from django.db import IntegrityError
+        with self.assertRaises(IntegrityError):
+            CertificationType.objects.create(code='UNIQUE', name='Дубль', validity_months=12)
+
+    def test_str(self):
+        ct = CertificationType.objects.create(code='STR_TEST', name='Охрана труда', validity_months=36)
+        self.assertEqual(str(ct), 'Охрана труда')
+
+    def test_mandatory_flag(self):
+        ct = CertificationType.objects.create(
+            code='MANDATORY', name='Обязательная', validity_months=12, is_mandatory=True
+        )
+        self.assertTrue(ct.is_mandatory)
+
+
+class EmployeeCertificationTest(TestCase):
+    def setUp(self):
+        self.dept = Department.objects.create(name='IT')
+        self.user = User.objects.create_user(username='cert_worker', password='pass', role=RoleEnums.STAFF.value)
+        self.emp = Employee.objects.create(user=self.user, department=self.dept, status='active')
+        self.ct = CertificationType.objects.create(
+            code='FIRST_AID_TEST', name='Первая помощь', validity_months=24
+        )
+
+    def test_create_certification(self):
+        cert = EmployeeCertification.objects.create(
+            employee=self.emp,
+            cert_type=self.ct,
+            issue_date=date.today(),
+            expiry_date=date.today() + timedelta(days=365),
+        )
+        self.assertEqual(cert.employee, self.emp)
+        self.assertEqual(cert.cert_type, self.ct)
+        self.assertFalse(cert.is_revoked)
+
+    def test_status_active(self):
+        cert = EmployeeCertification.objects.create(
+            employee=self.emp,
+            cert_type=self.ct,
+            issue_date=date.today(),
+            expiry_date=date.today() + timedelta(days=60),
+        )
+        from hr.enums import CertificationStatusEnum
+        self.assertEqual(cert.status, CertificationStatusEnum.ACTIVE)
+
+    def test_status_expiring(self):
+        cert = EmployeeCertification.objects.create(
+            employee=self.emp,
+            cert_type=self.ct,
+            issue_date=date.today(),
+            expiry_date=date.today() + timedelta(days=15),
+        )
+        from hr.enums import CertificationStatusEnum
+        self.assertEqual(cert.status, CertificationStatusEnum.EXPIRING)
+
+    def test_status_expired(self):
+        cert = EmployeeCertification.objects.create(
+            employee=self.emp,
+            cert_type=self.ct,
+            issue_date=date.today() - timedelta(days=400),
+            expiry_date=date.today() - timedelta(days=1),
+        )
+        from hr.enums import CertificationStatusEnum
+        self.assertEqual(cert.status, CertificationStatusEnum.EXPIRED)
+
+    def test_status_revoked(self):
+        cert = EmployeeCertification.objects.create(
+            employee=self.emp,
+            cert_type=self.ct,
+            issue_date=date.today(),
+            expiry_date=date.today() + timedelta(days=365),
+            is_revoked=True,
+        )
+        from hr.enums import CertificationStatusEnum
+        self.assertEqual(cert.status, CertificationStatusEnum.REVOKED)
+
+    def test_days_until_expiry(self):
+        cert = EmployeeCertification.objects.create(
+            employee=self.emp,
+            cert_type=self.ct,
+            issue_date=date.today(),
+            expiry_date=date.today() + timedelta(days=100),
+        )
+        self.assertEqual(cert.days_until_expiry, 100)
+
+    def test_days_until_expiry_none_when_no_expiry(self):
+        cert = EmployeeCertification.objects.create(
+            employee=self.emp,
+            cert_type=self.ct,
+            issue_date=date.today(),
+        )
+        self.assertIsNone(cert.days_until_expiry)
+
+    def test_status_active_when_no_expiry(self):
+        cert = EmployeeCertification.objects.create(
+            employee=self.emp,
+            cert_type=self.ct,
+            issue_date=date.today(),
+        )
+        from hr.enums import CertificationStatusEnum
+        self.assertEqual(cert.status, CertificationStatusEnum.ACTIVE)
+
+    def test_str(self):
+        cert = EmployeeCertification.objects.create(
+            employee=self.emp,
+            cert_type=self.ct,
+            issue_date=date.today(),
+        )
+        self.assertIn('Первая помощь', str(cert))
+
+    def test_cascade_delete(self):
+        cert = EmployeeCertification.objects.create(
+            employee=self.emp,
+            cert_type=self.ct,
+            issue_date=date.today(),
+        )
+        cert_id = cert.id
+        self.emp.delete()
+        self.assertFalse(EmployeeCertification.objects.filter(id=cert_id).exists())
+
+
+class CertificationFixtureTest(TestCase):
+    fixtures = ['certification_types.json']
+
+    def test_fixture_loaded(self):
+        self.assertGreater(CertificationType.objects.count(), 0)
+
+    def test_first_aid_exists(self):
+        self.assertTrue(CertificationType.objects.filter(code='FIRST_AID').exists())
+
+    def test_fire_safety_exists(self):
+        self.assertTrue(CertificationType.objects.filter(code='FIRE_SAFETY').exists())
+
+    def test_labor_safety_exists(self):
+        self.assertTrue(CertificationType.objects.filter(code='LABOR_SAFETY').exists())
+
+    def test_mandatory_certifications_exist(self):
+        mandatory = CertificationType.objects.filter(is_mandatory=True)
+        self.assertGreater(mandatory.count(), 0)
