@@ -1,10 +1,10 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from datetime import date
 from account.models import UserAccount, Employee
 from datetime import timedelta
-from .enums import CalendarItemType, DayTypeEnum, LeaveStatusEnum, CheckInEnum
-
+from .enums import CalendarItemType, DayTypeEnum, LeaveStatusEnum, CheckInEnum, DocumentTypeEnum, DocumentStatusEnum, CertificationStatusEnum
 
 
 class CalendarItem(models.Model):
@@ -319,3 +319,193 @@ class AttendanceRecord(models.Model):
 
     def __str__(self):
         return f"{self.employee} - {self.event_type} ({self.timestamp.strftime('%d.%m %H:%M')})"
+
+class EmployeeDocument(models.Model):
+    employee = models.ForeignKey(
+        'account.Employee',
+        on_delete=models.CASCADE,
+        related_name='documents',
+        verbose_name="Сотрудник"
+    )
+    doc_type = models.CharField(
+        "Тип документа",
+        max_length=30,
+        choices=DocumentTypeEnum.choices,
+        default=DocumentTypeEnum.OTHER
+    )
+    title = models.CharField("Название", max_length=255)
+    version = models.PositiveIntegerField("Версия", default=1)
+    status = models.CharField(
+        "Статус",
+        max_length=20,
+        choices=DocumentStatusEnum.choices,
+        default=DocumentStatusEnum.DRAFT
+    )
+    file = models.FileField(
+        "Файл",
+        upload_to='employee_documents/%Y/%m/',
+        null=True,
+        blank=True
+    )
+    signed_at = models.DateField("Дата подписания", null=True, blank=True)
+    expires_at = models.DateField("Дата истечения", null=True, blank=True)
+    notes = models.TextField("Примечания", blank=True, null=True)
+    external_enbek_id = models.CharField(
+        "ID в Enbek",
+        max_length=100,
+        null=True,
+        blank=True
+    )
+    sync_status = models.CharField(
+        "Статус синхронизации",
+        max_length=20,
+        default='local'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Документ сотрудника"
+        verbose_name_plural = "Документы сотрудников"
+        ordering = ['-created_at']
+        unique_together = ['employee', 'doc_type', 'version']
+
+    def __str__(self):
+        return f"{self.employee} | {self.get_doc_type_display()} v{self.version}"
+
+
+class WorkCategory(models.Model):
+    code = models.CharField("Код", max_length=50, unique=True)
+    name = models.CharField("Название", max_length=255) 
+    name_en = models.CharField("Название (EN)", max_length=255, blank=True)
+    category_group = models.CharField("Группа", max_length=100)
+    
+    risk_level = models.CharField("Уровень риска", max_length=20, choices=[
+        ('low', 'Низкий'), ('medium', 'Средний'), ('high', 'Высокий'), ('critical', 'Критический')
+    ])
+    
+    requires_training = models.BooleanField("Требуется обучение", default=True)
+    requires_medical_exam = models.BooleanField("Требуется медосмотр", default=False)
+    requires_ptw = models.BooleanField("Требуется наряд-допуск (PTW)", default=False)
+    requires_ppe = models.BooleanField("Требуется СИЗ", default=False)
+    requires_gas_test = models.BooleanField("Требуется газоанализ", default=False)
+    requires_supervisor = models.BooleanField("Требуется супервайзер", default=False)
+    requires_license = models.BooleanField("Требуется гос. лицензия/удостоверение", default=False)
+    
+    certificate_validity_months = models.PositiveIntegerField("Срок сертификата (мес)", default=12)
+    
+    required_ppe = models.JSONField("Список СИЗ", default=list, blank=True)
+    related_regulations = models.JSONField("Нормативные акты", default=list, blank=True)
+
+    class Meta:
+        verbose_name = "Категория работ"
+        verbose_name_plural = "Справочник категорий"
+        ordering = ['name'] 
+
+    def __str__(self):
+        return self.name 
+
+class EmployeeWorkPermit(models.Model):
+    employee = models.ForeignKey('account.Employee', on_delete=models.CASCADE, related_name='work_permits')
+    category = models.ForeignKey(WorkCategory, on_delete=models.PROTECT, related_name='permits')
+    issue_date = models.DateField("Дата выдачи")
+    expiry_date = models.DateField("Дата истечения")
+    document_number = models.CharField("Номер удостоверения", max_length=100, blank=True)
+    scan = models.FileField("Скан документа", upload_to="hr/permits/", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Допуск сотрудника"
+        verbose_name_plural = "Допуски сотрудников"
+        unique_together = ('employee', 'category')
+
+    def __str__(self):
+        return f"{self.employee} - {self.category.name}" 
+
+    @property
+    def days_until_expiry(self):
+        if not self.expiry_date:
+            return 0
+        delta = self.expiry_date - date.today()
+        return delta.days
+
+    @property
+    def status_label(self):
+        labels = {
+            'active': 'АКТИВЕН',
+            'expiring': 'ИСТЕКАЕТ',
+            'expired': 'ПРОСРОЧЕН'
+        }
+        return labels.get(self.status, self.status)
+
+    @property
+    def status(self):
+        days = self.days_until_expiry
+        if days < 0: return 'expired'
+        if days <= 30: return 'expiring'
+        return 'active'
+
+class CertificationType(models.Model):
+    code = models.CharField("Код", max_length=50, unique=True)
+    name = models.CharField("Название", max_length=255)
+    name_en = models.CharField("Название (EN)", max_length=255, blank=True)
+    issuing_body = models.CharField("Выдающий орган", max_length=255, blank=True)
+    validity_months = models.PositiveIntegerField("Срок действия (мес)", default=12)
+    is_mandatory = models.BooleanField("Обязательная", default=False)
+    related_regulations = models.JSONField("Нормативные акты", default=list, blank=True)
+
+    class Meta:
+        verbose_name = "Тип сертификации"
+        verbose_name_plural = "Справочник сертификаций"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class EmployeeCertification(models.Model):
+    employee = models.ForeignKey(
+        'account.Employee',
+        on_delete=models.CASCADE,
+        related_name='certifications',
+        verbose_name="Сотрудник"
+    )
+    cert_type = models.ForeignKey(
+        CertificationType,
+        on_delete=models.PROTECT,
+        related_name='certifications',
+        verbose_name="Тип сертификации"
+    )
+    certificate_number = models.CharField("Номер сертификата", max_length=100, blank=True)
+    issue_date = models.DateField("Дата выдачи")
+    expiry_date = models.DateField("Дата истечения", null=True, blank=True)
+    issuing_body = models.CharField("Выдающий орган", max_length=255, blank=True)
+    scan = models.FileField("Скан", upload_to="hr/certifications/", null=True, blank=True)
+    notes = models.TextField("Примечания", blank=True)
+    is_revoked = models.BooleanField("Отозван", default=False)
+
+    class Meta:
+        verbose_name = "Сертификация сотрудника"
+        verbose_name_plural = "Сертификации сотрудников"
+        ordering = ['-issue_date']
+
+    def __str__(self):
+        return f"{self.employee} | {self.cert_type.name}"
+
+    @property
+    def days_until_expiry(self):
+        if not self.expiry_date:
+            return None
+        return (self.expiry_date - date.today()).days
+
+    @property
+    def status(self):
+        if self.is_revoked:
+            return CertificationStatusEnum.REVOKED
+        if not self.expiry_date:
+            return CertificationStatusEnum.ACTIVE
+        days = self.days_until_expiry
+        if days < 0:
+            return CertificationStatusEnum.EXPIRED
+        if days <= 30:
+            return CertificationStatusEnum.EXPIRING
+        return CertificationStatusEnum.ACTIVE
