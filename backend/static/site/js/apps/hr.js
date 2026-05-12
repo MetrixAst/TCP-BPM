@@ -228,11 +228,38 @@
     }
   }
 
+  function initHrDatepickers() {
+    const selectors = [
+      'input[name="hire_date"]',
+      'input[name="date_joined"]',
+      'input[name="birth_date"]',
+      'input[name="registration_date"]',
+      '.js-hr-datepicker'
+    ];
+
+    document.querySelectorAll(selectors.join(',')).forEach(function (input) {
+      input.setAttribute('type', 'text');
+      input.setAttribute('autocomplete', 'off');
+      input.setAttribute('placeholder', 'дд.мм.гггг');
+
+      if (window.jQuery && jQuery.fn.datepicker) {
+        jQuery(input).datepicker({
+          format: 'yyyy-mm-dd',
+          autoclose: true,
+          todayHighlight: true,
+          orientation: 'bottom auto'
+        });
+      }
+    });
+  }
+
+
   function init() {
     initTableSearch();
     initInlineModals();
     initEmployeeForm();
     initOrgChart();
+    initHrDatepickers();
   }
 
   if (document.readyState === "loading") {
