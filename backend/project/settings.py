@@ -32,7 +32,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_celery_results',
-    'django_celery_beat',
     'mptt',
     'django_mptt_admin',
     'betterforms',
