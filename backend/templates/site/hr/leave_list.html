@@ -1,126 +1,236 @@
 {% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Отпуска — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/leaves.css' %}?v=9999">
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4 class="card-title mb-0">Список заявок на отпуск</h4>
-                    <a href="{% url 'hr:leave_create' %}" class="btn btn-primary">Подать заявку</a>
-                </div>
+<div class="leaves-page" id="leavesPage">
 
-                <div class="card-body border-bottom">
-                    <form method="get" class="row g-3 align-items-end">
-                        <div class="col-md-3">
-                            {{ filter_form.search }}
-                        </div>
-                        <div class="col-md-2">
-                            {{ filter_form.department }}
-                        </div>
-                        <div class="col-md-2">
-                            {{ filter_form.status }}
-                        </div>
-                        <div class="col-md-2">
-                            {{ filter_form.leave_type }}
-                        </div>
-                        <div class="col-md-2">
-                            {{ filter_form.date_from }}
-                        </div>
-                        <div class="col-md-2">
-                            {{ filter_form.date_to }}
-                        </div>
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-secondary w-100">Фильтровать</button>
-                        </div>
-                        <div class="col-md-1">
-                            <a href="{% url 'hr:leave_list' %}" class="btn btn-light w-100">Сброс</a>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Сотрудник</th>
-                                    <th>Тип</th>
-                                    <th>Период</th>
-                                    <th>Дней</th>
-                                    <th>Статус</th>
-                                    <th>Кто одобрил</th>
-                                    <th>Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for leave in leaves %}
-                                <tr>
-                                    <td>{{ leave.employee.user.get_full_name }}</td>
-                                    <td>{{ leave.leave_type.name }}</td>
-                                    <td>{{ leave.start_date }} — {{ leave.end_date }}</td>
-                                    <td>{{ leave.working_days_count }}</td>
-                                    <td>
-                                        {% if leave.status == 'approved' %}
-                                            <span class="badge bg-success">{{ leave.get_status_display }}</span>
-                                        {% elif leave.status == 'rejected' %}
-                                            <span class="badge bg-danger">{{ leave.get_status_display }}</span>
-                                        {% elif leave.status == 'pending' %}
-                                            <span class="badge bg-warning text-dark">{{ leave.get_status_display }}</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">{{ leave.get_status_display }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if leave.approver %}
-                                            {{ leave.approver.user.get_full_name }}
-                                        {% else %}
-                                            —
-                                        {% endif %}
-                                    </td>
-                                    <td class="d-flex gap-1 flex-wrap">
-                                        <a href="{% url 'hr:leave_detail' leave.pk %}" class="btn btn-sm btn-outline-secondary">
-                                            Детали
-                                        </a>
-
-                                        {% if is_manager and leave.status == 'pending' %}
-                                            <form method="post" action="{% url 'hr:leave_approve' leave.pk %}">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-success">Одобрить</button>
-                                            </form>
-                                            <form method="post" action="{% url 'hr:leave_reject' leave.pk %}">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-danger">Отклонить</button>
-                                            </form>
-                                        {% endif %}
-
-                                        {% if leave.employee.user == request.user %}
-                                            {% if leave.status == 'draft' or leave.status == 'pending' %}
-                                                <form method="post" action="{% url 'hr:leave_cancel' leave.pk %}">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                        onclick="return confirm('Удалить заявку?')">
-                                                        Отменить
-                                                    </button>
-                                                </form>
-                                            {% endif %}
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">
-                                        Заявок не найдено
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-            </div>
+    <div class="leaves-page__top">
+        <div class="leaves-page__header">
+          <h1 class="leaves-page__title">Календарь отпусков</h1>
+      
+          <a href="{% url 'hr:leave_create' %}"
+             class="leaves-page__btn leaves-page__btn--primary">
+            <i class="bi bi-plus-lg"></i>
+            Подать заявку
+          </a>
         </div>
+      </div>
+      
+      <form method="get"
+            class="leaves-page__filters"
+            id="leavesFilterForm">
+      
+        <div class="leaves-page__field leaves-page__field--search">
+          <div class="leaves-page__search">
+            <i class="bi bi-search leaves-page__search-icon"></i>
+            {{ filter_form.search }}
+          </div>
+        </div>
+      
+        <div class="leaves-page__field leaves-page__field--select">
+          {{ filter_form.status }}
+        </div>
+      
+        <div class="leaves-page__field leaves-page__field--date">
+          {{ filter_form.date_from }}
+        </div>
+      
+        <div class="leaves-page__field leaves-page__field--date">
+          {{ filter_form.date_to }}
+        </div>
+      
+        <button type="submit"
+                class="leaves-page__btn leaves-page__btn--primary">
+          Поиск
+        </button>
+      
+        <a href="{% url 'hr:leave_export_excel' %}"
+           class="leaves-page__btn leaves-page__btn--outline">
+          <i class="bi bi-file-earmark-excel"></i>
+          Excel
+        </a>
+
+        <a href="/hr/leaves/timeline-page/"
+            class="leaves-page__btn leaves-page__btn--outline">
+            <i class="bi bi-calendar-range"></i>
+            Timeline
+        </a>
+      
+      </form>
+
+  <div class="leaves-panel">
+
+    <div class="leaves-table-wrap">
+
+      <table class="leaves-table">
+
+        <thead>
+          <tr>
+            <th class="leaves-table__th">Сотрудник</th>
+            <th class="leaves-table__th">Тип</th>
+            <th class="leaves-table__th">Период</th>
+            <th class="leaves-table__th">Дней</th>
+            <th class="leaves-table__th">Статус</th>
+            <th class="leaves-table__th">Кто одобрил</th>
+            <th class="leaves-table__th">Действия</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          {% for leave in leaves %}
+          <tr class="leaves-table__row">
+
+            <td class="leaves-table__td leaves-table__td--title">
+              {{ leave.employee.user.get_full_name|default:leave.employee.user.username }}
+
+              <div class="leave-muted">
+                {{ leave.employee.department.name|default:"Без отдела" }}
+              </div>
+            </td>
+
+            <td class="leaves-table__td">
+              {{ leave.leave_type.name }}
+            </td>
+
+            <td class="leaves-table__td leaves-table__td--date">
+              {{ leave.start_date|date:"d.m.Y" }}
+              —
+              {{ leave.end_date|date:"d.m.Y" }}
+            </td>
+
+            <td class="leaves-table__td">
+              {{ leave.working_days_count }}
+            </td>
+
+            <td class="leaves-table__td">
+
+              {% if leave.status == 'approved' %}
+                <span class="leave-status leave-status--approved">
+                  {{ leave.get_status_display }}
+                </span>
+
+              {% elif leave.status == 'rejected' %}
+                <span class="leave-status leave-status--rejected">
+                  {{ leave.get_status_display }}
+                </span>
+
+              {% elif leave.status == 'pending' %}
+                <span class="leave-status leave-status--pending">
+                  {{ leave.get_status_display }}
+                </span>
+
+              {% elif leave.status == 'draft' %}
+                <span class="leave-status leave-status--draft">
+                  {{ leave.get_status_display }}
+                </span>
+
+              {% else %}
+                <span class="leave-status leave-status--default">
+                  {{ leave.get_status_display }}
+                </span>
+              {% endif %}
+
+            </td>
+
+            <td class="leaves-table__td">
+
+              {% if leave.approver %}
+                {{ leave.approver.user.get_full_name|default:leave.approver.user.username }}
+              {% else %}
+                —
+              {% endif %}
+
+            </td>
+
+            <td class="leaves-table__td">
+                <div class="leave-actions">
+              
+                  <a href="{% url 'hr:leave_detail' leave.id %}"
+                     class="leave-action leave-action--light">
+                    Детали
+                  </a>
+              
+                  {% if is_manager and leave.status == 'pending' %}
+                    <form method="post"
+                          action="{% url 'hr:leave_approve' leave.id %}">
+                      {% csrf_token %}
+                      <button type="submit"
+                              class="leave-action leave-action--success">
+                        Одобрить
+                      </button>
+                    </form>
+              
+                    <form method="post"
+                          action="{% url 'hr:leave_reject' leave.id %}">
+                      {% csrf_token %}
+                      <button type="submit"
+                              class="leave-action leave-action--danger">
+                        Отклонить
+                      </button>
+                    </form>
+              
+                  {% elif leave.employee.user == request.user and leave.status == 'draft' %}
+                    <form method="post"
+                          action="{% url 'hr:leave_cancel' leave.id %}">
+                      {% csrf_token %}
+                      <button type="submit"
+                              class="leave-action leave-action--outline-danger"
+                              data-confirm="Удалить заявку?">
+                        Отменить
+                      </button>
+                    </form>
+                  {% endif %}
+              
+                </div>
+              </td>
+
+          </tr>
+
+          {% empty %}
+
+          <tr>
+            <td colspan="7"
+                class="leaves-table__empty">
+
+              <div class="leaves-empty">
+                <i class="bi bi-calendar-x leaves-empty__icon"></i>
+
+                <div class="leaves-empty__title">
+                  Заявок не найдено
+                </div>
+
+                <div class="leaves-empty__text">
+                  Попробуйте изменить параметры фильтра
+                </div>
+              </div>
+
+            </td>
+          </tr>
+
+          {% endfor %}
+
+        </tbody>
+
+      </table>
+
     </div>
+
+  </div>
+
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/leaves.js' %}?v=9999"></script>
 {% endblock %}

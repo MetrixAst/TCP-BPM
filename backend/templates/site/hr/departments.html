@@ -1,0 +1,62 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Отделы | metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-page">
+  <div class="hr-page__header">
+    <div>
+      <div class="hr-page__eyebrow">HR / Справочники</div>
+      <h1 class="hr-page__title">Отделы</h1>
+    </div>
+
+    <div class="hr-page__actions">
+      <div class="hr-search">
+        <i class="bi bi-search"></i>
+        <input type="search" class="hr-table-search" placeholder="Поиск отдела">
+      </div>
+    </div>
+  </div>
+
+  <div class="hr-card">
+    <div class="hr-table hr-table--departments">
+      <div class="hr-table__head">
+        <div>Отдел</div>
+        <div>Родительский отдел</div>
+        <div>Сотрудники</div>
+      </div>
+
+      <div class="hr-table__body">
+        {% for department in departments %}
+        <div class="hr-table__row">
+          <div>
+            <strong>{{ department.name }}</strong>
+          </div>
+          <div class="hr-muted">
+            {% if department.parent %}{{ department.parent.name }}{% else %}—{% endif %}
+          </div>
+          <div>
+            <span class="hr-count">{{ department.employees.count }}</span>
+          </div>
+        </div>
+        {% empty %}
+        <div class="hr-empty">
+          <i class="bi bi-diagram-3"></i>
+          <h3>Отделы не найдены</h3>
+          <p>Пока список отделов пустой.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/hr.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock scripts %}

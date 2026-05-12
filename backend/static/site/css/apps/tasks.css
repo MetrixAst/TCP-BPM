@@ -1481,5 +1481,22 @@ body.task-edit-body .bpm-content {
     min-width: 760px;
   }
 }
+#tasksPage select,
+.task-card select,
+#taskEditForm select:not([multiple]) {
+  border: 0 !important;
+  border-radius: 999px !important;
+  background-color: #f5f3fa !important;
+  color: #25233f !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238b88a0' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 16px center !important;
+  background-size: 12px 8px !important;
+}
 
 /*# sourceMappingURL=tasks.css.map */

@@ -2,110 +2,192 @@
 {% load static %}
 {% load site_tags %}
 
+{% block title %}Новый сотрудник — metriX BPM{% endblock %}
+
+{% block body_classes %}hr-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
 {% block content %}
-    <div class="d-flex justify-content-center">
-        <div class="col-xl-6 mb-5">
-            <div class="mx-auto">
-                <form method="POST">
-                    {% check_form form %}
-                    {% csrf_token %}
-                    <div class="card mb-5">
-                        <div class="card-body">
-                            <h1 class="mb-3 mt-1 pb-0 display-4">Новый сотрудник</h1>
 
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="top-label">{{form.user.username}}<span>ЛОГИН</span></label>
-                                    {{form.user.username.errors}}
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="top-label">{{form.user.first_name}}<span>ФИО</span></label>
-                                    {{form.user.first_name.errors}}
-                                </div>
-                            </div>
+<div class="hr-edit-page">
 
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <label class="top-label">{{form.user.password1}}<span>ПАРОЛЬ</span></label>
-                                    {{form.user.password1.errors}}
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="top-label">{{form.user.password2}}<span>ПОВТОРИТЕ ПАРОЛЬ</span></label>
-                                    {{form.user.password2.errors}}
-                                </div>
-                            </div>
+  <div class="hr-edit-card">
 
-                            <div class="row g-3 mt-2">
-                                <div class="col">
-                                    <div class="top-label">{{form.user.role}}<span>РОЛЬ</span></div>
-                                    {{form.user.role.errors}}
-                                </div>
-                            </div>
+    <div class="hr-edit-card__header">
+      <h1 class="hr-edit-card__title">Новый сотрудник</h1>
 
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <label class="top-label">{{form.employee.department}}<span>ОТДЕЛ</span></label>
-                                    {{form.employee.department.errors}}
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="top-label">{{form.employee.position}}<span>ДОЛЖНОСТЬ</span></label>
-                                    {{form.employee.position.errors}}
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <label class="top-label">{{form.employee.status}}<span>СТАТУС</span></label>
-                                    {{form.employee.status.errors}}
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="top-label">{{form.employee.supervisor}}<span>РУКОВОДИТЕЛЬ</span></label>
-                                    {{form.employee.supervisor.errors}}
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <label class="top-label">{{form.employee.iin}}<span>ИИН</span></label>
-                                    {{form.employee.iin.errors}}
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="top-label">{{form.employee.hire_date}}<span>ДАТА ПРИЕМА</span></label>
-                                    {{form.employee.hire_date.errors}}
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <label class="top-label">{{form.employee.phone}}<span>ТЕЛЕФОН</span></label>
-                                    {{form.employee.phone.errors}}
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="top-label">{{form.employee.personal_email}}<span>ЛИЧНАЯ ПОЧТА</span></label>
-                                    {{form.employee.personal_email.errors}}
-                                </div>
-                            </div>
-
-                            <div class="mt-3 form-group">
-                                <div class="form-check">
-                                    {{ form.employee.head }}
-                                    <label class="form-check-label ms-2" style="cursor: pointer;">
-                                        Руководитель отдела
-                                    </label>
-                                </div>
-                                {{ form.employee.head.errors }}
-                            </div>
-
-                            <div class="d-flex justify-content-end mt-3">
-                                <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
-                                    <span>Сохранить</span>
-                                    <i data-acorn-icon="chevron-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
+      <a href="{% url 'hr:employees' %}" class="hr-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
     </div>
+
+    <form method="POST" class="hr-edit-form" id="hrEmployeeForm">
+      {% csrf_token %}
+      {% check_form form %}
+
+      <div class="hr-edit-card__body">
+
+        <section class="hr-edit-section">
+          <h2 class="hr-edit-section__title">Данные сотрудника</h2>
+
+          <div class="hr-edit-grid hr-edit-grid--2">
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Логин<span>*</span></label>
+              {{ form.user.username }}
+              {% if form.user.username.errors %}
+                <div class="hr-edit-field__error">{{ form.user.username.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">ФИО<span>*</span></label>
+              {{ form.user.first_name }}
+              {% if form.user.first_name.errors %}
+                <div class="hr-edit-field__error">{{ form.user.first_name.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Пароль<span>*</span></label>
+              {{ form.user.password1 }}
+              {% if form.user.password1.errors %}
+                <div class="hr-edit-field__error">{{ form.user.password1.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Повторите пароль<span>*</span></label>
+              {{ form.user.password2 }}
+              {% if form.user.password2.errors %}
+                <div class="hr-edit-field__error">{{ form.user.password2.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field hr-edit-field--full">
+              <label class="hr-edit-field__label">Роль</label>
+              {{ form.user.role }}
+              {% if form.user.role.errors %}
+                <div class="hr-edit-field__error">{{ form.user.role.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+          </div>
+        </section>
+
+        <section class="hr-edit-section">
+          <h2 class="hr-edit-section__title">Рабочая информация</h2>
+
+          <div class="hr-edit-grid hr-edit-grid--2">
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Отдел</label>
+              {{ form.employee.department }}
+              {% if form.employee.department.errors %}
+                <div class="hr-edit-field__error">{{ form.employee.department.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Должность</label>
+              {{ form.employee.position }}
+              {% if form.employee.position.errors %}
+                <div class="hr-edit-field__error">{{ form.employee.position.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Статус</label>
+              {{ form.employee.status }}
+              {% if form.employee.status.errors %}
+                <div class="hr-edit-field__error">{{ form.employee.status.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Руководитель</label>
+              {{ form.employee.supervisor }}
+              {% if form.employee.supervisor.errors %}
+                <div class="hr-edit-field__error">{{ form.employee.supervisor.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">ИИН</label>
+              {{ form.employee.iin }}
+              {% if form.employee.iin.errors %}
+                <div class="hr-edit-field__error">{{ form.employee.iin.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Дата приема</label>
+              <input type="text"
+                     name="{{ form.employee.hire_date.html_name }}"
+                     id="{{ form.employee.hire_date.id_for_label }}"
+                     value="{{ form.employee.hire_date.value|date:'d.m.Y' }}"
+                     class="hr-edit-date"
+                     placeholder="дд.мм.гггг">
+              {% if form.employee.hire_date.errors %}
+                <div class="hr-edit-field__error">{{ form.employee.hire_date.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Телефон</label>
+              {{ form.employee.phone }}
+              {% if form.employee.phone.errors %}
+                <div class="hr-edit-field__error">{{ form.employee.phone.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Личная почта</label>
+              {{ form.employee.personal_email }}
+              {% if form.employee.personal_email.errors %}
+                <div class="hr-edit-field__error">{{ form.employee.personal_email.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+          </div>
+
+          <label class="hr-edit-switch">
+            {{ form.employee.head }}
+            <span></span>
+            <strong>Руководитель отдела</strong>
+          </label>
+          {% if form.employee.head.errors %}
+            <div class="hr-edit-field__error">{{ form.employee.head.errors.0 }}</div>
+          {% endif %}
+        </section>
+
+      </div>
+
+      <div class="hr-edit-card__footer">
+        <a href="{% url 'hr:employees' %}" class="hr-edit-btn hr-edit-btn--cancel">
+          Отменить
+        </a>
+
+        <button type="submit" class="hr-edit-btn hr-edit-btn--save">
+          Сохранить
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
 {% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/hr.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock scripts %}

@@ -2,88 +2,90 @@
 {% load static %}
 {% load site_tags %}
 
+{% block title %}Сотрудники | metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
 {% block content %}
-
-    <div class="page-title-container">
-        <div class="row g-0">
-            <div class="col-auto mb-2 mb-md-0 me-auto">
-                <div class="w-auto sw-md-25">
-                    <h1 class="mb-0 pb-0 display-4" id="title">Сотрудники</h1>
-                    <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
-                        <ul class="breadcrumb pt-0">
-                            <li class="breadcrumb-item">
-                                <a href="{% url 'dashboard:dashboard' %}">Главная</a>
-                            </li>
-                            <li class="breadcrumb-item">Сотрудники</li>
-                        </ul>
-                    </nav>
-                </div>
-            </div>
-            <div class="col-12 col-md d-flex align-items-start justify-content-end justify-content-lg-end">
-                <a href="{% url 'hr:create_employee' %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1">
-                    <i data-acorn-icon="plus"></i>
-                    <span>Новый сотрудник</span>
-                </a>
-            </div>
-        </div>
+<div class="hr-page hr-employees-page">
+  <div class="hr-list-top">
+    <h1>Сотрудники</h1>
+  
+    <div class="hr-list-top__actions">
+      <a href="{% url 'hr:create_employee' %}" class="hr-btn hr-btn--primary">
+        <i class="bi bi-plus-lg"></i>
+        <span>Новый сотрудник</span>
+      </a>
     </div>
+  </div>
 
+  <div class="hr-filter-card">
     {% include 'site/layouts/filter_form.html' with form=form %}
+  </div>
 
-    <div class="row g-0">
-        <div class="col">
-            <div class="row">
-                <div class="col-12 mb-5">
-                    {% if paginator.items %}
-                        <div class="card mb-2 bg-transparent no-shadow d-none d-md-block">
-                            <div class="row g-0 sh-3">
-                                <div class="col">
-                                    <div class="card-body pt-0 pb-0 h-100">
-                                        <div class="row g-0 h-100 align-content-center">
-                                            <div class="col-md-4 d-flex align-items-center text-muted text-small">СОТРУДНИК</div>
-                                            <div class="col-md-3 d-flex align-items-center text-muted text-small">ОТДЕЛ</div>
-                                            <div class="col-md-3 d-flex align-items-center text-muted text-small">ДОЛЖНОСТЬ</div>
-                                            <div class="col-md-2 d-flex align-items-center text-muted text-small">СТАТУС</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    {% endif %}
-
-                    <div class="mb-5">
-                        {% for current in paginator.items %}
-                            <div class="card mb-2 sh-11 sh-md-8">
-                                <div class="card-body pt-0 pb-0 h-100">
-                                    <div class="row g-0 h-100 align-content-center">
-                                        <div class="col-11 col-md-4 d-flex flex-column mb-1 mb-md-0 order-1 position-static">
-                                            <a href="{% url 'hr:edit_employee' current.id %}" class="mobile_link">{{current.user.username}}</a>
-                                            <div class="text-small text-muted text-truncate">{{current.user.get_name}}</div>
-                                        </div>
-                                        
-                                        <div class="col-12 col-md-3 d-flex align-items-center order-2 {% if current.head %}text-success{% endif %}">
-                                            {{current.department}}
-                                        </div>
-                                        
-                                        <div class="col-12 col-md-3 d-flex align-items-center order-3 text-muted">
-                                            {% if current.position %}{{current.position.title}}{% else %}—{% endif %}
-                                        </div>
-                                        
-                                        <div class="col-1 col-md-2 d-flex align-items-center order-4">
-                                            <span class="badge {% if current.status == 'active' %}bg-outline-success{% elif current.status == 'dismissed' %}bg-outline-danger{% else %}bg-outline-warning{% endif %}">
-                                                {{current.get_status_display}}
-                                            </span>
-                                        </div>
-                                    </div>                     
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-
-                    {% show_paginator paginator True %}
-                </div>
-            </div>
+  <div class="hr-card">
+    {% if paginator.items %}
+      <div class="hr-table hr-table--employees">
+        <div class="hr-table__head">
+          <div>Сотрудник</div>
+          <div>Отдел</div>
+          <div>Должность</div>
+          <div>Статус</div>
         </div>
-    </div>
 
+        <div class="hr-table__body">
+          {% for current in paginator.items %}
+          <a href="{% url 'hr:edit_employee' current.id %}" class="hr-table__row">
+            <div class="hr-employee">
+              <div class="hr-avatar">
+                {% if current.user.first_name %}
+                  {{ current.user.first_name|slice:":1" }}
+                {% else %}
+                  {{ current.user.username|slice:":1" }}
+                {% endif %}
+              </div>
+              <div>
+                <div class="hr-employee__name">
+                  {% if current.user.get_name %}{{ current.user.get_name }}{% else %}{{ current.user.username }}{% endif %}
+                </div>
+                <div class="hr-employee__meta">@{{ current.user.username }}</div>
+              </div>
+            </div>
+
+            <div class="hr-muted {% if current.head %}hr-head{% endif %}">
+              {% if current.department %}{{ current.department }}{% else %}—{% endif %}
+            </div>
+
+            <div class="hr-muted">
+              {% if current.position %}{{ current.position.title }}{% else %}—{% endif %}
+            </div>
+
+            <div>
+              <span class="hr-status hr-status--{{ current.status }}">
+                {{ current.get_status_display }}
+              </span>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="hr-pagination">
+        {% show_paginator paginator True %}
+      </div>
+    {% else %}
+      <div class="hr-empty">
+        <i class="bi bi-people"></i>
+        <h3>Сотрудники не найдены</h3>
+        <p>Попробуйте изменить фильтры или добавить нового сотрудника.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/hr.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock scripts %}

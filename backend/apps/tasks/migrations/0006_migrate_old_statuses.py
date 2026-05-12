@@ -38,7 +38,7 @@ def backward_migrate_statuses(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tasks', '0005_remove_task_responsible'),
+        ('tasks', '0001_initial'),
     ]
 
     operations = [
