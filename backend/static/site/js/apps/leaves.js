@@ -147,9 +147,81 @@
   
       calculateDays();
     }
+
+    function setupLeaveTimeline() {
+        const page = document.querySelector('#leaveTimelinePage');
+        const root = document.querySelector('#leaveTimeline');
+      
+        if (!page || !root) return;
+      
+        const sourceUrl = page.getAttribute('data-source-url');
+        if (!sourceUrl) return;
+      
+        fetch(sourceUrl)
+          .then(function (response) {
+            return response.json();
+          })
+          .then(function (items) {
+            if (!Array.isArray(items) || !items.length) return;
+            renderTimeline(root, items);
+          })
+          .catch(function () {
+            return;
+          });
+      }
+      
+      function renderTimeline(root, items) {
+        const daysCount = 31;
+        const groups = {};
+      
+        items.forEach(function (item) {
+          const group = item.group || 'Без отдела';
+          if (!groups[group]) groups[group] = [];
+          groups[group].push(item);
+        });
+      
+        let html = '<div class="leave-timeline__grid">';
+        html += '<div class="leave-timeline__head">';
+        html += '<div class="leave-timeline__cell leave-timeline__employee">Сотрудник / отдел</div>';
+      
+        for (let day = 1; day <= daysCount; day++) {
+          html += '<div class="leave-timeline__cell">' + day + '</div>';
+        }
+      
+        html += '</div>';
+      
+        Object.keys(groups).forEach(function (groupName) {
+          groups[groupName].forEach(function (item) {
+            const start = new Date(item.start);
+            const end = new Date(item.end);
+            const startDay = Math.max(1, start.getDate());
+            const endDay = Math.min(daysCount, end.getDate());
+            const span = Math.max(1, endDay - startDay + 1);
+            const status = item.status || 'pending';
+      
+            html += '<div class="leave-timeline__row">';
+            html += '<div class="leave-timeline__cell leave-timeline__employee">' + groupName + '</div>';
+      
+            for (let day = 1; day <= daysCount; day++) {
+              html += '<div class="leave-timeline__cell"></div>';
+            }
+      
+            html += '<div class="leave-timeline__bar leave-timeline__bar--' + status + '" ';
+            html += 'style="grid-column:' + (startDay + 1) + ' / span ' + span + '">';
+            html += item.content || 'Отпуск';
+            html += '</div>';
+      
+            html += '</div>';
+          });
+        });
+      
+        html += '</div>';
+        root.innerHTML = html;
+      }
   
     document.addEventListener('DOMContentLoaded', function () {
       setupLeaveFilters();
       setupLeaveCreateForm();
+      setupLeaveTimeline();
     });
   })();
