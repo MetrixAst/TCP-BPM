@@ -1639,4 +1639,253 @@ body.hr-edit-body .bpm-content {
   color: #9a98aa;
 }
 
+.attendance-page__filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.attendance-page__date {
+  width: 180px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: #f5f3fa;
+  color: #25233f;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+}
+
+.attendance-page__btn {
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.attendance-page__btn--primary {
+  background: #2f6bed;
+  color: #fff;
+}
+
+.attendance-page__btn--primary:hover {
+  background: #2458c7;
+  color: #fff;
+  text-decoration: none;
+}
+
+.attendance-table__employee {
+  color: #25233f;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.attendance-table__employee:hover {
+  color: #2f6bed;
+  text-decoration: none;
+}
+
+.attendance-table__department {
+  margin-top: 3px;
+  color: #9a98aa;
+  font-size: 12px;
+}
+
+.attendance-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.attendance-status--success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.attendance-status--late,
+.attendance-status--warning {
+  background: #fff7ed;
+  color: #f59e0b;
+}
+
+.attendance-status--empty {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.attendance-table__empty-state {
+  padding: 48px 16px !important;
+}
+
+.attendance-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  color: #9a98aa;
+  text-align: center;
+}
+
+.attendance-empty i {
+  font-size: 36px;
+  color: #c8c7d3;
+}
+
+.attendance-empty strong {
+  color: #25233f;
+  font-size: 14px;
+}
+
+@media (max-width: 767px) {
+  .attendance-page__top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .attendance-page__filters {
+    width: 100%;
+    flex-direction: column;
+  }
+  .attendance-page__date,
+  .attendance-page__btn {
+    width: 100%;
+  }
+}
+.datepicker-dropdown {
+  border: 0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18) !important;
+  padding: 12px !important;
+}
+
+.datepicker table {
+  width: 260px;
+}
+
+.datepicker table tr th {
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #25233f;
+}
+
+.datepicker table tr td {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px !important;
+  font-size: 13px;
+  color: #25233f;
+}
+
+.datepicker table tr td.day:hover,
+.datepicker table tr td.focused {
+  background: #eef2ff !important;
+  color: #3664dc !important;
+}
+
+.datepicker table tr td.active,
+.datepicker table tr td.active:hover {
+  background: #3664dc !important;
+  color: #fff !important;
+  text-shadow: none !important;
+}
+
+.datepicker table tr td.today {
+  background: #f6f4fa !important;
+  color: #3664dc !important;
+  font-weight: 700;
+}
+
+.datepicker table tr td.old,
+.datepicker table tr td.new {
+  color: #b8b5c6 !important;
+}
+
+.datepicker .datepicker-switch,
+.datepicker .prev,
+.datepicker .next {
+  height: 36px;
+  border-radius: 10px;
+}
+
+.datepicker .datepicker-switch:hover,
+.datepicker .prev:hover,
+.datepicker .next:hover {
+  background: #f6f4fa !important;
+}
+
+.attendance-photo-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.attendance-photo-modal.is-open {
+  display: flex;
+}
+
+.attendance-photo-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.attendance-photo-modal__content {
+  position: relative;
+  z-index: 1;
+  width: 420px;
+  max-width: 100%;
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+}
+
+.attendance-photo-modal__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: #f5f3fa;
+  color: #25233f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.attendance-photo-modal__title {
+  padding-right: 36px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #25233f;
+}
+
+.attendance-photo-modal__image {
+  width: 100%;
+  border-radius: 14px;
+  display: block;
+}
+
 /*# sourceMappingURL=hr.css.map */
