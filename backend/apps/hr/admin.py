@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     Company, Position, WorkCalendar, 
     Vacation, SickLeave, EmploymentContract,
-    LeaveRequest, LeaveType, AttendanceRecord
+    LeaveRequest, LeaveType, AttendanceRecord, EmployeeDocument
 )
 from django.utils.safestring import mark_safe
 
@@ -90,3 +90,10 @@ class AttendanceRecordAdmin(admin.ModelAdmin):
         return "Нет фото"
     
     get_photo_preview.short_description = "Превью фото"
+
+@admin.register(EmployeeDocument)
+class EmployeeDocumentAdmin(admin.ModelAdmin):
+    list_display = ['employee', 'doc_type', 'title', 'version', 'status', 'signed_at', 'expires_at', 'sync_status']
+    list_filter = ['doc_type', 'status', 'sync_status']
+    search_fields = ['employee__user__username', 'title', 'external_enbek_id']
+    readonly_fields = ['created_at', 'updated_at']
