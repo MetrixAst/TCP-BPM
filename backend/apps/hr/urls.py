@@ -34,4 +34,22 @@ urlpatterns = [
     path('attendance/checkin/', views.attendance_checkin, name='attendance_checkin'),
     path('attendance/my/', views.attendance_my, name='attendance_my'),
     path('attendance/journal/', views.attendance_journal, name='attendance_journal'),
+
+    path('documents/', views.documents_list, name='documents_list'),
+    path('documents/create/', views.documents_create, name='documents_create'),
+    path('documents/<int:pk>/edit/', views.documents_edit, name='documents_edit'),
+    path('documents/<int:pk>/delete/', views.documents_delete, name='documents_delete'),
+    path('documents/export/', views.documents_export, name='documents_export'),
+
+    path('permits/', views.permits_list, name='permits_list'),
+    path('permits/create/', views.permits_create, name='permits_create'),
+    path('permits/<int:pk>/edit/', views.permits_edit, name='permits_edit'),
+    path('permits/<int:pk>/delete/', views.permits_delete, name='permits_delete'),
+    path('permits/export/', views.permits_export, name='permits_export'),
+
+    path('certifications/', views.certifications_list, name='certifications_list'),
+    path('certifications/create/', views.certifications_create, name='certifications_create'),
+    path('certifications/<int:pk>/edit/', views.certifications_edit, name='certifications_edit'),
+    path('certifications/<int:pk>/delete/', views.certifications_delete, name='certifications_delete'),
+    path('certifications/export/', views.certifications_export, name='certifications_export'),
 ]
