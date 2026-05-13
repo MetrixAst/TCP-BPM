@@ -22,6 +22,9 @@ class UserAccount(AbstractUser):
         (RoleEnums.ADMINISTRATOR.value, 'Администратор'),
         (RoleEnums.STAFF.value, 'Сотрудник'),
         (RoleEnums.GUEST.value, 'Гость'),
+        (RoleEnums.OWNER.value, 'Владелец'),
+        (RoleEnums.CFO.value, 'Финансовый директор'),
+        (RoleEnums.CHIEF_ACCOUNTANT.value, 'Главный бухгалтер'),
     ]
 
     GENDERS = [
