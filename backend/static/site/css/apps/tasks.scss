@@ -1725,3 +1725,70 @@ body.task-edit-body {
   background-position: right 16px center !important;
   background-size: 12px 8px !important;
 }
+
+#tasksPage {
+  .tasks-page__state-control {
+    min-width: 170px;
+  }
+
+  .tasks-page__select--select2 {
+    min-width: 170px;
+  }
+
+  .select2-container {
+    width: 170px !important;
+  }
+
+  .select2-container--default .select2-selection--single,
+  .select2-container--bootstrap4 .select2-selection--single {
+    height: 36px !important;
+    min-height: 36px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: #f5f3fa !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__rendered,
+  .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
+    height: 36px !important;
+    line-height: 36px !important;
+    padding-left: 16px !important;
+    padding-right: 34px !important;
+    color: #25233f !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__arrow,
+  .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
+    height: 36px !important;
+    right: 10px !important;
+  }
+}
+
+.select2-container--open .select2-dropdown {
+  border: 0 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16) !important;
+  overflow: hidden !important;
+}
+
+.select2-results__options {
+  padding: 6px !important;
+}
+
+.select2-results__option {
+  min-height: 34px !important;
+  padding: 8px 12px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected],
+.select2-container--bootstrap4 .select2-results__option--highlighted[aria-selected] {
+  background: #2f6bed !important;
+  color: #fff !important;
+}
