@@ -10,29 +10,35 @@ from django.http import Http404
 from django.db import IntegrityError
 from django.db.models import Q
 from django.utils import timezone
+from django.core.files.uploadedfile import SimpleUploadedFile
 from datetime import date, timedelta, datetime
 import requests
 from unittest.mock import Mock, patch
 
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
+
 from .models import (
-    LeaveRequest, LeaveType, WorkCalendar, Company, 
+    LeaveRequest, LeaveType, WorkCalendar, Company,
     Position, Vacation, SickLeave, EmploymentContract, AttendanceRecord, CheckInEnum, EmployeeDocument
 )
 from .enums import LeaveStatusEnum, DayTypeEnum, DocumentStatusEnum, DocumentTypeEnum
-from account.role_permissions import RoleEnums, MenuItem
+from account.role_permissions import RoleEnums, MenuItem, RolePermissions
+from account.models import UserAccount as User
 
 try:
-    from account.models import Employee, UserAccount, Department
+    from company.models import Department, Employee
 except ImportError:
-    from apps.account.models import Employee, UserAccount, Department
+    from account.models import Employee, Department
 
 from hr.enbek_client import EnbekClient, EnbekClientError, AuthenticationError, ConnectionError
 from hr.services import EnbekSyncService
 from hr.tasks import sync_enbek_data
 from hr.models import WorkCategory, EmployeeWorkPermit, CertificationType, EmployeeCertification
+from hr.enums import CertificationStatusEnum
 
-
-User = get_user_model()
+UserAccount = User
 LOCAL_TZ = pytz.timezone('Asia/Almaty')
 
 def make_aware_local(dt_naive):
@@ -2487,3 +2493,145 @@ class CertificationFixtureTest(TestCase):
     def test_mandatory_certifications_exist(self):
         mandatory = CertificationType.objects.filter(is_mandatory=True)
         self.assertGreater(mandatory.count(), 0)
+
+def make_user(username, role, dept, head=False, is_superuser=False):
+    if is_superuser:
+        user = User.objects.create_superuser(username=username, password='pass', email=f"{username}@test.kz")
+    else:
+        user = User.objects.create_user(username=username, password='pass')
+        user.role = role
+        user.save()
+    
+    emp = Employee.objects.create(user=user, department=dept, status='active', head=head)
+    return user, emp
+
+def get_fake_file(name="test.pdf"):
+    return SimpleUploadedFile(name, b"file_content", content_type="application/pdf")
+
+class DocumentsRegistryTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.dept_it = Department.objects.create(name='IT')
+        self.dept_hr = Department.objects.create(name='HR')
+        
+        self.hr_user, _ = make_user('hr_admin', RoleEnums.ADMINISTRATOR.value, self.dept_hr, is_superuser=True)
+        self.staff_it, self.staff_emp = make_user('staff_it', RoleEnums.STAFF.value, self.dept_it)
+        self.head_it, self.head_emp = make_user('head_it', RoleEnums.STAFF.value, self.dept_it, head=True)
+        
+        self.doc = EmployeeDocument.objects.create(
+            employee=self.staff_emp, 
+            title="Employment Contract 2026", 
+            doc_type=DocumentTypeEnum.EMPLOYMENT_CONTRACT,
+            status=DocumentStatusEnum.ACTIVE
+        )
+
+    def test_document_list_access(self):
+        self.client.login(username='staff_it', password='pass')
+        r = self.client.get(reverse('hr:documents_list'))
+        self.assertIn(self.doc, r.context['documents'])
+        
+        self.client.login(username='head_it', password='pass')
+        r = self.client.get(reverse('hr:documents_list'))
+        self.assertIn(self.doc, r.context['documents'])
+
+    def test_document_create_full(self):
+        self.client.login(username='hr_admin', password='pass')
+        data = {
+            'employee': self.staff_emp.pk,
+            'doc_type': DocumentTypeEnum.NDA,
+            'title': 'NDA Secret',
+            'version': '1.0',
+            'status': DocumentStatusEnum.ACTIVE,
+            'signed_at': date.today().strftime('%d.%m.%Y'),
+            'file': get_fake_file()
+        }
+        r = self.client.post(reverse('hr:documents_create'), data)
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(EmployeeDocument.objects.filter(title='NDA Secret').exists())
+
+    def test_document_delete(self):
+        """Удаление документа"""
+        self.client.login(username='hr_admin', password='pass')
+        r = self.client.post(reverse('hr:documents_delete', args=[self.doc.pk]))
+        self.assertFalse(EmployeeDocument.objects.filter(pk=self.doc.pk).exists())
+
+class PermitsRegistryTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.dept = Department.objects.create(name='Ops')
+        self.hr_user, _ = make_user('hr_p', RoleEnums.ADMINISTRATOR.value, self.dept, is_superuser=True)
+        self.staff_user, self.staff_emp = make_user('worker', RoleEnums.STAFF.value, self.dept)
+        self.cat = WorkCategory.objects.create(name='Высота', code='H1')
+
+    def test_permit_crud_and_scan_field(self):
+        self.client.login(username='hr_p', password='pass')
+        data = {
+            'employee': self.staff_emp.pk,
+            'category': self.cat.pk,
+            'issue_date': date.today().strftime('%d.%m.%Y'),
+            'expiry_date': (date.today() + timedelta(days=365)).strftime('%d.%m.%Y'),
+            'document_number': 'WP-999',
+            'scan': get_fake_file('permit.jpg')
+        }
+        r = self.client.post(reverse('hr:permits_create'), data)
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(EmployeeWorkPermit.objects.filter(document_number='WP-999').exists())
+
+    def test_permit_filter_expired(self):
+        self.client.login(username='hr_p', password='pass')
+        expired = EmployeeWorkPermit.objects.create(
+            employee=self.staff_emp, category=self.cat,
+            issue_date=date.today() - timedelta(days=500),
+            expiry_date=date.today() - timedelta(days=1),
+            document_number='OLD-01'
+        )
+        r = self.client.get(reverse('hr:permits_list'), {'expired': 'on'})
+        self.assertIn(expired, r.context['permits'])
+
+
+class CertificationsRegistryTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.dept = Department.objects.create(name='Safety')
+        self.hr_user, _ = make_user('hr_c', RoleEnums.ADMINISTRATOR.value, self.dept, is_superuser=True)
+        self.staff_user, self.staff_emp = make_user('cert_user', RoleEnums.STAFF.value, self.dept)
+        self.ct = CertificationType.objects.create(name='Fire Safety', code='FS')
+
+    def test_certification_edit(self):
+        cert = EmployeeCertification.objects.create(
+            employee=self.staff_emp, cert_type=self.ct, issue_date=date.today()
+        )
+        self.client.login(username='hr_c', password='pass')
+        url = reverse('hr:certifications_edit', args=[cert.pk])
+        r = self.client.post(url, {
+            'employee': self.staff_emp.pk,
+            'cert_type': self.ct.pk,
+            'certificate_number': 'CERT-UPDATED',
+            'issue_date': date.today().strftime('%d.%m.%Y')
+        })
+        cert.refresh_from_db()
+        self.assertEqual(cert.certificate_number, 'CERT-UPDATED')
+
+
+class UtilityRegistryTest(TestCase):
+    def test_file_validation_logic(self):
+        from hr.forms import EmployeeDocumentForm
+        
+        exe_file = get_fake_file("attack.exe")
+        form = EmployeeDocumentForm(files={'file': exe_file})
+        self.assertFalse(form.is_valid())
+        
+        large_file = SimpleUploadedFile("big.pdf", b"x" * (11 * 1024 * 1024))
+        form = EmployeeDocumentForm(files={'file': large_file})
+        self.assertFalse(form.is_valid())
+
+    def test_export_status_codes(self):
+        dept = Department.objects.create(name='Adm')
+        admin, _ = make_user('super_export', RoleEnums.ADMINISTRATOR.value, dept, is_superuser=True)
+        self.client.login(username='super_export', password='pass')
+        
+        for registry in ['documents', 'permits', 'certifications']:
+            url = reverse(f'hr:{registry}_export')
+            r = self.client.get(url)
+            self.assertEqual(r.status_code, 200)
+            self.assertEqual(r['Content-Type'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

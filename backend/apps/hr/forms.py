@@ -8,12 +8,13 @@ from account.models import Department, Employee
 from documents.forms import PaginatorForm
 from addits.forms import Select2FieldDefault, Select2ChoiceField
 
-from .models import CalendarItem
-from .models import Position
+from .models import CalendarItem, Position, LeaveRequest, LeaveType, EmployeeDocument, EmployeeWorkPermit, EmployeeCertification
+from .enums import EmployeeStatusEnum, LeaveStatusEnum, DocumentTypeEnum, CertificationStatusEnum, DocumentStatusEnum
 
-from .enums import EmployeeStatusEnum 
-from .models import LeaveRequest, LeaveType
-from .enums import LeaveStatusEnum
+
+
+ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'docx']
+MAX_FILE_SIZE = 10 * 1024 * 1024  
 
 
 class CalendarItemForm(CustomModelForm):
@@ -145,3 +146,110 @@ class LeaveFilterForm(forms.Form):
         label='По'
     )
 
+
+def validate_file(file):
+    if file:
+        ext = file.name.split('.')[-1].lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            raise forms.ValidationError(f"Недопустимый формат. Разрешены: {', '.join(ALLOWED_EXTENSIONS)}")
+        if file.size > MAX_FILE_SIZE:
+            raise forms.ValidationError("Файл не должен превышать 10MB")
+
+
+class EmployeeDocumentForm(forms.ModelForm):
+    class Meta:
+        model = EmployeeDocument
+        fields = ['employee', 'doc_type', 'title', 'version', 'status', 'file', 'signed_at', 'expires_at', 'notes']
+        widgets = {
+            'signed_at': forms.TextInput(attrs={'class': 'form-control single_date_picker'}),
+            'expires_at': forms.TextInput(attrs={'class': 'form-control single_date_picker'}),
+        }
+
+    def clean_file(self):
+        file = self.cleaned_data.get('file')
+        validate_file(file)
+        return file
+
+
+class DocumentFilterForm(forms.Form):
+    search = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Поиск'}),
+        required=False
+    )
+    department = Select2FieldDefault(queryset=Department.objects.all(), placeholder='Отдел', required=False)
+    doc_type = Select2ChoiceField(
+        choices=[('', 'Тип')] + DocumentTypeEnum.choices, required=False, placeholder='Тип'
+    )
+    status = Select2ChoiceField(
+        choices=[('', 'Статус')] + DocumentStatusEnum.choices, required=False, placeholder='Статус'
+    )
+    expiring_soon = forms.BooleanField(required=False, label='Истекающие (30 дней)')
+
+
+class EmployeeWorkPermitForm(forms.ModelForm):
+    class Meta:
+        model = EmployeeWorkPermit
+        fields = ['employee', 'category', 'issue_date', 'expiry_date', 'document_number', 'scan']
+        widgets = {
+            'issue_date': forms.TextInput(attrs={'class': 'form-control single_date_picker'}),
+            'expiry_date': forms.TextInput(attrs={'class': 'form-control single_date_picker'}),
+        }
+
+    def clean_scan(self):
+        file = self.cleaned_data.get('scan')
+        validate_file(file)
+        return file
+
+
+class PermitFilterForm(forms.Form):
+    search = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Поиск'}),
+        required=False
+    )
+    department = Select2FieldDefault(queryset=Department.objects.all(), placeholder='Отдел', required=False)
+    category = Select2FieldDefault(queryset=None, placeholder='Категория', required=False)
+    expiring_soon = forms.BooleanField(required=False, label='Истекающие (30 дней)')
+    expired = forms.BooleanField(required=False, label='Просроченные')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .models import WorkCategory
+        self.fields['category'].queryset = WorkCategory.objects.all()
+
+
+class EmployeeCertificationForm(forms.ModelForm):
+    class Meta:
+        model = EmployeeCertification
+        fields = ['employee', 'cert_type', 'certificate_number', 'issue_date', 'expiry_date', 'issuing_body', 'scan', 'notes']
+        widgets = {
+            'issue_date': forms.TextInput(attrs={'class': 'form-control single_date_picker'}),
+            'expiry_date': forms.TextInput(attrs={'class': 'form-control single_date_picker'}),
+        }
+
+    def clean_scan(self):
+        file = self.cleaned_data.get('scan')
+        validate_file(file)
+        return file
+
+
+class CertificationFilterForm(forms.Form):
+    search = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Поиск'}),
+        required=False,
+    )
+    department = Select2FieldDefault(
+        queryset=Department.objects.all(), placeholder='Отдел', required=False,
+    )
+    cert_type = Select2FieldDefault(queryset=None, placeholder='Тип сертификации', required=False)
+    status = Select2ChoiceField(
+        choices=[('', 'Статус'), ('active', 'Активна'), ('expired', 'Истекла'), ('pending', 'Ожидает')],
+        required=False,
+        placeholder='Статус',
+    )
+    expiring_soon = forms.BooleanField(required=False, label='Истекающие (30 дней)')
+    expired = forms.BooleanField(required=False, label='Просроченные')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .models import CertificationType
+        self.fields['cert_type'].queryset = CertificationType.objects.all()

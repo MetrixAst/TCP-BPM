@@ -30,6 +30,7 @@ class PermissionEnums(Enum):
     HR_COMPANIES = "hr_companies"
     HR_POSITIONS = "hr_positions"
     HR_JOURNAL = "hr_journal"
+    HR_REGISTRIES = "hr_registries"
     ECOPARK = "ecopark"
     REQUISTIONS = "requistions"
     REPORTS = "reports"
@@ -55,6 +56,7 @@ class RolePermissions:
             PermissionEnums.HR,
             PermissionEnums.HR_COMPANIES,
             PermissionEnums.HR_POSITIONS,
+            PermissionEnums.HR_REGISTRIES,
             PermissionEnums.ECOPARK,
             PermissionEnums.REQUISTIONS,
             PermissionEnums.REPORTS,

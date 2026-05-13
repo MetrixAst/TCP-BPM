@@ -21,17 +21,23 @@ from account.models import Employee, Department
 from account.forms import EmployeeForm
 
 from .forms import (
-    CalendarItemForm, EmployeeCreationForm, EmployeesListForm, 
-    LeaveFilterForm, LeaveRequestForm
+    CalendarItemForm, EmployeeCreationForm, EmployeesListForm,
+    LeaveFilterForm, LeaveRequestForm,
+    EmployeeDocumentForm, DocumentFilterForm,
+    EmployeeWorkPermitForm, PermitFilterForm,
+    EmployeeCertificationForm, CertificationFilterForm,
 )
+
 from .models import (
     CalendarItem, Company, Position, LeaveRequest, 
-    LeaveType, Vacation, SickLeave, EmploymentContract, AttendanceRecord, CheckInEnum
+    LeaveType, Vacation, SickLeave, EmploymentContract, AttendanceRecord, CheckInEnum, EmployeeDocument, EmployeeWorkPermit, EmployeeCertification, WorkCategory, CertificationType
 )
 from .serializers import CalendarItemSerializer
-from .enums import CalendarItemType, LeaveStatusEnum
 
 import calendar as calendar_module
+
+from .enums import CalendarItemType, LeaveStatusEnum, CertificationStatusEnum
+
 
 
 @need_permission(PermissionEnums.HR)
@@ -735,3 +741,303 @@ def attendance_my(request):
         'employee': employee,
         'is_own_profile': employee == curr_employee
     })
+
+
+def _get_registry_access(user):
+    employee = getattr(user, 'employee_info', None)
+    is_hr = getattr(user, 'is_superuser', False)
+    
+    if not is_hr and hasattr(user, 'role'):
+        try:
+            from apps.account.role_permissions import RolePermissions
+        except ImportError:
+            is_hr = False
+        else:
+            role = user.role
+            if hasattr(role, 'value'):
+                role = role.value
+            is_hr = RolePermissions.checkPermission(role, "hr_registries")
+            
+    is_head = bool(employee and employee.head)
+    return is_hr, is_head, employee
+
+def _filter_by_access(queryset, user, employee_field='employee'):
+    is_hr, is_head, employee = _get_registry_access(user)
+    if is_hr:
+        return queryset
+    if not employee:
+        return queryset.none()
+    if is_head:
+        return queryset.filter(**{f'{employee_field}__department': employee.department})
+    return queryset.filter(**{employee_field: employee})
+
+@login_required
+def documents_list(request):
+    is_hr, is_head, _ = _get_registry_access(request.user)
+    queryset = EmployeeDocument.objects.select_related('employee__user', 'employee__department').order_by('-created_at')
+    queryset = _filter_by_access(queryset, request.user)
+    filter_form = DocumentFilterForm(request.GET)
+    if filter_form.is_valid():
+        data = filter_form.cleaned_data
+        if data.get('search'):
+            queryset = queryset.filter(
+                Q(employee__user__first_name__icontains=data['search']) |
+                Q(employee__user__last_name__icontains=data['search']) |
+                Q(title__icontains=data['search'])
+            )
+        if data.get('department'):
+            queryset = queryset.filter(employee__department=data['department'])
+        if data.get('doc_type'):
+            queryset = queryset.filter(doc_type=data['doc_type'])
+        if data.get('status'):
+            queryset = queryset.filter(status=data['status'])
+        if data.get('expiring_soon'):
+            queryset = queryset.filter(
+                expires_at__lte=date.today() + timedelta(days=30),
+                expires_at__gte=date.today()
+            )
+    return render(request, 'site/hr/documents_list.html', {
+        'documents': queryset,
+        'filter_form': filter_form,
+        'is_hr': is_hr or is_head,
+    })
+
+@login_required
+def permits_list(request):
+    is_hr, is_head, _ = _get_registry_access(request.user)
+    queryset = EmployeeWorkPermit.objects.select_related('employee__user', 'employee__department', 'category').order_by('expiry_date')
+    queryset = _filter_by_access(queryset, request.user)
+    filter_form = PermitFilterForm(request.GET)
+    if filter_form.is_valid():
+        data = filter_form.cleaned_data
+        if data.get('search'):
+            queryset = queryset.filter(
+                Q(employee__user__first_name__icontains=data['search']) |
+                Q(employee__user__last_name__icontains=data['search'])
+            )
+        if data.get('department'):
+            queryset = queryset.filter(employee__department=data['department'])
+        if data.get('category'):
+            queryset = queryset.filter(category=data['category'])
+        if data.get('expiring_soon'):
+            queryset = queryset.filter(expiry_date__lte=date.today() + timedelta(days=30), expiry_date__gte=date.today())
+        if data.get('expired'):
+            queryset = queryset.filter(expiry_date__lt=date.today())
+    return render(request, 'site/hr/permits_list.html', {
+        'permits': queryset,
+        'filter_form': filter_form,
+        'is_hr': is_hr or is_head,
+        'date_today': date.today(),
+        'expiration_threshold': date.today() + timedelta(days=30),
+    })
+
+@login_required
+def documents_create(request):
+    is_hr, is_head, _ = _get_registry_access(request.user)
+    if not is_hr and not is_head:
+        return HttpResponseForbidden()
+    form = EmployeeDocumentForm(request.POST or None, request.FILES or None)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, "Документ добавлен.")
+        return redirect('hr:documents_list')
+    return render(request, 'site/hr/documents_form.html', {'form': form, 'title': 'Добавить документ'})
+
+@login_required
+def documents_edit(request, pk):
+    is_hr, is_head, _ = _get_registry_access(request.user)
+    if not is_hr and not is_head:
+        return HttpResponseForbidden()
+    doc = get_object_or_404(EmployeeDocument, pk=pk)
+    form = EmployeeDocumentForm(request.POST or None, request.FILES or None, instance=doc)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, "Документ обновлён.")
+        return redirect('hr:documents_list')
+    return render(request, 'site/hr/documents_form.html', {'form': form, 'title': 'Редактировать документ'})
+
+@login_required
+def documents_delete(request, pk):
+    is_hr, is_head, _ = _get_registry_access(request.user)
+    if not is_hr and not is_head:
+        return HttpResponseForbidden()
+    doc = get_object_or_404(EmployeeDocument, pk=pk)
+    if request.method == 'POST':
+        doc.delete()
+        messages.success(request, "Документ удалён.")
+    return redirect('hr:documents_list')
+
+@login_required
+def documents_export(request):
+    queryset = EmployeeDocument.objects.select_related('employee__user', 'employee__department').order_by('-created_at')
+    queryset = _filter_by_access(queryset, request.user)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Документы"
+    ws.append(["Сотрудник", "Отдел", "Тип", "Название", "Версия", "Статус", "Дата подписания", "Истекает"])
+    for doc in queryset:
+        user = doc.employee.user
+        name = f"{user.first_name or ''} {user.last_name or ''}".strip() or user.username
+        ws.append([
+            name,
+            doc.employee.department.name if doc.employee.department else "-",
+            doc.get_doc_type_display(),
+            doc.title,
+            doc.version,
+            doc.get_status_display(),
+            doc.signed_at.strftime("%d.%m.%Y") if doc.signed_at else "-",
+            doc.expires_at.strftime("%d.%m.%Y") if doc.expires_at else "-",
+        ])
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="documents_export.xlsx"'
+    wb.save(response)
+    return response
+
+@login_required
+def permits_create(request):
+    is_hr, is_head, _ = _get_registry_access(request.user)
+    if not is_hr and not is_head:
+        return HttpResponseForbidden()
+    form = EmployeeWorkPermitForm(request.POST or None, request.FILES or None)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, "Допуск добавлен.")
+        return redirect('hr:permits_list')
+    return render(request, 'site/hr/permits_form.html', {'form': form, 'title': 'Добавить допуск'})
+
+@login_required
+def permits_edit(request, pk):
+    is_hr, is_head, _ = _get_registry_access(request.user)
+    if not is_hr and not is_head:
+        return HttpResponseForbidden()
+    permit = get_object_or_404(EmployeeWorkPermit, pk=pk)
+    form = EmployeeWorkPermitForm(request.POST or None, request.FILES or None, instance=permit)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, "Допуск обновлён.")
+        return redirect('hr:permits_list')
+    return render(request, 'site/hr/permits_form.html', {'form': form, 'title': 'Редактировать допуск'})
+
+@login_required
+def permits_delete(request, pk):
+    is_hr, is_head, _ = _get_registry_access(request.user)
+    if not is_hr and not is_head:
+        return HttpResponseForbidden()
+    permit = get_object_or_404(EmployeeWorkPermit, pk=pk)
+    if request.method == 'POST':
+        permit.delete()
+        messages.success(request, "Допуск удалён.")
+    return redirect('hr:permits_list')
+
+@login_required
+def permits_export(request):
+    queryset = EmployeeWorkPermit.objects.select_related('employee__user', 'employee__department', 'category').order_by('expiry_date')
+    queryset = _filter_by_access(queryset, request.user)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Допуски"
+    ws.append(["Сотрудник", "Отдел", "Категория", "Номер документа", "Дата выдачи", "Истекает", "Статус"])
+    for permit in queryset:
+        user = permit.employee.user
+        name = f"{user.first_name or ''} {user.last_name or ''}".strip() or user.username
+        ws.append([
+            name,
+            permit.employee.department.name if permit.employee.department else "-",
+            permit.category.name,
+            permit.document_number or "-",
+            permit.issue_date.strftime("%d.%m.%Y"),
+            permit.expiry_date.strftime("%d.%m.%Y"),
+            permit.status_label,
+        ])
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="permits_export.xlsx"'
+    wb.save(response)
+    return response
+
+@login_required
+def certifications_list(request):
+    is_hr, is_head, _ = _get_registry_access(request.user)
+    queryset = EmployeeCertification.objects.select_related('employee__user', 'employee__department', 'cert_type').order_by('expiry_date')
+    queryset = _filter_by_access(queryset, request.user)
+    filter_form = CertificationFilterForm(request.GET)
+    if filter_form.is_valid():
+        data = filter_form.cleaned_data
+        if data.get('search'):
+            queryset = queryset.filter(
+                Q(employee__user__first_name__icontains=data['search']) |
+                Q(employee__user__last_name__icontains=data['search'])
+            )
+        if data.get('department'):
+            queryset = queryset.filter(employee__department=data['department'])
+        if data.get('cert_type'):
+            queryset = queryset.filter(cert_type=data['cert_type'])
+        if data.get('status'):
+            queryset = queryset.filter(status=data['status'])
+        if data.get('expiring_soon'):
+            queryset = queryset.filter(expiry_date__lte=date.today() + timedelta(days=30), expiry_date__gte=date.today())
+    return render(request, 'site/hr/certifications_list.html', {
+        'certifications': queryset,
+        'filter_form': filter_form,
+        'is_hr': is_hr or is_head,
+    })
+
+@login_required
+def certifications_create(request):
+    is_hr, is_head, _ = _get_registry_access(request.user)
+    if not is_hr and not is_head:
+        return HttpResponseForbidden()
+    form = EmployeeCertificationForm(request.POST or None, request.FILES or None)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, "Сертификация добавлена.")
+        return redirect('hr:certifications_list')
+    return render(request, 'site/hr/certifications_form.html', {'form': form, 'title': 'Добавить сертификацию'})
+
+@login_required
+def certifications_edit(request, pk):
+    is_hr, is_head, _ = _get_registry_access(request.user)
+    if not is_hr and not is_head:
+        return HttpResponseForbidden()
+    cert = get_object_or_404(EmployeeCertification, pk=pk)
+    form = EmployeeCertificationForm(request.POST or None, request.FILES or None, instance=cert)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, "Сертификация обновлена.")
+        return redirect('hr:certifications_list')
+    return render(request, 'site/hr/certifications_form.html', {'form': form, 'title': 'Редактировать сертификацию'})
+
+@login_required
+def certifications_delete(request, pk):
+    is_hr, is_head, _ = _get_registry_access(request.user)
+    if not is_hr and not is_head:
+        return HttpResponseForbidden()
+    cert = get_object_or_404(EmployeeCertification, pk=pk)
+    if request.method == 'POST':
+        cert.delete()
+        messages.success(request, "Сертификация удалена.")
+    return redirect('hr:certifications_list')
+
+@login_required
+def certifications_export(request):
+    queryset = EmployeeCertification.objects.select_related('employee__user', 'employee__department', 'cert_type').order_by('expiry_date')
+    queryset = _filter_by_access(queryset, request.user)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Сертификации"
+    ws.append(["Сотрудник", "Отдел", "Тип", "Номер", "Дата выдачи", "Истекает", "Статус"])
+    for cert in queryset:
+        user = cert.employee.user
+        name = f"{user.first_name or ''} {user.last_name or ''}".strip() or user.username
+        ws.append([
+            name,
+            cert.employee.department.name if cert.employee.department else "-",
+            cert.cert_type.name,
+            cert.certificate_number or "-",
+            cert.issue_date.strftime("%d.%m.%Y"),
+            cert.expiry_date.strftime("%d.%m.%Y") if cert.expiry_date else "-",
+            cert.status,
+        ])
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="certifications_export.xlsx"'
+    wb.save(response)
+    return response
