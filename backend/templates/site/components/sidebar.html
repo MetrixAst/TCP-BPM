@@ -13,16 +13,22 @@
                   data-bs-toggle="collapse"
                   data-bs-target="#bpm-sg-{{ forloop.counter }}"
                   aria-expanded="{{ item.is_active|yesno:'true,false' }}">
-            <i class="bi bi-{{ item.icon }} bpm-sidebar__icon"></i>
+            <i class="bi bi-{{ item.icon|default:'circle' }} bpm-sidebar__icon"></i>
             <span class="bpm-sidebar__label">{{ item.title }}</span>
-            <i class="bi bi-chevron-down bpm-sidebar__chevron"></i>
+            <span class="bpm-sidebar__chevron" aria-hidden="true"></span>
           </button>
+
           <div class="collapse {% if item.is_active %}show{% endif %}" id="bpm-sg-{{ forloop.counter }}">
             {% for sub in item.submenu %}
               <a href="{{ sub.url }}"
                  class="bpm-sidebar__item bpm-sidebar__item--sub indicator_counter {% if sub.is_active %}is-active{% endif %}"
                  data-type="{{ sub.indicator_alias }}"
                  {% if sub.is_active %}aria-current="page"{% endif %}>
+                 {% if sub.title == "Заявки от арендаторов" %}
+                   <i class="bi bi-card-checklist bpm-sidebar__icon"></i>
+                 {% else %}
+                   <span class="bpm-sidebar__icon bpm-sidebar__icon--empty"></span>
+                 {% endif %}
                 <span class="bpm-sidebar__label">{{ sub.title }}</span>
               </a>
             {% endfor %}
@@ -33,7 +39,7 @@
            class="bpm-sidebar__item indicator_counter {% if item.is_active %}is-active{% endif %}"
            data-type="{{ item.indicator_alias }}"
            {% if item.is_active %}aria-current="page"{% endif %}>
-          <i class="bi bi-{{ item.icon }} bpm-sidebar__icon"></i>
+          <i class="bi bi-{{ item.icon|default:'circle' }} bpm-sidebar__icon"></i>
           <span class="bpm-sidebar__label">{{ item.title }}</span>
         </a>
       {% endif %}
@@ -43,15 +49,21 @@
   <div class="bpm-sidebar__footer">
     <div class="bpm-sidebar__avatar">
       {% if user.get_avatar_url %}
-        <img src="{{ user.get_avatar_url }}" alt="{{ user.get_name }}" />
+        <img src="{{ user.get_avatar_url }}" alt="{{ user.get_name|default:user.username }}">
       {% else %}
         <i class="bi bi-person-fill"></i>
       {% endif %}
     </div>
+
     <div class="bpm-sidebar__user">
-      <div class="bpm-sidebar__user-name">{{ user.get_name }}</div>
-      <div class="bpm-sidebar__user-role">{{ user.role|default:"Администратор" }}</div>
+      <div class="bpm-sidebar__user-name">
+        {% firstof user.get_name user.first_name user.username "Пользователь" %}
+      </div>
+      <div class="bpm-sidebar__user-role">
+        {{ user.role|default:"Администратор" }}
+      </div>
     </div>
+
     <a href="{% url 'account:logout' %}" class="bpm-sidebar__logout" title="Выйти">
       <i class="bi bi-box-arrow-right"></i>
     </a>

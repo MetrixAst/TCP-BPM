@@ -253,6 +253,70 @@
     });
   }
 
+  function initHrEmployeesFilters() {
+    const page = document.querySelector(".hr-employees-page");
+    if (!page) return;
+  
+    const form = page.querySelector("#filter_form");
+    if (!form) return;
+  
+    const fields = Array.from(form.querySelectorAll(".grid_child"));
+  
+    fields.forEach(function (field) {
+      if (field.querySelector(".hr-filter-label")) return;
+    
+      const input = field.querySelector("input, select, textarea");
+      if (!input) return;
+    
+      let labelText = "Фильтр";
+    
+      const key = (
+        input.name ||
+        input.id ||
+        input.placeholder ||
+        ""
+      ).toLowerCase();
+    
+      if (key.includes("search") || key.includes("q")) {
+        labelText = "Поиск";
+      } else if (key.includes("company")) {
+        labelText = "Компания";
+      } else if (key.includes("department")) {
+        labelText = "Отдел";
+      } else if (key.includes("position")) {
+        labelText = "Должность";
+      } else if (key.includes("status")) {
+        labelText = "Статус";
+      } else if (key.includes("sort")) {
+        labelText = "Сортировка";
+      }
+    
+      const label = document.createElement("label");
+      label.className = "hr-filter-label";
+      label.textContent = labelText;
+    
+      if (input.id) {
+        label.setAttribute("for", input.id);
+      }
+    
+      field.insertBefore(label, field.firstChild);
+    });
+  
+    if (window.jQuery && jQuery.fn.select2) {
+      jQuery(form).find("select").each(function () {
+        const $select = jQuery(this);
+  
+        if ($select.hasClass("select2-hidden-accessible")) return;
+  
+        $select.select2({
+          width: "100%",
+          minimumResultsForSearch: Infinity,
+          dropdownParent: jQuery(".hr-employees-page")
+        });
+      });
+    }
+  }
+
 
   function init() {
     initTableSearch();
@@ -260,6 +324,7 @@
     initEmployeeForm();
     initOrgChart();
     initHrDatepickers();
+    initHrEmployeesFilters();
   }
 
   if (document.readyState === "loading") {

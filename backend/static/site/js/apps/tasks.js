@@ -44,6 +44,22 @@
     const stateSel = document.getElementById('taskStateFilter');
     const filterForm = document.getElementById('tasksFilterForm');
 
+    if (typeof jQuery !== 'undefined' && jQuery.fn.select2 && stateSel) {
+      const $stateSel = jQuery(stateSel);
+    
+      if (!$stateSel.hasClass('select2-hidden-accessible')) {
+        $stateSel.select2({
+          width: '170px',
+          minimumResultsForSearch: Infinity,
+          dropdownParent: jQuery('#tasksPage')
+        });
+      }
+    
+      $stateSel.on('change', updateFiltersWithoutReload);
+    } else {
+      stateSel?.addEventListener('change', updateFiltersWithoutReload);
+    }
+
     tableWrap?.addEventListener('click', function (event) {
       const row = event.target.closest('.tasks-table__row');
       if (!row) return;
@@ -64,7 +80,6 @@
     }
 
     search?.addEventListener('input', debounce(updateFiltersWithoutReload, 500));
-    stateSel?.addEventListener('change', updateFiltersWithoutReload);
 
     const settingsBtn = document.getElementById('taskSettingsBtn');
     settingsBtn?.addEventListener('click', function () {
