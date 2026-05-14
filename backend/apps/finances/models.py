@@ -133,3 +133,109 @@ class PaymentCalendarEntry(models.Model):
             f"{self.tenant} | {self.expected_date.strftime('%d.%m.%Y')} | "
             f"{self.expected_amount} | {self.get_status_display()}"
         )
+
+class GeneratedInvoice(models.Model):
+
+    class Status(models.TextChoices):
+        CREATED   = 'created',   'Создан'
+        SENT      = 'sent',      'Отправлен'
+        VIEWED    = 'viewed',    'Просмотрен'
+        PAID      = 'paid',      'Оплачен'
+        CANCELLED = 'cancelled', 'Отменён'
+
+    class SentVia(models.TextChoices):
+        EMAIL     = 'email',     'Email'
+        WHATSAPP  = 'whatsapp',  'WhatsApp'
+        TELEGRAM  = 'telegram',  'Telegram'
+        MANUAL    = 'manual',    'Вручную'
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        related_name='generated_invoices',
+        verbose_name='Арендатор',
+        null=True, blank=True,
+    )
+    counterparty = models.ForeignKey(
+        'onec.Counterparty',
+        on_delete=models.PROTECT,
+        related_name='generated_invoices',
+        verbose_name='Контрагент',
+        null=True, blank=True,
+    )
+
+    number          = models.CharField('Номер счёта', max_length=100)
+    period          = models.DateField('Период', null=True, blank=True)
+    contract_number = models.CharField('Номер договора', max_length=100, null=True, blank=True)
+    total_amount    = models.DecimalField('Сумма', max_digits=14, decimal_places=2, default=0)
+    vat_amount      = models.DecimalField('НДС', max_digits=14, decimal_places=2, default=0)
+    comment         = models.TextField('Комментарий', null=True, blank=True)
+
+    status = models.CharField(
+        'Статус',
+        max_length=20,
+        choices=Status.choices,
+        default=Status.CREATED,
+        db_index=True,
+    )
+
+    sent_via = models.CharField(
+        'Способ отправки',
+        max_length=20,
+        choices=SentVia.choices,
+        null=True, blank=True,
+    )
+    sent_at = models.DateTimeField('Дата отправки', null=True, blank=True)
+
+    onec_invoice_number = models.CharField(
+        'Номер счёта в 1С', max_length=100, null=True, blank=True
+    )
+    onec_status   = models.CharField('Статус в 1С', max_length=50, null=True, blank=True)
+    onec_id       = models.CharField('ID в 1С', max_length=100, unique=True, null=True, blank=True)
+    synced_at     = models.DateTimeField('Дата синхронизации', null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name        = 'Выставленный счёт'
+        verbose_name_plural = 'Выставленные счета'
+        ordering            = ['-created_at']
+        indexes             = [
+            models.Index(fields=['status']),
+            models.Index(fields=['period']),
+            models.Index(fields=['tenant', 'period']),
+        ]
+
+    def __str__(self):
+        counterpart = self.tenant or self.counterparty or '—'
+        return f"Счёт №{self.number} | {counterpart} | {self.get_status_display()}"
+
+
+class GeneratedInvoiceItem(models.Model):
+    invoice  = models.ForeignKey(
+        GeneratedInvoice,
+        on_delete=models.CASCADE,
+        related_name='items',
+        verbose_name='Счёт',
+    )
+    name       = models.CharField('Наименование', max_length=255)
+    quantity   = models.DecimalField('Количество', max_digits=10, decimal_places=3, default=1)
+    unit       = models.CharField('Единица измерения', max_length=20, null=True, blank=True)
+    price      = models.DecimalField('Цена', max_digits=14, decimal_places=2, default=0)
+    total      = models.DecimalField('Итого', max_digits=14, decimal_places=2, default=0)
+    vat_rate   = models.DecimalField('Ставка НДС %', max_digits=5, decimal_places=2, default=12)
+    vat_amount = models.DecimalField('Сумма НДС', max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        verbose_name        = 'Позиция счёта'
+        verbose_name_plural = 'Позиции счёта'
+        ordering            = ['id']
+
+    def save(self, *args, **kwargs):
+        self.total      = round(self.quantity * self.price, 2)
+        self.vat_amount = round(self.total * self.vat_rate / 100, 2)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} × {self.quantity} = {self.total}"

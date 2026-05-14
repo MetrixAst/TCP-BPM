@@ -1,7 +1,7 @@
 from django.contrib import admin
 
-from .models import TenantPaymentRegistry
-from .models import PaymentCalendarEntry
+from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry
+
 
 @admin.register(TenantPaymentRegistry)
 class TenantPaymentRegistryAdmin(admin.ModelAdmin):
@@ -82,3 +82,44 @@ class PaymentCalendarEntryAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+class GeneratedInvoiceItemInline(admin.TabularInline):
+    model  = GeneratedInvoiceItem
+    extra  = 0
+    readonly_fields = ('total', 'vat_amount')
+    fields = ('name', 'quantity', 'unit', 'price', 'vat_rate', 'total', 'vat_amount')
+
+
+@admin.register(GeneratedInvoice)
+class GeneratedInvoiceAdmin(admin.ModelAdmin):
+    list_display = (
+        'number', 'tenant', 'counterparty',
+        'period', 'total_amount', 'vat_amount',
+        'status', 'sent_via', 'sent_at',
+        'onec_invoice_number', 'onec_status',
+    )
+    list_filter   = ('status', 'sent_via', 'period')
+    search_fields = ('number', 'tenant__name', 'counterparty__short_name', 'onec_invoice_number')
+    date_hierarchy = 'created_at'
+    readonly_fields = ('onec_id', 'onec_invoice_number', 'onec_status', 'synced_at', 'created_at', 'updated_at')
+    inlines = [GeneratedInvoiceItemInline]
+
+    fieldsets = (
+        ('Основное', {
+            'fields': ('number', 'period', 'contract_number', 'tenant', 'counterparty', 'comment'),
+        }),
+        ('Суммы', {
+            'fields': ('total_amount', 'vat_amount'),
+        }),
+        ('Статус и отправка', {
+            'fields': ('status', 'sent_via', 'sent_at'),
+        }),
+        ('1С', {
+            'fields': ('onec_invoice_number', 'onec_status', 'onec_id', 'synced_at'),
+            'classes': ('collapse',),
+        }),
+        ('Служебные', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
