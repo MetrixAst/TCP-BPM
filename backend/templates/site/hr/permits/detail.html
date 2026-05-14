@@ -1,0 +1,74 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Допуск — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-detail-page">
+
+  <div class="hr-registry-detail-card">
+    <div class="hr-registry-detail-card__header">
+      <div>
+        <a href="{% url 'hr:permits_list' %}" class="hr-registry-detail-card__back">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h1>{{ permit.category.name|default:"Допуск" }}</h1>
+        <p>№ {{ permit.document_number|default:"—" }}</p>
+      </div>
+
+      <div class="hr-registry-detail-card__actions">
+        {% if permit.scan %}
+          <a href="{{ permit.scan.url }}" target="_blank" class="hr-registry-btn hr-registry-btn--light">
+            <i class="bi bi-file-earmark-text"></i>
+            Открыть скан
+          </a>
+        {% endif %}
+
+        {% if is_hr %}
+          <a href="{% url 'hr:permits_edit' permit.pk %}" class="hr-registry-btn hr-registry-btn--primary">
+            <i class="bi bi-pencil"></i>
+            Редактировать
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="hr-registry-detail-grid">
+      <div class="hr-registry-detail-item">
+        <span>Сотрудник</span>
+        <strong>{{ permit.employee|default:"—" }}</strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Отдел</span>
+        <strong>{{ permit.employee.department|default:"—" }}</strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Категория</span>
+        <strong>{{ permit.category.name|default:"—" }}</strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Номер удостоверения</span>
+        <strong>{{ permit.document_number|default:"—" }}</strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Дата выдачи</span>
+        <strong>{{ permit.issue_date|date:"d.m.Y"|default:"—" }}</strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Дата истечения</span>
+        <strong>{{ permit.expiry_date|date:"d.m.Y"|default:"—" }}</strong>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
