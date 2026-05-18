@@ -4,8 +4,9 @@ from django.db import IntegrityError
 from datetime import date
 from decimal import Decimal
 
-from .models import TenantPaymentRegistry
+from .models import TenantPaymentRegistry, PaymentCalendarEntry
 from tenants.models import Tenant, TenantCategory, Room
+
 
 def make_tenant(name='ТестАрендатор'):
     cat  = TenantCategory.objects.create(title='Категория')
@@ -294,3 +295,157 @@ class TenantPaymentOnecSyncTest(TestCase):
         self.assertEqual(
             TenantPaymentRegistry.objects.filter(onec_id='ONEC-102').count(), 1
         )
+
+class PaymentCalendarEntryModelTest(TestCase):
+
+    def setUp(self):
+        self.tenant = make_tenant('КалендарьАрендатор')
+
+    def test_create_basic(self):
+        e = PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-К-001',
+            expected_date=date(2026, 6, 1),
+            expected_amount=Decimal('150000.00'),
+        )
+        self.assertEqual(e.tenant, self.tenant)
+        self.assertEqual(e.expected_amount, Decimal('150000.00'))
+
+    def test_default_status_plan(self):
+        e = PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-К-002',
+            expected_date=date(2026, 6, 1),
+        )
+        self.assertEqual(e.status, PaymentCalendarEntry.Status.PLAN)
+
+    def test_all_statuses(self):
+        for i, status in enumerate(PaymentCalendarEntry.Status):
+            e = PaymentCalendarEntry.objects.create(
+                tenant=self.tenant,
+                contract_number=f'ДОГ-К-ST-{i}',
+                expected_date=date(2026, i + 1, 1),
+                status=status,
+            )
+            self.assertEqual(e.status, status)
+
+    def test_actual_date_nullable(self):
+        e = PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-К-003',
+            expected_date=date(2026, 6, 1),
+        )
+        self.assertIsNone(e.actual_date)
+
+    def test_onec_id_unique(self):
+        PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-К-004',
+            expected_date=date(2026, 6, 1),
+            onec_id='CAL-ONEC-001',
+        )
+        with self.assertRaises(IntegrityError):
+            PaymentCalendarEntry.objects.create(
+                tenant=self.tenant,
+                contract_number='ДОГ-К-005',
+                expected_date=date(2026, 7, 1),
+                onec_id='CAL-ONEC-001',
+            )
+
+    def test_unique_together_tenant_contract_date(self):
+        PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-К-006',
+            expected_date=date(2026, 6, 1),
+        )
+        with self.assertRaises(IntegrityError):
+            PaymentCalendarEntry.objects.create(
+                tenant=self.tenant,
+                contract_number='ДОГ-К-006',
+                expected_date=date(2026, 6, 1),
+            )
+
+    def test_same_contract_different_dates_allowed(self):
+        PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-К-007',
+            expected_date=date(2026, 6, 1),
+        )
+        e2 = PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-К-007',
+            expected_date=date(2026, 7, 1),
+        )
+        self.assertIsNotNone(e2.pk)
+
+    def test_protect_on_tenant_delete(self):
+        PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-К-008',
+            expected_date=date(2026, 6, 1),
+        )
+        from django.db.models import ProtectedError
+        with self.assertRaises(ProtectedError):
+            self.tenant.delete()
+
+    def test_str_representation(self):
+        e = PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-К-009',
+            expected_date=date(2026, 6, 1),
+            expected_amount=Decimal('100000.00'),
+            status=PaymentCalendarEntry.Status.PLAN,
+        )
+        s = str(e)
+        self.assertIn('01.06.2026', s)
+        self.assertIn(self.tenant.name, s)
+
+    def test_related_name_from_tenant(self):
+        PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-К-010',
+            expected_date=date(2026, 6, 1),
+        )
+        self.assertEqual(self.tenant.payment_calendar.count(), 1)
+
+    def test_ordering_by_expected_date(self):
+        PaymentCalendarEntry.objects.create(
+            tenant=self.tenant, contract_number='ДОГ-К-011', expected_date=date(2026, 8, 1),
+        )
+        PaymentCalendarEntry.objects.create(
+            tenant=self.tenant, contract_number='ДОГ-К-012', expected_date=date(2026, 6, 1),
+        )
+        PaymentCalendarEntry.objects.create(
+            tenant=self.tenant, contract_number='ДОГ-К-013', expected_date=date(2026, 7, 1),
+        )
+        dates = list(PaymentCalendarEntry.objects.values_list('expected_date', flat=True))
+        self.assertEqual(dates, sorted(dates))
+
+    def test_upsert_by_onec_id(self):
+        obj, created = PaymentCalendarEntry.objects.update_or_create(
+            onec_id='CAL-ONEC-002',
+            defaults={
+                'tenant': self.tenant,
+                'contract_number': 'ДОГ-К-014',
+                'expected_date': date(2026, 6, 1),
+                'expected_amount': Decimal('100000.00'),
+                'actual_amount': Decimal('100000.00'),
+                'actual_date': date(2026, 6, 5),
+                'status': PaymentCalendarEntry.Status.FACT,
+                'onec_id': 'CAL-ONEC-002',
+            }
+        )
+        self.assertTrue(created)
+        self.assertEqual(obj.status, PaymentCalendarEntry.Status.FACT)
+
+        obj2, created2 = PaymentCalendarEntry.objects.update_or_create(
+            onec_id='CAL-ONEC-002',
+            defaults={
+                'actual_amount': Decimal('90000.00'),
+                'status': PaymentCalendarEntry.Status.OVERDUE,
+            }
+        )
+        self.assertFalse(created2)
+        self.assertEqual(obj2.actual_amount, Decimal('90000.00'))
+        self.assertEqual(obj2.status, PaymentCalendarEntry.Status.OVERDUE)
+        self.assertEqual(PaymentCalendarEntry.objects.filter(onec_id='CAL-ONEC-002').count(), 1)
