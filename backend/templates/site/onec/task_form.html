@@ -1,0 +1,77 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/css/bootstrap-datepicker.min.css">
+<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}">
+
+<script>
+  document.body.classList.add('onec-invoice-body');
+</script>
+
+<div class="onec-create-page">
+  <form method="post" class="onec-create-card" id="onecTaskForm">
+    {% csrf_token %}
+
+    <div class="onec-create-card__header">
+      <h1 class="onec-create-card__title">Новая задача</h1>
+      <a href="{% url 'onec:counterparty_list' %}" class="onec-create-card__close">×</a>
+    </div>
+
+    <div class="onec-create-card__section-title">Данные задачи</div>
+
+    <div class="onec-form-grid">
+      <div class="onec-form-field onec-form-field--full">
+        <label class="onec-label">Название<span>*</span></label>
+        <input type="text" name="title" class="onec-input" placeholder="Название задачи" required>
+      </div>
+
+      <div class="onec-form-field">
+        <label class="onec-label">Исполнитель</label>
+        <input type="text" name="executor" class="onec-input" placeholder="Исполнитель">
+      </div>
+
+      <div class="onec-form-field">
+        <label class="onec-label">Дедлайн</label>
+        <input type="text" name="deadline" class="onec-input onec-date-input" placeholder="дд.мм.гггг" autocomplete="off">
+      </div>
+
+      <div class="onec-form-field">
+        <label class="onec-label">Приоритет</label>
+        <select name="priority" class="onec-native-select">
+          <option value="">Приоритет</option>
+          <option value="low">Низкий</option>
+          <option value="medium">Средний</option>
+          <option value="high">Высокий</option>
+          <option value="critical">Критический</option>
+        </select>
+      </div>
+
+      <div class="onec-form-field">
+        <label class="onec-label">Статус</label>
+        <select name="status" class="onec-native-select">
+          <option value="created">Создана</option>
+          <option value="accepted">Принята</option>
+          <option value="revision">На доработке</option>
+          <option value="completed">Завершена</option>
+        </select>
+      </div>
+
+      <div class="onec-form-field onec-form-field--full">
+        <label class="onec-label">Описание</label>
+        <textarea name="description" class="onec-textarea" placeholder="Описание задачи"></textarea>
+      </div>
+    </div>
+
+    <div class="onec-create-footer">
+      <a href="{% url 'onec:counterparty_list' %}" class="onec-btn onec-btn--ghost">Отменить</a>
+      <button type="submit" class="onec-btn onec-btn--primary">Создать</button>
+    </div>
+  </form>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/js/bootstrap-datepicker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/locales/bootstrap-datepicker.ru.min.js"></script>
+<script src="{% static 'site/js/apps/onec.js' %}?v=40"></script>
+{% endblock %}
