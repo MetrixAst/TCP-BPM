@@ -11,4 +11,7 @@ urlpatterns = [
     path('budget/<int:pk>/', views.budget, name="budget_item"),
     path('budget/create/', views.budget_create, name="budget_create"),
     path('bill/', views.bill, name="bill"),
+
+    path('payment-calendar/', views.payment_calendar, name='payment_calendar'),
+    path('payment-calendar/<int:year>/<int:month>/<int:day>/', views.payment_calendar_day, name='payment_calendar_day'),
 ]
