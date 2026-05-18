@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from datetime import date
@@ -6,6 +6,10 @@ from decimal import Decimal
 
 from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem
 from tenants.models import Tenant, TenantCategory, Room
+
+from django.urls import reverse
+from account.role_permissions import RoleEnums
+from account.models import UserAccount as User
 
 
 def make_tenant(name='ТестАрендатор'):
@@ -623,3 +627,198 @@ class GeneratedInvoiceItemTest(TestCase):
             price=Decimal('50000.00'),
         )
         self.assertIn('Охрана', str(item))
+
+
+class PaymentRegViewTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+
+        self.user = User.objects.create_user(
+            username='fin_user', password='pass',
+            role=RoleEnums.ADMINISTRATOR.value
+        )
+        self.tenant = make_tenant('Вью Арендатор')
+
+        self.p_paid = TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-В-001',
+            period=date(2026, 3, 1),
+            charged=Decimal('100000.00'),
+            paid=Decimal('100000.00'),
+            balance=Decimal('0.00'),
+            status=TenantPaymentRegistry.Status.PAID,
+            onec_id='VIEW-001',
+        )
+        self.p_overdue = TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-В-002',
+            period=date(2026, 4, 1),
+            charged=Decimal('100000.00'),
+            paid=Decimal('0.00'),
+            balance=Decimal('100000.00'),
+            overdue_days=20,
+            status=TenantPaymentRegistry.Status.OVERDUE,
+            onec_id='VIEW-002',
+        )
+        self.p_pending = TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-В-003',
+            period=date(2026, 5, 1),
+            charged=Decimal('100000.00'),
+            paid=Decimal('0.00'),
+            balance=Decimal('100000.00'),
+            status=TenantPaymentRegistry.Status.PENDING,
+            onec_id='VIEW-003',
+        )
+        self.url = reverse('finances:reg')
+
+
+    def test_requires_login(self):
+        r = self.client.get(self.url)
+        self.assertEqual(r.status_code, 302)
+
+    def test_logged_in_returns_200(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url)
+        self.assertEqual(r.status_code, 200)
+
+
+    def test_context_has_entries(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url)
+        self.assertIn('entries', r.context)
+
+    def test_context_has_all_records(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url)
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertIn(self.p_paid, objs)
+        self.assertIn(self.p_overdue, objs)
+        self.assertIn(self.p_pending, objs)
+
+    def test_context_has_tenants(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url)
+        self.assertIn('tenants', r.context)
+
+    def test_context_has_statuses(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url)
+        self.assertIn('statuses', r.context)
+
+
+    def test_color_paid_is_success(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url)
+        colors = {row['obj'].pk: row['color'] for row in r.context['entries']}
+        self.assertEqual(colors[self.p_paid.pk], 'success')
+
+    def test_color_overdue_is_danger(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url)
+        colors = {row['obj'].pk: row['color'] for row in r.context['entries']}
+        self.assertEqual(colors[self.p_overdue.pk], 'danger')
+
+    def test_color_pending_is_info(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url)
+        colors = {row['obj'].pk: row['color'] for row in r.context['entries']}
+        self.assertEqual(colors[self.p_pending.pk], 'info')
+
+
+    def test_filter_status_paid(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url, {'status': 'paid'})
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertIn(self.p_paid, objs)
+        self.assertNotIn(self.p_overdue, objs)
+        self.assertNotIn(self.p_pending, objs)
+
+    def test_filter_status_overdue(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url, {'status': 'overdue'})
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertIn(self.p_overdue, objs)
+        self.assertNotIn(self.p_paid, objs)
+
+    def test_filter_status_pending(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url, {'status': 'pending'})
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertIn(self.p_pending, objs)
+        self.assertNotIn(self.p_paid, objs)
+
+
+    def test_filter_search_by_tenant_name(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url, {'search': 'Вью'})
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertIn(self.p_paid, objs)
+
+    def test_filter_search_by_contract(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url, {'search': 'ДОГ-В-001'})
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertIn(self.p_paid, objs)
+        self.assertNotIn(self.p_overdue, objs)
+
+    def test_filter_search_no_results(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url, {'search': 'несуществующий'})
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertEqual(len(objs), 0)
+
+
+    def test_filter_by_tenant(self):
+        other_tenant = make_tenant('Другой арендатор')
+        other = TenantPaymentRegistry.objects.create(
+            tenant=other_tenant,
+            contract_number='ДОГ-ДР-001',
+            period=date(2026, 5, 1),
+            onec_id='VIEW-OTHER-001',
+        )
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url, {'tenant': self.tenant.pk})
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertIn(self.p_paid, objs)
+        self.assertNotIn(other, objs)
+
+
+    def test_filter_period_from(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url, {'period_from': '2026-04-01'})
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertIn(self.p_overdue, objs)
+        self.assertIn(self.p_pending, objs)
+        self.assertNotIn(self.p_paid, objs)
+
+    def test_filter_period_to(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url, {'period_to': '2026-03-31'})
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertIn(self.p_paid, objs)
+        self.assertNotIn(self.p_overdue, objs)
+
+    def test_filter_period_range(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url, {
+            'period_from': '2026-04-01',
+            'period_to': '2026-04-30',
+        })
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertIn(self.p_overdue, objs)
+        self.assertNotIn(self.p_paid, objs)
+        self.assertNotIn(self.p_pending, objs)
+
+    def test_filter_values_preserved_in_context(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.get(self.url, {'status': 'paid', 'search': 'Вью'})
+        self.assertEqual(r.context['f_status'], 'paid')
+        self.assertEqual(r.context['f_search'], 'Вью')
+
+
+    def test_no_post_create(self):
+        self.client.login(username='fin_user', password='pass')
+        r = self.client.post(self.url, {})
+        self.assertEqual(TenantPaymentRegistry.objects.count(), 3)
