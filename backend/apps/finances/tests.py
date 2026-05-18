@@ -4,7 +4,7 @@ from django.db import IntegrityError
 from datetime import date
 from decimal import Decimal
 
-from .models import TenantPaymentRegistry, PaymentCalendarEntry
+from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem
 from tenants.models import Tenant, TenantCategory, Room
 
 
@@ -449,3 +449,177 @@ class PaymentCalendarEntryModelTest(TestCase):
         self.assertEqual(obj2.actual_amount, Decimal('90000.00'))
         self.assertEqual(obj2.status, PaymentCalendarEntry.Status.OVERDUE)
         self.assertEqual(PaymentCalendarEntry.objects.filter(onec_id='CAL-ONEC-002').count(), 1)
+
+
+class GeneratedInvoiceModelTest(TestCase):
+
+    def setUp(self):
+        self.tenant = make_tenant('СчётАрендатор')
+
+    def test_create_basic(self):
+        inv = GeneratedInvoice.objects.create(
+            tenant=self.tenant,
+            number='СЧ-001',
+            total_amount=Decimal('150000.00'),
+            vat_amount=Decimal('18000.00'),
+        )
+        self.assertEqual(inv.number, 'СЧ-001')
+        self.assertEqual(inv.status, GeneratedInvoice.Status.CREATED)
+
+    def test_default_status_created(self):
+        inv = GeneratedInvoice.objects.create(
+            tenant=self.tenant, number='СЧ-002',
+        )
+        self.assertEqual(inv.status, GeneratedInvoice.Status.CREATED)
+
+    def test_all_statuses(self):
+        for i, status in enumerate(GeneratedInvoice.Status):
+            inv = GeneratedInvoice.objects.create(
+                tenant=self.tenant,
+                number=f'СЧ-ST-{i}',
+                status=status,
+            )
+            self.assertEqual(inv.status, status)
+
+    def test_sent_via_nullable(self):
+        inv = GeneratedInvoice.objects.create(
+            tenant=self.tenant, number='СЧ-003',
+        )
+        self.assertIsNone(inv.sent_via)
+
+    def test_sent_at_nullable(self):
+        inv = GeneratedInvoice.objects.create(
+            tenant=self.tenant, number='СЧ-004',
+        )
+        self.assertIsNone(inv.sent_at)
+
+    def test_onec_id_unique(self):
+        GeneratedInvoice.objects.create(
+            tenant=self.tenant, number='СЧ-005', onec_id='INV-ONEC-001',
+        )
+        with self.assertRaises(IntegrityError):
+            GeneratedInvoice.objects.create(
+                tenant=self.tenant, number='СЧ-006', onec_id='INV-ONEC-001',
+            )
+
+    def test_str_contains_number(self):
+        inv = GeneratedInvoice.objects.create(
+            tenant=self.tenant, number='СЧ-007',
+        )
+        self.assertIn('СЧ-007', str(inv))
+
+    def test_without_tenant_with_counterparty(self):
+        from onec.models import Counterparty
+        cp = Counterparty.objects.create(
+            id_1c='TEST-CP-001',
+            full_name='ТОО Тест',
+            short_name='Тест',
+        )
+        inv = GeneratedInvoice.objects.create(
+            counterparty=cp,
+            number='СЧ-008',
+        )
+        self.assertIsNone(inv.tenant)
+        self.assertEqual(inv.counterparty, cp)
+
+    def test_protect_on_tenant_delete(self):
+        GeneratedInvoice.objects.create(
+            tenant=self.tenant, number='СЧ-009',
+        )
+        from django.db.models import ProtectedError
+        with self.assertRaises(ProtectedError):
+            self.tenant.delete()
+
+    def test_upsert_by_onec_id(self):
+        obj, created = GeneratedInvoice.objects.update_or_create(
+            onec_id='INV-ONEC-002',
+            defaults={
+                'tenant': self.tenant,
+                'number': 'СЧ-010',
+                'total_amount': Decimal('100000.00'),
+                'status': GeneratedInvoice.Status.SENT,
+                'onec_invoice_number': '1С-СЧ-001',
+                'onec_status': 'sent',
+                'onec_id': 'INV-ONEC-002',
+            }
+        )
+        self.assertTrue(created)
+        obj2, created2 = GeneratedInvoice.objects.update_or_create(
+            onec_id='INV-ONEC-002',
+            defaults={
+                'status': GeneratedInvoice.Status.PAID,
+                'onec_status': 'paid',
+            }
+        )
+        self.assertFalse(created2)
+        self.assertEqual(obj2.status, GeneratedInvoice.Status.PAID)
+        self.assertEqual(GeneratedInvoice.objects.filter(onec_id='INV-ONEC-002').count(), 1)
+
+
+class GeneratedInvoiceItemTest(TestCase):
+
+    def setUp(self):
+        self.tenant = make_tenant('ПозицияАрендатор')
+        self.invoice = GeneratedInvoice.objects.create(
+            tenant=self.tenant,
+            number='СЧ-ITEM-001',
+        )
+
+    def test_create_item(self):
+        item = GeneratedInvoiceItem.objects.create(
+            invoice=self.invoice,
+            name='Аренда помещения',
+            quantity=Decimal('1'),
+            price=Decimal('150000.00'),
+        )
+        self.assertEqual(item.invoice, self.invoice)
+        self.assertEqual(item.name, 'Аренда помещения')
+
+    def test_total_calculated_on_save(self):
+        item = GeneratedInvoiceItem.objects.create(
+            invoice=self.invoice,
+            name='Услуга',
+            quantity=Decimal('3'),
+            price=Decimal('10000.00'),
+        )
+        self.assertEqual(item.total, Decimal('30000.00'))
+
+    def test_vat_calculated_on_save(self):
+        item = GeneratedInvoiceItem.objects.create(
+            invoice=self.invoice,
+            name='Услуга НДС',
+            quantity=Decimal('1'),
+            price=Decimal('100000.00'),
+            vat_rate=Decimal('12'),
+        )
+        self.assertEqual(item.vat_amount, Decimal('12000.00'))
+
+    def test_cascade_delete_with_invoice(self):
+        item = GeneratedInvoiceItem.objects.create(
+            invoice=self.invoice,
+            name='Каскад',
+            quantity=Decimal('1'),
+            price=Decimal('1000.00'),
+        )
+        item_id = item.id
+        self.invoice.delete()
+        self.assertFalse(GeneratedInvoiceItem.objects.filter(id=item_id).exists())
+
+    def test_related_name_items(self):
+        for i in range(3):
+            GeneratedInvoiceItem.objects.create(
+                invoice=self.invoice,
+                name=f'Позиция {i}',
+                quantity=Decimal('1'),
+                price=Decimal('1000.00'),
+            )
+        self.assertEqual(self.invoice.items.count(), 3)
+
+    def test_str_contains_name(self):
+        item = GeneratedInvoiceItem.objects.create(
+            invoice=self.invoice,
+            name='Охрана',
+            quantity=Decimal('1'),
+            price=Decimal('50000.00'),
+        )
+        self.assertIn('Охрана', str(item))
