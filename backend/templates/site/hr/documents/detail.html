@@ -1,0 +1,85 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Документ — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-detail-page">
+
+  <div class="hr-registry-detail-card">
+    <div class="hr-registry-detail-card__header">
+      <div>
+        <a href="{% url 'hr:documents_list' %}" class="hr-registry-detail-card__back">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h1>{{ document.title|default:"Документ" }}</h1>
+        <p>{{ document.get_doc_type_display|default:"Тип документа" }}</p>
+      </div>
+
+      <div class="hr-registry-detail-card__actions">
+        {% if document.file %}
+          <a href="{{ document.file.url }}" target="_blank" class="hr-registry-btn hr-registry-btn--light">
+            <i class="bi bi-file-earmark-text"></i>
+            Открыть файл
+          </a>
+        {% endif %}
+
+        {% if is_hr %}
+          <a href="{% url 'hr:documents_edit' document.pk %}" class="hr-registry-btn hr-registry-btn--primary">
+            <i class="bi bi-pencil"></i>
+            Редактировать
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="hr-registry-detail-grid">
+      <div class="hr-registry-detail-item">
+        <span>Сотрудник</span>
+        <strong>{{ document.employee|default:"—" }}</strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Отдел</span>
+        <strong>{{ document.employee.department|default:"—" }}</strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Версия</span>
+        <strong>{{ document.version|default:"—" }}</strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Статус</span>
+        <strong>
+          <span class="hr-registry-status hr-registry-status--{{ document.status }}">
+            {{ document.get_status_display|default:"—" }}
+          </span>
+        </strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Дата подписания</span>
+        <strong>{{ document.signed_at|date:"d.m.Y"|default:"—" }}</strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Дата истечения</span>
+        <strong>{{ document.expires_at|date:"d.m.Y"|default:"—" }}</strong>
+      </div>
+    </div>
+
+    {% if document.notes %}
+      <div class="hr-registry-detail-note">
+        <span>Примечания</span>
+        <p>{{ document.notes }}</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
