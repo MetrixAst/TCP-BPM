@@ -822,3 +822,352 @@ class PaymentRegViewTest(TestCase):
         self.client.login(username='fin_user', password='pass')
         r = self.client.post(self.url, {})
         self.assertEqual(TenantPaymentRegistry.objects.count(), 3)
+
+
+class PaymentCalendarViewTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='fin_cal', password='pass',
+            role=RoleEnums.ADMINISTRATOR.value,
+        )
+        self.tenant = make_tenant('Календарь Арендатор')
+
+        self.e_plan = PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-КАЛ-001',
+            expected_date=date(2026, 5, 10),
+            expected_amount=Decimal('100000.00'),
+            status=PaymentCalendarEntry.Status.PLAN,
+            onec_id='CAL-V-001',
+        )
+        self.e_fact = PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-КАЛ-002',
+            expected_date=date(2026, 5, 15),
+            expected_amount=Decimal('80000.00'),
+            actual_amount=Decimal('80000.00'),
+            actual_date=date(2026, 5, 14),
+            status=PaymentCalendarEntry.Status.FACT,
+            onec_id='CAL-V-002',
+        )
+        self.e_overdue = PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-КАЛ-003',
+            expected_date=date(2026, 5, 5),
+            expected_amount=Decimal('50000.00'),
+            status=PaymentCalendarEntry.Status.OVERDUE,
+            onec_id='CAL-V-003',
+        )
+        self.url = reverse('finances:payment_calendar')
+
+
+    def test_requires_login(self):
+        r = self.client.get(self.url)
+        self.assertEqual(r.status_code, 302)
+
+    def test_logged_in_returns_200(self):
+        self.client.login(username='fin_cal', password='pass')
+        r = self.client.get(self.url)
+        self.assertEqual(r.status_code, 200)
+
+
+    def test_context_has_calendar_days(self):
+        self.client.login(username='fin_cal', password='pass')
+        r = self.client.get(self.url, {'year': 2026, 'month': 5})
+        self.assertIn('calendar_days', r.context)
+
+    def test_calendar_has_31_days_in_may(self):
+        self.client.login(username='fin_cal', password='pass')
+        r = self.client.get(self.url, {'year': 2026, 'month': 5})
+        self.assertEqual(len(r.context['calendar_days']), 31)
+
+    def test_day_has_entries(self):
+        self.client.login(username='fin_cal', password='pass')
+        r = self.client.get(self.url, {'year': 2026, 'month': 5})
+        days = {d['date'].day: d for d in r.context['calendar_days']}
+        self.assertEqual(days[10]['count'], 1)
+        self.assertIn(self.e_plan, days[10]['entries'])
+
+    def test_day_planned_sum(self):
+        self.client.login(username='fin_cal', password='pass')
+        r = self.client.get(self.url, {'year': 2026, 'month': 5})
+        days = {d['date'].day: d for d in r.context['calendar_days']}
+        self.assertEqual(days[10]['planned'], Decimal('100000.00'))
+
+    def test_day_overdue_flag(self):
+        self.client.login(username='fin_cal', password='pass')
+        r = self.client.get(self.url, {'year': 2026, 'month': 5})
+        days = {d['date'].day: d for d in r.context['calendar_days']}
+        self.assertTrue(days[5]['has_overdue'])
+        self.assertFalse(days[10]['has_overdue'])
+
+    def test_empty_day_has_zero_count(self):
+        self.client.login(username='fin_cal', password='pass')
+        r = self.client.get(self.url, {'year': 2026, 'month': 5})
+        days = {d['date'].day: d for d in r.context['calendar_days']}
+        self.assertEqual(days[1]['count'], 0)
+
+    def test_navigation_context(self):
+        self.client.login(username='fin_cal', password='pass')
+        r = self.client.get(self.url, {'year': 2026, 'month': 5})
+        self.assertEqual(r.context['prev_month'], 4)
+        self.assertEqual(r.context['next_month'], 6)
+
+    def test_navigation_year_boundary(self):
+        self.client.login(username='fin_cal', password='pass')
+        r = self.client.get(self.url, {'year': 2026, 'month': 1})
+        self.assertEqual(r.context['prev_month'], 12)
+        self.assertEqual(r.context['prev_year'], 2025)
+
+    def test_filter_by_status(self):
+        self.client.login(username='fin_cal', password='pass')
+        r = self.client.get(self.url, {'year': 2026, 'month': 5, 'status': 'plan'})
+        days = {d['date'].day: d for d in r.context['calendar_days']}
+        self.assertIn(self.e_plan, days[10]['entries'])
+        self.assertEqual(days[15]['count'], 0)
+
+    def test_filter_by_tenant(self):
+        other = make_tenant('Другой')
+        PaymentCalendarEntry.objects.create(
+            tenant=other,
+            contract_number='ДОГ-ДР-001',
+            expected_date=date(2026, 5, 10),
+            expected_amount=Decimal('999.00'),
+            onec_id='CAL-OTHER-001',
+        )
+        self.client.login(username='fin_cal', password='pass')
+        r = self.client.get(self.url, {
+            'year': 2026, 'month': 5, 'tenant': self.tenant.pk
+        })
+        days = {d['date'].day: d for d in r.context['calendar_days']}
+        self.assertEqual(days[10]['count'], 1)
+
+
+class PaymentCalendarDayViewTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='fin_day', password='pass',
+            role=RoleEnums.ADMINISTRATOR.value,
+        )
+        self.tenant = make_tenant('День Арендатор')
+
+        self.e1 = PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-Д-001',
+            expected_date=date(2026, 5, 20),
+            expected_amount=Decimal('120000.00'),
+            actual_amount=Decimal('120000.00'),
+            status=PaymentCalendarEntry.Status.FACT,
+            onec_id='DAY-V-001',
+        )
+        self.e2 = PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-Д-002',
+            expected_date=date(2026, 5, 20),
+            expected_amount=Decimal('80000.00'),
+            actual_amount=Decimal('0.00'),
+            status=PaymentCalendarEntry.Status.OVERDUE,
+            onec_id='DAY-V-002',
+        )
+        self.url = reverse('finances:payment_calendar_day',
+                           args=[2026, 5, 20])
+
+    def test_requires_login(self):
+        r = self.client.get(self.url)
+        self.assertEqual(r.status_code, 302)
+
+    def test_returns_200(self):
+        self.client.login(username='fin_day', password='pass')
+        r = self.client.get(self.url)
+        self.assertEqual(r.status_code, 200)
+
+    def test_context_has_rows(self):
+        self.client.login(username='fin_day', password='pass')
+        r = self.client.get(self.url)
+        self.assertIn('rows', r.context)
+        objs = [row['obj'] for row in r.context['rows']]
+        self.assertIn(self.e1, objs)
+        self.assertIn(self.e2, objs)
+
+    def test_totals(self):
+        self.client.login(username='fin_day', password='pass')
+        r = self.client.get(self.url)
+        self.assertEqual(r.context['total_planned'], Decimal('200000.00'))
+        self.assertEqual(r.context['total_actual'],  Decimal('120000.00'))
+        self.assertEqual(r.context['diff'],          Decimal('-80000.00'))
+
+    def test_color_fact_is_success(self):
+        self.client.login(username='fin_day', password='pass')
+        r = self.client.get(self.url)
+        colors = {row['obj'].pk: row['color'] for row in r.context['rows']}
+        self.assertEqual(colors[self.e1.pk], 'success')
+
+    def test_color_overdue_is_danger(self):
+        self.client.login(username='fin_day', password='pass')
+        r = self.client.get(self.url)
+        colors = {row['obj'].pk: row['color'] for row in r.context['rows']}
+        self.assertEqual(colors[self.e2.pk], 'danger')
+
+    def test_valid_date_returns_200(self):
+        self.client.login(username='fin_day', password='pass')
+        url = reverse('finances:payment_calendar_day', args=[2026, 5, 20])
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+
+    def test_empty_day_returns_200(self):
+        self.client.login(username='fin_day', password='pass')
+        url = reverse('finances:payment_calendar_day', args=[2026, 5, 1])
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.context['rows']), 0)
+
+
+class InvoiceViewsTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='inv_user', password='pass',
+            role=RoleEnums.ADMINISTRATOR.value,
+        )
+        self.tenant = make_tenant('Счёт Вью Арендатор')
+        self.invoice = GeneratedInvoice.objects.create(
+            tenant=self.tenant,
+            number='СЧ-В-001',
+            total_amount=Decimal('100000.00'),
+            status=GeneratedInvoice.Status.CREATED,
+        )
+
+    def test_list_requires_login(self):
+        r = self.client.get(reverse('finances:invoice_list'))
+        self.assertEqual(r.status_code, 302)
+
+    def test_list_returns_200(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_list'))
+        self.assertEqual(r.status_code, 200)
+
+    def test_list_context_has_entries(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_list'))
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertIn(self.invoice, objs)
+
+    def test_list_filter_by_status(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_list'), {'status': 'paid'})
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertNotIn(self.invoice, objs)
+
+    def test_list_filter_by_search(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_list'), {'search': 'СЧ-В-001'})
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertIn(self.invoice, objs)
+
+    def test_color_created_is_secondary(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_list'))
+        colors = {row['obj'].pk: row['color'] for row in r.context['entries']}
+        self.assertEqual(colors[self.invoice.pk], 'secondary')
+
+    def test_detail_returns_200(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_detail', args=[self.invoice.pk]))
+        self.assertEqual(r.status_code, 200)
+
+    def test_delete_invoice(self):
+        self.client.login(username='inv_user', password='pass')
+        inv = GeneratedInvoice.objects.create(
+            tenant=self.tenant, number='СЧ-DEL-001',
+            status=GeneratedInvoice.Status.CREATED,
+        )
+        r = self.client.post(reverse('finances:invoice_delete', args=[inv.pk]))
+        self.assertRedirects(r, reverse('finances:invoice_list'))
+        self.assertFalse(GeneratedInvoice.objects.filter(pk=inv.pk).exists())
+
+    def test_cannot_delete_paid(self):
+        self.client.login(username='inv_user', password='pass')
+        self.invoice.status = GeneratedInvoice.Status.PAID
+        self.invoice.save()
+        r = self.client.post(reverse('finances:invoice_delete', args=[self.invoice.pk]))
+        self.assertRedirects(r, reverse('finances:invoice_list'))
+        self.assertTrue(GeneratedInvoice.objects.filter(pk=self.invoice.pk).exists())
+
+
+    def test_send_invoice(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.post(
+            reverse('finances:invoice_send', args=[self.invoice.pk]),
+            {'sent_via': 'email'},
+        )
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'sent')
+        self.assertEqual(self.invoice.sent_via, 'email')
+        self.assertIsNotNone(self.invoice.sent_at)
+
+    def test_cannot_send_already_sent(self):
+        self.invoice.status = GeneratedInvoice.Status.SENT
+        self.invoice.save()
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(
+            reverse('finances:invoice_send', args=[self.invoice.pk]),
+            {'sent_via': 'email'},
+        )
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, GeneratedInvoice.Status.SENT)
+
+    def test_mark_viewed(self):
+        self.invoice.status = GeneratedInvoice.Status.SENT
+        self.invoice.save()
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_mark_viewed', args=[self.invoice.pk]))
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'viewed')
+
+    def test_cannot_mark_viewed_if_not_sent(self):
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_mark_viewed', args=[self.invoice.pk]))
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'created')
+
+    def test_mark_paid_from_sent(self):
+        self.invoice.status = GeneratedInvoice.Status.SENT
+        self.invoice.save()
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_mark_paid', args=[self.invoice.pk]))
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'paid')
+
+    def test_mark_paid_from_viewed(self):
+        self.invoice.status = GeneratedInvoice.Status.VIEWED
+        self.invoice.save()
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_mark_paid', args=[self.invoice.pk]))
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'paid')
+
+    def test_cancel_invoice(self):
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_cancel', args=[self.invoice.pk]))
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'cancelled')
+
+    def test_cannot_cancel_paid(self):
+        self.invoice.status = GeneratedInvoice.Status.PAID
+        self.invoice.save()
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_cancel', args=[self.invoice.pk]))
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'paid')
+
+    def test_cannot_edit_paid(self):
+        self.invoice.status = GeneratedInvoice.Status.PAID
+        self.invoice.save()
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_edit', args=[self.invoice.pk]))
+        self.assertRedirects(r, reverse('finances:invoice_list'))

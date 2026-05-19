@@ -1,0 +1,99 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% block content %}
+
+<div class="page-title-container">
+  <div class="row">
+    <div class="col-12 col-sm-6">
+      <h1 class="mb-0 pb-0 display-4">Счета</h1>
+      <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+        <ul class="breadcrumb pt-0">
+          <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+          <li class="breadcrumb-item active">Счета</li>
+        </ul>
+      </nav>
+    </div>
+    <div class="col-12 col-sm-6 d-flex align-items-center justify-content-end">
+      <a href="{% url 'finances:invoice_create' %}" class="btn btn-primary">+ Создать счёт</a>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="row mb-3">
+  <div class="col-md-4 mb-2">
+    <input type="text" name="search" value="{{ f_search }}"
+           class="form-control" placeholder="Номер / контрагент / договор">
+  </div>
+  <div class="col-md-3 mb-2">
+    <select name="status" class="custom_select" placeholder="Статус">
+      <option label="&nbsp;"></option>
+      {% for val, label in statuses %}
+        <option value="{{ val }}" {% if f_status == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2 mb-2">
+    <button class="btn btn-primary" type="submit">Найти</button>
+    <a href="{% url 'finances:invoice_list' %}" class="btn btn-outline-secondary ms-1">Сбросить</a>
+  </div>
+</form>
+
+<div class="nested_table first_big">
+  <div class="outer">
+
+    <div class="tr th">
+      <p>Номер</p>
+      <p>Контрагент / Арендатор</p>
+      <p>Договор</p>
+      <p>Сумма</p>
+      <p>Отправлен</p>
+      <p>Статус</p>
+      <p>Действия</p>
+    </div>
+
+    {% for row in entries %}
+    {% with inv=row.obj %}
+    <div class="tr">
+      <p data-title="Номер">
+        <a href="{% url 'finances:invoice_detail' inv.pk %}">№{{ inv.number }}</a>
+      </p>
+      <p data-title="Контрагент">
+        {% if inv.tenant %}
+          {{ inv.tenant.name }}
+        {% elif inv.counterparty %}
+          {{ inv.counterparty.short_name }}
+        {% else %}
+          —
+        {% endif %}
+      </p>
+      <p data-title="Договор">{{ inv.contract_number|default:"—" }}</p>
+      <p data-title="Сумма">{{ inv.total_amount|floatformat:0 }} ₸</p>
+      <p data-title="Отправлен">{{ inv.sent_at|date:"d.m.Y"|default:"—" }}</p>
+      <p data-title="Статус">
+        <span class="badge bg-{{ row.color }}">{{ inv.get_status_display }}</span>
+      </p>
+      <p data-title="Действия">
+        <a href="{% url 'finances:invoice_edit' inv.pk %}"
+           class="btn btn-sm btn-outline-primary">Ред.</a>
+        <form action="{% url 'finances:invoice_delete' inv.pk %}" method="post"
+              onsubmit="return confirm('Удалить счёт?');" style="display:inline;">
+          {% csrf_token %}
+          <button class="btn btn-sm btn-outline-danger">Удалить</button>
+        </form>
+      </p>
+    </div>
+    {% endwith %}
+    {% empty %}
+    <div class="tr">
+      <p style="text-align:center; color:var(--muted);">Счетов не найдено</p>
+    </div>
+    {% endfor %}
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'site/js/forms/controls.select2.js' %}"></script>
+{% endblock %}
