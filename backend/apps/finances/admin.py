@@ -1,7 +1,6 @@
 from django.contrib import admin
 
-from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry
-
+from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem
 
 @admin.register(TenantPaymentRegistry)
 class TenantPaymentRegistryAdmin(admin.ModelAdmin):
@@ -120,6 +119,50 @@ class GeneratedInvoiceAdmin(admin.ModelAdmin):
         }),
         ('Служебные', {
             'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+
+@admin.register(BudgetCategory)
+class BudgetCategoryAdmin(admin.ModelAdmin):
+    list_display  = ('name', 'category_type', 'parent', 'code', 'order', 'is_active')
+    list_filter   = ('category_type', 'is_active', 'parent')
+    search_fields = ('name', 'code')
+    ordering      = ('category_type', 'order', 'name')
+    fieldsets = (
+        ('Основное', {
+            'fields': ('name', 'category_type', 'parent', 'code', 'order', 'is_active'),
+        }),
+        ('Дополнительно', {
+            'fields': ('description',),
+            'classes': ('collapse',),
+        }),
+    )
+
+
+@admin.register(BudgetItem)
+class BudgetItemAdmin(admin.ModelAdmin):
+    list_display  = (
+        'category', 'period_type', 'year', 'month', 'quarter',
+        'plan', 'fact', 'forecast', 'variance', 'execution_pct',
+    )
+    list_filter   = ('period_type', 'year', 'category__category_type')
+    search_fields = ('category__name', 'note')
+    ordering      = ('year', 'month', 'quarter', 'category')
+    readonly_fields = ('variance', 'variance_pct', 'execution_pct', 'created_at', 'updated_at')
+    fieldsets = (
+        ('Категория и период', {
+            'fields': ('category', 'period_type', 'year', 'month', 'quarter'),
+        }),
+        ('Суммы', {
+            'fields': ('plan', 'fact', 'forecast'),
+        }),
+        ('Аналитика', {
+            'fields': ('variance', 'variance_pct', 'execution_pct'),
+        }),
+        ('Прочее', {
+            'fields': ('note', 'created_at', 'updated_at'),
             'classes': ('collapse',),
         }),
     )
