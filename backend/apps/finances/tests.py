@@ -1024,3 +1024,150 @@ class PaymentCalendarDayViewTest(TestCase):
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.context['rows']), 0)
+
+
+class InvoiceViewsTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='inv_user', password='pass',
+            role=RoleEnums.ADMINISTRATOR.value,
+        )
+        self.tenant = make_tenant('Счёт Вью Арендатор')
+        self.invoice = GeneratedInvoice.objects.create(
+            tenant=self.tenant,
+            number='СЧ-В-001',
+            total_amount=Decimal('100000.00'),
+            status=GeneratedInvoice.Status.CREATED,
+        )
+
+    def test_list_requires_login(self):
+        r = self.client.get(reverse('finances:invoice_list'))
+        self.assertEqual(r.status_code, 302)
+
+    def test_list_returns_200(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_list'))
+        self.assertEqual(r.status_code, 200)
+
+    def test_list_context_has_entries(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_list'))
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertIn(self.invoice, objs)
+
+    def test_list_filter_by_status(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_list'), {'status': 'paid'})
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertNotIn(self.invoice, objs)
+
+    def test_list_filter_by_search(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_list'), {'search': 'СЧ-В-001'})
+        objs = [row['obj'] for row in r.context['entries']]
+        self.assertIn(self.invoice, objs)
+
+    def test_color_created_is_secondary(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_list'))
+        colors = {row['obj'].pk: row['color'] for row in r.context['entries']}
+        self.assertEqual(colors[self.invoice.pk], 'secondary')
+
+    def test_detail_returns_200(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_detail', args=[self.invoice.pk]))
+        self.assertEqual(r.status_code, 200)
+
+    def test_delete_invoice(self):
+        self.client.login(username='inv_user', password='pass')
+        inv = GeneratedInvoice.objects.create(
+            tenant=self.tenant, number='СЧ-DEL-001',
+            status=GeneratedInvoice.Status.CREATED,
+        )
+        r = self.client.post(reverse('finances:invoice_delete', args=[inv.pk]))
+        self.assertRedirects(r, reverse('finances:invoice_list'))
+        self.assertFalse(GeneratedInvoice.objects.filter(pk=inv.pk).exists())
+
+    def test_cannot_delete_paid(self):
+        self.client.login(username='inv_user', password='pass')
+        self.invoice.status = GeneratedInvoice.Status.PAID
+        self.invoice.save()
+        r = self.client.post(reverse('finances:invoice_delete', args=[self.invoice.pk]))
+        self.assertRedirects(r, reverse('finances:invoice_list'))
+        self.assertTrue(GeneratedInvoice.objects.filter(pk=self.invoice.pk).exists())
+
+
+    def test_send_invoice(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.post(
+            reverse('finances:invoice_send', args=[self.invoice.pk]),
+            {'sent_via': 'email'},
+        )
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'sent')
+        self.assertEqual(self.invoice.sent_via, 'email')
+        self.assertIsNotNone(self.invoice.sent_at)
+
+    def test_cannot_send_already_sent(self):
+        self.invoice.status = GeneratedInvoice.Status.SENT
+        self.invoice.save()
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(
+            reverse('finances:invoice_send', args=[self.invoice.pk]),
+            {'sent_via': 'email'},
+        )
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, GeneratedInvoice.Status.SENT)
+
+    def test_mark_viewed(self):
+        self.invoice.status = GeneratedInvoice.Status.SENT
+        self.invoice.save()
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_mark_viewed', args=[self.invoice.pk]))
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'viewed')
+
+    def test_cannot_mark_viewed_if_not_sent(self):
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_mark_viewed', args=[self.invoice.pk]))
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'created')
+
+    def test_mark_paid_from_sent(self):
+        self.invoice.status = GeneratedInvoice.Status.SENT
+        self.invoice.save()
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_mark_paid', args=[self.invoice.pk]))
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'paid')
+
+    def test_mark_paid_from_viewed(self):
+        self.invoice.status = GeneratedInvoice.Status.VIEWED
+        self.invoice.save()
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_mark_paid', args=[self.invoice.pk]))
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'paid')
+
+    def test_cancel_invoice(self):
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_cancel', args=[self.invoice.pk]))
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'cancelled')
+
+    def test_cannot_cancel_paid(self):
+        self.invoice.status = GeneratedInvoice.Status.PAID
+        self.invoice.save()
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_cancel', args=[self.invoice.pk]))
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, 'paid')
+
+    def test_cannot_edit_paid(self):
+        self.invoice.status = GeneratedInvoice.Status.PAID
+        self.invoice.save()
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_edit', args=[self.invoice.pk]))
+        self.assertRedirects(r, reverse('finances:invoice_list'))

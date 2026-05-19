@@ -1,16 +1,17 @@
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from account.role_permissions import need_permission, PermissionEnums
 from django.http import JsonResponse
+from django.contrib import messages
 
 from project.utils import get_or_none
 
-from .forms import FinanceItemForm
-from .models import FinanceItem, TenantPaymentRegistry
+from .forms import FinanceItemForm, GeneratedInvoiceForm, GeneratedInvoiceItemFormSet
+from .models import FinanceItem, TenantPaymentRegistry, GeneratedInvoice
 from .serializers import FinanceItemSerializer
 
 from datetime import date
 from django.db.models import Q
-
+from django.utils import timezone
 
 
 def payment_reg(request):
@@ -289,3 +290,172 @@ def _month_name(month):
         'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
     ]
     return names[month]
+
+
+@need_permission(PermissionEnums.FINANCE_INVOICES)
+def invoice_list(request):
+    qs = GeneratedInvoice.objects.select_related(
+        'tenant', 'counterparty'
+    ).order_by('-created_at')
+
+    search = request.GET.get('search', '').strip()
+    status = request.GET.get('status', '')
+
+    if search:
+        from django.db.models import Q
+        qs = qs.filter(
+            Q(number__icontains=search) |
+            Q(tenant__name__icontains=search) |
+            Q(counterparty__short_name__icontains=search) |
+            Q(contract_number__icontains=search)
+        )
+    if status:
+        qs = qs.filter(status=status)
+
+    STATUS_COLORS = {
+        GeneratedInvoice.Status.CREATED: 'secondary',
+        GeneratedInvoice.Status.SENT: 'info',
+        GeneratedInvoice.Status.VIEWED: 'warning',
+        GeneratedInvoice.Status.PAID: 'success',
+        GeneratedInvoice.Status.CANCELLED: 'danger',
+    }
+
+    entries = [
+        {'obj': inv, 'color': STATUS_COLORS.get(inv.status, 'secondary')}
+        for inv in qs
+    ]
+
+    context = {
+        'entries':   entries,
+        'statuses':  GeneratedInvoice.Status.choices,
+        'f_search':  search,
+        'f_status':  status,
+    }
+    return render(request, 'site/finances/invoice_list.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_INVOICES)
+def invoice_create(request):
+    form     = GeneratedInvoiceForm(request.POST or None)
+    formset  = GeneratedInvoiceItemFormSet(request.POST or None)
+
+    if request.method == 'POST' and form.is_valid() and formset.is_valid():
+        invoice = form.save(commit=False)
+        invoice.status = GeneratedInvoice.Status.CREATED
+        invoice.save()
+        formset.instance = invoice
+        formset.save()
+        items = invoice.items.all()
+        invoice.total_amount = sum(i.total for i in items)
+        invoice.vat_amount   = sum(i.vat_amount for i in items)
+        invoice.save()
+        messages.success(request, f'Счёт №{invoice.number} создан.')
+        return redirect('finances:invoice_list')
+
+    context = {'form': form, 'formset': formset, 'title': 'Создать счёт'}
+    return render(request, 'site/finances/invoice_form.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_INVOICES)
+def invoice_edit(request, pk):
+    invoice = get_object_or_404(GeneratedInvoice, pk=pk)
+
+    if invoice.status == GeneratedInvoice.Status.PAID:
+        messages.error(request, 'Оплаченный счёт нельзя редактировать.')
+        return redirect('finances:invoice_list')
+
+    form    = GeneratedInvoiceForm(request.POST or None, instance=invoice)
+    formset = GeneratedInvoiceItemFormSet(request.POST or None, instance=invoice)
+
+    if request.method == 'POST' and form.is_valid() and formset.is_valid():
+        invoice = form.save()
+        formset.save()
+        items = invoice.items.all()
+        invoice.total_amount = sum(i.total for i in items)
+        invoice.vat_amount   = sum(i.vat_amount for i in items)
+        invoice.save()
+        messages.success(request, f'Счёт №{invoice.number} обновлён.')
+        return redirect('finances:invoice_list')
+
+    context = {'form': form, 'formset': formset, 'title': 'Редактировать счёт', 'invoice': invoice}
+    return render(request, 'site/finances/invoice_form.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_INVOICES)
+def invoice_detail(request, pk):
+    invoice = get_object_or_404(
+        GeneratedInvoice.objects.select_related('tenant', 'counterparty').prefetch_related('items'),
+        pk=pk,
+    )
+    STATUS_COLORS = {
+        GeneratedInvoice.Status.CREATED: 'secondary',
+        GeneratedInvoice.Status.SENT: 'info',
+        GeneratedInvoice.Status.VIEWED: 'warning',
+        GeneratedInvoice.Status.PAID: 'success',
+        GeneratedInvoice.Status.CANCELLED: 'danger',
+    }
+    context = {
+        'invoice': invoice,
+        'color':   STATUS_COLORS.get(invoice.status, 'secondary'),
+    }
+    return render(request, 'site/finances/invoice_detail.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_INVOICES)
+def invoice_delete(request, pk):
+    invoice = get_object_or_404(GeneratedInvoice, pk=pk)
+
+    if invoice.status == GeneratedInvoice.Status.PAID:
+        messages.error(request, 'Оплаченный счёт нельзя удалить.')
+        return redirect('finances:invoice_list')
+
+    if request.method == 'POST':
+        invoice.delete()
+        messages.success(request, 'Счёт удалён.')
+    return redirect('finances:invoice_list')
+
+
+@need_permission(PermissionEnums.FINANCE_INVOICES)
+def invoice_send(request, pk):
+    invoice = get_object_or_404(GeneratedInvoice, pk=pk)
+    if request.method == 'POST' and invoice.status == GeneratedInvoice.Status.CREATED:
+        sent_via = request.POST.get('sent_via', GeneratedInvoice.SentVia.EMAIL)
+        invoice.status   = GeneratedInvoice.Status.SENT
+        invoice.sent_via = sent_via
+        invoice.sent_at  = timezone.now()
+        invoice.save()
+        messages.success(request, f'Счёт №{invoice.number} отправлен.')
+    return redirect('finances:invoice_detail', pk=pk)
+
+
+@need_permission(PermissionEnums.FINANCE_INVOICES)
+def invoice_mark_viewed(request, pk):
+    invoice = get_object_or_404(GeneratedInvoice, pk=pk)
+    if request.method == 'POST' and invoice.status == GeneratedInvoice.Status.SENT:
+        invoice.status = GeneratedInvoice.Status.VIEWED
+        invoice.save()
+        messages.success(request, f'Счёт №{invoice.number} просмотрен.')
+    return redirect('finances:invoice_detail', pk=pk)
+
+
+@need_permission(PermissionEnums.FINANCE_INVOICES)
+def invoice_mark_paid(request, pk):
+    invoice = get_object_or_404(GeneratedInvoice, pk=pk)
+    if request.method == 'POST' and invoice.status in [
+        GeneratedInvoice.Status.SENT,
+        GeneratedInvoice.Status.VIEWED,
+    ]:
+        invoice.status = GeneratedInvoice.Status.PAID
+        invoice.save()
+        messages.success(request, f'Счёт №{invoice.number} оплачен.')
+    return redirect('finances:invoice_detail', pk=pk)
+
+
+@need_permission(PermissionEnums.FINANCE_INVOICES)
+def invoice_cancel(request, pk):
+    invoice = get_object_or_404(GeneratedInvoice, pk=pk)
+    if request.method == 'POST' and invoice.status != GeneratedInvoice.Status.PAID:
+        invoice.status = GeneratedInvoice.Status.CANCELLED
+        invoice.save()
+        messages.success(request, f'Счёт №{invoice.number} отменён.')
+    return redirect('finances:invoice_detail', pk=pk)
