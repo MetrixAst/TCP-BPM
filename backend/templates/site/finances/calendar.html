@@ -1,190 +1,140 @@
-{% extends 'site/base.html' %}
+{% extends "site/base.html" %}
 {% load static %}
 
-{% block content %}
-
-    <!-- Title and Top Buttons Start -->
-    <div class="page-title-container show_in_mobile">
-        <div class="row g-0">
-          <div class="col-auto mb-2 mb-md-0 me-auto">
-            <div class="w-auto sw-md-30">
-              <h1 class="mb-0 pb-0 display-4" id="title">Календарь</h1>
-              <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
-                <ul class="breadcrumb pt-0">
-                    <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная страница</a></li>
-                    <li class="breadcrumb-item">Финансы</li>
-                </ul>
-              </nav>
-            </div>
-          </div>
-          <div class="w-100 d-md-none"></div>
-          <div class="col-auto d-flex align-items-start justify-content-end">
-            <button type="button" class="btn btn-outline-primary btn-icon btn-icon-only ms-1" id="goPrev">
-              <i data-acorn-icon="chevron-left"></i>
-            </button>
-            <button type="button" class="btn btn-outline-primary btn-icon btn-icon-only ms-1" id="goNext">
-              <i data-acorn-icon="chevron-right"></i>
-            </button>
-          </div>
-          <div class="col col-md-auto d-flex align-items-start justify-content-end">
-            <button type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1 w-100 w-md-auto" id="addNewEvent">
-              <i data-acorn-icon="plus"></i>
-              <span>Добавить</span>
-            </button>
-          </div>
-        </div>
-      </div>
-      <!-- Title and Top Buttons End -->
-
-
-    <!-- Calendar Title Start -->
-    <div class="d-flex justify-content-between">
-        <h2 class="small-title" id="calendarTitle">Title</h2>
-        {% comment %} <button
-          class="btn btn-sm btn-icon btn-icon-only btn-foreground shadow align-top mt-n2"
-          type="button"
-          data-bs-toggle="dropdown"
-          aria-expanded="false"
-          aria-haspopup="true"
-        >
-          <i data-acorn-icon="more-horizontal" data-acorn-size="15"></i>
-        </button>
-        <div class="dropdown-menu dropdown-menu-sm dropdown-menu-end shadow">
-          <a class="dropdown-item" href="#" id="monthView">Месяц</a>
-          <a class="dropdown-item" href="#" id="weekView">Неделя</a>
-          <a class="dropdown-item" href="#" id="dayView">День</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="#" id="goToday">Сегодня</a>
-        </div> {% endcomment %}
-      </div>
-      <!-- Calendar Title End -->
-
-      <!-- Calendar Content Start -->
-      <div class="card">
-        <div class="card-body">
-          <div id="calendar" data-csrf="{{csrf_token}}"></div>
-        </div>
-      </div>
-      <!-- Calendar Content End -->
-
-      <!-- New Task Start -->
-      <div class="modal modal-right fade" id="newEventModal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="modalTitle">Добавить событие</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body d-flex flex-column">
-              <div class="mb-3 top-label">
-                <input class="form-control" id="eventTitle" />
-                <span>ЗАГОЛОВОК</span>
-              </div>
-              <div class="mb-3 top-label">
-                <input class="form-control" id="eventText" />
-                <span>КОММЕНТАРИИ</span>
-              </div>
-              <div class="mb-3 top-label">
-                <select id="eventCategory">
-                  <option label="&nbsp;"></option>
-                  <option data-class="border-success" value="Доход">Доход</option>
-                  <option data-class="border-danger" value="Расход">Расход</option>
-                </select>
-                <span>КАТЕГОРИЯ</span>
-              </div>
-              <div class="row g-0">
-                <div class="col pe-2">
-                  <div class="mb-3 top-label">
-                    <input type="text" data-provide="datepicker" class="form-control" data-date-autoclose="true" id="eventStartDate" />
-                    <span>ДАТА</span>
-                  </div>
-                </div>
-                <div class="col-auto" style="display: none;">
-                  <div class="mb-3 top-label custom-control-container time-picker-container">
-                    <input class="form-control time-picker" id="eventStartTime" />
-                    <span>START TIME</span>
-                  </div>
-                </div>
-              </div>
-
-
-              <div class="row g-0" style="display: none;">
-                <div class="col pe-2">
-                  <div class="mb-3 top-label">
-                    <input type="text" data-provide="datepicker" class="form-control" data-date-autoclose="true" id="eventEndDate" />
-                    <span>END DATE</span>
-                  </div>
-                </div>
-                <div class="col-auto">
-                  <div class="mb-3 top-label custom-control-container time-picker-container">
-                    <input class="form-control time-picker" id="eventEndTime" />
-                    <span>END TIME</span>
-                  </div>
-                </div>
-              </div>
-
-              
-            </div>
-            <div class="modal-footer border-0">
-              <button
-                class="btn btn-icon btn-icon-only btn-outline-primary"
-                type="button"
-                data-delay='{"show":"500", "hide":"0"}'
-                data-bs-toggle="tooltip"
-                data-bs-placement="top"
-                title="Удалить"
-                id="deleteEvent"
-              >
-                <i data-acorn-icon="bin"></i>
-              </button>
-              <button class="btn btn-icon btn-icon-end btn-primary" type="button" id="saveEvent">
-                <span>Сохранить</span>
-                <i data-acorn-icon="check"></i>
-              </button>
-              <button class="btn btn-icon btn-icon-start btn-primary" type="button" id="addEvent">
-                <i data-acorn-icon="plus"></i>
-                <span>Добавить</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- New Task End -->
-
-      <!-- Delete Confirm Modal Start -->
-      <div class="modal fade modal-close-out" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmModal" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="verticallyCenteredLabel">Вы уверены?</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              <span id="deleteConfirmDetail" class="fw-bold"></span>
-              <span>Будет удален. Подтвердить удаление?</span>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Нет</button>
-              <button type="button" id="deleteConfirmButton" class="btn btn-outline-primary">Да</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Delete Confirm Modal End -->
-
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=10000">
 {% endblock %}
 
+{% block content %}
+<section class="fin-calendar-page">
+  <div class="fin-calendar-header">
+    <div>
+      <h1 class="fin-page-title">Календарь платежей</h1>
+      <div class="fin-calendar-subtitle">Плановые и фактические платежи по дням</div>
+    </div>
 
-{% block styles %}
-    <link rel="stylesheet" href="{% static 'site/css/vendor/fullcalendar.min.css' %}" />
-    <link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap-datepicker3.standalone.min.css' %}" />
-{% endblock styles %}
+    <div class="fin-calendar-actions">
+      {% if prev_url %}
+        <a href="{{ prev_url }}" class="fin-calendar-nav">
+          <i class="bi bi-chevron-left"></i>
+        </a>
+      {% endif %}
+
+      <div class="fin-calendar-month">
+        {{ month_title|default:"Календарь" }}
+      </div>
+
+      {% if next_url %}
+        <a href="{{ next_url }}" class="fin-calendar-nav">
+          <i class="bi bi-chevron-right"></i>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="fin-calendar-card">
+    <div class="fin-calendar-legend">
+      <span><i class="is-plan"></i> План</span>
+      <span><i class="is-fact"></i> Факт</span>
+      <span><i class="is-danger"></i> Просрочка</span>
+    </div>
+
+    <div class="fin-calendar-weekdays">
+      <div>Пн</div>
+      <div>Вт</div>
+      <div>Ср</div>
+      <div>Чт</div>
+      <div>Пт</div>
+      <div>Сб</div>
+      <div>Вс</div>
+    </div>
+
+    <div class="fin-calendar-grid">
+      {% for week in calendar_weeks %}
+        {% for day in week %}
+          <button
+            type="button"
+            class="fin-calendar-day {% if not day.current_month %}is-muted{% endif %} {% if day.is_today %}is-today{% endif %} {% if day.color %}is-{{ day.color }}{% endif %}"
+            data-day="{{ day.date|date:'Y-m-d' }}"
+            data-title="{{ day.date|date:'d.m.Y' }}"
+            data-plan="{{ day.planned_total|default:0 }}"
+            data-fact="{{ day.actual_total|default:0 }}"
+            data-balance="{{ day.balance|default:0 }}"
+          >
+            <span class="fin-calendar-day__number">{{ day.date|date:"d" }}</span>
+
+            <span class="fin-calendar-day__body">
+              {% if day.planned_total %}
+                <span class="fin-calendar-amount is-plan">
+                  План: {{ day.planned_total|floatformat:0 }}
+                </span>
+              {% endif %}
+
+              {% if day.actual_total %}
+                <span class="fin-calendar-amount is-fact">
+                  Факт: {{ day.actual_total|floatformat:0 }}
+                </span>
+              {% endif %}
+
+              {% if day.balance %}
+                <span class="fin-calendar-amount is-danger">
+                  Долг: {{ day.balance|floatformat:0 }}
+                </span>
+              {% endif %}
+            </span>
+          </button>
+        {% endfor %}
+      {% empty %}
+        <div class="fin-calendar-empty">
+          <i class="bi bi-calendar-x"></i>
+          <strong>Нет данных</strong>
+          <span>Backend пока не передал данные календаря</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<aside class="fin-day-panel" id="paymentDayPanel" aria-hidden="true">
+  <div class="fin-day-panel__overlay" data-close-day-panel></div>
+
+  <div class="fin-day-panel__content">
+    <div class="fin-day-panel__header">
+      <div>
+        <div class="fin-day-panel__label">Детализация дня</div>
+        <h2 id="paymentDayTitle">—</h2>
+      </div>
+
+      <button type="button" class="fin-day-panel__close" data-close-day-panel>
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="fin-day-summary">
+      <div>
+        <span>План</span>
+        <strong id="paymentDayPlan">0</strong>
+      </div>
+      <div>
+        <span>Факт</span>
+        <strong id="paymentDayFact">0</strong>
+      </div>
+      <div>
+        <span>Разница</span>
+        <strong id="paymentDayBalance">0</strong>
+      </div>
+    </div>
+
+    <div class="fin-day-panel__section">
+      <div class="fin-day-panel__section-title">Платежи за день</div>
+      <div id="paymentDayList" class="fin-day-list">
+        <div class="fin-day-empty">Выберите день в календаре</div>
+      </div>
+    </div>
+  </div>
+</aside>
+{% endblock %}
 
 {% block scripts %}
-
-    <script src="{% static 'site/js/vendor/fullcalendar/main.min.js' %}"></script>
-    <script src="{% static 'site/js/vendor/moment-with-locales.min.js' %}"></script>
-    <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
-    <script src="{% static 'site/js/vendor/timepicker.js' %}"></script>
-    <script src="{% static 'site/js/apps/calendar.js' %}"></script>
-{% endblock scripts %}
+<script src="{% static 'site/js/apps/payment-calendar.js' %}?v=10000"></script>
+{% endblock %}

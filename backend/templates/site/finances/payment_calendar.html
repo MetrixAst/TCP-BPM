@@ -1,94 +1,206 @@
-{% extends 'site/base.html' %}
+{% extends "site/base.html" %}
 {% load static %}
 
-{% block content %}
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=10020">
+{% endblock %}
 
-<div class="page-title-container">
-  <div class="row">
-    <div class="col-12 col-sm-6">
-      <h1 class="mb-0 pb-0 display-4">Календарь платежей</h1>
-      <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
-        <ul class="breadcrumb pt-0">
-          <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-          <li class="breadcrumb-item">Финансы</li>
-          <li class="breadcrumb-item active">Календарь платежей</li>
-        </ul>
-      </nav>
+{% block content %}
+<section class="fin-calendar-page">
+
+  <div class="fin-calendar-header">
+    <h1 class="fin-page-title">Календарь платежей</h1>
+
+    <div class="fin-calendar-actions">
+      <a href="?year={{ prev_year }}&month={{ prev_month }}&tenant={{ f_tenant }}&status={{ f_status }}"
+         class="fin-calendar-nav">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+
+      <div class="fin-calendar-month">{{ month_name }} {{ year }}</div>
+
+      <a href="?year={{ next_year }}&month={{ next_month }}&tenant={{ f_tenant }}&status={{ f_status }}"
+         class="fin-calendar-nav">
+        <i class="bi bi-chevron-right"></i>
+      </a>
     </div>
   </div>
-</div>
 
-<div class="d-flex align-items-center gap-3 mb-3">
-  <a href="?year={{ prev_year }}&month={{ prev_month }}&tenant={{ f_tenant }}&status={{ f_status }}"
-     class="btn btn-outline-secondary btn-sm">← Пред.</a>
-  <h5 class="mb-0">{{ month_name }} {{ year }}</h5>
-  <a href="?year={{ next_year }}&month={{ next_month }}&tenant={{ f_tenant }}&status={{ f_status }}"
-     class="btn btn-outline-secondary btn-sm">След. →</a>
-</div>
+  <section class="fin-filter-card fin-calendar-filter-card">
+    <form method="get" class="fin-filter-form">
+      <input type="hidden" name="year" value="{{ year }}">
+      <input type="hidden" name="month" value="{{ month }}">
 
-<form method="get" class="row mb-3">
-  <input type="hidden" name="year"  value="{{ year }}">
-  <input type="hidden" name="month" value="{{ month }}">
-  <div class="col-md-3 mb-2">
-    <select name="tenant" class="custom_select" placeholder="Арендатор" data-search="1">
-      <option label="&nbsp;"></option>
-      {% for t in tenants %}
-        <option value="{{ t.pk }}" {% if f_tenant == t.pk|stringformat:"s" %}selected{% endif %}>
-          {{ t.name }}
-        </option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-md-2 mb-2">
-    <select name="status" class="custom_select" placeholder="Статус">
-      <option label="&nbsp;"></option>
-      {% for val, label in statuses %}
-        <option value="{{ val }}" {% if f_status == val %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-md-2 mb-2">
-    <button class="btn btn-primary" type="submit">Применить</button>
-    <a href="?year={{ year }}&month={{ month }}" class="btn btn-outline-secondary ms-1">Сбросить</a>
-  </div>
-</form>
+      <div class="fin-field">
+        <label class="fin-label">Арендатор</label>
+        <div class="fin-custom-select">
+          <input type="hidden" name="tenant" value="{{ f_tenant }}">
 
-<div class="row g-2">
-  {% for day in calendar_days %}
-  <div class="col-md-1 col-sm-2 col-3">
-    <a href="{% url 'finances:payment_calendar_day' day.date.year day.date.month day.date.day %}"
-       class="text-decoration-none">
-      <div class="card h-100 text-center
-        {% if day.is_today %}border-primary{% endif %}
-        {% if day.has_overdue %}border-danger{% endif %}
-        {% if day.is_weekend %}bg-light{% endif %}"
-        style="min-height: 80px;">
-        <div class="card-body p-1">
-          <div class="fw-bold {% if day.is_today %}text-primary{% endif %}">
-            {{ day.date.day }}
+          <button type="button" class="fin-custom-select__button">
+            <span class="fin-custom-select__value">
+              {% if f_tenant %}
+                {% for tenant in tenants %}
+                  {% if f_tenant|stringformat:"s" == tenant.id|stringformat:"s" %}{{ tenant.name }}{% endif %}
+                {% endfor %}
+              {% else %}
+                Все
+              {% endif %}
+            </span>
+            <span class="fin-custom-select__arrow"></span>
+          </button>
+
+          <div class="fin-custom-select__dropdown">
+            <button type="button" class="fin-custom-select__option" data-value="">Все</button>
+            {% for tenant in tenants %}
+              <button type="button" class="fin-custom-select__option" data-value="{{ tenant.id }}">
+                {{ tenant.name }}
+              </button>
+            {% endfor %}
           </div>
-          {% if day.count > 0 %}
-            <small class="text-muted d-block">{{ day.count }} пл.</small>
-            <small class="d-block" style="font-size:10px;"
-              {% if day.has_overdue %}style="color:red"{% endif %}>
-              {{ day.planned|floatformat:0 }} ₸
-            </small>
-          {% endif %}
         </div>
       </div>
-    </a>
+
+      <div class="fin-field">
+        <label class="fin-label">Статус</label>
+        <div class="fin-custom-select">
+          <input type="hidden" name="status" value="{{ f_status }}">
+
+          <button type="button" class="fin-custom-select__button">
+            <span class="fin-custom-select__value">
+              {% if f_status %}
+                {% for value, label in statuses %}
+                  {% if f_status == value %}{{ label }}{% endif %}
+                {% endfor %}
+              {% else %}
+                Все
+              {% endif %}
+            </span>
+            <span class="fin-custom-select__arrow"></span>
+          </button>
+
+          <div class="fin-custom-select__dropdown">
+            <button type="button" class="fin-custom-select__option" data-value="">Все</button>
+            {% for value, label in statuses %}
+              <button type="button" class="fin-custom-select__option" data-value="{{ value }}">
+                {{ label }}
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="fin-btn fin-btn--primary">Применить</button>
+
+      <a href="?year={{ year }}&month={{ month }}" class="fin-btn fin-btn--light">
+        Сбросить
+      </a>
+    </form>
+  </section>
+
+  <div class="fin-calendar-card">
+    <div class="fin-calendar-legend">
+      <span><i class="is-plan"></i> План</span>
+      <span><i class="is-fact"></i> Факт</span>
+      <span><i class="is-danger"></i> Просрочка</span>
+    </div>
+
+    <div class="fin-calendar-weekdays">
+      <div>Пн</div>
+      <div>Вт</div>
+      <div>Ср</div>
+      <div>Чт</div>
+      <div>Пт</div>
+      <div>Сб</div>
+      <div>Вс</div>
+    </div>
+
+    <div class="fin-calendar-grid">
+      {% for day in calendar_days %}
+        {% if forloop.first %}
+          {% with first_weekday=day.date|date:"w" %}
+            {% if first_weekday == "2" %}
+              <span class="fin-calendar-spacer"></span>
+            {% elif first_weekday == "3" %}
+              <span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span>
+            {% elif first_weekday == "4" %}
+              <span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span>
+            {% elif first_weekday == "5" %}
+              <span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span>
+            {% elif first_weekday == "6" %}
+              <span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span>
+            {% elif first_weekday == "0" %}
+              <span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span>
+            {% endif %}
+          {% endwith %}
+        {% endif %}
+
+        <a href="{% url 'finances:payment_calendar_day' day.date.year day.date.month day.date.day %}"
+           class="fin-calendar-day {% if day.is_today %}is-today{% endif %} {% if day.has_overdue %}is-danger{% endif %}">
+          <span class="fin-calendar-day__number">{{ day.date.day }}</span>
+
+          {% if day.count > 0 %}
+            <span class="fin-calendar-day__body">
+              <span class="fin-calendar-amount is-plan">{{ day.count }} пл.</span>
+              <span class="fin-calendar-amount {% if day.has_overdue %}is-danger{% else %}is-fact{% endif %}">
+                {{ day.planned|floatformat:0 }} ₸
+              </span>
+            </span>
+          {% endif %}
+        </a>
+      {% endfor %}
+    </div>
   </div>
-  {% endfor %}
-</div>
-
-<div class="d-flex gap-3 mt-3">
-  <span><span class="badge bg-info">План</span></span>
-  <span><span class="badge bg-success">Факт</span></span>
-  <span><span class="badge bg-danger">Просрочен</span></span>
-</div>
-
+</section>
 {% endblock %}
 
 {% block scripts %}
-  <script src="{% static 'site/js/forms/controls.select2.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.fin-custom-select').forEach(function (select) {
+    const button = select.querySelector('.fin-custom-select__button');
+    const valueText = select.querySelector('.fin-custom-select__value');
+    const input = select.querySelector('input[type="hidden"]');
+    const options = select.querySelectorAll('.fin-custom-select__option');
+
+    options.forEach(function (option) {
+      if (option.dataset.value === input.value) {
+        option.classList.add('is-selected');
+        valueText.textContent = option.textContent.trim();
+      }
+
+      option.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        input.value = option.dataset.value;
+        valueText.textContent = option.textContent.trim();
+
+        options.forEach(function (item) {
+          item.classList.remove('is-selected');
+        });
+
+        option.classList.add('is-selected');
+        select.classList.remove('is-open');
+      });
+    });
+
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      document.querySelectorAll('.fin-custom-select.is-open').forEach(function (opened) {
+        if (opened !== select) opened.classList.remove('is-open');
+      });
+
+      select.classList.toggle('is-open');
+    });
+  });
+
+  document.addEventListener('click', function () {
+    document.querySelectorAll('.fin-custom-select.is-open').forEach(function (select) {
+      select.classList.remove('is-open');
+    });
+  });
+});
+</script>
 {% endblock %}
