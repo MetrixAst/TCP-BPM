@@ -71,6 +71,7 @@ class RolePermissions:
             PermissionEnums.REPORTS,
             PermissionEnums.COMMENT,
             PermissionEnums.HR_JOURNAL, 
+            PermissionEnums.FINANCE_INVOICES,
         ],
         RoleEnums.OWNER.value: [
             PermissionEnums.PROFILE,
