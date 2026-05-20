@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem, FinancialStatement
+from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord
 
 @admin.register(TenantPaymentRegistry)
 class TenantPaymentRegistryAdmin(admin.ModelAdmin):
@@ -207,3 +207,53 @@ class FinancialStatementAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
+
+
+@admin.register(CashFlowRecord)
+class CashFlowRecordAdmin(admin.ModelAdmin):
+    list_display = (
+        'transaction_date', 'direction', 'flow_type',
+        'amount', 'currency', 'counterparty',
+        'budget_category', 'document_number', 'onec_id',
+    )
+    list_filter  = ('direction', 'flow_type', 'currency', 'transaction_date')
+    search_fields = (
+        'description', 'document_number',
+        'counterparty__short_name', 'onec_id',
+    )
+    date_hierarchy = 'transaction_date'
+    readonly_fields = (
+        'onec_id', 'onec_document_type', 'synced_at',
+        'created_at', 'updated_at', 'is_inflow', 'is_outflow',
+    )
+    fieldsets = (
+        ('Операция', {
+            'fields': (
+                'direction', 'flow_type', 'amount', 'currency',
+                'transaction_date', 'value_date',
+            ),
+        }),
+        ('Описание', {
+            'fields': ('description', 'document_number', 'bank_account'),
+        }),
+        ('Связи', {
+            'fields': ('counterparty', 'budget_category'),
+        }),
+        ('1С', {
+            'fields': ('onec_id', 'onec_document_type', 'synced_at'),
+            'classes': ('collapse',),
+        }),
+        ('Служебные', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False  

@@ -471,3 +471,84 @@ class FinancialStatement(models.Model):
     @property
     def ebitda_variance(self):
         return self.ebitda_fact - self.ebitda_plan
+
+class CashFlowRecord(models.Model):
+    class Direction(models.TextChoices):
+        INFLOW  = 'inflow',  'Поступление'
+        OUTFLOW = 'outflow', 'Списание'
+
+    class FlowType(models.TextChoices):
+        OPERATING  = 'operating',  'Операционная деятельность'
+        INVESTING  = 'investing',  'Инвестиционная деятельность'
+        FINANCING  = 'financing',  'Финансовая деятельность'
+
+    direction    = models.CharField(
+        'Направление', max_length=10,
+        choices=Direction.choices,
+        db_index=True,
+    )
+    flow_type    = models.CharField(
+        'Тип деятельности', max_length=15,
+        choices=FlowType.choices,
+        default=FlowType.OPERATING,
+        db_index=True,
+    )
+    amount       = models.DecimalField('Сумма', max_digits=16, decimal_places=2)
+    currency     = models.CharField('Валюта', max_length=3, default='KZT')
+    transaction_date = models.DateField('Дата операции', db_index=True)
+    value_date   = models.DateField('Дата валютирования', null=True, blank=True)
+
+    description  = models.TextField('Назначение платежа', null=True, blank=True)
+    document_number = models.CharField('Номер документа', max_length=100, null=True, blank=True)
+
+    bank_account = models.CharField('Банковский счёт', max_length=100, null=True, blank=True)
+
+    counterparty = models.ForeignKey(
+        'onec.Counterparty',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='cash_flow_records',
+        verbose_name='Контрагент',
+    )
+    budget_category = models.ForeignKey(
+        BudgetCategory,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='cash_flow_records',
+        verbose_name='Статья бюджета',
+    )
+
+    onec_id   = models.CharField('ID в 1С', max_length=100, unique=True, null=True, blank=True)
+    onec_document_type = models.CharField('Тип документа 1С', max_length=100, null=True, blank=True)
+    synced_at = models.DateTimeField('Дата синхронизации', null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name        = 'Запись ДДС'
+        verbose_name_plural = 'Реестр ДДС'
+        ordering            = ['-transaction_date', '-created_at']
+        indexes             = [
+            models.Index(fields=['transaction_date']),
+            models.Index(fields=['direction']),
+            models.Index(fields=['flow_type']),
+            models.Index(fields=['counterparty']),
+            models.Index(fields=['budget_category']),
+            models.Index(fields=['transaction_date', 'direction']),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.get_direction_display()} | "
+            f"{self.transaction_date.strftime('%d.%m.%Y')} | "
+            f"{self.amount} {self.currency}"
+        )
+
+    @property
+    def is_inflow(self):
+        return self.direction == self.Direction.INFLOW
+
+    @property
+    def is_outflow(self):
+        return self.direction == self.Direction.OUTFLOW

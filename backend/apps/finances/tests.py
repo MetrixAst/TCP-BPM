@@ -4,7 +4,7 @@ from django.db import IntegrityError
 from datetime import date
 from decimal import Decimal
 
-from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem, FinancialStatement
+from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord
 from tenants.models import Tenant, TenantCategory, Room
 
 from django.urls import reverse
@@ -1655,3 +1655,148 @@ class FinancialStatementModelTest(TestCase):
         s = self._make_statement()
         s.expense_categories.add(self.cat_expense)
         self.assertIn(s, self.cat_expense.expense_statements.all())
+
+
+class CashFlowRecordModelTest(TestCase):
+
+    def setUp(self):
+        self.cat = BudgetCategory.objects.create(
+            name='Поступления от аренды',
+            category_type=BudgetCategory.Type.INCOME,
+        )
+        from onec.models import Counterparty
+        self.counterparty = Counterparty.objects.create(
+            id_1c='CF-CP-001',
+            full_name='ТОО Тест Контрагент',
+            short_name='ТОО Тест',
+        )
+
+    def _make_record(self, **kwargs):
+        from datetime import date
+        defaults = dict(
+            direction=CashFlowRecord.Direction.INFLOW,
+            flow_type=CashFlowRecord.FlowType.OPERATING,
+            amount=Decimal('500000.00'),
+            currency='KZT',
+            transaction_date=date(2026, 5, 15),
+        )
+        defaults.update(kwargs)
+        return CashFlowRecord.objects.create(**defaults)
+
+    def test_create_inflow(self):
+        r = self._make_record()
+        self.assertEqual(r.direction, 'inflow')
+        self.assertEqual(r.amount, Decimal('500000.00'))
+        self.assertTrue(r.is_inflow)
+        self.assertFalse(r.is_outflow)
+
+    def test_create_outflow(self):
+        r = self._make_record(
+            direction=CashFlowRecord.Direction.OUTFLOW,
+            amount=Decimal('200000.00'),
+        )
+        self.assertEqual(r.direction, 'outflow')
+        self.assertTrue(r.is_outflow)
+        self.assertFalse(r.is_inflow)
+
+    def test_all_flow_types(self):
+        from datetime import date
+        for i, ft in enumerate(CashFlowRecord.FlowType):
+            r = self._make_record(
+                flow_type=ft,
+                transaction_date=date(2026, 5, i + 1),
+            )
+            self.assertEqual(r.flow_type, ft)
+
+    def test_str(self):
+        r = self._make_record()
+        s = str(r)
+        self.assertIn('Поступление', s)
+        self.assertIn('15.05.2026', s)
+        self.assertIn('500000', s)
+
+    def test_counterparty_fk(self):
+        r = self._make_record(counterparty=self.counterparty)
+        self.assertEqual(r.counterparty, self.counterparty)
+        self.assertIn(r, self.counterparty.cash_flow_records.all())
+
+    def test_budget_category_fk(self):
+        r = self._make_record(budget_category=self.cat)
+        self.assertEqual(r.budget_category, self.cat)
+        self.assertIn(r, self.cat.cash_flow_records.all())
+
+    def test_counterparty_nullable(self):
+        r = self._make_record()
+        self.assertIsNone(r.counterparty)
+
+    def test_budget_category_nullable(self):
+        r = self._make_record()
+        self.assertIsNone(r.budget_category)
+
+    def test_onec_id_unique(self):
+        self._make_record(onec_id='CF-ONEC-001')
+        with self.assertRaises(IntegrityError):
+            self._make_record(onec_id='CF-ONEC-001')
+
+    def test_onec_id_nullable(self):
+        r = self._make_record()
+        self.assertIsNone(r.onec_id)
+
+    def test_set_null_on_counterparty_delete(self):
+        r = self._make_record(counterparty=self.counterparty)
+        self.counterparty.delete()
+        r.refresh_from_db()
+        self.assertIsNone(r.counterparty)
+
+    def test_set_null_on_category_delete(self):
+        r = self._make_record(budget_category=self.cat)
+        self.cat.delete()
+        r.refresh_from_db()
+        self.assertIsNone(r.budget_category)
+
+    def test_default_currency_kzt(self):
+        r = self._make_record()
+        self.assertEqual(r.currency, 'KZT')
+
+    def test_value_date_nullable(self):
+        r = self._make_record()
+        self.assertIsNone(r.value_date)
+
+    def test_description_nullable(self):
+        r = self._make_record()
+        self.assertIsNone(r.description)
+
+    def test_upsert_by_onec_id(self):
+        from datetime import date
+        obj, created = CashFlowRecord.objects.update_or_create(
+            onec_id='CF-ONEC-002',
+            defaults={
+                'direction': CashFlowRecord.Direction.INFLOW,
+                'flow_type': CashFlowRecord.FlowType.OPERATING,
+                'amount': Decimal('300000.00'),
+                'currency': 'KZT',
+                'transaction_date': date(2026, 5, 20),
+                'onec_id': 'CF-ONEC-002',
+            }
+        )
+        self.assertTrue(created)
+
+        obj2, created2 = CashFlowRecord.objects.update_or_create(
+            onec_id='CF-ONEC-002',
+            defaults={'amount': Decimal('350000.00')}
+        )
+        self.assertFalse(created2)
+        self.assertEqual(obj2.amount, Decimal('350000.00'))
+        self.assertEqual(
+            CashFlowRecord.objects.filter(onec_id='CF-ONEC-002').count(), 1
+        )
+
+    def test_ordering_by_date_desc(self):
+        from datetime import date
+        self._make_record(transaction_date=date(2026, 3, 1))
+        self._make_record(transaction_date=date(2026, 5, 1))
+        self._make_record(transaction_date=date(2026, 1, 1))
+        dates = list(
+            CashFlowRecord.objects.values_list('transaction_date', flat=True)
+        )
+        self.assertEqual(dates, sorted(dates, reverse=True))
