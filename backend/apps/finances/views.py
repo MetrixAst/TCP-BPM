@@ -841,6 +841,37 @@ def _can_manage_credit(user):
     return role in (RoleEnums.CFO.value, RoleEnums.OWNER.value, RoleEnums.ADMINISTRATOR.value)
 
 
+# ── BE-6.8: Глобальные финансовые фильтры ─────────────────────────────────────
+
+from account.role_permissions import login_required as _login_required
+
+
+@_login_required
+def save_finance_filters(request):
+    if request.method == 'POST':
+        import json
+        try:
+            filters = json.loads(request.body)
+        except (json.JSONDecodeError, ValueError):
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        request.session['finance_filters'] = {
+            'company':     filters.get('company', ''),
+            'tenant':      filters.get('tenant', ''),
+            'category':    filters.get('category', ''),
+            'period_from': filters.get('period_from', ''),
+            'period_to':   filters.get('period_to', ''),
+        }
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'error': 'POST only'}, status=405)
+
+
+@_login_required
+def get_finance_filters(request):
+    filters = request.session.get('finance_filters', {})
+    return JsonResponse(filters)
+
+
 @need_permission(PermissionEnums.FINANCE_SCENARIOS)
 def credit_model_list(request):
     models_qs = CreditModel.objects.all()
