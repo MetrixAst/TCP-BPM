@@ -1,0 +1,97 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block content %}
+
+<div class="page-title-container">
+  <div class="row">
+    <div class="col-12 col-sm-6">
+      <h1 class="mb-0 pb-0 display-4">{{ day_date|date:"d.m.Y" }}</h1>
+      <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+        <ul class="breadcrumb pt-0">
+          <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+          <li class="breadcrumb-item">
+            <a href="{% url 'finances:payment_calendar' %}?year={{ day_date.year }}&month={{ day_date.month }}">
+              Календарь платежей
+            </a>
+          </li>
+          <li class="breadcrumb-item active">{{ day_date|date:"d.m.Y" }}</li>
+        </ul>
+      </nav>
+    </div>
+    <div class="col-12 col-sm-6 d-flex align-items-end justify-content-end">
+      <a href="{% url 'finances:payment_calendar' %}?year={{ day_date.year }}&month={{ day_date.month }}"
+         class="btn btn-outline-secondary btn-sm">← Назад к календарю</a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card border-info">
+      <div class="card-body text-center">
+        <h6 class="text-muted mb-1">План</h6>
+        <h4 class="text-info mb-0">{{ total_planned|floatformat:0 }} ₸</h4>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-success">
+      <div class="card-body text-center">
+        <h6 class="text-muted mb-1">Факт</h6>
+        <h4 class="text-success mb-0">{{ total_actual|floatformat:0 }} ₸</h4>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card {% if diff < 0 %}border-danger{% else %}border-success{% endif %}">
+      <div class="card-body text-center">
+        <h6 class="text-muted mb-1">Отклонение</h6>
+        <h4 class="{% if diff < 0 %}text-danger{% else %}text-success{% endif %} mb-0">
+          {{ diff|floatformat:0 }} ₸
+        </h4>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="nested_table first_big">
+  <div class="outer">
+    <div class="tr th">
+      <p>Арендатор</p>
+      <p>Договор</p>
+      <p>План</p>
+      <p>Факт</p>
+      <p>Дата оплаты</p>
+      <p>Статус</p>
+    </div>
+    {% for row in rows %}
+    {% with e=row.obj %}
+    <div class="tr">
+      <p data-title="Арендатор">
+        <strong>{{ e.tenant.name }}</strong>
+        {% if e.tenant.room %}
+          <br><small class="text-muted">{{ e.tenant.room.number }}</small>
+        {% endif %}
+      </p>
+      <p data-title="Договор">{{ e.contract_number }}</p>
+      <p data-title="План">{{ e.expected_amount|floatformat:0 }} ₸</p>
+      <p data-title="Факт"
+         {% if e.actual_amount < e.expected_amount %}style="color:var(--danger)"{% endif %}>
+        {{ e.actual_amount|floatformat:0 }} ₸
+      </p>
+      <p data-title="Дата оплаты">{{ e.actual_date|date:"d.m.Y"|default:"—" }}</p>
+      <p data-title="Статус">
+        <span class="badge bg-{{ row.color }}">{{ e.get_status_display }}</span>
+      </p>
+    </div>
+    {% endwith %}
+    {% empty %}
+    <div class="tr">
+      <p style="text-align:center;">Платежей на этот день нет</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}
