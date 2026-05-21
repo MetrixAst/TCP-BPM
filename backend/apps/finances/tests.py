@@ -3057,3 +3057,181 @@ class ScenarioDetailJsonTest(TestCase):
 
     def test_scenario_json_403_unauthenticated(self):
         self.assertIn(self.client.get(f'/finances/scenarios/{self.scenario.pk}/json/').status_code, (302, 403))
+
+
+# ── BE-6.7: Excel export ──────────────────────────────────────────────────────
+
+def make_user_be67(role, username):
+    return User.objects.create_user(username=username, password='pass', role=role)
+
+
+XLSX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+
+class ExcelExportPaymentRegistryTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo    = make_user_be67(RoleEnums.CFO.value, 'cfo_xlsx_reg')
+        self.tenant = make_tenant('ЭксельТенант')
+        TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-X-001',
+            period=date.today().replace(day=1),
+            charged=Decimal('100000.00'),
+            paid=Decimal('80000.00'),
+            status=TenantPaymentRegistry.Status.PARTIAL,
+        )
+
+    def _login(self):
+        self.client.force_login(self.cfo)
+
+    def test_export_returns_200(self):
+        self._login()
+        response = self.client.get('/finances/registers/?export=xlsx')
+        self.assertEqual(response.status_code, 200)
+
+    def test_export_content_type(self):
+        self._login()
+        response = self.client.get('/finances/registers/?export=xlsx')
+        self.assertEqual(response['Content-Type'], XLSX_CONTENT_TYPE)
+
+    def test_export_content_disposition(self):
+        self._login()
+        response = self.client.get('/finances/registers/?export=xlsx')
+        self.assertIn('attachment', response['Content-Disposition'])
+        self.assertIn('.xlsx', response['Content-Disposition'])
+
+
+class ExcelExportCashflowTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo = make_user_be67(RoleEnums.CFO.value, 'cfo_xlsx_cf')
+        CashFlowRecord.objects.create(
+            direction=CashFlowRecord.Direction.INFLOW,
+            flow_type=CashFlowRecord.FlowType.OPERATING,
+            amount=Decimal('200000.00'),
+            transaction_date=date.today(),
+        )
+
+    def _login(self):
+        self.client.force_login(self.cfo)
+
+    def test_export_returns_200(self):
+        self._login()
+        response = self.client.get('/finances/cashflow/?export=xlsx')
+        self.assertEqual(response.status_code, 200)
+
+    def test_export_content_type(self):
+        self._login()
+        response = self.client.get('/finances/cashflow/?export=xlsx')
+        self.assertEqual(response['Content-Type'], XLSX_CONTENT_TYPE)
+
+    def test_export_content_disposition(self):
+        self._login()
+        response = self.client.get('/finances/cashflow/?export=xlsx')
+        self.assertIn('attachment', response['Content-Disposition'])
+
+
+class ExcelExportBudgetTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo = make_user_be67(RoleEnums.CFO.value, 'cfo_xlsx_budget')
+        cat = BudgetCategory.objects.create(
+            name='Тестовая Категория',
+            category_type='income',
+            code='XLSX-CAT',
+        )
+        BudgetItem.objects.create(
+            category=cat,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=date.today().year,
+            month=date.today().month,
+            plan=Decimal('100000.00'),
+            fact=Decimal('90000.00'),
+        )
+
+    def _login(self):
+        self.client.force_login(self.cfo)
+
+    def test_export_returns_200(self):
+        self._login()
+        today = date.today()
+        response = self.client.get(
+            f'/finances/budget-plan/?export=xlsx&year={today.year}&month={today.month}'
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_export_content_type(self):
+        self._login()
+        today = date.today()
+        response = self.client.get(
+            f'/finances/budget-plan/?export=xlsx&year={today.year}&month={today.month}'
+        )
+        self.assertEqual(response['Content-Type'], XLSX_CONTENT_TYPE)
+
+
+class ExcelServiceDirectTest(TestCase):
+
+    def setUp(self):
+        self.tenant = make_tenant('ЮнитЭксель')
+
+    def test_export_payment_registry_service(self):
+        from finances.services.excel import export_payment_registry
+        TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-SVC-001',
+            period=date.today().replace(day=1),
+            charged=Decimal('50000.00'),
+            paid=Decimal('50000.00'),
+            status=TenantPaymentRegistry.Status.PAID,
+        )
+        qs = TenantPaymentRegistry.objects.all()
+        response = export_payment_registry(qs)
+        self.assertEqual(response['Content-Type'], XLSX_CONTENT_TYPE)
+        self.assertIn('payment_registry.xlsx', response['Content-Disposition'])
+
+    def test_export_cashflow_service(self):
+        from finances.services.excel import export_cashflow
+        CashFlowRecord.objects.create(
+            direction=CashFlowRecord.Direction.OUTFLOW,
+            flow_type=CashFlowRecord.FlowType.OPERATING,
+            amount=Decimal('10000.00'),
+            transaction_date=date.today(),
+        )
+        qs = CashFlowRecord.objects.all()
+        response = export_cashflow(qs)
+        self.assertEqual(response['Content-Type'], XLSX_CONTENT_TYPE)
+        self.assertIn('cashflow.xlsx', response['Content-Disposition'])
+
+    def test_export_budget_service(self):
+        from finances.services.excel import export_budget
+        cat = BudgetCategory.objects.create(name='СвцКат', category_type='expense', code='SVC-EXP')
+        BudgetItem.objects.create(
+            category=cat,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026,
+            month=5,
+            plan=Decimal('100000.00'),
+            fact=Decimal('80000.00'),
+        )
+        qs = BudgetItem.objects.select_related('category').all()
+        response = export_budget(qs)
+        self.assertEqual(response['Content-Type'], XLSX_CONTENT_TYPE)
+        self.assertIn('budget.xlsx', response['Content-Disposition'])
+
+    def test_export_financial_statement_service(self):
+        from finances.services.excel import export_financial_statement
+        FinancialStatement.objects.create(
+            period_type=FinancialStatement.Period.MONTHLY,
+            year=2026,
+            month=5,
+            revenue_plan=Decimal('1000000.00'),
+            revenue_fact=Decimal('950000.00'),
+        )
+        qs = FinancialStatement.objects.all()
+        response = export_financial_statement(qs)
+        self.assertEqual(response['Content-Type'], XLSX_CONTENT_TYPE)
+        self.assertIn('financial_statement.xlsx', response['Content-Disposition'])
