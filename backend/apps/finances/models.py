@@ -552,3 +552,107 @@ class CashFlowRecord(models.Model):
     @property
     def is_outflow(self):
         return self.direction == self.Direction.OUTFLOW
+
+class CreditModel(models.Model):
+    """Кредитная модель — прогнозный сценарий для оценки долговой нагрузки."""
+
+    class Scenario(models.TextChoices):
+        BASE       = 'base',       'Базовый'
+        STRESS     = 'stress',     'Стресс'
+        OPTIMISTIC = 'optimistic', 'Оптимистичный'
+
+    name     = models.CharField('Название', max_length=255)
+    scenario = models.CharField(
+        'Сценарий', max_length=20,
+        choices=Scenario.choices,
+        default=Scenario.BASE,
+    )
+    period_start = models.DateField('Начало периода')
+    period_end   = models.DateField('Конец периода')
+
+    # Прогнозные финансовые потоки {month: amount}, например {"2026-01": "5000000.00"}
+    projected_income    = models.JSONField('Прогноз доходов',   default=dict)
+    projected_expenses  = models.JSONField('Прогноз расходов',  default=dict)
+    projected_cashflow  = models.JSONField('Прогноз ДДС',       default=dict)
+
+    # Кредитные параметры
+    loan_amount = models.DecimalField('Сумма кредита', max_digits=20, decimal_places=2, default=0)
+    loan_rate   = models.DecimalField('Ставка, %',     max_digits=5,  decimal_places=2, default=0)
+
+    # Расчётные метрики (заполняются через calculate_dscr)
+    dscr           = models.DecimalField('DSCR', max_digits=10, decimal_places=4, null=True, blank=True)
+    free_cashflow  = models.DecimalField('Свободный CF', max_digits=20, decimal_places=2, null=True, blank=True)
+    risk_level     = models.CharField('Уровень риска', max_length=20, default='medium')  # low/medium/high
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name        = 'Кредитная модель'
+        verbose_name_plural = 'Кредитные модели'
+        ordering            = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.get_scenario_display()})"
+
+    # ── Расчётные методы ──────────────────────────────────────────────────────
+
+    def _sum_json_values(self, json_field: dict) -> 'Decimal':
+        """Суммирует все значения из JSONField вида {month: amount}."""
+        from decimal import Decimal, InvalidOperation
+        total = Decimal('0')
+        for v in json_field.values():
+            try:
+                total += Decimal(str(v))
+            except InvalidOperation:
+                pass
+        return total
+
+    def _annual_debt_service(self) -> 'Decimal':
+        """
+        Годовое обслуживание долга (аннуитет):
+          P * r / (1 − (1+r)^−n), где r — месячная ставка, n — 12 месяцев.
+        При нулевой ставке возвращает P / 12 * 12 = P (годовой взнос = тело кредита).
+        """
+        from decimal import Decimal
+        P = self.loan_amount
+        annual_rate = self.loan_rate / Decimal('100')
+        if annual_rate == 0:
+            return P
+        r = annual_rate / Decimal('12')
+        n = Decimal('12')
+        factor = r / (1 - (1 + r) ** (-n))
+        return (P * factor * 12).quantize(Decimal('0.01'))
+
+    def calculate_dscr(self) -> 'Decimal | None':
+        """
+        DSCR = Net Operating Income / Total Annual Debt Service.
+        NOI = суммарные доходы − суммарные расходы.
+        Сохраняет результат в self.dscr и self.free_cashflow (без записи в БД).
+        Возвращает значение DSCR или None, если debt_service == 0.
+        """
+        from decimal import Decimal
+
+        total_income   = self._sum_json_values(self.projected_income)
+        total_expenses = self._sum_json_values(self.projected_expenses)
+        noi            = total_income - total_expenses
+
+        debt_service = self._annual_debt_service()
+        self.free_cashflow = noi - debt_service
+
+        if debt_service == 0:
+            self.dscr = None
+            return None
+
+        dscr = (noi / debt_service).quantize(Decimal('0.0001'))
+        self.dscr = dscr
+
+        # Автоматическое определение уровня риска
+        if dscr >= Decimal('1.5'):
+            self.risk_level = 'low'
+        elif dscr >= Decimal('1.0'):
+            self.risk_level = 'medium'
+        else:
+            self.risk_level = 'high'
+
+        return dscr

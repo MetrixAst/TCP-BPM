@@ -1982,3 +1982,181 @@ class BudgetViewsTest(TestCase):
         r = self.client.post(reverse('finances:budget_item_delete', args=[item.pk]))
         self.assertRedirects(r, reverse('finances:budget_detail', args=[self.cat_income.pk]))
         self.assertFalse(BudgetItem.objects.filter(pk=item.pk).exists())
+
+# ─── BE-5.12: CreditModel ─────────────────────────────────────────────────────
+
+from finances.models import CreditModel
+
+
+class CreditModelCreationTest(TestCase):
+    def _make_credit_model(self, **kwargs):
+        defaults = dict(
+            name='Тест',
+            scenario=CreditModel.Scenario.BASE,
+            period_start=date(2026, 1, 1),
+            period_end=date(2026, 12, 31),
+            projected_income={'2026-01': '1000000', '2026-02': '1200000'},
+            projected_expenses={'2026-01': '600000',  '2026-02': '700000'},
+            projected_cashflow={'2026-01': '400000',  '2026-02': '500000'},
+            loan_amount=Decimal('5000000'),
+            loan_rate=Decimal('12.00'),
+        )
+        defaults.update(kwargs)
+        return CreditModel.objects.create(**defaults)
+
+    def test_create_base_scenario(self):
+        cm = self._make_credit_model()
+        self.assertEqual(cm.scenario, CreditModel.Scenario.BASE)
+        self.assertEqual(cm.risk_level, 'medium')
+        self.assertIsNone(cm.dscr)
+
+    def test_create_stress_scenario(self):
+        cm = self._make_credit_model(name='Стресс', scenario=CreditModel.Scenario.STRESS)
+        self.assertEqual(cm.scenario, 'stress')
+
+    def test_create_optimistic_scenario(self):
+        cm = self._make_credit_model(name='Оптимист', scenario=CreditModel.Scenario.OPTIMISTIC)
+        self.assertEqual(cm.scenario, 'optimistic')
+
+    def test_str_representation(self):
+        cm = self._make_credit_model()
+        self.assertIn('Тест', str(cm))
+        self.assertIn('Базовый', str(cm))
+
+    def test_default_values(self):
+        cm = CreditModel.objects.create(
+            name='Минимум',
+            period_start=date(2026, 1, 1),
+            period_end=date(2026, 12, 31),
+        )
+        self.assertEqual(cm.loan_amount, Decimal('0'))
+        self.assertEqual(cm.loan_rate, Decimal('0'))
+        self.assertEqual(cm.projected_income, {})
+        self.assertIsNone(cm.dscr)
+
+
+class CreditModelDscrTest(TestCase):
+    def _cm(self, income, expenses, loan_amount, loan_rate, **kw):
+        return CreditModel(
+            name='DSCR Test',
+            period_start=date(2026, 1, 1),
+            period_end=date(2026, 12, 31),
+            projected_income=income,
+            projected_expenses=expenses,
+            loan_amount=Decimal(str(loan_amount)),
+            loan_rate=Decimal(str(loan_rate)),
+            **kw,
+        )
+
+    def test_dscr_returns_decimal(self):
+        cm = self._cm(
+            income={'2026-01': '5000000'},
+            expenses={'2026-01': '2000000'},
+            loan_amount=5000000,
+            loan_rate=12,
+        )
+        result = cm.calculate_dscr()
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, Decimal)
+
+    def test_dscr_zero_loan_rate(self):
+        """При нулевой ставке debt_service = loan_amount, NOI > DS → DSCR > 1."""
+        cm = self._cm(
+            income={'2026-01': '2000000'},
+            expenses={'2026-01': '500000'},
+            loan_amount=1000000,
+            loan_rate=0,
+        )
+        dscr = cm.calculate_dscr()
+        self.assertIsNotNone(dscr)
+        self.assertGreater(dscr, Decimal('1'))
+
+    def test_dscr_zero_loan_amount_returns_none(self):
+        cm = self._cm(
+            income={'2026-01': '1000000'},
+            expenses={'2026-01': '500000'},
+            loan_amount=0,
+            loan_rate=0,
+        )
+        result = cm.calculate_dscr()
+        self.assertIsNone(result)
+
+    def test_dscr_sets_free_cashflow(self):
+        cm = self._cm(
+            income={'2026-01': '5000000'},
+            expenses={'2026-01': '2000000'},
+            loan_amount=5000000,
+            loan_rate=12,
+        )
+        cm.calculate_dscr()
+        self.assertIsNotNone(cm.free_cashflow)
+
+    def test_risk_level_low_when_dscr_gte_1_5(self):
+        """NOI намного больше DS → risk_level = low."""
+        cm = self._cm(
+            income={'m': '50000000'},
+            expenses={'m': '1000000'},
+            loan_amount=1000000,
+            loan_rate=10,
+        )
+        cm.calculate_dscr()
+        self.assertEqual(cm.risk_level, 'low')
+
+    def test_risk_level_high_when_dscr_lt_1(self):
+        """NOI меньше DS → risk_level = high."""
+        cm = self._cm(
+            income={'m': '100000'},
+            expenses={'m': '90000'},
+            loan_amount=50000000,
+            loan_rate=15,
+        )
+        cm.calculate_dscr()
+        self.assertEqual(cm.risk_level, 'high')
+
+    def test_risk_level_medium_when_dscr_between_1_and_1_5(self):
+        """DSCR ~1.3 → medium.
+        loan=1_000_000 @ 12% → annual DS ≈ 1_066_190
+        NOI = 2_200_000 - 800_000 = 1_400_000 → DSCR ≈ 1.31
+        """
+        cm = self._cm(
+            income={'m': '2200000'},
+            expenses={'m': '800000'},
+            loan_amount=1000000,
+            loan_rate=12,
+        )
+        cm.calculate_dscr()
+        self.assertEqual(cm.risk_level, 'medium')
+
+    def test_calculate_dscr_does_not_save(self):
+        """calculate_dscr() не должен автоматически сохранять в БД."""
+        cm = self._cm(
+            income={'m': '1000000'},
+            expenses={'m': '400000'},
+            loan_amount=2000000,
+            loan_rate=10,
+        )
+        cm.calculate_dscr()
+        # Объект не сохранён, pk = None
+        self.assertIsNone(cm.pk)
+
+    def test_dscr_saved_after_explicit_save(self):
+        cm = self._cm(
+            income={'m': '3000000'},
+            expenses={'m': '1000000'},
+            loan_amount=5000000,
+            loan_rate=12,
+        )
+        cm.calculate_dscr()
+        cm.save()
+        refreshed = CreditModel.objects.get(pk=cm.pk)
+        self.assertIsNotNone(refreshed.dscr)
+        self.assertIsNotNone(refreshed.free_cashflow)
+
+    def test_dscr_with_multiple_months(self):
+        income   = {f'2026-{i:02d}': '1000000' for i in range(1, 13)}
+        expenses = {f'2026-{i:02d}': '500000'  for i in range(1, 13)}
+        cm = self._cm(income=income, expenses=expenses, loan_amount=10000000, loan_rate=12)
+        dscr = cm.calculate_dscr()
+        self.assertIsNotNone(dscr)
+        # NOI = 12*500000 = 6_000_000; должно быть разумным
+        self.assertGreater(dscr, 0)

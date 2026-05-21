@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord
+from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel
 
 @admin.register(TenantPaymentRegistry)
 class TenantPaymentRegistryAdmin(admin.ModelAdmin):
@@ -257,3 +257,31 @@ class CashFlowRecordAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False  
+
+@admin.register(CreditModel)
+class CreditModelAdmin(admin.ModelAdmin):
+    list_display   = ('name', 'scenario', 'period_start', 'period_end',
+                      'loan_amount', 'loan_rate', 'dscr', 'risk_level', 'created_at')
+    list_filter    = ('scenario', 'risk_level')
+    search_fields  = ('name',)
+    ordering       = ('-created_at',)
+    readonly_fields = ('dscr', 'free_cashflow', 'risk_level', 'created_at', 'updated_at')
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'scenario', 'period_start', 'period_end'),
+        }),
+        ('Прогнозные потоки', {
+            'fields': ('projected_income', 'projected_expenses', 'projected_cashflow'),
+            'classes': ('collapse',),
+        }),
+        ('Кредитные параметры', {
+            'fields': ('loan_amount', 'loan_rate'),
+        }),
+        ('Расчётные метрики', {
+            'fields': ('dscr', 'free_cashflow', 'risk_level'),
+        }),
+        ('Служебные', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
