@@ -254,7 +254,7 @@ class MenuItem:
                     MenuItem('fin_reports', 'reports:home', '', 'Финансовые отчеты'),
                     MenuItem('fin_invoices', 'finances:reg', '', 'Счета и оплаты'),
                     MenuItem('fin_registers', 'finances:reg', '', 'Финансовые реестры'),
-                    MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
+                    MenuItem('fin_budget', 'finances:budget', '', 'Бюджетирование'),
                 ]),
             ],
 
