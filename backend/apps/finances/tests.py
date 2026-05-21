@@ -1,10 +1,15 @@
 from django.test import TestCase, Client
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
+import json
 
-from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord
+from .models import (
+    TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem,
+    BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel,
+    ExchangeRate,
+)
 from tenants.models import Tenant, TenantCategory, Room
 
 from django.urls import reverse
@@ -2392,3 +2397,146 @@ class FetchExchangeRatesTaskTest(TestCase):
         from finances.tasks import fetch_exchange_rates
         result = fetch_exchange_rates()
         self.assertIn('created', result)
+
+
+# ── BE-6.9: Мультивалюта ──────────────────────────────────────────────────────
+
+def make_user_be69(role, username):
+    return User.objects.create_user(username=username, password='pass', role=role)
+
+
+class BalancesServiceTest(TestCase):
+    """Unit tests for get_balances_with_conversion."""
+
+    def setUp(self):
+        self.tenant = make_tenant('ВалютаТенант')
+        self.today  = date.today()
+
+        ExchangeRate.objects.create(
+            currency='USD',
+            date=self.today,
+            rate=Decimal('475.00'),
+        )
+        ExchangeRate.objects.create(
+            currency='EUR',
+            date=self.today,
+            rate=Decimal('520.00'),
+        )
+
+        PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-V-001',
+            expected_date=self.today - timedelta(days=5),
+            expected_amount=Decimal('475000.00'),
+            actual_amount=Decimal('475000.00'),
+            actual_date=self.today - timedelta(days=5),
+            status=PaymentCalendarEntry.Status.FACT,
+        )
+        TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-V-002',
+            period=date(self.today.year, self.today.month, 1),
+            charged=Decimal('475000.00'),
+            paid=Decimal('475000.00'),
+            status=TenantPaymentRegistry.Status.PAID,
+        )
+
+    def test_returns_required_keys(self):
+        from finances.services.balances import get_balances_with_conversion
+        result = get_balances_with_conversion('USD')
+        for key in ('cash_balance_kzt', 'cash_balance_foreign', 'revenue_mtd_kzt',
+                    'revenue_mtd_foreign', 'currency', 'rate', 'rate_date', 'rate_is_fresh'):
+            self.assertIn(key, result, f'Missing key: {key}')
+
+    def test_rate_present_when_available(self):
+        from finances.services.balances import get_balances_with_conversion
+        result = get_balances_with_conversion('USD')
+        self.assertEqual(result['rate'], 475.0)
+        self.assertEqual(result['currency'], 'USD')
+        self.assertIsNotNone(result['rate_date'])
+
+    def test_conversion_usd(self):
+        from finances.services.balances import get_balances_with_conversion
+        result = get_balances_with_conversion('USD')
+        self.assertIsNotNone(result['cash_balance_foreign'])
+        self.assertAlmostEqual(result['cash_balance_foreign'],
+                               result['cash_balance_kzt'] / 475.0, places=2)
+
+    def test_conversion_eur(self):
+        from finances.services.balances import get_balances_with_conversion
+        result = get_balances_with_conversion('EUR')
+        self.assertEqual(result['currency'], 'EUR')
+        self.assertIsNotNone(result['cash_balance_foreign'])
+
+    def test_fallback_when_no_rate(self):
+        from finances.services.balances import get_balances_with_conversion
+        result = get_balances_with_conversion('RUB')
+        self.assertIsNone(result['rate'])
+        self.assertIsNone(result['cash_balance_foreign'])
+        self.assertIsNone(result['revenue_mtd_foreign'])
+        self.assertFalse(result['rate_is_fresh'])
+
+    def test_rate_is_fresh_today(self):
+        from finances.services.balances import get_balances_with_conversion
+        result = get_balances_with_conversion('USD')
+        self.assertTrue(result['rate_is_fresh'])
+
+    def test_rate_is_fresh_old_rate(self):
+        from finances.services.balances import get_balances_with_conversion
+        ExchangeRate.objects.filter(currency='USD').update(date=self.today - timedelta(days=5))
+        result = get_balances_with_conversion('USD')
+        self.assertFalse(result['rate_is_fresh'])
+
+
+class DashboardBalancesViewTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo   = make_user_be69(RoleEnums.CFO.value, 'cfo_bal')
+        self.owner = make_user_be69(RoleEnums.OWNER.value, 'owner_bal')
+        self.today = date.today()
+
+        ExchangeRate.objects.create(
+            currency='USD',
+            date=self.today,
+            rate=Decimal('475.00'),
+        )
+
+    def _login(self, user):
+        self.client.force_login(user)
+
+    def test_200_for_cfo(self):
+        self._login(self.cfo)
+        response = self.client.get('/finances/dashboard/balances/?currency=USD')
+        self.assertEqual(response.status_code, 200)
+
+    def test_200_for_owner(self):
+        self._login(self.owner)
+        response = self.client.get('/finances/dashboard/balances/?currency=USD')
+        self.assertEqual(response.status_code, 200)
+
+    def test_response_contains_rate(self):
+        self._login(self.cfo)
+        response = self.client.get('/finances/dashboard/balances/?currency=USD')
+        data = response.json()
+        self.assertIn('rate', data)
+        self.assertIn('rate_date', data)
+        self.assertEqual(data['currency'], 'USD')
+
+    def test_fallback_no_rate(self):
+        self._login(self.cfo)
+        response = self.client.get('/finances/dashboard/balances/?currency=RUB')
+        data = response.json()
+        self.assertIsNone(data['rate'])
+        self.assertIsNone(data['cash_balance_foreign'])
+        self.assertFalse(data['rate_is_fresh'])
+
+    def test_default_currency_usd(self):
+        self._login(self.cfo)
+        response = self.client.get('/finances/dashboard/balances/')
+        data = response.json()
+        self.assertEqual(data['currency'], 'USD')
+
+    def test_403_unauthenticated(self):
+        response = self.client.get('/finances/dashboard/balances/?currency=USD')
+        self.assertIn(response.status_code, (302, 403))

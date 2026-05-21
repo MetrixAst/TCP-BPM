@@ -9,8 +9,8 @@ from project.utils import get_or_none
 
 from .forms import FinanceItemForm, GeneratedInvoiceForm, GeneratedInvoiceItemFormSet
 from .models import (
-    FinanceItem, TenantPaymentRegistry, GeneratedInvoice, BudgetCategory, BudgetItem,
-    FinancialStatement, CashFlowRecord, CreditModel,
+    FinanceItem, TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice,
+    BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel,
 )
 from .serializers import FinanceItemSerializer
 
@@ -839,6 +839,21 @@ def cashflow_register(request):
 def _can_manage_credit(user):
     role = user.role.value if hasattr(user.role, 'value') else user.role
     return role in (RoleEnums.CFO.value, RoleEnums.OWNER.value, RoleEnums.ADMINISTRATOR.value)
+
+
+# ── BE-6.9: Мультивалюта ──────────────────────────────────────────────────────
+
+@need_permission(PermissionEnums.FINANCE_DASHBOARD)
+def dashboard_balances(request):
+    from .services.balances import get_balances_with_conversion
+    currency = request.GET.get('currency', 'USD').upper()
+    allowed  = {'USD', 'EUR', 'RUB', 'CNY', 'KZT'}
+    if currency not in allowed:
+        return JsonResponse({'error': f'Unsupported currency: {currency}'}, status=400)
+    if currency == 'KZT':
+        return JsonResponse({'error': 'Use KZT as base currency; select USD, EUR, RUB or CNY'}, status=400)
+    data = get_balances_with_conversion(currency=currency)
+    return JsonResponse(data)
 
 
 @need_permission(PermissionEnums.FINANCE_SCENARIOS)
