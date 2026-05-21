@@ -2392,3 +2392,149 @@ class FetchExchangeRatesTaskTest(TestCase):
         from finances.tasks import fetch_exchange_rates
         result = fetch_exchange_rates()
         self.assertIn('created', result)
+
+
+# ── BE-6.2: CF chart endpoints ────────────────────────────────────────────────
+
+def make_user_be62(role, username):
+    return User.objects.create_user(username=username, password='pass', role=role)
+
+
+class CashflowDailyTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo = make_user_be62(RoleEnums.CFO.value, 'cfo_daily')
+        self.today = date.today()
+
+        CashFlowRecord.objects.create(
+            direction=CashFlowRecord.Direction.INFLOW,
+            flow_type=CashFlowRecord.FlowType.OPERATING,
+            amount=Decimal('100000.00'),
+            transaction_date=self.today,
+        )
+        CashFlowRecord.objects.create(
+            direction=CashFlowRecord.Direction.OUTFLOW,
+            flow_type=CashFlowRecord.FlowType.OPERATING,
+            amount=Decimal('40000.00'),
+            transaction_date=self.today,
+        )
+
+    def _login(self):
+        self.client.force_login(self.cfo)
+
+    def test_response_200(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/cashflow-daily/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_response_structure(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/cashflow-daily/?days=30')
+        data = response.json()
+        for key in ('labels', 'income', 'expense', 'net'):
+            self.assertIn(key, data)
+
+    def test_labels_length_matches_days(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/cashflow-daily/?days=30')
+        data = response.json()
+        self.assertEqual(len(data['labels']), 30)
+        self.assertEqual(len(data['income']), 30)
+        self.assertEqual(len(data['expense']), 30)
+        self.assertEqual(len(data['net']), 30)
+
+    def test_days_param_60(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/cashflow-daily/?days=60')
+        data = response.json()
+        self.assertEqual(len(data['labels']), 60)
+
+    def test_days_param_90(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/cashflow-daily/?days=90')
+        data = response.json()
+        self.assertEqual(len(data['labels']), 90)
+
+    def test_today_income_expense_values(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/cashflow-daily/?days=30')
+        data = response.json()
+        today_str = self.today.isoformat()
+        idx = data['labels'].index(today_str)
+        self.assertEqual(data['income'][idx], 100000.0)
+        self.assertEqual(data['expense'][idx], 40000.0)
+        self.assertEqual(data['net'][idx], 60000.0)
+
+    def test_empty_data_returns_zeros(self):
+        self._login()
+        CashFlowRecord.objects.all().delete()
+        response = self.client.get('/finances/dashboard/cashflow-daily/?days=7')
+        data = response.json()
+        self.assertEqual(sum(data['income']), 0)
+        self.assertEqual(sum(data['expense']), 0)
+
+    def test_403_unauthenticated(self):
+        response = self.client.get('/finances/dashboard/cashflow-daily/')
+        self.assertIn(response.status_code, (302, 403))
+
+
+class CashflowWeeklyTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo = make_user_be62(RoleEnums.CFO.value, 'cfo_weekly')
+        self.today = date.today()
+
+        CashFlowRecord.objects.create(
+            direction=CashFlowRecord.Direction.INFLOW,
+            flow_type=CashFlowRecord.FlowType.OPERATING,
+            amount=Decimal('500000.00'),
+            transaction_date=self.today,
+        )
+        CashFlowRecord.objects.create(
+            direction=CashFlowRecord.Direction.OUTFLOW,
+            flow_type=CashFlowRecord.FlowType.OPERATING,
+            amount=Decimal('200000.00'),
+            transaction_date=self.today,
+        )
+
+    def _login(self):
+        self.client.force_login(self.cfo)
+
+    def test_response_200(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/cashflow-weekly/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_response_structure(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/cashflow-weekly/?weeks=12')
+        data = response.json()
+        for key in ('labels', 'income', 'expense', 'net'):
+            self.assertIn(key, data)
+
+    def test_labels_length_matches_weeks(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/cashflow-weekly/?weeks=12')
+        data = response.json()
+        self.assertEqual(len(data['labels']), 12)
+
+    def test_current_week_has_data(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/cashflow-weekly/?weeks=4')
+        data = response.json()
+        self.assertEqual(len(data['labels']), 4)
+        self.assertGreater(sum(data['income']), 0)
+
+    def test_empty_data_returns_zeros(self):
+        self._login()
+        CashFlowRecord.objects.all().delete()
+        response = self.client.get('/finances/dashboard/cashflow-weekly/?weeks=4')
+        data = response.json()
+        self.assertEqual(sum(data['income']), 0)
+        self.assertEqual(sum(data['expense']), 0)
+
+    def test_403_unauthenticated(self):
+        response = self.client.get('/finances/dashboard/cashflow-weekly/')
+        self.assertIn(response.status_code, (302, 403))
