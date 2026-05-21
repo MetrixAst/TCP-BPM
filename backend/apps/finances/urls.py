@@ -40,4 +40,7 @@ urlpatterns = [
     path('dashboard/drilldown/', views.dashboard_drilldown, name='dashboard_drilldown'),
 
     path('analytics/rent/', views.rent_analytics, name='rent_analytics'),
+
+    path('dashboard/cashflow-daily/', views.cashflow_daily, name='cashflow_daily'),
+    path('dashboard/cashflow-weekly/', views.cashflow_weekly, name='cashflow_weekly'),
 ]

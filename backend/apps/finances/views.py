@@ -1228,3 +1228,114 @@ def rent_analytics(request):
         'today': today,
     }
     return render(request, 'site/finances/rent_analytics.html', context)
+
+
+# ── BE-6.2: CF chart endpoints ────────────────────────────────────────────────
+
+@need_permission(PermissionEnums.FINANCE_DASHBOARD)
+def cashflow_daily(request):
+    from datetime import timedelta
+    from django.db.models import Sum
+
+    days = max(1, min(int(request.GET.get('days', 30)), 365))
+    today = date.today()
+    start = today - timedelta(days=days - 1)
+
+    date_range = [start + timedelta(days=i) for i in range(days)]
+
+    cf_rows = (
+        CashFlowRecord.objects
+        .filter(transaction_date__gte=start, transaction_date__lte=today)
+        .values('transaction_date', 'direction')
+        .annotate(total=Sum('amount'))
+    )
+
+    inflow_map  = {}
+    outflow_map = {}
+    for row in cf_rows:
+        d = row['transaction_date']
+        if row['direction'] == CashFlowRecord.Direction.INFLOW:
+            inflow_map[d] = float(row['total'] or 0)
+        else:
+            outflow_map[d] = float(row['total'] or 0)
+
+    calendar_rows = (
+        PaymentCalendarEntry.objects
+        .filter(
+            status=PaymentCalendarEntry.Status.FACT,
+            actual_date__gte=start,
+            actual_date__lte=today,
+        )
+        .values('actual_date')
+        .annotate(total=Sum('actual_amount'))
+    )
+    for row in calendar_rows:
+        d = row['actual_date']
+        inflow_map[d] = inflow_map.get(d, 0) + float(row['total'] or 0)
+
+    labels  = [d.isoformat() for d in date_range]
+    income  = [inflow_map.get(d, 0) for d in date_range]
+    expense = [outflow_map.get(d, 0) for d in date_range]
+    net     = [i - e for i, e in zip(income, expense)]
+
+    return JsonResponse({'labels': labels, 'income': income, 'expense': expense, 'net': net})
+
+
+@need_permission(PermissionEnums.FINANCE_DASHBOARD)
+def cashflow_weekly(request):
+    from datetime import timedelta
+    from django.db.models import Sum
+
+    weeks = max(1, min(int(request.GET.get('weeks', 12)), 52))
+    today = date.today()
+    monday = today - timedelta(days=today.weekday())
+    start  = monday - timedelta(weeks=weeks - 1)
+
+    week_starts = [start + timedelta(weeks=i) for i in range(weeks)]
+
+    cf_rows = (
+        CashFlowRecord.objects
+        .filter(transaction_date__gte=start, transaction_date__lte=today)
+        .values('transaction_date', 'direction')
+        .annotate(total=Sum('amount'))
+    )
+
+    inflow_by_date  = {}
+    outflow_by_date = {}
+    for row in cf_rows:
+        d = row['transaction_date']
+        if row['direction'] == CashFlowRecord.Direction.INFLOW:
+            inflow_by_date[d] = float(row['total'] or 0)
+        else:
+            outflow_by_date[d] = float(row['total'] or 0)
+
+    calendar_rows = (
+        PaymentCalendarEntry.objects
+        .filter(
+            status=PaymentCalendarEntry.Status.FACT,
+            actual_date__gte=start,
+            actual_date__lte=today,
+        )
+        .values('actual_date')
+        .annotate(total=Sum('actual_amount'))
+    )
+    for row in calendar_rows:
+        d = row['actual_date']
+        inflow_by_date[d] = inflow_by_date.get(d, 0) + float(row['total'] or 0)
+
+    labels  = []
+    income  = []
+    expense = []
+    net     = []
+
+    for ws in week_starts:
+        from datetime import timedelta as td
+        we = ws + td(days=6)
+        week_income  = sum(v for d, v in inflow_by_date.items() if ws <= d <= we)
+        week_expense = sum(v for d, v in outflow_by_date.items() if ws <= d <= we)
+        labels.append(ws.isoformat())
+        income.append(week_income)
+        expense.append(week_expense)
+        net.append(week_income - week_expense)
+
+    return JsonResponse({'labels': labels, 'income': income, 'expense': expense, 'net': net})
