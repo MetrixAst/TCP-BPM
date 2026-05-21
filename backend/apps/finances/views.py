@@ -9,8 +9,8 @@ from project.utils import get_or_none
 
 from .forms import FinanceItemForm, GeneratedInvoiceForm, GeneratedInvoiceItemFormSet
 from .models import (
-    FinanceItem, TenantPaymentRegistry, GeneratedInvoice, BudgetCategory, BudgetItem,
-    FinancialStatement, CashFlowRecord, CreditModel,
+    FinanceItem, TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice,
+    BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel,
 )
 from .serializers import FinanceItemSerializer
 
@@ -839,6 +839,216 @@ def cashflow_register(request):
 def _can_manage_credit(user):
     role = user.role.value if hasattr(user.role, 'value') else user.role
     return role in (RoleEnums.CFO.value, RoleEnums.OWNER.value, RoleEnums.ADMINISTRATOR.value)
+
+
+# ── BE-6.1: Executive Dashboard ───────────────────────────────────────────────
+
+def _compute_dashboard_kpis():
+    from datetime import timedelta
+    from django.db.models import Sum
+
+    today = date.today()
+    first_day_this_month = today.replace(day=1)
+
+    if today.month == 1:
+        first_day_prev_month = date(today.year - 1, 12, 1)
+        last_day_prev_month  = date(today.year - 1, 12, 31)
+    else:
+        first_day_prev_month = today.replace(month=today.month - 1, day=1)
+        import calendar
+        last_day_prev_month = today.replace(
+            month=today.month - 1,
+            day=calendar.monthrange(today.year, today.month - 1)[1]
+        )
+
+    ninety_days_ago = today - timedelta(days=90)
+
+    cash_balance = PaymentCalendarEntry.objects.filter(
+        status=PaymentCalendarEntry.Status.FACT,
+        actual_date__gte=ninety_days_ago,
+        actual_date__lte=today,
+    ).aggregate(total=Sum('actual_amount'))['total'] or Decimal('0')
+
+    revenue_mtd = TenantPaymentRegistry.objects.filter(
+        period__year=today.year,
+        period__month=today.month,
+    ).aggregate(total=Sum('paid'))['total'] or Decimal('0')
+
+    revenue_prev = TenantPaymentRegistry.objects.filter(
+        period__year=first_day_prev_month.year,
+        period__month=first_day_prev_month.month,
+    ).aggregate(total=Sum('paid'))['total'] or Decimal('0')
+
+    if revenue_prev and revenue_prev != 0:
+        revenue_mtd_change = float(
+            (revenue_mtd - revenue_prev) / revenue_prev * 100
+        )
+    else:
+        revenue_mtd_change = 0.0
+
+    revenue_ytd = TenantPaymentRegistry.objects.filter(
+        period__year=today.year,
+    ).aggregate(total=Sum('paid'))['total'] or Decimal('0')
+
+    expenses_mtd = CashFlowRecord.objects.filter(
+        direction=CashFlowRecord.Direction.OUTFLOW,
+        transaction_date__gte=first_day_this_month,
+        transaction_date__lte=today,
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+    net_cf = revenue_mtd - expenses_mtd
+
+    from django.db.models import F
+    budget_items = BudgetItem.objects.filter(
+        year=today.year,
+        month=today.month,
+        period_type=BudgetItem.Period.MONTHLY,
+    )
+    total_plan = sum(i.plan for i in budget_items) or Decimal('0')
+    total_fact = sum(i.fact for i in budget_items) or Decimal('0')
+    if total_plan and total_plan != 0:
+        budget_deviation_pct = float((total_fact - total_plan) / total_plan * 100)
+    else:
+        budget_deviation_pct = 0.0
+
+    overdue_qs = TenantPaymentRegistry.objects.filter(
+        status=TenantPaymentRegistry.Status.OVERDUE
+    )
+    overdue_count  = overdue_qs.count()
+    overdue_amount = overdue_qs.aggregate(
+        total=Sum('balance')
+    )['total'] or Decimal('0')
+
+    return {
+        'cash_balance': cash_balance,
+        'revenue_mtd': revenue_mtd,
+        'revenue_ytd': revenue_ytd,
+        'revenue_mtd_change': round(revenue_mtd_change, 2),
+        'expenses_mtd': expenses_mtd,
+        'net_cf': net_cf,
+        'budget_deviation_pct': round(budget_deviation_pct, 2),
+        'overdue_count': overdue_count,
+        'overdue_amount': overdue_amount,
+        'today': today,
+    }
+
+
+@need_permission(PermissionEnums.FINANCE_DASHBOARD)
+def dashboard(request):
+    context = _compute_dashboard_kpis()
+    return render(request, 'site/finances/dashboard.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_DASHBOARD)
+def dashboard_kpi(request):
+    kpis = _compute_dashboard_kpis()
+    return JsonResponse({
+        'cash_balance': float(kpis['cash_balance']),
+        'revenue_mtd': float(kpis['revenue_mtd']),
+        'revenue_ytd': float(kpis['revenue_ytd']),
+        'revenue_mtd_change': kpis['revenue_mtd_change'],
+        'expenses_mtd': float(kpis['expenses_mtd']),
+        'net_cf': float(kpis['net_cf']),
+        'budget_deviation_pct': kpis['budget_deviation_pct'],
+        'overdue_count': kpis['overdue_count'],
+        'overdue_amount': float(kpis['overdue_amount']),
+    })
+
+
+@need_permission(PermissionEnums.FINANCE_DASHBOARD)
+def dashboard_drilldown(request):
+    from django.db.models import Sum
+
+    drill_type = request.GET.get('type', '')
+    period_str = request.GET.get('period', '')
+
+    try:
+        if period_str:
+            parts = period_str.split('-')
+            drill_year  = int(parts[0])
+            drill_month = int(parts[1]) if len(parts) > 1 else None
+        else:
+            drill_year  = date.today().year
+            drill_month = date.today().month
+    except (ValueError, IndexError):
+        drill_year  = date.today().year
+        drill_month = date.today().month
+
+    data = []
+
+    if drill_type == 'revenue':
+        qs = TenantPaymentRegistry.objects.select_related('tenant').filter(
+            period__year=drill_year,
+        )
+        if drill_month:
+            qs = qs.filter(period__month=drill_month)
+        data = [
+            {
+                'id': r.id,
+                'tenant': str(r.tenant),
+                'contract_number': r.contract_number,
+                'period': str(r.period),
+                'paid': float(r.paid),
+                'charged': float(r.charged),
+                'status': r.status,
+            }
+            for r in qs
+        ]
+
+    elif drill_type == 'expenses':
+        qs = CashFlowRecord.objects.filter(
+            direction=CashFlowRecord.Direction.OUTFLOW,
+            transaction_date__year=drill_year,
+        )
+        if drill_month:
+            qs = qs.filter(transaction_date__month=drill_month)
+        data = [
+            {
+                'id': r.id,
+                'date': str(r.transaction_date),
+                'amount': float(r.amount),
+                'description': r.description or '',
+                'flow_type': r.flow_type,
+            }
+            for r in qs
+        ]
+
+    elif drill_type == 'overdue':
+        qs = TenantPaymentRegistry.objects.select_related('tenant').filter(
+            status=TenantPaymentRegistry.Status.OVERDUE
+        )
+        data = [
+            {
+                'id': r.id,
+                'tenant': str(r.tenant),
+                'contract_number': r.contract_number,
+                'period': str(r.period),
+                'balance': float(r.balance),
+                'overdue_days': r.overdue_days,
+            }
+            for r in qs
+        ]
+
+    elif drill_type == 'budget':
+        qs = BudgetItem.objects.select_related('category').filter(
+            year=drill_year,
+        )
+        if drill_month:
+            qs = qs.filter(month=drill_month, period_type=BudgetItem.Period.MONTHLY)
+        data = [
+            {
+                'id': item.id,
+                'category': str(item.category),
+                'period': item.get_period_label(),
+                'plan': float(item.plan),
+                'fact': float(item.fact),
+                'variance': float(item.variance),
+                'variance_pct': item.variance_pct,
+            }
+            for item in qs
+        ]
+
+    return JsonResponse({'type': drill_type, 'period': period_str, 'data': data})
 
 
 @need_permission(PermissionEnums.FINANCE_SCENARIOS)
