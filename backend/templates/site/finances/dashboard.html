@@ -105,10 +105,32 @@
       </div>
     </div>
   </div>
+
+  {# ── Прогноз денежного потока ── #}
+  <div class="fin-chart-card" style="margin-top:20px;">
+    <div class="fin-chart-header">
+      <span class="fin-chart-title">Прогноз CF</span>
+      <div class="fin-chart-toggle">
+        <button class="fin-chart-btn" data-forecast-days="30">30д</button>
+        <button class="fin-chart-btn" data-forecast-days="60">60д</button>
+        <button class="fin-chart-btn is-active" data-forecast-days="90">90д</button>
+      </div>
+    </div>
+
+    <div id="forecastAlertBox" style="margin-bottom:12px;">
+      <div id="gapAlert" class="fin-overrun-alert" style="display:none;"></div>
+    </div>
+
+    <div id="forecastSpinner" class="fin-chart-spinner"><span class="fin-spinner"></span></div>
+    <canvas id="forecastChart" height="120" style="display:none;"></canvas>
+  </div>
+
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="{% static 'site/js/apps/forecast.js' %}?v=fe64"></script>
 <script>
 function loadDrilldown(type) {
   const today = new Date();

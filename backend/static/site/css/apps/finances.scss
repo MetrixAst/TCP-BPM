@@ -2418,3 +2418,166 @@ body.invoice-edit-body {
   .fin-summary-cards { grid-template-columns: 1fr; }
   .fin-form-grid { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   FE-6.4 — Forecast CF + Scenarios utilities
+   ═══════════════════════════════════════════════════════════ */
+
+/* Colour helpers used in scenarios table */
+.fin-text--success { color: $fin-success; }
+.fin-text--warning { color: $fin-warning; }
+.fin-text--danger  { color: $fin-danger; }
+
+/* Small button variant */
+.fin-btn--sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+
+/* Chart card & header (fallback if FE-6.1 not merged yet) */
+.fin-chart-card {
+  background: #fff;
+  border: 1px solid #eceaf3;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.fin-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.fin-chart-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #25233f;
+}
+
+.fin-chart-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.fin-chart-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid #eceaf3;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+  color: #74728a;
+
+  &:hover { background: #f5f3fa; }
+  &.is-active {
+    background: $fin-primary;
+    color: #fff;
+    border-color: $fin-primary;
+  }
+}
+
+.fin-chart-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
+.fin-spinner {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  border: 3px solid #eceaf3;
+  border-top-color: $fin-primary;
+  border-radius: 50%;
+  animation: finSpin 0.7s linear infinite;
+}
+
+@keyframes finSpin { to { transform: rotate(360deg); } }
+
+/* Reusable table */
+.fin-table-wrap { overflow-x: auto; }
+
+.fin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th {
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #74728a;
+    border-bottom: 2px solid #eceaf3;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #eceaf3;
+    color: #25233f;
+    vertical-align: middle;
+  }
+
+  &__col--num { text-align: right; }
+}
+
+.fin-row {
+  transition: background 0.1s;
+  &:hover { background: #f5f3fa; }
+  &--danger { background: rgba(255, 59, 48, 0.04); }
+}
+
+.fin-muted-text { color: #74728a; }
+
+.fin-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+
+  &--success { background: rgba(34,168,90,0.1); color: $fin-success; }
+  &--warning { background: rgba(255,149,0,0.1); color: $fin-warning; }
+  &--danger  { background: rgba(255,59,48,0.1); color: $fin-danger; }
+}
+
+.fin-empty {
+  text-align: center;
+  padding: 24px 16px;
+  color: #74728a;
+  font-size: 13px;
+
+  i { display: block; font-size: 24px; margin-bottom: 8px; }
+}
+
+.fin-link {
+  color: $fin-primary;
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+
+.fin-kpi-card {
+  background: #fff;
+  border: 1px solid #eceaf3;
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fin-kpi-label { font-size: 12px; color: #74728a; display: block; }
+.fin-kpi-sub   { font-size: 11px; color: #74728a; }
+.fin-kpi-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #25233f;
+  display: block;
+  margin: 4px 0 2px;
+  line-height: 1.2;
+}
