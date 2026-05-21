@@ -1368,3 +1368,16 @@ def drilldown_record(request, onec_id):
         'counterparty_url': f'/onec/counterparties/{counterparty.pk}/' if counterparty else None,
         'counterparty_name': counterparty.full_name if counterparty else None,
     })
+
+
+# ── BE-6.5: Прогноз CF ────────────────────────────────────────────────────────
+
+@need_permission(PermissionEnums.FINANCE_DASHBOARD)
+def cashflow_forecast(request):
+    from .services.forecast import forecast_cashflow
+    try:
+        days = max(1, min(int(request.GET.get('days', 90)), 365))
+    except (ValueError, TypeError):
+        days = 90
+    data = forecast_cashflow(horizon_days=days)
+    return JsonResponse(data)

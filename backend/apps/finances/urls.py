@@ -45,4 +45,6 @@ urlpatterns = [
     path('dashboard/cashflow-weekly/', views.cashflow_weekly, name='cashflow_weekly'),
 
     path('dashboard/drilldown/record/<str:onec_id>/', views.drilldown_record, name='drilldown_record'),
+
+    path('dashboard/forecast/', views.cashflow_forecast, name='cashflow_forecast'),
 ]

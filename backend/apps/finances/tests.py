@@ -2895,3 +2895,85 @@ class DrilldownRecordTest(TestCase):
             self.client.get('/finances/dashboard/drilldown/record/ONEC-REC-001/').status_code,
             (302, 403)
         )
+
+
+# ── BE-6.5: Прогноз CF ────────────────────────────────────────────────────────
+
+def make_user_be65(role, username):
+    return User.objects.create_user(username=username, password='pass', role=role)
+
+
+class ForecastServiceTest(TestCase):
+
+    def setUp(self):
+        self.today = date.today()
+        for i in range(3):
+            month = (self.today.month - i - 1) % 12 + 1
+            year = self.today.year if self.today.month - i - 1 >= 0 else self.today.year - 1
+            CashFlowRecord.objects.create(
+                direction=CashFlowRecord.Direction.INFLOW,
+                flow_type=CashFlowRecord.FlowType.OPERATING,
+                amount=Decimal('300000.00'),
+                transaction_date=date(year, month, 15),
+            )
+            CashFlowRecord.objects.create(
+                direction=CashFlowRecord.Direction.OUTFLOW,
+                flow_type=CashFlowRecord.FlowType.OPERATING,
+                amount=Decimal('150000.00'),
+                transaction_date=date(year, month, 20),
+            )
+
+    def test_forecast_returns_dict(self):
+        from finances.services.forecast import forecast_cashflow
+        result = forecast_cashflow(horizon_days=30)
+        self.assertIsInstance(result, dict)
+
+    def test_forecast_keys_present(self):
+        from finances.services.forecast import forecast_cashflow
+        result = forecast_cashflow(horizon_days=30)
+        for key in ('labels', 'projected_income', 'projected_expense', 'net_cf', 'gap_dates'):
+            self.assertIn(key, result, f'Missing key: {key}')
+
+    def test_forecast_labels_length(self):
+        from finances.services.forecast import forecast_cashflow
+        result = forecast_cashflow(horizon_days=30)
+        self.assertEqual(len(result['labels']), 30)
+
+    def test_forecast_no_data(self):
+        CashFlowRecord.objects.all().delete()
+        from finances.services.forecast import forecast_cashflow
+        result = forecast_cashflow(horizon_days=7)
+        self.assertEqual(len(result['labels']), 7)
+
+    def test_forecast_gaps_is_list(self):
+        from finances.services.forecast import forecast_cashflow
+        result = forecast_cashflow(horizon_days=30)
+        self.assertIsInstance(result['gap_dates'], list)
+
+
+class CashflowForecastViewTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo = make_user_be65(RoleEnums.CFO.value, 'cfo_forecast')
+
+    def _login(self):
+        self.client.force_login(self.cfo)
+
+    def test_forecast_view_200(self):
+        self._login()
+        self.assertEqual(self.client.get('/finances/dashboard/forecast/').status_code, 200)
+
+    def test_forecast_view_json_keys(self):
+        self._login()
+        data = self.client.get('/finances/dashboard/forecast/?days=30').json()
+        for key in ('labels', 'projected_income', 'projected_expense', 'net_cf', 'gap_dates'):
+            self.assertIn(key, data)
+
+    def test_forecast_view_days_param(self):
+        self._login()
+        data = self.client.get('/finances/dashboard/forecast/?days=60').json()
+        self.assertEqual(len(data['labels']), 60)
+
+    def test_forecast_view_403_unauthenticated(self):
+        self.assertIn(self.client.get('/finances/dashboard/forecast/').status_code, (302, 403))
