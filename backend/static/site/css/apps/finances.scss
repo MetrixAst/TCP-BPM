@@ -2418,3 +2418,29 @@ body.invoice-edit-body {
   .fin-summary-cards { grid-template-columns: 1fr; }
   .fin-form-grid { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   FE-6.2 — Multi-currency toggle styles
+   ═══════════════════════════════════════════════════════════ */
+
+.fin-currency-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fin-currency-label {
+  font-size: 13px;
+  color: $fin-muted;
+  font-weight: 500;
+}
+
+.fin-currency-rate {
+  font-size: 11px;
+  color: $fin-muted;
+
+  &.is-stale {
+    color: $fin-warning;
+    font-weight: 600;
+  }
+}

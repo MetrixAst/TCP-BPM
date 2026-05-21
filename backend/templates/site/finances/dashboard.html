@@ -9,7 +9,26 @@
 <div class="container-fluid py-3">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">Финансовый дашборд</h4>
-    <span class="text-muted small">{{ today }}</span>
+    <div class="d-flex align-items-center gap-3">
+      {# Мультивалютный тоггл #}
+      <div class="fin-currency-toggle">
+        <span class="fin-currency-label">Валюта:</span>
+        <select id="currencySelect" class="fin-input" style="width:auto;min-width:90px;">
+          <option value="">KZT</option>
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+          <option value="RUB">RUB</option>
+        </select>
+        <span id="rateHint" class="fin-currency-rate"></span>
+      </div>
+      <span class="text-muted small">{{ today }}</span>
+    </div>
+  </div>
+
+  {# Стейл-баннер курса #}
+  <div id="rateStaleBanner" class="fin-overrun-alert" style="display:none;">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span id="rateStaleBannerText">Курс устарел</span>
   </div>
 
   <div class="row g-3 mb-4">
@@ -140,5 +159,62 @@ function loadDrilldown(type) {
     })
     .catch(() => { el.innerHTML = '<span class="text-danger">Ошибка загрузки</span>'; });
 }
+
+/* ── Multi-currency: loadBalances ─────────────────────────── */
+async function loadBalances(currency) {
+  const hintEl  = document.getElementById('rateHint');
+  const banner  = document.getElementById('rateStaleBanner');
+  const bannerT = document.getElementById('rateStaleBannerText');
+
+  if (!currency) {
+    if (hintEl)  hintEl.textContent = '';
+    if (banner)  banner.style.display = 'none';
+    return;
+  }
+
+  try {
+    const resp = await fetch(`/finances/dashboard/balances/?currency=${currency}`);
+    if (!resp.ok) throw new Error(resp.statusText);
+    const d = await resp.json();
+
+    /* Update KPI values */
+    const setKpi = (id, kzt, fx, cur) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = `${Number(kzt).toLocaleString('ru-RU')} ₸`;
+      /* Append foreign value in small text */
+      const small = el.parentElement.querySelector('.fin-kpi-fx') ||
+                    (() => { const s = document.createElement('div');
+                             s.className = 'text-muted small fin-kpi-fx'; el.after(s); return s; })();
+      small.textContent = fx != null ? `≈ ${Number(fx).toLocaleString('ru-RU')} ${cur}` : '';
+    };
+
+    setKpi('kpi-cash-balance',  d.cash_balance_kzt,  d.cash_balance_foreign,  d.currency);
+    setKpi('kpi-revenue-mtd',   d.revenue_mtd_kzt,   d.revenue_mtd_foreign,   d.currency);
+
+    /* Rate hint */
+    if (hintEl) {
+      hintEl.textContent = `Курс: ${d.rate} ₸ / ${d.currency} на ${d.rate_date}`;
+      hintEl.classList.toggle('is-stale', !d.rate_is_fresh);
+    }
+
+    /* Stale banner */
+    if (banner && bannerT) {
+      if (!d.rate_is_fresh) {
+        bannerT.textContent = `Курс устарел. Последний актуальный: ${d.rate} ₸ / ${d.currency} на ${d.rate_date}`;
+        banner.style.display = 'flex';
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+  } catch (e) {
+    console.error('loadBalances error', e);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const sel = document.getElementById('currencySelect');
+  if (sel) sel.addEventListener('change', () => loadBalances(sel.value));
+});
 </script>
 {% endblock %}
