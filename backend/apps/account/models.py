@@ -298,7 +298,12 @@ class Notification(models.Model):
     
     @staticmethod
     def create_for_task(task):
-        users_qs = task.responsible.all() | task.observers.all() | UserAccount.objects.filter(pk=task.author.pk)
+        users_qs = task.observers.all()
+        if task.executor_id:
+            users_qs = users_qs | UserAccount.objects.filter(pk=task.executor_id)
+        users_qs = users_qs | task.co_executors.all()
+        if task.author_id:
+            users_qs = users_qs | UserAccount.objects.filter(pk=task.author_id)
         users_qs = users_qs.distinct()
 
         text = task.get_status_notification()
