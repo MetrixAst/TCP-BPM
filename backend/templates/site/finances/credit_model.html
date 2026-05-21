@@ -1,0 +1,134 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{% if show_form %}Новый сценарий{% else %}Кредитная модель{% endif %} | metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe55-credit">
+{% endblock %}
+
+{% block content %}
+<section class="fin-page">
+
+  <div class="fin-filter-card">
+    <div class="fin-filter-card__header">
+      <div>
+        {% if show_form %}
+        <a href="{% url 'finances:credit_model_list' %}" class="fin-back-link">
+          <i class="bi bi-arrow-left"></i> Назад к списку
+        </a>
+        <h1 class="fin-page-title">{{ title }}</h1>
+        {% else %}
+        <h1 class="fin-page-title">Кредитная модель</h1>
+        <p class="fin-page-subtitle">Сценарии финансирования: DSCR, свободный CF, уровень риска</p>
+        {% endif %}
+      </div>
+      {% if can_create and not show_form %}
+      <a href="{% url 'finances:credit_model_create' %}" class="fin-btn fin-btn--primary">
+        <i class="bi bi-plus-lg"></i> Создать сценарий
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if show_form %}
+  <div class="fin-table-card fin-form-card">
+    <form method="POST">
+      {% csrf_token %}
+      <div class="fin-form-grid">
+        {% for field in form %}
+        <div class="fin-form-field {% if field.errors %}fin-form-field--error{% endif %}">
+          <label class="fin-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% for err in field.errors %}
+            <span class="fin-field-error">{{ err }}</span>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      <div class="fin-form-actions">
+        <a href="{% url 'finances:credit_model_list' %}" class="fin-btn fin-btn--light">Отмена</a>
+        <button type="submit" class="fin-btn fin-btn--primary">
+          <i class="bi bi-calculator"></i> Рассчитать и сохранить
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {% else %}
+
+  <div class="fin-table-card">
+    <div class="fin-table-head">
+      <div>
+        <div class="fin-table-title">Сценарии</div>
+        <div class="fin-table-subtitle">{{ credit_models|length }} модел{{ credit_models|length|pluralize:"ь,и,ей" }}</div>
+      </div>
+      <div class="fin-legend">
+        <span class="fin-legend__dot fin-legend__dot--success"></span>Низкий риск
+        <span class="fin-legend__dot fin-legend__dot--warning"></span>Средний
+        <span class="fin-legend__dot fin-legend__dot--danger"></span>Высокий
+      </div>
+    </div>
+
+    <div class="fin-table-wrap">
+      <table class="fin-table">
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Сценарий</th>
+            <th>Период</th>
+            <th class="text-right">Кредит</th>
+            <th class="text-right">Ставка</th>
+            <th class="text-right">DSCR</th>
+            <th class="text-right">Свободный CF</th>
+            <th>Риск</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cm in credit_models %}
+          <tr class="fin-row fin-row--{% if cm.risk_level == 'low' %}success{% elif cm.risk_level == 'high' %}danger{% else %}warning{% endif %}">
+            <td><strong>{{ cm.name }}</strong></td>
+            <td>
+              <span class="fin-badge fin-badge--neutral">{{ cm.get_scenario_display }}</span>
+            </td>
+            <td class="fin-muted">
+              {{ cm.period_start|date:"d.m.Y" }} — {{ cm.period_end|date:"d.m.Y" }}
+            </td>
+            <td class="text-right fin-amount">{{ cm.loan_amount|floatformat:0 }} ₸</td>
+            <td class="text-right fin-muted">{{ cm.loan_rate }}%</td>
+            <td class="text-right">
+              <strong>{% if cm.dscr %}{{ cm.dscr }}{% else %}—{% endif %}</strong>
+            </td>
+            <td class="text-right fin-amount">
+              {% if cm.free_cashflow %}{{ cm.free_cashflow|floatformat:0 }} ₸{% else %}—{% endif %}
+            </td>
+            <td>
+              {% if cm.risk_level == 'low' %}
+                <span class="fin-status fin-status--success">Низкий</span>
+              {% elif cm.risk_level == 'high' %}
+                <span class="fin-status fin-status--danger">Высокий</span>
+              {% else %}
+                <span class="fin-status fin-status--warning">Средний</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="fin-empty-state">
+              <i class="bi bi-bank"></i>
+              <strong>Сценарии не созданы</strong>
+              {% if can_create %}
+              <span><a href="{% url 'finances:credit_model_create' %}">Создайте первый сценарий</a></span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% endif %}
+
+</section>
+{% endblock %}

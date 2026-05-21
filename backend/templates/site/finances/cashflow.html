@@ -1,0 +1,147 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Реестр ДДС | metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe55-cashflow">
+{% endblock %}
+
+{% block content %}
+<section class="fin-page">
+
+  <div class="fin-filter-card">
+    <div class="fin-filter-card__header">
+      <h1 class="fin-page-title">Реестр ДДС</h1>
+      <p class="fin-page-subtitle">Движение денежных средств</p>
+    </div>
+
+    <form method="GET" class="fin-filter-form">
+      <div class="fin-field fin-date">
+        <label class="fin-label">С</label>
+        <input type="date" name="date_from" value="{{ date_from }}" class="fin-input">
+      </div>
+      <div class="fin-field fin-date">
+        <label class="fin-label">По</label>
+        <input type="date" name="date_to" value="{{ date_to }}" class="fin-input">
+      </div>
+      <div class="fin-field">
+        <label class="fin-label">Тип</label>
+        <select name="direction" class="fin-input">
+          <option value="">Все</option>
+          {% for val, label in directions %}
+            <option value="{{ val }}" {% if f_direction == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="fin-field">
+        <label class="fin-label">Деятельность</label>
+        <select name="flow_type" class="fin-input">
+          <option value="">Все</option>
+          {% for val, label in flow_types %}
+            <option value="{{ val }}" {% if f_flow_type == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="fin-field">
+        <label class="fin-label">Контрагент</label>
+        <select name="counterparty" class="fin-input">
+          <option value="">Все</option>
+          {% for cp in counterparties %}
+            <option value="{{ cp.pk }}" {% if f_counterparty|stringformat:"s" == cp.pk|stringformat:"s" %}selected{% endif %}>
+              {{ cp.short_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="fin-btn fin-btn--primary">Найти</button>
+      <a href="{% url 'finances:cashflow' %}" class="fin-btn fin-btn--light">Сбросить</a>
+    </form>
+  </div>
+
+  <div class="fin-summary-cards">
+    <div class="fin-summary-card fin-summary-card--success">
+      <span class="fin-summary-card__label">Поступления</span>
+      <span class="fin-summary-card__value">+{{ total_inflow|floatformat:0 }} ₸</span>
+    </div>
+    <div class="fin-summary-card fin-summary-card--danger">
+      <span class="fin-summary-card__label">Списания</span>
+      <span class="fin-summary-card__value">−{{ total_outflow|floatformat:0 }} ₸</span>
+    </div>
+    <div class="fin-summary-card">
+      <span class="fin-summary-card__label">Чистый поток</span>
+      <span class="fin-summary-card__value {% if net_flow >= 0 %}fin-success{% else %}fin-danger{% endif %}">
+        {{ net_flow|floatformat:0 }} ₸
+      </span>
+    </div>
+  </div>
+
+  <div class="fin-table-card">
+    <div class="fin-table-head">
+      <div>
+        <div class="fin-table-title">Операции</div>
+        <div class="fin-table-subtitle">{{ records|length }} запис{{ records|length|pluralize:"ь,и,ей" }}{% if records|length >= 500 %} (показаны первые 500){% endif %}</div>
+      </div>
+      <div class="fin-legend">
+        <span class="fin-legend__dot fin-legend__dot--success"></span>Приход
+        <span class="fin-legend__dot fin-legend__dot--danger"></span>Расход
+      </div>
+    </div>
+
+    <div class="fin-table-wrap">
+      <table class="fin-table">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Контрагент</th>
+            <th class="text-right">Сумма</th>
+            <th>Тип</th>
+            <th>Статья</th>
+            <th>ID 1С</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for rec in records %}
+          <tr class="fin-row {% if rec.direction == 'inflow' %}fin-row--success{% else %}fin-row--danger{% endif %}">
+            <td>{{ rec.transaction_date|date:"d.m.Y" }}</td>
+            <td>
+              <div class="fin-tenant">
+                <strong class="fin-tenant__name">
+                  {% if rec.counterparty %}{{ rec.counterparty.short_name }}{% else %}—{% endif %}
+                </strong>
+                {% if rec.description %}
+                <span class="fin-tenant__sub">{{ rec.description|truncatechars:50 }}</span>
+                {% endif %}
+              </div>
+            </td>
+            <td class="text-right">
+              <strong class="{% if rec.direction == 'inflow' %}fin-success{% else %}fin-danger{% endif %}">
+                {% if rec.direction == 'inflow' %}+{% else %}−{% endif %}{{ rec.amount|floatformat:0 }} {{ rec.currency }}
+              </strong>
+            </td>
+            <td>
+              <span class="fin-status fin-status--{% if rec.direction == 'inflow' %}success{% else %}danger{% endif %}">
+                {{ rec.get_direction_display }}
+              </span>
+            </td>
+            <td class="fin-muted">
+              {% if rec.budget_category %}{{ rec.budget_category.name }}{% else %}—{% endif %}
+            </td>
+            <td class="fin-muted">{{ rec.onec_id|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="fin-empty-state">
+              <i class="bi bi-cash-stack"></i>
+              <strong>Операций не найдено</strong>
+              <span>Измените фильтры или синхронизируйте данные из 1С</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
+{% endblock %}

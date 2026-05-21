@@ -1982,3 +1982,241 @@ class BudgetViewsTest(TestCase):
         r = self.client.post(reverse('finances:budget_item_delete', args=[item.pk]))
         self.assertRedirects(r, reverse('finances:budget_detail', args=[self.cat_income.pk]))
         self.assertFalse(BudgetItem.objects.filter(pk=item.pk).exists())
+
+# ─── BE-5.14: Invoice delivery ────────────────────────────────────────────────
+
+from django.core import mail
+from django.test import override_settings
+from unittest.mock import patch, MagicMock
+
+from finances.models import GeneratedInvoice, GeneratedInvoiceItem
+from finances.services.notifications import (
+    send_invoice_via_email,
+    send_invoice_via_messenger,
+    _resolve_recipient_email,
+    _mark_sent,
+)
+
+
+def _make_invoice(tenant=None, number='INV-001', status=None):
+    status = status or GeneratedInvoice.Status.CREATED
+    return GeneratedInvoice.objects.create(
+        number=number,
+        total_amount=Decimal('150000.00'),
+        vat_amount=Decimal('18000.00'),
+        status=status,
+        tenant=tenant,
+    )
+
+
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+                   DEFAULT_FROM_EMAIL='noreply@test.kz')
+class SendInvoiceEmailTest(TestCase):
+    def setUp(self):
+        self.tenant = make_tenant('email_test_tenant')
+
+    def test_email_sent_to_tenant(self):
+        invoice = _make_invoice(tenant=self.tenant)
+        GeneratedInvoiceItem.objects.create(
+            invoice=invoice, name='Аренда', quantity=1,
+            price=Decimal('132000'), total=Decimal('132000'),
+        )
+        result = send_invoice_via_email(invoice)
+        self.assertTrue(result)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('INV-001', mail.outbox[0].subject)
+        self.assertIn('test@test.kz', mail.outbox[0].to)
+
+    def test_email_sets_status_sent(self):
+        invoice = _make_invoice(tenant=self.tenant)
+        send_invoice_via_email(invoice)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.SENT)
+        self.assertEqual(invoice.sent_via, GeneratedInvoice.SentVia.EMAIL)
+        self.assertIsNotNone(invoice.sent_at)
+
+    def test_email_returns_false_without_recipient(self):
+        invoice = _make_invoice(tenant=None)
+        result = send_invoice_via_email(invoice)
+        self.assertFalse(result)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_email_content_is_html(self):
+        invoice = _make_invoice(tenant=self.tenant)
+        send_invoice_via_email(invoice)
+        self.assertEqual(mail.outbox[0].content_subtype, 'html')
+        self.assertIn('150', mail.outbox[0].body)
+
+    def test_email_returns_false_on_smtp_error(self):
+        invoice = _make_invoice(tenant=self.tenant)
+        with patch('finances.services.notifications.EmailMessage.send', side_effect=Exception('SMTP down')):
+            result = send_invoice_via_email(invoice)
+        self.assertFalse(result)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.CREATED)
+
+
+class SendInvoiceMessengerTest(TestCase):
+    def setUp(self):
+        self.tenant = make_tenant('msg_tenant')
+
+    def test_whatsapp_marks_sent(self):
+        invoice = _make_invoice(tenant=self.tenant)
+        result = send_invoice_via_messenger(invoice, 'whatsapp')
+        self.assertTrue(result)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.SENT)
+        self.assertEqual(invoice.sent_via, 'whatsapp')
+        self.assertIsNotNone(invoice.sent_at)
+
+    def test_telegram_marks_sent(self):
+        invoice = _make_invoice(tenant=self.tenant)
+        result = send_invoice_via_messenger(invoice, 'telegram')
+        self.assertTrue(result)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.sent_via, 'telegram')
+
+
+class ResolveRecipientEmailTest(TestCase):
+    def test_returns_tenant_email(self):
+        tenant = make_tenant('resolve_tenant')
+        invoice = _make_invoice(tenant=tenant)
+        email = _resolve_recipient_email(invoice)
+        self.assertEqual(email, 'test@test.kz')
+
+    def test_returns_none_when_no_tenant_no_cp(self):
+        invoice = _make_invoice(tenant=None)
+        email = _resolve_recipient_email(invoice)
+        self.assertIsNone(email)
+
+
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+class InvoiceSendViewTest(TestCase):
+    def setUp(self):
+        from account.models import UserAccount
+        self.user = UserAccount.objects.create_user(
+            username='fin_user', password='pass', role='administrator', is_superuser=True
+        )
+        self.client.login(username='fin_user', password='pass')
+        self.tenant = make_tenant('view_tenant')
+
+    def _invoice(self):
+        return _make_invoice(tenant=self.tenant, number='VIEW-001')
+
+    def test_post_email_sends_mail(self):
+        invoice = self._invoice()
+        url = f'/finances/invoices/{invoice.pk}/send/'
+        self.client.post(url, {'sent_via': 'email'})
+        self.assertGreaterEqual(len(mail.outbox), 1)
+
+    def test_post_manual_marks_sent(self):
+        invoice = self._invoice()
+        url = f'/finances/invoices/{invoice.pk}/send/'
+        self.client.post(url, {'sent_via': 'manual'})
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.SENT)
+        self.assertEqual(invoice.sent_via, 'manual')
+
+    def test_post_already_sent_ignored(self):
+        invoice = _make_invoice(tenant=self.tenant, number='SENT-001', status=GeneratedInvoice.Status.SENT)
+        url = f'/finances/invoices/{invoice.pk}/send/'
+        self.client.post(url, {'sent_via': 'email'})
+        invoice.refresh_from_db()
+        self.assertIsNone(invoice.sent_at)
+
+
+# ─── COLLAB-3: Finance screens smoke-test ─────────────────────────────────────
+
+from django.test import TestCase, Client, override_settings
+from django.urls import reverse
+from account.models import UserAccount
+from account.role_permissions import RoleEnums
+
+
+def _fin_user(username, role):
+    user, _ = UserAccount.objects.get_or_create(
+        username=username,
+        defaults={'role': role, 'is_superuser': True},
+    )
+    user.role = role
+    user.set_password('pass')
+    user.save()
+    return user
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'])
+class FinanceSmokeTest(TestCase):
+    """Smoke-test цепочки финансовых экранов и разграничение ролей."""
+
+    FINANCE_URLS = [
+        ('finances:reg', {}),
+        ('finances:payment_calendar', {}),
+        ('finances:invoice_list', {}),
+        ('finances:budget_list', {}),
+        ('finances:opiu', {}),
+        ('finances:cashflow', {}),
+    ]
+
+    def setUp(self):
+        self.cfo = _fin_user('collab_cfo', RoleEnums.CFO.value)
+        self.owner = _fin_user('collab_owner', RoleEnums.OWNER.value)
+        self.accountant = _fin_user('collab_ca', RoleEnums.CHIEF_ACCOUNTANT.value)
+        self.staff = _fin_user('collab_staff', RoleEnums.STAFF.value)
+
+    def _get_all(self, user, urls):
+        self.client.login(username=user.username, password='pass')
+        results = []
+        for name, kwargs in urls:
+            url = reverse(name, kwargs=kwargs)
+            r = self.client.get(url)
+            results.append((name, r.status_code))
+        self.client.logout()
+        return results
+
+    def test_cfo_sees_all_finance_screens(self):
+        for name, code in self._get_all(self.cfo, self.FINANCE_URLS):
+            with self.subTest(screen=name):
+                self.assertEqual(code, 200, f'CFO: {name} returned {code}')
+
+    def test_cfo_sees_credit_model(self):
+        self.client.login(username=self.cfo.username, password='pass')
+        r = self.client.get(reverse('finances:credit_model_list'))
+        self.assertEqual(r.status_code, 200)
+        r2 = self.client.get(reverse('finances:credit_model_create'))
+        self.assertEqual(r2.status_code, 200)
+
+    def test_owner_sees_credit_model(self):
+        self.client.login(username=self.owner.username, password='pass')
+        self.assertEqual(self.client.get(reverse('finances:credit_model_list')).status_code, 200)
+
+    def test_chief_accountant_readonly_finance_screens(self):
+        for name, code in self._get_all(self.accountant, self.FINANCE_URLS):
+            with self.subTest(screen=name):
+                self.assertEqual(code, 200)
+
+    def test_chief_accountant_denied_credit_model(self):
+        self.client.login(username=self.accountant.username, password='pass')
+        r = self.client.get(reverse('finances:credit_model_list'))
+        self.assertIn(r.status_code, (302, 403))
+
+    def test_chief_accountant_cannot_create_budget_item(self):
+        from finances.models import BudgetCategory
+        cat = BudgetCategory.objects.create(name='Smoke Cat', category_type='expense')
+        self.client.login(username=self.accountant.username, password='pass')
+        r = self.client.get(reverse('finances:budget_item_create', kwargs={'category_pk': cat.pk}))
+        self.assertEqual(r.status_code, 403)
+
+    def test_staff_denied_finance_screens(self):
+        for name, code in self._get_all(self.staff, self.FINANCE_URLS[:2]):
+            with self.subTest(screen=name):
+                self.assertIn(code, (302, 403))
+
+    def test_finance_chain_urls_resolve(self):
+        names = [
+            'finances:reg', 'finances:payment_calendar', 'finances:invoice_list',
+            'finances:budget_list', 'finances:opiu', 'finances:cashflow',
+            'finances:credit_model_list',
+        ]
+        for name in names:
+            with self.subTest(url=name):
+                self.assertTrue(reverse(name))
