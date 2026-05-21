@@ -733,3 +733,236 @@ $fin-border: #eceaf3;
     height: 32px !important;
     font-size: 13px !important;
   }
+
+  /* Payment calendar */
+
+.fin-calendar-page {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  
+  .fin-calendar-header {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 22px;
+    min-height: 82px;
+  
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+  }
+  
+  .fin-calendar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .fin-calendar-nav {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: #f5f3fa;
+    color: #25233f;
+  
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  
+    text-decoration: none;
+  
+    &:hover {
+      background: #ece9f4;
+      color: #2f6bed;
+    }
+  }
+  
+  .fin-calendar-month {
+    min-width: 190px;
+    height: 34px;
+    padding: 0 16px;
+    border-radius: 999px;
+    background: #f5f3fa;
+    color: #25233f;
+  
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  
+    font-size: 13px;
+    font-weight: 700;
+  }
+  
+  .fin-calendar-filter-card {
+    justify-content: flex-end;
+  }
+  
+  .fin-calendar-filter-card .fin-filter-form {
+    justify-content: flex-end;
+  }
+  
+  .fin-calendar-filter-card .fin-field {
+    width: 155px !important;
+    flex: 0 0 155px !important;
+  }
+  
+  .fin-calendar-filter-card .fin-btn,
+  .fin-calendar-filter-card .fin-custom-select__button {
+    height: 34px !important;
+  }
+  
+  .fin-calendar-card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px;
+  }
+  
+  .fin-calendar-legend {
+    margin-bottom: 16px;
+  
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+  
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #74728a;
+      font-size: 12px;
+    }
+  
+    i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+  }
+  
+  .fin-calendar-legend .is-plan {
+    background: #2f6bed;
+  }
+  
+  .fin-calendar-legend .is-fact {
+    background: #22a85a;
+  }
+  
+  .fin-calendar-legend .is-danger {
+    background: #ff3b30;
+  }
+  
+  .fin-calendar-weekdays,
+  .fin-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(120px, 1fr));
+    gap: 8px;
+  }
+  
+  .fin-calendar-weekdays {
+    margin-bottom: 8px;
+  
+    div {
+      height: 34px;
+      border-radius: 12px;
+      background: #fbfbfd;
+      color: #74728a;
+  
+      display: flex;
+      align-items: center;
+      justify-content: center;
+  
+      font-size: 12px;
+      font-weight: 700;
+    }
+  }
+  
+  .fin-calendar-spacer {
+    min-height: 118px;
+  }
+  
+  .fin-calendar-day {
+    min-height: 118px;
+    border: 1px solid #eceaf3;
+    border-radius: 16px;
+    background: #fff;
+    padding: 12px;
+    color: #25233f;
+  
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  
+    text-decoration: none;
+    transition: 0.18s ease;
+  
+    &:hover {
+      border-color: rgba(47, 107, 237, 0.35);
+      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+      transform: translateY(-1px);
+    }
+  
+    &.is-today {
+      border-color: rgba(47, 107, 237, 0.5);
+    }
+  
+    &.is-danger {
+      border-left: 4px solid #ff3b30;
+    }
+  }
+  
+  .fin-calendar-day__number {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    background: #f5f3fa;
+    color: #25233f;
+  
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  
+    font-size: 13px;
+    font-weight: 700;
+  }
+  
+  .fin-calendar-day.is-today .fin-calendar-day__number {
+    background: #2f6bed;
+    color: #fff;
+  }
+  
+  .fin-calendar-day__body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .fin-calendar-amount {
+    min-height: 24px;
+    padding: 0 9px;
+    border-radius: 999px;
+    width: fit-content;
+  
+    display: inline-flex;
+    align-items: center;
+  
+    font-size: 11px;
+    font-weight: 700;
+  }
+  
+  .fin-calendar-amount.is-plan {
+    background: #eef2ff;
+    color: #2f6bed;
+  }
+  
+  .fin-calendar-amount.is-fact {
+    background: #eaf8f0;
+    color: #22a85a;
+  }
+  
+  .fin-calendar-amount.is-danger {
+    background: #feecec;
+    color: #ff3b30;
+  }
