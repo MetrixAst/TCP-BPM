@@ -59,6 +59,8 @@
     </form>
   </div>
 
+  {% include 'site/components/finance_filters.html' %}
+
   <div class="fin-summary-cards">
     <div class="fin-summary-card fin-summary-card--success">
       <span class="fin-summary-card__label">Поступления</span>
@@ -144,4 +146,8 @@
   </div>
 
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/finance-filters.js' %}?v=fe65"></script>
 {% endblock %}

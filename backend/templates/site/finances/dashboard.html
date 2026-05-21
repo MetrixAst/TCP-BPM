@@ -12,6 +12,8 @@
     <span class="text-muted small">{{ today }}</span>
   </div>
 
+  {% include 'site/components/finance_filters.html' %}
+
   <div class="row g-3 mb-4">
     <div class="col-md-3">
       <div class="card shadow-sm h-100 border-start border-4 border-primary">
@@ -109,6 +111,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'site/js/apps/finance-filters.js' %}?v=fe65"></script>
 <script>
 function loadDrilldown(type) {
   const today = new Date();

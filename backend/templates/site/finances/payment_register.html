@@ -113,6 +113,8 @@
   </form>
 </section>
 
+{% include 'site/components/finance_filters.html' %}
+
 <section class="fin-table-card">
   <div class="fin-table-head">
     <div>
@@ -189,6 +191,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'site/js/apps/finance-filters.js' %}?v=fe65"></script>
 <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
 
 <script>

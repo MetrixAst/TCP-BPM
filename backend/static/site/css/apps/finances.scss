@@ -2418,3 +2418,36 @@ body.invoice-edit-body {
   .fin-summary-cards { grid-template-columns: 1fr; }
   .fin-form-grid { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   FE-6.5 — Global Finance Filters
+   ═══════════════════════════════════════════════════════════ */
+
+.fin-global-filter {
+  position: relative;
+}
+
+.fin-global-filter__hint {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: $fin-primary;
+  white-space: nowrap;
+
+  i { font-size: 13px; }
+}
+
+/* Dropdown open state for custom select in filter */
+.fin-custom-select__dropdown {
+  &.is-open { display: block; }
+}
+
+.fin-custom-select__option {
+  &.is-selected {
+    background: $fin-field-bg;
+    color: $fin-primary;
+    font-weight: 500;
+  }
+}
