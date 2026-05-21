@@ -423,11 +423,34 @@ def invoice_send(request, pk):
     invoice = get_object_or_404(GeneratedInvoice, pk=pk)
     if request.method == 'POST' and invoice.status == GeneratedInvoice.Status.CREATED:
         sent_via = request.POST.get('sent_via', GeneratedInvoice.SentVia.EMAIL)
-        invoice.status   = GeneratedInvoice.Status.SENT
-        invoice.sent_via = sent_via
-        invoice.sent_at  = timezone.now()
-        invoice.save()
-        messages.success(request, f'Счёт №{invoice.number} отправлен.')
+
+        from finances.services.notifications import (
+            send_invoice_via_email,
+            send_invoice_via_messenger,
+        )
+
+        if sent_via == GeneratedInvoice.SentVia.EMAIL:
+            ok = send_invoice_via_email(invoice)
+            if ok:
+                messages.success(request, f'Счёт №{invoice.number} отправлен по email.')
+            else:
+                # email не ушёл (нет получателя / ошибка), но статус всё равно обновляем вручную
+                invoice.status   = GeneratedInvoice.Status.SENT
+                invoice.sent_via = sent_via
+                invoice.sent_at  = timezone.now()
+                invoice.save()
+                messages.warning(request, f'Счёт №{invoice.number} отмечен как отправленный, но письмо не доставлено.')
+        elif sent_via in (GeneratedInvoice.SentVia.WHATSAPP, GeneratedInvoice.SentVia.TELEGRAM):
+            send_invoice_via_messenger(invoice, sent_via)
+            messages.success(request, f'Счёт №{invoice.number} отправлен через {invoice.get_sent_via_display()}.')
+        else:
+            # manual
+            invoice.status   = GeneratedInvoice.Status.SENT
+            invoice.sent_via = sent_via
+            invoice.sent_at  = timezone.now()
+            invoice.save()
+            messages.success(request, f'Счёт №{invoice.number} отмечен как отправленный вручную.')
+
     return redirect('finances:invoice_detail', pk=pk)
 
 
