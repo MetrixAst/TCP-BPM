@@ -50,4 +50,7 @@ urlpatterns = [
 
     path('scenarios/', views.scenarios_list, name='scenarios_list'),
     path('scenarios/<int:pk>/json/', views.scenario_detail_json, name='scenario_detail_json'),
+
+    path('filters/save/', views.save_finance_filters, name='save_finance_filters'),
+    path('filters/', views.get_finance_filters, name='get_finance_filters'),
 ]

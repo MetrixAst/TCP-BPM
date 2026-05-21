@@ -1,8 +1,9 @@
 from django.test import TestCase, Client
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
+import json
 
 from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel
 from tenants.models import Tenant, TenantCategory, Room
@@ -3235,3 +3236,99 @@ class ExcelServiceDirectTest(TestCase):
         response = export_financial_statement(qs)
         self.assertEqual(response['Content-Type'], XLSX_CONTENT_TYPE)
         self.assertIn('financial_statement.xlsx', response['Content-Disposition'])
+
+
+# ── BE-6.8: Global finance filters ────────────────────────────────────────────
+
+def make_user_be68(role, username):
+    return User.objects.create_user(username=username, password='pass', role=role)
+
+
+class SaveFinanceFiltersTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo = make_user_be68(RoleEnums.CFO.value, 'cfo_filters')
+
+    def _login(self):
+        self.client.force_login(self.cfo)
+
+    def _post(self, payload):
+        return self.client.post(
+            '/finances/filters/save/',
+            data=json.dumps(payload),
+            content_type='application/json',
+        )
+
+    def test_save_returns_ok(self):
+        self._login()
+        response = self._post({'company': 'Компания1', 'tenant': '5'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'status': 'ok'})
+
+    def test_save_stores_in_session(self):
+        self._login()
+        payload = {
+            'company': 'МегаКорп',
+            'tenant': '42',
+            'category': 'income',
+            'period_from': '2026-01-01',
+            'period_to': '2026-12-31',
+        }
+        self._post(payload)
+        session = self.client.session
+        stored = session.get('finance_filters', {})
+        self.assertEqual(stored['company'], 'МегаКорп')
+        self.assertEqual(stored['tenant'], '42')
+        self.assertEqual(stored['period_from'], '2026-01-01')
+
+    def test_save_missing_keys_default_empty_string(self):
+        self._login()
+        self._post({'company': 'Тест'})
+        session = self.client.session
+        stored = session.get('finance_filters', {})
+        self.assertEqual(stored['tenant'], '')
+        self.assertEqual(stored['category'], '')
+
+    def test_get_not_allowed(self):
+        self._login()
+        response = self.client.get('/finances/filters/save/')
+        self.assertEqual(response.status_code, 405)
+
+    def test_403_unauthenticated(self):
+        response = self._post({'company': 'X'})
+        self.assertIn(response.status_code, (302, 403))
+
+
+class GetFinanceFiltersTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo = make_user_be68(RoleEnums.CFO.value, 'cfo_getfilt')
+
+    def _login(self):
+        self.client.force_login(self.cfo)
+
+    def test_get_empty_by_default(self):
+        self._login()
+        response = self.client.get('/finances/filters/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIsInstance(data, dict)
+
+    def test_get_returns_saved_filters(self):
+        self._login()
+        payload = {'company': 'Тест', 'tenant': '7', 'category': '', 'period_from': '', 'period_to': ''}
+        self.client.post(
+            '/finances/filters/save/',
+            data=json.dumps(payload),
+            content_type='application/json',
+        )
+        response = self.client.get('/finances/filters/')
+        data = response.json()
+        self.assertEqual(data.get('company'), 'Тест')
+        self.assertEqual(data.get('tenant'), '7')
+
+    def test_403_unauthenticated(self):
+        response = self.client.get('/finances/filters/')
+        self.assertIn(response.status_code, (302, 403))

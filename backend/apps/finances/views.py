@@ -1,5 +1,5 @@
 from django.shortcuts import redirect, render, get_object_or_404
-from account.role_permissions import need_permission, PermissionEnums
+from account.role_permissions import need_permission, PermissionEnums, login_required as _login_required
 from django.http import JsonResponse, HttpResponseForbidden
 from django.contrib import messages
 from decimal import Decimal
@@ -1257,6 +1257,34 @@ def rent_analytics(request):
         'today': today,
     }
     return render(request, 'site/finances/rent_analytics.html', context)
+
+
+# ── BE-6.8: Global finance filters ────────────────────────────────────────────
+
+@_login_required
+def save_finance_filters(request):
+    if request.method == 'POST':
+        import json
+        try:
+            filters = json.loads(request.body)
+        except (json.JSONDecodeError, ValueError):
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        request.session['finance_filters'] = {
+            'company':     filters.get('company', ''),
+            'tenant':      filters.get('tenant', ''),
+            'category':    filters.get('category', ''),
+            'period_from': filters.get('period_from', ''),
+            'period_to':   filters.get('period_to', ''),
+        }
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'error': 'POST only'}, status=405)
+
+
+@_login_required
+def get_finance_filters(request):
+    filters = request.session.get('finance_filters', {})
+    return JsonResponse(filters)
 
 
 # ── BE-6.2: CF chart endpoints ────────────────────────────────────────────────
