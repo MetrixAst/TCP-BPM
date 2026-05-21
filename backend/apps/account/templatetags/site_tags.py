@@ -1,7 +1,18 @@
 from django import template
 from addits.models import Comment
+from account.role_permissions import RolePermissions
 
 register = template.Library()
+
+
+@register.filter(name='has_permission')
+def has_permission(user, permission):
+    if not user or not getattr(user, 'is_authenticated', False):
+        return False
+    role = user.role
+    if hasattr(role, 'value'):
+        role = role.value
+    return RolePermissions.checkPermission(role, permission)
 
 
 @register.inclusion_tag('site/layouts/form.html')
