@@ -1,4 +1,7 @@
-from django.test import TestCase, Client
+import copy
+
+from django.conf import settings as django_settings
+from django.test import TestCase, Client, override_settings
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from datetime import date, timedelta
@@ -11,6 +14,13 @@ from tenants.models import Tenant, TenantCategory, Room
 from django.urls import reverse
 from account.role_permissions import RoleEnums
 from account.models import UserAccount as User
+
+_VIEW_TEMPLATES = copy.deepcopy(django_settings.TEMPLATES)
+_VIEW_TEMPLATES[0]['OPTIONS']['context_processors'] = [
+    'django.template.context_processors.request',
+    'django.contrib.auth.context_processors.auth',
+    'django.contrib.messages.context_processors.messages',
+]
 
 
 def make_tenant(name='ТестАрендатор'):
@@ -630,6 +640,7 @@ class GeneratedInvoiceItemTest(TestCase):
         self.assertIn('Охрана', str(item))
 
 
+@override_settings(TEMPLATES=_VIEW_TEMPLATES)
 class PaymentRegViewTest(TestCase):
 
     def setUp(self):
@@ -2145,7 +2156,7 @@ def _fin_user(username, role):
     return user
 
 
-@override_settings(ALLOWED_HOSTS=['testserver'])
+@override_settings(ALLOWED_HOSTS=['testserver'], TEMPLATES=_VIEW_TEMPLATES)
 class FinanceSmokeTest(TestCase):
     """Smoke-test цепочки финансовых экранов и разграничение ролей."""
 
@@ -2406,6 +2417,7 @@ def make_user(role, username=None):
     )
 
 
+@override_settings(TEMPLATES=_VIEW_TEMPLATES)
 class DashboardViewTest(TestCase):
 
     def setUp(self):

@@ -7,6 +7,7 @@ from enbek import views
 class EnbekApiTestCase(TestCase):
     def setUp(self):
         self.client = Client()
+        self.auth_headers = {'HTTP_AUTHORIZATION': 'Bearer mock_token_123'}
 
     def test_login_url_resolves_correctly(self):
         resolver = resolve('/api/enbek/auth/login/')
@@ -27,7 +28,7 @@ class EnbekApiTestCase(TestCase):
     def test_login_returns_access_token(self):
         response = self.client.post(
             '/api/enbek/auth/login/',
-            data={},
+            data={'username': 'test', 'password': 'test'},
             content_type='application/json'
         )
 
@@ -47,7 +48,7 @@ class EnbekApiTestCase(TestCase):
         self.assertNotEqual(response.status_code, 200)
 
     def test_contracts_returns_json_list(self):
-        response = self.client.get('/api/enbek/contracts/')
+        response = self.client.get('/api/enbek/contracts/', **self.auth_headers)
 
         self.assertEqual(response.status_code, 200)
 
@@ -68,7 +69,7 @@ class EnbekApiTestCase(TestCase):
         self.assertEqual(contract['status'], 'active')
 
     def test_leaves_returns_json_list(self):
-        response = self.client.get('/api/enbek/leaves/')
+        response = self.client.get('/api/enbek/leaves/', **self.auth_headers)
 
         self.assertEqual(response.status_code, 200)
 
@@ -91,7 +92,7 @@ class EnbekApiTestCase(TestCase):
         self.assertEqual(leave['status'], 'approved')
 
     def test_sick_leaves_returns_json_list(self):
-        response = self.client.get('/api/enbek/sick-leaves/')
+        response = self.client.get('/api/enbek/sick-leaves/', **self.auth_headers)
 
         self.assertEqual(response.status_code, 200)
 

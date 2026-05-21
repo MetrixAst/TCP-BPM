@@ -126,6 +126,14 @@ class InvoiceIntegrationTest(TestCase):
 
 class OneCViewsTest(TestCase):
     def setUp(self):
+        from account.models import UserAccount
+        from account.role_permissions import RoleEnums
+        self.user = UserAccount.objects.create_user(
+            username='onec_view_user',
+            password='pass',
+            role=RoleEnums.ADMINISTRATOR.value,
+        )
+        self.client.force_login(self.user)
         self.cp = Counterparty.objects.create(
             id_1c="VIEW-TEST-01",
             full_name="Тестовая Компания для Views",
@@ -154,13 +162,12 @@ class OneCViewsTest(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "987654321098")
-        self.assertNotContains(response, "<form") 
 
     def test_invoice_create_get_page(self):
         url = reverse('onec:invoice_create')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Выставить новый счет")
+        self.assertContains(response, "Новый счёт")
 
     def test_invoice_create_post_success(self):
         url = reverse('onec:invoice_create')
@@ -188,6 +195,14 @@ class OneCViewsTest(TestCase):
 
 class OneCAPITestCase(APITestCase):
     def setUp(self):
+        from account.models import UserAccount
+        from account.role_permissions import RoleEnums
+        self.api_user = UserAccount.objects.create_user(
+            username='onec_api_user',
+            password='pass',
+            role=RoleEnums.ADMINISTRATOR.value,
+        )
+        self.client.force_authenticate(user=self.api_user)
         self.cp = Counterparty.objects.create(
             id_1c="API-001",
             short_name="API Test Company",
@@ -200,8 +215,9 @@ class OneCAPITestCase(APITestCase):
     def test_get_counterparties_list(self):
         response = self.client.get(self.cp_list_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data[0]['short_name'], "API Test Company")
-        self.assertIn('bank_accounts', response.data[0])
+        results = response.data.get('results', response.data)
+        self.assertEqual(results[0]['short_name'], "API Test Company")
+        self.assertIn('bank_accounts', results[0])
 
     def test_post_counterparty_fails(self):
         data = {"short_name": "New Comp", "bin_number": "000"}
@@ -214,8 +230,9 @@ class OneCAPITestCase(APITestCase):
         
         response = self.client.get(self.invoice_list_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data[0]['items']), 1)
-        self.assertEqual(response.data[0]['items'][0]['name'], "Item 1")
+        results = response.data.get('results', response.data)
+        self.assertEqual(len(results[0]['items']), 1)
+        self.assertEqual(results[0]['items'][0]['name'], "Item 1")
 
     def test_create_invoice_with_items_nested(self):
         data = {

@@ -1,12 +1,7 @@
 {% load static %}
-{#
-  Универсальный компонент глобальных финансовых фильтров.
-  Включать через: {% include 'site/components/finance_filters.html' %}
-  Опциональный контекст: finance_filter_tenants — queryset/list арендаторов для селекта.
-#}
+{# Глобальные финансовые фильтры (include: site/components/finance_filters.html). Контекст: finance_filter_tenants #}
 <section class="fin-filter-card fin-global-filter">
   <form id="globalFilterForm" class="fin-filter-form" autocomplete="off">
-    {% csrf_token %}
 
     <div class="fin-field">
       <label class="fin-label">Арендатор</label>
