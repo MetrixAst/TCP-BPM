@@ -441,3 +441,85 @@ class SyncCounterpartiesTaskTest(TestCase):
         self.assertTrue(
             any("не получены" in msg for msg in log_ctx.output)
         )
+
+
+# ─── COLLAB-2: 1С integration smoke-test ──────────────────────────────────────
+
+import copy
+from django.conf import settings as django_settings
+from django.test import Client, override_settings
+from account.models import UserAccount
+from account.role_permissions import RoleEnums
+
+_COLLAB_ONEC_TEMPLATES = copy.deepcopy(django_settings.TEMPLATES)
+_COLLAB_ONEC_TEMPLATES[0]['OPTIONS']['context_processors'] = [
+    'django.template.context_processors.request',
+    'django.contrib.auth.context_processors.auth',
+    'django.contrib.messages.context_processors.messages',
+]
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'], TEMPLATES=_COLLAB_ONEC_TEMPLATES)
+class OneCCollabSmokeTest(TestCase):
+    """Smoke-test 1С UI, Select2 API и устойчивость sync (COLLAB-2)."""
+
+    def setUp(self):
+        self.user = UserAccount.objects.create_user(
+            username='collab_onec',
+            password='pass',
+            role=RoleEnums.ADMINISTRATOR.value,
+        )
+        self.client = Client()
+        self.client.force_login(self.user)
+        self.cp = Counterparty.objects.create(
+            id_1c='COLLAB-CP-01',
+            full_name='Collab Counterparty LLP',
+            short_name='Collab CP',
+            bin_number='111122223333',
+        )
+
+    def test_counterparty_list_and_detail_screens(self):
+        for name, kwargs in (
+            ('onec:counterparty_list', {}),
+            ('onec:counterparty_detail', {'pk': self.cp.pk}),
+        ):
+            with self.subTest(screen=name):
+                response = self.client.get(reverse(name, kwargs=kwargs))
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, 'Collab CP')
+
+    def test_counterparty_search_api_select2_format(self):
+        response = self.client.get(reverse('onec:counterparty_search_api'), {'q': 'Collab'})
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn('results', payload)
+        self.assertTrue(payload['results'])
+        self.assertIn('id', payload['results'][0])
+        self.assertIn('text', payload['results'][0])
+
+    def test_invoice_create_form_has_counterparty_select(self):
+        response = self.client.get(reverse('onec:invoice_create'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'cp_select')
+        self.assertContains(response, 'item_name[]')
+
+    def test_invoice_create_dynamic_line_items_post(self):
+        post_data = {
+            'counterparty': self.cp.id,
+            'comment': 'COLLAB invoice',
+            'item_name[]': ['Услуга A', 'Услуга B'],
+            'item_qty[]': ['2', '1'],
+            'item_price[]': ['1500', '3000'],
+        }
+        response = self.client.post(reverse('onec:invoice_create'), post_data)
+        self.assertEqual(response.status_code, 302)
+        invoice = Invoice.objects.filter(comment='COLLAB invoice').first()
+        self.assertIsNotNone(invoice)
+        self.assertEqual(invoice.items.count(), 2)
+
+    def test_sync_survives_onec_unavailable(self):
+        with patch('onec.client_1c.client.Client1C') as mock_cls:
+            mock_cls.return_value.get_counterparties.side_effect = ConnectionError('1С недоступна')
+            result = sync_counterparties()
+        self.assertIn('Сбой синхронизации', result)
+        self.assertEqual(Counterparty.objects.filter(id_1c='COLLAB-CP-01').count(), 1)
