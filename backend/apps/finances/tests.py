@@ -2392,3 +2392,227 @@ class FetchExchangeRatesTaskTest(TestCase):
         from finances.tasks import fetch_exchange_rates
         result = fetch_exchange_rates()
         self.assertIn('created', result)
+
+
+# ── BE-6.1: Executive Dashboard ───────────────────────────────────────────────
+
+def make_user(role, username=None):
+    username = username or f'user_{role}'
+    return User.objects.create_user(
+        username=username,
+        password='pass',
+        role=role,
+    )
+
+
+class DashboardViewTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo_user  = make_user(RoleEnums.CFO.value, 'cfo_dash')
+        self.owner     = make_user(RoleEnums.OWNER.value, 'owner_dash')
+        self.accountant = make_user(RoleEnums.CHIEF_ACCOUNTANT.value, 'ca_dash')
+        self.tenant = make_tenant('ДашТенант')
+        self.today = date.today()
+
+        TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-D-001',
+            period=date(self.today.year, self.today.month, 1),
+            charged=Decimal('300000.00'),
+            paid=Decimal('300000.00'),
+            status=TenantPaymentRegistry.Status.PAID,
+        )
+        TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-D-002',
+            period=date(self.today.year, self.today.month, 1),
+            charged=Decimal('100000.00'),
+            paid=Decimal('0.00'),
+            balance=Decimal('100000.00'),
+            onec_id='ONEC-D-002',
+            status=TenantPaymentRegistry.Status.OVERDUE,
+        )
+
+    def _login(self, user):
+        self.client.force_login(user)
+
+    def test_dashboard_returns_200_cfo(self):
+        self._login(self.cfo_user)
+        response = self.client.get('/finances/dashboard/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_dashboard_returns_200_owner(self):
+        self._login(self.owner)
+        response = self.client.get('/finances/dashboard/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_dashboard_context_keys(self):
+        self._login(self.cfo_user)
+        response = self.client.get('/finances/dashboard/')
+        for key in ('cash_balance', 'revenue_mtd', 'revenue_ytd', 'revenue_mtd_change',
+                    'expenses_mtd', 'net_cf', 'budget_deviation_pct',
+                    'overdue_count', 'overdue_amount', 'today'):
+            self.assertIn(key, response.context, f'Missing context key: {key}')
+
+    def test_dashboard_overdue_values(self):
+        self._login(self.cfo_user)
+        response = self.client.get('/finances/dashboard/')
+        self.assertEqual(response.context['overdue_count'], 1)
+        self.assertEqual(response.context['overdue_amount'], Decimal('100000.00'))
+
+    def test_dashboard_revenue_mtd(self):
+        self._login(self.cfo_user)
+        response = self.client.get('/finances/dashboard/')
+        self.assertEqual(response.context['revenue_mtd'], Decimal('300000.00'))
+
+    def test_dashboard_403_unauthenticated(self):
+        response = self.client.get('/finances/dashboard/')
+        self.assertIn(response.status_code, (302, 403))
+
+    def test_dashboard_chief_accountant_200(self):
+        self._login(self.accountant)
+        response = self.client.get('/finances/dashboard/')
+        self.assertEqual(response.status_code, 200)
+
+
+class DashboardKpiTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo_user = make_user(RoleEnums.CFO.value, 'cfo_kpi')
+        self.tenant = make_tenant('КПИТенант')
+        self.today = date.today()
+
+        TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-K-001',
+            period=date(self.today.year, self.today.month, 1),
+            charged=Decimal('500000.00'),
+            paid=Decimal('500000.00'),
+            status=TenantPaymentRegistry.Status.PAID,
+        )
+
+    def _login(self, user):
+        self.client.force_login(user)
+
+    def test_kpi_returns_200(self):
+        self._login(self.cfo_user)
+        response = self.client.get('/finances/dashboard/kpi/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_kpi_json_structure(self):
+        self._login(self.cfo_user)
+        response = self.client.get('/finances/dashboard/kpi/')
+        data = response.json()
+        for key in ('cash_balance', 'revenue_mtd', 'revenue_ytd', 'revenue_mtd_change',
+                    'expenses_mtd', 'net_cf', 'budget_deviation_pct',
+                    'overdue_count', 'overdue_amount'):
+            self.assertIn(key, data, f'Missing JSON key: {key}')
+
+    def test_kpi_revenue_mtd_value(self):
+        self._login(self.cfo_user)
+        response = self.client.get('/finances/dashboard/kpi/')
+        data = response.json()
+        self.assertEqual(data['revenue_mtd'], 500000.0)
+
+    def test_kpi_403_unauthenticated(self):
+        response = self.client.get('/finances/dashboard/kpi/')
+        self.assertIn(response.status_code, (302, 403))
+
+
+class DashboardDrilldownTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo_user = make_user(RoleEnums.CFO.value, 'cfo_drill')
+        self.tenant = make_tenant('ДрилДаун')
+        self.today = date.today()
+
+        TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-DR-001',
+            period=date(self.today.year, self.today.month, 1),
+            charged=Decimal('400000.00'),
+            paid=Decimal('400000.00'),
+            status=TenantPaymentRegistry.Status.PAID,
+        )
+        TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-DR-OV',
+            period=date(self.today.year, self.today.month, 1),
+            charged=Decimal('200000.00'),
+            paid=Decimal('0.00'),
+            balance=Decimal('200000.00'),
+            onec_id='ONEC-DR-OV',
+            status=TenantPaymentRegistry.Status.OVERDUE,
+        )
+        CashFlowRecord.objects.create(
+            direction=CashFlowRecord.Direction.OUTFLOW,
+            flow_type=CashFlowRecord.FlowType.OPERATING,
+            amount=Decimal('50000.00'),
+            transaction_date=date(self.today.year, self.today.month, 1),
+        )
+        cat = BudgetCategory.objects.create(name='Аренда', category_type='income', code='RENT-DR')
+        BudgetItem.objects.create(
+            category=cat,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=self.today.year,
+            month=self.today.month,
+            plan=Decimal('500000.00'),
+            fact=Decimal('400000.00'),
+        )
+
+    def _login(self, user):
+        self.client.force_login(user)
+
+    def _period(self):
+        return f'{self.today.year}-{self.today.month:02d}'
+
+    def test_drilldown_revenue(self):
+        self._login(self.cfo_user)
+        response = self.client.get(f'/finances/dashboard/drilldown/?type=revenue&period={self._period()}')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['type'], 'revenue')
+        self.assertIsInstance(data['data'], list)
+        self.assertGreaterEqual(len(data['data']), 1)
+
+    def test_drilldown_expenses(self):
+        self._login(self.cfo_user)
+        response = self.client.get(f'/finances/dashboard/drilldown/?type=expenses&period={self._period()}')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['type'], 'expenses')
+        self.assertGreaterEqual(len(data['data']), 1)
+
+    def test_drilldown_overdue(self):
+        self._login(self.cfo_user)
+        response = self.client.get(f'/finances/dashboard/drilldown/?type=overdue&period={self._period()}')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['type'], 'overdue')
+        self.assertGreaterEqual(len(data['data']), 1)
+
+    def test_drilldown_budget(self):
+        self._login(self.cfo_user)
+        response = self.client.get(f'/finances/dashboard/drilldown/?type=budget&period={self._period()}')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['type'], 'budget')
+        self.assertGreaterEqual(len(data['data']), 1)
+        row = data['data'][0]
+        self.assertIn('plan', row)
+        self.assertIn('fact', row)
+        self.assertIn('variance', row)
+
+    def test_drilldown_empty_type(self):
+        self._login(self.cfo_user)
+        response = self.client.get('/finances/dashboard/drilldown/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['data'], [])
+
+    def test_drilldown_403_unauthenticated(self):
+        response = self.client.get('/finances/dashboard/drilldown/?type=revenue')
+        self.assertIn(response.status_code, (302, 403))

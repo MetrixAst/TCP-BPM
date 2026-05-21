@@ -70,7 +70,8 @@ class RolePermissions:
             PermissionEnums.REQUISTIONS,
             PermissionEnums.REPORTS,
             PermissionEnums.COMMENT,
-            PermissionEnums.HR_JOURNAL, 
+            PermissionEnums.HR_JOURNAL,
+            PermissionEnums.FINANCE_DASHBOARD,
             PermissionEnums.FINANCE_INVOICES,
             PermissionEnums.FINANCE_REGISTERS,
             PermissionEnums.FINANCE_BUDGET,
@@ -101,10 +102,11 @@ class RolePermissions:
         RoleEnums.CHIEF_ACCOUNTANT.value: [
             PermissionEnums.PROFILE,
             PermissionEnums.DASHBOARD,
+            PermissionEnums.FINANCE_DASHBOARD,
             PermissionEnums.FINANCE_REPORTS,
             PermissionEnums.FINANCE_INVOICES,
             PermissionEnums.FINANCE_REGISTERS,
-            PermissionEnums.FINANCE_BUDGET, 
+            PermissionEnums.FINANCE_BUDGET,
         ],
         RoleEnums.STAFF.value: [
             PermissionEnums.PROFILE,
