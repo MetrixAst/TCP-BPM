@@ -106,10 +106,9 @@
       Сбросить
     </a>
 
-    <button type="button" class="fin-btn fin-btn--primary" id="exportPaymentRegister">
-      <i class="bi bi-file-earmark-excel"></i>
-      Excel
-    </button>
+    <a href="{{ request.get_full_path }}&export=xlsx" class="fin-btn fin-btn--light" style="white-space:nowrap;">
+      <i class="bi bi-download"></i> Excel
+    </a>
   </form>
 </section>
 

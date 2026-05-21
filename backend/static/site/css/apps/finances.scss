@@ -2420,7 +2420,6 @@ body.invoice-edit-body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-<<<<<<< HEAD
    FE-6.1 — Executive Dashboard & FE-6.3 — Rent Analytics
    ═══════════════════════════════════════════════════════════ */
 
@@ -2807,4 +2806,66 @@ body.invoice-edit-body {
   font-size: 13px;
   color: $fin-warning;
   font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COLLAB-4 — Mobile responsiveness (all finance screens)
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Filter bar */
+  .fin-filter-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .fin-filter-form {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .fin-field { flex: 1 1 100%; }
+  .fin-field--date { flex: 1 1 calc(50% - 4px); }
+
+  /* KPI grid */
+  .fin-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Charts: single column */
+  .fin-chart-grid,
+  .fin-chart-grid--even {
+    grid-template-columns: 1fr;
+  }
+
+  /* Drill-down panel */
+  .fin-drill-panel {
+    width: 100%;
+    right: -100%;
+  }
+
+  /* Currency toggle */
+  .fin-currency-toggle { flex-wrap: wrap; }
+
+  /* Tables: allow horizontal scroll */
+  .fin-table-wrap { overflow-x: auto; }
+
+  .fin-table th,
+  .fin-table td {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  /* Scenarios table */
+  .fin-table th:nth-child(3),
+  .fin-table td:nth-child(3) { display: none; }
+
+  /* Forecast chart height */
+  #forecastChart { height: 180px !important; }
+}
+
+@media (max-width: 480px) {
+  .fin-kpi-grid { grid-template-columns: 1fr; }
+  .fin-kpi-value { font-size: 20px; }
 }

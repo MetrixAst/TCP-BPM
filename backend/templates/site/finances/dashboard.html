@@ -31,6 +31,13 @@
     <a href="?export=xlsx" class="fin-btn fin-btn--light" style="white-space:nowrap;">
       <i class="bi bi-download"></i> Экспорт
     </a>
+
+    {# CFO/Owner: ссылки на управление #}
+    {% if can_manage %}
+    <a href="{% url 'finances:scenarios_list' %}" class="fin-btn fin-btn--light" style="white-space:nowrap;">
+      <i class="bi bi-diagram-3"></i> Сценарии
+    </a>
+    {% endif %}
   </div>
 
   {# Стейл-баннер курса (FE-6.2) — показывается при rate_is_fresh=false #}

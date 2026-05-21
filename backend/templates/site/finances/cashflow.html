@@ -56,6 +56,9 @@
       </div>
       <button type="submit" class="fin-btn fin-btn--primary">Найти</button>
       <a href="{% url 'finances:cashflow' %}" class="fin-btn fin-btn--light">Сбросить</a>
+      <a href="{{ request.get_full_path }}&export=xlsx" class="fin-btn fin-btn--light" style="white-space:nowrap;">
+        <i class="bi bi-download"></i> Excel
+      </a>
     </form>
   </div>
 
