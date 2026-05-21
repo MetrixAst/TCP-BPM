@@ -239,3 +239,316 @@ class GeneratedInvoiceItem(models.Model):
 
     def __str__(self):
         return f"{self.name} × {self.quantity} = {self.total}"
+
+class BudgetCategory(models.Model):
+
+    class Type(models.TextChoices):
+        INCOME  = 'income',  'Доход'
+        EXPENSE = 'expense', 'Расход'
+
+    name        = models.CharField('Название', max_length=200)
+    category_type = models.CharField(
+        'Тип', max_length=10, choices=Type.choices, db_index=True
+    )
+    parent      = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='children',
+        verbose_name='Родительская категория',
+    )
+    code        = models.CharField('Код', max_length=50, unique=True, null=True, blank=True)
+    order       = models.PositiveIntegerField('Порядок', default=0)
+    is_active   = models.BooleanField('Активна', default=True)
+    description = models.TextField('Описание', null=True, blank=True)
+
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name        = 'Категория бюджета'
+        verbose_name_plural = 'Категории бюджета'
+        ordering            = ['category_type', 'order', 'name']
+        indexes             = [
+            models.Index(fields=['category_type']),
+            models.Index(fields=['parent']),
+        ]
+
+    def __str__(self):
+        if self.parent:
+            return f"{self.parent} → {self.name}"
+        return self.name
+
+    @property
+    def is_root(self):
+        return self.parent is None
+
+    @property
+    def level(self):
+        lvl, current = 0, self
+        while current.parent:
+            lvl += 1
+            current = current.parent
+        return lvl
+
+
+class BudgetItem(models.Model):
+
+    class Period(models.TextChoices):
+        MONTHLY   = 'monthly',   'Месяц'
+        QUARTERLY = 'quarterly', 'Квартал'
+        YEARLY    = 'yearly',    'Год'
+
+    category    = models.ForeignKey(
+        BudgetCategory,
+        on_delete=models.PROTECT,
+        related_name='items',
+        verbose_name='Категория',
+    )
+    period_type = models.CharField(
+        'Тип периода', max_length=10,
+        choices=Period.choices,
+        default=Period.MONTHLY,
+    )
+    year        = models.PositiveIntegerField('Год')
+    month       = models.PositiveSmallIntegerField('Месяц (1-12)', null=True, blank=True)
+    quarter     = models.PositiveSmallIntegerField('Квартал (1-4)', null=True, blank=True)
+
+    plan        = models.DecimalField('План',     max_digits=16, decimal_places=2, default=0)
+    fact        = models.DecimalField('Факт',     max_digits=16, decimal_places=2, default=0)
+    forecast    = models.DecimalField('Прогноз',  max_digits=16, decimal_places=2, default=0)
+
+    note        = models.TextField('Примечание', null=True, blank=True)
+
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name        = 'Строка бюджета'
+        verbose_name_plural = 'Строки бюджета'
+        ordering            = ['year', 'month', 'quarter', 'category']
+        unique_together     = [('category', 'period_type', 'year', 'month', 'quarter')]
+        indexes             = [
+            models.Index(fields=['year', 'month']),
+            models.Index(fields=['year', 'quarter']),
+            models.Index(fields=['category', 'year']),
+        ]
+
+    def __str__(self):
+        period = self.get_period_label()
+        return f"{self.category} | {period} | план={self.plan}"
+
+    def get_period_label(self):
+        if self.period_type == self.Period.MONTHLY and self.month:
+            return f"{self.month:02d}.{self.year}"
+        if self.period_type == self.Period.QUARTERLY and self.quarter:
+            return f"Q{self.quarter} {self.year}"
+        return str(self.year)
+
+    @property
+    def variance(self):
+        return self.fact - self.plan
+
+    @property
+    def variance_pct(self):
+        if self.plan == 0:
+            return None
+        return round((self.fact - self.plan) / self.plan * 100, 2)
+
+    @property
+    def execution_pct(self):
+        if self.plan == 0:
+            return None
+        return round(self.fact / self.plan * 100, 2)
+
+class FinancialStatement(models.Model):
+
+    class Period(models.TextChoices):
+        MONTHLY   = 'monthly',   'Месяц'
+        QUARTERLY = 'quarterly', 'Квартал'
+        YEARLY    = 'yearly',    'Год'
+
+    period_type = models.CharField('Тип периода', max_length=10, choices=Period.choices, default=Period.MONTHLY, db_index=True)
+    year    = models.PositiveIntegerField('Год', db_index=True)
+    month   = models.PositiveSmallIntegerField('Месяц (1-12)', null=True, blank=True)
+    quarter = models.PositiveSmallIntegerField('Квартал (1-4)', null=True, blank=True)
+
+    revenue_plan     = models.DecimalField('Выручка план', max_digits=16, decimal_places=2, default=0)
+    revenue_fact     = models.DecimalField('Выручка факт', max_digits=16, decimal_places=2, default=0)
+    revenue_forecast = models.DecimalField('Выручка прогноз', max_digits=16, decimal_places=2, default=0)
+
+    ebitda_plan     = models.DecimalField('EBITDA план', max_digits=16, decimal_places=2, default=0)
+    ebitda_fact     = models.DecimalField('EBITDA факт', max_digits=16, decimal_places=2, default=0)
+    ebitda_forecast = models.DecimalField('EBITDA прогноз', max_digits=16, decimal_places=2, default=0)
+
+    operating_profit_plan = models.DecimalField('Операционная прибыль план', max_digits=16, decimal_places=2, default=0)
+    operating_profit_fact = models.DecimalField('Операционная прибыль факт', max_digits=16, decimal_places=2, default=0)
+
+    net_profit_plan     = models.DecimalField('Чистая прибыль план', max_digits=16, decimal_places=2, default=0)
+    net_profit_fact     = models.DecimalField('Чистая прибыль факт', max_digits=16, decimal_places=2, default=0)
+    net_profit_forecast = models.DecimalField('Чистая прибыль прогноз', max_digits=16, decimal_places=2, default=0)
+
+    revenue_categories = models.ManyToManyField(
+        BudgetCategory, blank=True,
+        related_name='revenue_statements',
+        verbose_name='Категории выручки',
+        limit_choices_to={'category_type': 'income'},
+    )
+    expense_categories = models.ManyToManyField(
+        BudgetCategory, blank=True,
+        related_name='expense_statements',
+        verbose_name='Категории расходов',
+        limit_choices_to={'category_type': 'expense'},
+    )
+
+    note       = models.TextField('Примечание', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def validate_unique(self, exclude=None):
+        super().validate_unique(exclude=exclude)
+        from django.core.exceptions import ValidationError
+        qs = FinancialStatement.objects.filter(
+            period_type=self.period_type,
+            year=self.year,
+            month=self.month,
+            quarter=self.quarter,
+        )
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        if qs.exists():
+            raise ValidationError(
+            f'Отчёт ОПиУ за этот период уже существует.'
+        )
+
+
+    class Meta:
+        verbose_name        = 'Отчёт ОПиУ'
+        verbose_name_plural = 'Отчёты ОПиУ'
+        ordering            = ['-year', '-month', '-quarter']
+        unique_together     = [('period_type', 'year', 'month', 'quarter')]
+        indexes             = [
+            models.Index(fields=['year', 'month']),
+            models.Index(fields=['period_type', 'year']),
+        ]
+
+    def __str__(self):
+        return f"ОПиУ | {self.get_period_label()}"
+
+    def get_period_label(self):
+        if self.period_type == self.Period.MONTHLY and self.month:
+            return f"{self.month:02d}.{self.year}"
+        if self.period_type == self.Period.QUARTERLY and self.quarter:
+            return f"Q{self.quarter} {self.year}"
+        return str(self.year)
+
+    @property
+    def ebitda_margin_fact(self):
+        if not self.revenue_fact:
+            return None
+        return round(self.ebitda_fact / self.revenue_fact * 100, 2)
+
+    @property
+    def net_margin_fact(self):
+        if not self.revenue_fact:
+            return None
+        return round(self.net_profit_fact / self.revenue_fact * 100, 2)
+
+    @property
+    def operating_margin_fact(self):
+        if not self.revenue_fact:
+            return None
+        return round(self.operating_profit_fact / self.revenue_fact * 100, 2)
+
+    @property
+    def revenue_variance(self):
+        return self.revenue_fact - self.revenue_plan
+
+    @property
+    def net_profit_variance(self):
+        return self.net_profit_fact - self.net_profit_plan
+
+    @property
+    def ebitda_variance(self):
+        return self.ebitda_fact - self.ebitda_plan
+
+class CashFlowRecord(models.Model):
+    class Direction(models.TextChoices):
+        INFLOW  = 'inflow',  'Поступление'
+        OUTFLOW = 'outflow', 'Списание'
+
+    class FlowType(models.TextChoices):
+        OPERATING  = 'operating',  'Операционная деятельность'
+        INVESTING  = 'investing',  'Инвестиционная деятельность'
+        FINANCING  = 'financing',  'Финансовая деятельность'
+
+    direction    = models.CharField(
+        'Направление', max_length=10,
+        choices=Direction.choices,
+        db_index=True,
+    )
+    flow_type    = models.CharField(
+        'Тип деятельности', max_length=15,
+        choices=FlowType.choices,
+        default=FlowType.OPERATING,
+        db_index=True,
+    )
+    amount       = models.DecimalField('Сумма', max_digits=16, decimal_places=2)
+    currency     = models.CharField('Валюта', max_length=3, default='KZT')
+    transaction_date = models.DateField('Дата операции', db_index=True)
+    value_date   = models.DateField('Дата валютирования', null=True, blank=True)
+
+    description  = models.TextField('Назначение платежа', null=True, blank=True)
+    document_number = models.CharField('Номер документа', max_length=100, null=True, blank=True)
+
+    bank_account = models.CharField('Банковский счёт', max_length=100, null=True, blank=True)
+
+    counterparty = models.ForeignKey(
+        'onec.Counterparty',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='cash_flow_records',
+        verbose_name='Контрагент',
+    )
+    budget_category = models.ForeignKey(
+        BudgetCategory,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='cash_flow_records',
+        verbose_name='Статья бюджета',
+    )
+
+    onec_id   = models.CharField('ID в 1С', max_length=100, unique=True, null=True, blank=True)
+    onec_document_type = models.CharField('Тип документа 1С', max_length=100, null=True, blank=True)
+    synced_at = models.DateTimeField('Дата синхронизации', null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name        = 'Запись ДДС'
+        verbose_name_plural = 'Реестр ДДС'
+        ordering            = ['-transaction_date', '-created_at']
+        indexes             = [
+            models.Index(fields=['transaction_date']),
+            models.Index(fields=['direction']),
+            models.Index(fields=['flow_type']),
+            models.Index(fields=['counterparty']),
+            models.Index(fields=['budget_category']),
+            models.Index(fields=['transaction_date', 'direction']),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.get_direction_display()} | "
+            f"{self.transaction_date.strftime('%d.%m.%Y')} | "
+            f"{self.amount} {self.currency}"
+        )
+
+    @property
+    def is_inflow(self):
+        return self.direction == self.Direction.INFLOW
+
+    @property
+    def is_outflow(self):
+        return self.direction == self.Direction.OUTFLOW

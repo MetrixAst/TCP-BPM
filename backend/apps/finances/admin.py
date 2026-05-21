@@ -1,7 +1,6 @@
 from django.contrib import admin
 
-from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry
-
+from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord
 
 @admin.register(TenantPaymentRegistry)
 class TenantPaymentRegistryAdmin(admin.ModelAdmin):
@@ -123,3 +122,138 @@ class GeneratedInvoiceAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
+
+
+@admin.register(BudgetCategory)
+class BudgetCategoryAdmin(admin.ModelAdmin):
+    list_display  = ('name', 'category_type', 'parent', 'code', 'order', 'is_active')
+    list_filter   = ('category_type', 'is_active', 'parent')
+    search_fields = ('name', 'code')
+    ordering      = ('category_type', 'order', 'name')
+    fieldsets = (
+        ('Основное', {
+            'fields': ('name', 'category_type', 'parent', 'code', 'order', 'is_active'),
+        }),
+        ('Дополнительно', {
+            'fields': ('description',),
+            'classes': ('collapse',),
+        }),
+    )
+
+
+@admin.register(BudgetItem)
+class BudgetItemAdmin(admin.ModelAdmin):
+    list_display  = (
+        'category', 'period_type', 'year', 'month', 'quarter',
+        'plan', 'fact', 'forecast', 'variance', 'execution_pct',
+    )
+    list_filter   = ('period_type', 'year', 'category__category_type')
+    search_fields = ('category__name', 'note')
+    ordering      = ('year', 'month', 'quarter', 'category')
+    readonly_fields = ('variance', 'variance_pct', 'execution_pct', 'created_at', 'updated_at')
+    fieldsets = (
+        ('Категория и период', {
+            'fields': ('category', 'period_type', 'year', 'month', 'quarter'),
+        }),
+        ('Суммы', {
+            'fields': ('plan', 'fact', 'forecast'),
+        }),
+        ('Аналитика', {
+            'fields': ('variance', 'variance_pct', 'execution_pct'),
+        }),
+        ('Прочее', {
+            'fields': ('note', 'created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+@admin.register(FinancialStatement)
+class FinancialStatementAdmin(admin.ModelAdmin):
+    list_display = (
+        '__str__', 'period_type', 'year', 'month', 'quarter',
+        'revenue_fact', 'ebitda_fact', 'net_profit_fact',
+        'ebitda_margin_fact', 'net_margin_fact',
+    )
+    list_filter   = ('period_type', 'year')
+    search_fields = ('note',)
+    readonly_fields = (
+        'ebitda_margin_fact', 'net_margin_fact', 'operating_margin_fact',
+        'revenue_variance', 'net_profit_variance', 'ebitda_variance',
+        'created_at', 'updated_at',
+    )
+    filter_horizontal = ('revenue_categories', 'expense_categories')
+    fieldsets = (
+        ('Период', {
+            'fields': ('period_type', 'year', 'month', 'quarter'),
+        }),
+        ('Выручка (Revenue)', {
+            'fields': ('revenue_plan', 'revenue_fact', 'revenue_forecast', 'revenue_variance'),
+        }),
+        ('EBITDA', {
+            'fields': ('ebitda_plan', 'ebitda_fact', 'ebitda_forecast', 'ebitda_variance', 'ebitda_margin_fact'),
+        }),
+        ('Операционная прибыль', {
+            'fields': ('operating_profit_plan', 'operating_profit_fact', 'operating_margin_fact'),
+        }),
+        ('Чистая прибыль (Net profit)', {
+            'fields': ('net_profit_plan', 'net_profit_fact', 'net_profit_forecast', 'net_profit_variance', 'net_margin_fact'),
+        }),
+        ('Drill-down категории', {
+            'fields': ('revenue_categories', 'expense_categories'),
+            'classes': ('collapse',),
+        }),
+        ('Прочее', {
+            'fields': ('note', 'created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+
+@admin.register(CashFlowRecord)
+class CashFlowRecordAdmin(admin.ModelAdmin):
+    list_display = (
+        'transaction_date', 'direction', 'flow_type',
+        'amount', 'currency', 'counterparty',
+        'budget_category', 'document_number', 'onec_id',
+    )
+    list_filter  = ('direction', 'flow_type', 'currency', 'transaction_date')
+    search_fields = (
+        'description', 'document_number',
+        'counterparty__short_name', 'onec_id',
+    )
+    date_hierarchy = 'transaction_date'
+    readonly_fields = (
+        'onec_id', 'onec_document_type', 'synced_at',
+        'created_at', 'updated_at', 'is_inflow', 'is_outflow',
+    )
+    fieldsets = (
+        ('Операция', {
+            'fields': (
+                'direction', 'flow_type', 'amount', 'currency',
+                'transaction_date', 'value_date',
+            ),
+        }),
+        ('Описание', {
+            'fields': ('description', 'document_number', 'bank_account'),
+        }),
+        ('Связи', {
+            'fields': ('counterparty', 'budget_category'),
+        }),
+        ('1С', {
+            'fields': ('onec_id', 'onec_document_type', 'synced_at'),
+            'classes': ('collapse',),
+        }),
+        ('Служебные', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False  

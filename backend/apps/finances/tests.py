@@ -4,7 +4,7 @@ from django.db import IntegrityError
 from datetime import date
 from decimal import Decimal
 
-from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem
+from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord
 from tenants.models import Tenant, TenantCategory, Room
 
 from django.urls import reverse
@@ -1171,3 +1171,814 @@ class InvoiceViewsTest(TestCase):
         self.client.login(username='inv_user', password='pass')
         r = self.client.get(reverse('finances:invoice_edit', args=[self.invoice.pk]))
         self.assertRedirects(r, reverse('finances:invoice_list'))
+
+
+class BudgetCategoryModelTest(TestCase):
+
+    def test_create_root_income(self):
+        cat = BudgetCategory.objects.create(
+            name='Выручка от аренды',
+            category_type=BudgetCategory.Type.INCOME,
+        )
+        self.assertEqual(cat.category_type, 'income')
+        self.assertTrue(cat.is_root)
+        self.assertEqual(cat.level, 0)
+
+    def test_create_root_expense(self):
+        cat = BudgetCategory.objects.create(
+            name='Операционные расходы',
+            category_type=BudgetCategory.Type.EXPENSE,
+        )
+        self.assertEqual(cat.category_type, 'expense')
+
+    def test_create_child_category(self):
+        parent = BudgetCategory.objects.create(
+            name='Доходы', category_type=BudgetCategory.Type.INCOME,
+        )
+        child = BudgetCategory.objects.create(
+            name='Аренда офисов',
+            category_type=BudgetCategory.Type.INCOME,
+            parent=parent,
+        )
+        self.assertEqual(child.parent, parent)
+        self.assertFalse(child.is_root)
+        self.assertEqual(child.level, 1)
+
+    def test_grandchild_level(self):
+        root = BudgetCategory.objects.create(
+            name='Доходы', category_type=BudgetCategory.Type.INCOME,
+        )
+        child = BudgetCategory.objects.create(
+            name='Аренда', category_type=BudgetCategory.Type.INCOME, parent=root,
+        )
+        grandchild = BudgetCategory.objects.create(
+            name='Офисы', category_type=BudgetCategory.Type.INCOME, parent=child,
+        )
+        self.assertEqual(grandchild.level, 2)
+
+    def test_children_related_name(self):
+        parent = BudgetCategory.objects.create(
+            name='Расходы', category_type=BudgetCategory.Type.EXPENSE,
+        )
+        for i in range(3):
+            BudgetCategory.objects.create(
+                name=f'Подкатегория {i}',
+                category_type=BudgetCategory.Type.EXPENSE,
+                parent=parent,
+            )
+        self.assertEqual(parent.children.count(), 3)
+
+    def test_cascade_delete_children(self):
+        parent = BudgetCategory.objects.create(
+            name='Родитель', category_type=BudgetCategory.Type.INCOME,
+        )
+        child = BudgetCategory.objects.create(
+            name='Дочерняя', category_type=BudgetCategory.Type.INCOME, parent=parent,
+        )
+        child_id = child.id
+        parent.delete()
+        self.assertFalse(BudgetCategory.objects.filter(id=child_id).exists())
+
+    def test_code_unique(self):
+        BudgetCategory.objects.create(
+            name='Кат 1', category_type=BudgetCategory.Type.INCOME, code='CAT-001',
+        )
+        with self.assertRaises(IntegrityError):
+            BudgetCategory.objects.create(
+                name='Кат 2', category_type=BudgetCategory.Type.INCOME, code='CAT-001',
+            )
+
+    def test_code_nullable(self):
+        cat = BudgetCategory.objects.create(
+            name='Без кода', category_type=BudgetCategory.Type.INCOME,
+        )
+        self.assertIsNone(cat.code)
+
+    def test_is_active_default_true(self):
+        cat = BudgetCategory.objects.create(
+            name='Активная', category_type=BudgetCategory.Type.INCOME,
+        )
+        self.assertTrue(cat.is_active)
+
+    def test_str_root(self):
+        cat = BudgetCategory.objects.create(
+            name='Выручка', category_type=BudgetCategory.Type.INCOME,
+        )
+        self.assertEqual(str(cat), 'Выручка')
+
+    def test_str_child(self):
+        parent = BudgetCategory.objects.create(
+            name='Доходы', category_type=BudgetCategory.Type.INCOME,
+        )
+        child = BudgetCategory.objects.create(
+            name='Аренда', category_type=BudgetCategory.Type.INCOME, parent=parent,
+        )
+        self.assertIn('Аренда', str(child))
+        self.assertIn('Доходы', str(child))
+
+    def test_ordering(self):
+        BudgetCategory.objects.create(
+            name='Б', category_type=BudgetCategory.Type.INCOME, order=2,
+        )
+        BudgetCategory.objects.create(
+            name='А', category_type=BudgetCategory.Type.INCOME, order=1,
+        )
+        cats = list(BudgetCategory.objects.filter(category_type='income'))
+        self.assertEqual(cats[0].name, 'А')
+
+
+class BudgetItemModelTest(TestCase):
+
+    def setUp(self):
+        self.cat_income = BudgetCategory.objects.create(
+            name='Выручка', category_type=BudgetCategory.Type.INCOME,
+        )
+        self.cat_expense = BudgetCategory.objects.create(
+            name='Расходы', category_type=BudgetCategory.Type.EXPENSE,
+        )
+
+    def test_create_monthly(self):
+        item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=5,
+            plan=Decimal('500000.00'),
+            fact=Decimal('480000.00'),
+            forecast=Decimal('490000.00'),
+        )
+        self.assertEqual(item.year, 2026)
+        self.assertEqual(item.month, 5)
+        self.assertEqual(item.plan, Decimal('500000.00'))
+
+    def test_create_quarterly(self):
+        item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.QUARTERLY,
+            year=2026, quarter=2,
+            plan=Decimal('1500000.00'),
+        )
+        self.assertEqual(item.quarter, 2)
+
+    def test_create_yearly(self):
+        item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.YEARLY,
+            year=2026,
+            plan=Decimal('6000000.00'),
+        )
+        self.assertEqual(item.period_type, 'yearly')
+
+    def test_variance_positive(self):
+        item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=1,
+            plan=Decimal('100000.00'),
+            fact=Decimal('120000.00'),
+        )
+        self.assertEqual(item.variance, Decimal('20000.00'))
+
+    def test_variance_negative(self):
+        item = BudgetItem.objects.create(
+            category=self.cat_expense,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=2,
+            plan=Decimal('100000.00'),
+            fact=Decimal('80000.00'),
+        )
+        self.assertEqual(item.variance, Decimal('-20000.00'))
+
+    def test_variance_pct(self):
+        item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=3,
+            plan=Decimal('100000.00'),
+            fact=Decimal('110000.00'),
+        )
+        self.assertEqual(item.variance_pct, 10.0)
+
+    def test_variance_pct_none_when_plan_zero(self):
+        item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=4,
+            plan=Decimal('0.00'),
+            fact=Decimal('50000.00'),
+        )
+        self.assertIsNone(item.variance_pct)
+
+    def test_execution_pct(self):
+        item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=6,
+            plan=Decimal('200000.00'),
+            fact=Decimal('150000.00'),
+        )
+        self.assertEqual(item.execution_pct, 75.0)
+
+    def test_unique_together(self):
+        BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=7, quarter=None,
+            plan=Decimal('100000.00'),
+            )
+        exists = BudgetItem.objects.filter(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=7,
+            ).count()
+        self.assertEqual(exists, 1)
+
+        obj, created = BudgetItem.objects.get_or_create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=7,
+            defaults={'plan': Decimal('200000.00')},
+            )
+        self.assertFalse(created)
+        self.assertEqual(BudgetItem.objects.filter(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=7,
+            ).count(), 1)
+
+    def test_different_months_allowed(self):
+        BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=8,
+            plan=Decimal('100000.00'),
+        )
+        item2 = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=9,
+            plan=Decimal('100000.00'),
+        )
+        self.assertIsNotNone(item2.pk)
+
+    def test_protect_on_category_delete(self):
+        BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=10,
+            plan=Decimal('100000.00'),
+        )
+        from django.db.models import ProtectedError
+        with self.assertRaises(ProtectedError):
+            self.cat_income.delete()
+
+    def test_period_label_monthly(self):
+        item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=5,
+            plan=Decimal('100000.00'),
+        )
+        self.assertEqual(item.get_period_label(), '05.2026')
+
+    def test_period_label_quarterly(self):
+        item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.QUARTERLY,
+            year=2026, quarter=3,
+            plan=Decimal('100000.00'),
+        )
+        self.assertEqual(item.get_period_label(), 'Q3 2026')
+
+    def test_period_label_yearly(self):
+        item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.YEARLY,
+            year=2026,
+            plan=Decimal('100000.00'),
+        )
+        self.assertEqual(item.get_period_label(), '2026')
+
+    def test_str(self):
+        item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=11,
+            plan=Decimal('300000.00'),
+        )
+        s = str(item)
+        self.assertIn('Выручка', s)
+        self.assertIn('300000', s)
+
+    def test_defaults(self):
+        item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=12,
+        )
+        self.assertEqual(item.plan, Decimal('0'))
+        self.assertEqual(item.fact, Decimal('0'))
+        self.assertEqual(item.forecast, Decimal('0'))
+
+
+class FinancialStatementModelTest(TestCase):
+
+    def setUp(self):
+        self.cat_income = BudgetCategory.objects.create(
+            name='Выручка ОПиУ', category_type=BudgetCategory.Type.INCOME,
+        )
+        self.cat_expense = BudgetCategory.objects.create(
+            name='Расходы ОПиУ', category_type=BudgetCategory.Type.EXPENSE,
+        )
+
+    def _make_statement(self, **kwargs):
+        defaults = dict(
+            period_type=FinancialStatement.Period.MONTHLY,
+            year=2026, month=5,
+            revenue_plan=Decimal('1000000'),
+            revenue_fact=Decimal('900000'),
+            revenue_forecast=Decimal('950000'),
+            ebitda_plan=Decimal('400000'),
+            ebitda_fact=Decimal('360000'),
+            ebitda_forecast=Decimal('380000'),
+            operating_profit_plan=Decimal('300000'),
+            operating_profit_fact=Decimal('270000'),
+            net_profit_plan=Decimal('200000'),
+            net_profit_fact=Decimal('180000'),
+            net_profit_forecast=Decimal('190000'),
+        )
+        defaults.update(kwargs)
+        return FinancialStatement.objects.create(**defaults)
+
+    def test_create_monthly(self):
+        s = self._make_statement()
+        self.assertEqual(s.year, 2026)
+        self.assertEqual(s.month, 5)
+        self.assertEqual(s.period_type, 'monthly')
+
+    def test_create_quarterly(self):
+        s = self._make_statement(
+            period_type=FinancialStatement.Period.QUARTERLY,
+            month=None, quarter=2,
+        )
+        self.assertEqual(s.quarter, 2)
+
+    def test_create_yearly(self):
+        s = self._make_statement(
+            period_type=FinancialStatement.Period.YEARLY,
+            month=None,
+        )
+        self.assertEqual(s.period_type, 'yearly')
+
+    def test_str_monthly(self):
+        s = self._make_statement()
+        self.assertEqual(str(s), 'ОПиУ | 05.2026')
+
+    def test_str_quarterly(self):
+        s = self._make_statement(
+            period_type=FinancialStatement.Period.QUARTERLY,
+            month=None, quarter=1,
+        )
+        self.assertEqual(str(s), 'ОПиУ | Q1 2026')
+
+    def test_str_yearly(self):
+        s = self._make_statement(
+            period_type=FinancialStatement.Period.YEARLY,
+            month=None,
+        )
+        self.assertEqual(str(s), 'ОПиУ | 2026')
+
+    def test_ebitda_margin_fact(self):
+        s = self._make_statement(
+            revenue_fact=Decimal('1000000'),
+            ebitda_fact=Decimal('400000'),
+        )
+        self.assertEqual(s.ebitda_margin_fact, 40.0)
+
+    def test_net_margin_fact(self):
+        s = self._make_statement(
+            revenue_fact=Decimal('1000000'),
+            net_profit_fact=Decimal('200000'),
+        )
+        self.assertEqual(s.net_margin_fact, 20.0)
+
+    def test_operating_margin_fact(self):
+        s = self._make_statement(
+            revenue_fact=Decimal('1000000'),
+            operating_profit_fact=Decimal('300000'),
+        )
+        self.assertEqual(s.operating_margin_fact, 30.0)
+
+    def test_margin_none_when_revenue_zero(self):
+        s = self._make_statement(revenue_fact=Decimal('0'))
+        self.assertIsNone(s.ebitda_margin_fact)
+        self.assertIsNone(s.net_margin_fact)
+        self.assertIsNone(s.operating_margin_fact)
+
+    def test_revenue_variance(self):
+        s = self._make_statement(
+            revenue_plan=Decimal('1000000'),
+            revenue_fact=Decimal('900000'),
+        )
+        self.assertEqual(s.revenue_variance, Decimal('-100000'))
+
+    def test_net_profit_variance(self):
+        s = self._make_statement(
+            net_profit_plan=Decimal('200000'),
+            net_profit_fact=Decimal('220000'),
+        )
+        self.assertEqual(s.net_profit_variance, Decimal('20000'))
+
+    def test_ebitda_variance(self):
+        s = self._make_statement(
+            ebitda_plan=Decimal('400000'),
+            ebitda_fact=Decimal('380000'),
+        )
+        self.assertEqual(s.ebitda_variance, Decimal('-20000'))
+
+    def test_defaults_zero(self):
+        s = FinancialStatement.objects.create(
+            period_type=FinancialStatement.Period.MONTHLY,
+            year=2026, month=6,
+        )
+        self.assertEqual(s.revenue_plan, Decimal('0'))
+        self.assertEqual(s.net_profit_fact, Decimal('0'))
+        self.assertEqual(s.ebitda_forecast, Decimal('0'))
+
+    def test_unique_together(self):
+        self._make_statement()
+        obj, created = FinancialStatement.objects.get_or_create(
+            period_type=FinancialStatement.Period.MONTHLY,
+            year=2026, month=5,
+            defaults={'revenue_plan': Decimal('999999')},
+            )
+        self.assertFalse(created)
+        self.assertEqual(
+            FinancialStatement.objects.filter(period_type='monthly', year=2026, month=5).count(), 1
+            )
+
+    def test_different_months_allowed(self):
+        self._make_statement(month=1)
+        s2 = self._make_statement(month=2)
+        self.assertIsNotNone(s2.pk)
+
+    def test_revenue_categories_m2m(self):
+        s = self._make_statement()
+        s.revenue_categories.add(self.cat_income)
+        self.assertIn(self.cat_income, s.revenue_categories.all())
+
+    def test_expense_categories_m2m(self):
+        s = self._make_statement()
+        s.expense_categories.add(self.cat_expense)
+        self.assertIn(self.cat_expense, s.expense_categories.all())
+
+    def test_revenue_categories_empty_by_default(self):
+        s = self._make_statement()
+        self.assertEqual(s.revenue_categories.count(), 0)
+
+    def test_period_label_monthly(self):
+        s = self._make_statement(month=3)
+        self.assertEqual(s.get_period_label(), '03.2026')
+
+    def test_period_label_quarterly(self):
+        s = self._make_statement(
+            period_type=FinancialStatement.Period.QUARTERLY,
+            month=None, quarter=4,
+        )
+        self.assertEqual(s.get_period_label(), 'Q4 2026')
+
+    def test_related_name_revenue_statements(self):
+        s = self._make_statement()
+        s.revenue_categories.add(self.cat_income)
+        self.assertIn(s, self.cat_income.revenue_statements.all())
+
+    def test_related_name_expense_statements(self):
+        s = self._make_statement()
+        s.expense_categories.add(self.cat_expense)
+        self.assertIn(s, self.cat_expense.expense_statements.all())
+
+
+class CashFlowRecordModelTest(TestCase):
+
+    def setUp(self):
+        self.cat = BudgetCategory.objects.create(
+            name='Поступления от аренды',
+            category_type=BudgetCategory.Type.INCOME,
+        )
+        from onec.models import Counterparty
+        self.counterparty = Counterparty.objects.create(
+            id_1c='CF-CP-001',
+            full_name='ТОО Тест Контрагент',
+            short_name='ТОО Тест',
+        )
+
+    def _make_record(self, **kwargs):
+        from datetime import date
+        defaults = dict(
+            direction=CashFlowRecord.Direction.INFLOW,
+            flow_type=CashFlowRecord.FlowType.OPERATING,
+            amount=Decimal('500000.00'),
+            currency='KZT',
+            transaction_date=date(2026, 5, 15),
+        )
+        defaults.update(kwargs)
+        return CashFlowRecord.objects.create(**defaults)
+
+    def test_create_inflow(self):
+        r = self._make_record()
+        self.assertEqual(r.direction, 'inflow')
+        self.assertEqual(r.amount, Decimal('500000.00'))
+        self.assertTrue(r.is_inflow)
+        self.assertFalse(r.is_outflow)
+
+    def test_create_outflow(self):
+        r = self._make_record(
+            direction=CashFlowRecord.Direction.OUTFLOW,
+            amount=Decimal('200000.00'),
+        )
+        self.assertEqual(r.direction, 'outflow')
+        self.assertTrue(r.is_outflow)
+        self.assertFalse(r.is_inflow)
+
+    def test_all_flow_types(self):
+        from datetime import date
+        for i, ft in enumerate(CashFlowRecord.FlowType):
+            r = self._make_record(
+                flow_type=ft,
+                transaction_date=date(2026, 5, i + 1),
+            )
+            self.assertEqual(r.flow_type, ft)
+
+    def test_str(self):
+        r = self._make_record()
+        s = str(r)
+        self.assertIn('Поступление', s)
+        self.assertIn('15.05.2026', s)
+        self.assertIn('500000', s)
+
+    def test_counterparty_fk(self):
+        r = self._make_record(counterparty=self.counterparty)
+        self.assertEqual(r.counterparty, self.counterparty)
+        self.assertIn(r, self.counterparty.cash_flow_records.all())
+
+    def test_budget_category_fk(self):
+        r = self._make_record(budget_category=self.cat)
+        self.assertEqual(r.budget_category, self.cat)
+        self.assertIn(r, self.cat.cash_flow_records.all())
+
+    def test_counterparty_nullable(self):
+        r = self._make_record()
+        self.assertIsNone(r.counterparty)
+
+    def test_budget_category_nullable(self):
+        r = self._make_record()
+        self.assertIsNone(r.budget_category)
+
+    def test_onec_id_unique(self):
+        self._make_record(onec_id='CF-ONEC-001')
+        with self.assertRaises(IntegrityError):
+            self._make_record(onec_id='CF-ONEC-001')
+
+    def test_onec_id_nullable(self):
+        r = self._make_record()
+        self.assertIsNone(r.onec_id)
+
+    def test_set_null_on_counterparty_delete(self):
+        r = self._make_record(counterparty=self.counterparty)
+        self.counterparty.delete()
+        r.refresh_from_db()
+        self.assertIsNone(r.counterparty)
+
+    def test_set_null_on_category_delete(self):
+        r = self._make_record(budget_category=self.cat)
+        self.cat.delete()
+        r.refresh_from_db()
+        self.assertIsNone(r.budget_category)
+
+    def test_default_currency_kzt(self):
+        r = self._make_record()
+        self.assertEqual(r.currency, 'KZT')
+
+    def test_value_date_nullable(self):
+        r = self._make_record()
+        self.assertIsNone(r.value_date)
+
+    def test_description_nullable(self):
+        r = self._make_record()
+        self.assertIsNone(r.description)
+
+    def test_upsert_by_onec_id(self):
+        from datetime import date
+        obj, created = CashFlowRecord.objects.update_or_create(
+            onec_id='CF-ONEC-002',
+            defaults={
+                'direction': CashFlowRecord.Direction.INFLOW,
+                'flow_type': CashFlowRecord.FlowType.OPERATING,
+                'amount': Decimal('300000.00'),
+                'currency': 'KZT',
+                'transaction_date': date(2026, 5, 20),
+                'onec_id': 'CF-ONEC-002',
+            }
+        )
+        self.assertTrue(created)
+
+        obj2, created2 = CashFlowRecord.objects.update_or_create(
+            onec_id='CF-ONEC-002',
+            defaults={'amount': Decimal('350000.00')}
+        )
+        self.assertFalse(created2)
+        self.assertEqual(obj2.amount, Decimal('350000.00'))
+        self.assertEqual(
+            CashFlowRecord.objects.filter(onec_id='CF-ONEC-002').count(), 1
+        )
+
+    def test_ordering_by_date_desc(self):
+        from datetime import date
+        self._make_record(transaction_date=date(2026, 3, 1))
+        self._make_record(transaction_date=date(2026, 5, 1))
+        self._make_record(transaction_date=date(2026, 1, 1))
+        dates = list(
+            CashFlowRecord.objects.values_list('transaction_date', flat=True)
+        )
+        self.assertEqual(dates, sorted(dates, reverse=True))
+
+
+class BudgetViewsTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo_user = User.objects.create_user(
+            username='cfo_user', password='pass',
+            role=RoleEnums.CFO.value,
+        )
+        self.accountant_user = User.objects.create_user(
+            username='accountant_user', password='pass',
+            role=RoleEnums.CHIEF_ACCOUNTANT.value,
+        )
+        self.staff_user = User.objects.create_user(
+            username='budget_staff', password='pass',
+            role=RoleEnums.STAFF.value,
+        )
+        self.cat_income = BudgetCategory.objects.create(
+            name='Доходы тест', category_type=BudgetCategory.Type.INCOME,
+        )
+        self.cat_expense = BudgetCategory.objects.create(
+            name='Расходы тест', category_type=BudgetCategory.Type.EXPENSE,
+        )
+        self.item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=5,
+            plan=Decimal('500000'),
+            fact=Decimal('450000'),
+            forecast=Decimal('480000'),
+        )
+        self.overrun_item = BudgetItem.objects.create(
+            category=self.cat_expense,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=5,
+            plan=Decimal('100000'),
+            fact=Decimal('120000'),
+        )
+
+
+    def test_list_requires_login(self):
+        r = self.client.get(reverse('finances:budget_list'))
+        self.assertEqual(r.status_code, 302)
+
+    def test_staff_cannot_access(self):
+        self.client.login(username='budget_staff', password='pass')
+        r = self.client.get(reverse('finances:budget_list'))
+        self.assertEqual(r.status_code, 403)
+
+    def test_cfo_can_access_list(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'))
+        self.assertEqual(r.status_code, 200)
+
+    def test_accountant_can_access_list(self):
+        self.client.login(username='accountant_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'))
+        self.assertEqual(r.status_code, 200)
+
+    def test_list_context_has_rows(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'), {'year': 2026, 'month': 5})
+        self.assertIn('rows', r.context)
+
+    def test_cfo_can_edit(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'))
+        self.assertTrue(r.context['can_edit'])
+
+    def test_accountant_cannot_edit(self):
+        self.client.login(username='accountant_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'))
+        self.assertFalse(r.context['can_edit'])
+
+    def test_overrun_signal(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'), {'year': 2026, 'month': 5})
+        rows = r.context['rows']
+        expense_row = next(row for row in rows if row['cat'] == self.cat_expense)
+        self.assertTrue(expense_row['overrun'])
+
+    def test_no_overrun_for_income(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'), {'year': 2026, 'month': 5})
+        rows = r.context['rows']
+        income_row = next(row for row in rows if row['cat'] == self.cat_income)
+        self.assertFalse(income_row['overrun'])
+
+    def test_has_overrun_flag(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'), {'year': 2026, 'month': 5})
+        self.assertTrue(r.context['has_overrun'])
+
+
+    def test_detail_returns_200(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_detail', args=[self.cat_income.pk]))
+        self.assertEqual(r.status_code, 200)
+
+    def test_detail_context_has_rows(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_detail', args=[self.cat_income.pk]))
+        self.assertIn('rows', r.context)
+        items = [row['item'] for row in r.context['rows']]
+        self.assertIn(self.item, items)
+
+    def test_detail_variance(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_detail', args=[self.cat_income.pk]))
+        row = r.context['rows'][0]
+        self.assertEqual(row['variance'], Decimal('-50000'))
+
+    def test_detail_exec_pct(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_detail', args=[self.cat_income.pk]))
+        row = r.context['rows'][0]
+        self.assertEqual(row['exec_pct'], 90.0)
+
+    def test_detail_404_on_missing(self):
+        self.client.login(username='cfo_user', password='pass')
+        from finances.models import BudgetCategory
+        self.assertFalse(BudgetCategory.objects.filter(pk=999999).exists())
+
+
+    def test_create_requires_cfo(self):
+        self.client.login(username='accountant_user', password='pass')
+        r = self.client.get(
+            reverse('finances:budget_item_create', args=[self.cat_income.pk])
+        )
+        self.assertEqual(r.status_code, 403)
+
+    def test_cfo_can_create(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.post(
+            reverse('finances:budget_item_create', args=[self.cat_income.pk]),
+            {
+                'period_type': 'monthly',
+                'year': 2026, 'month': 6,
+                'plan': '600000', 'fact': '0', 'forecast': '0',
+            }
+        )
+        self.assertRedirects(r, reverse('finances:budget_detail', args=[self.cat_income.pk]))
+        self.assertTrue(BudgetItem.objects.filter(category=self.cat_income, month=6).exists())
+
+
+    def test_edit_requires_cfo(self):
+        self.client.login(username='accountant_user', password='pass')
+        r = self.client.get(reverse('finances:budget_item_edit', args=[self.item.pk]))
+        self.assertEqual(r.status_code, 403)
+
+    def test_cfo_can_edit_item(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.post(
+            reverse('finances:budget_item_edit', args=[self.item.pk]),
+            {
+                'period_type': 'monthly',
+                'year': 2026, 'month': 5,
+                'plan': '550000', 'fact': '450000', 'forecast': '480000',
+            }
+        )
+        self.assertRedirects(r, reverse('finances:budget_detail', args=[self.cat_income.pk]))
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.plan, Decimal('550000'))
+
+
+    def test_delete_requires_cfo(self):
+        self.client.login(username='accountant_user', password='pass')
+        r = self.client.post(reverse('finances:budget_item_delete', args=[self.item.pk]))
+        self.assertEqual(r.status_code, 403)
+
+    def test_cfo_can_delete(self):
+        self.client.login(username='cfo_user', password='pass')
+        item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=7,
+            plan=Decimal('100000'),
+        )
+        r = self.client.post(reverse('finances:budget_item_delete', args=[item.pk]))
+        self.assertRedirects(r, reverse('finances:budget_detail', args=[self.cat_income.pk]))
+        self.assertFalse(BudgetItem.objects.filter(pk=item.pk).exists())
