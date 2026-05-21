@@ -39,6 +39,7 @@ urlpatterns = [
     path('tenants/', include(('tenants.urls', 'tenants'))),
     path('addits/', include(('addits.urls', 'addits'))),
     path('api/enbek/', include('enbek.urls')),
+    path('api/v1/', include('project.api_urls')),
     path('', include(('dashboard.urls', 'dashboard'))),
 ]
 
