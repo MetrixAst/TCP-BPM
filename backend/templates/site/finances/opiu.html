@@ -1,0 +1,106 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}ОПиУ | metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe55-opiu">
+{% endblock %}
+
+{% block content %}
+<section class="fin-page">
+
+  <div class="fin-filter-card">
+    <div class="fin-filter-card__header">
+      <h1 class="fin-page-title">Отчёт о прибылях и убытках (ОПиУ)</h1>
+    </div>
+
+    <form method="GET" class="fin-filter-form">
+      <div class="fin-field">
+        <label class="fin-label">Период</label>
+        <select name="period_type" class="fin-input">
+          {% for val, label in period_choices %}
+            <option value="{{ val }}" {% if period_type == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="fin-field">
+        <label class="fin-label">Год</label>
+        <input type="number" name="year" value="{{ year }}" class="fin-input" style="width:90px">
+      </div>
+      <div class="fin-field">
+        <label class="fin-label">Месяц</label>
+        <input type="number" name="month" value="{{ month }}" min="1" max="12" class="fin-input" style="width:70px">
+      </div>
+      <button type="submit" class="fin-btn fin-btn--primary">Показать</button>
+      <a href="?year={{ prev_year }}&month={{ prev_month }}&period_type={{ period_type }}" class="fin-btn fin-btn--light"><i class="bi bi-chevron-left"></i></a>
+      <a href="?year={{ next_year }}&month={{ next_month }}&period_type={{ period_type }}" class="fin-btn fin-btn--light"><i class="bi bi-chevron-right"></i></a>
+    </form>
+  </div>
+
+  <div class="fin-table-card">
+    <div class="fin-table-head">
+      <div>
+        <div class="fin-table-title">
+          {% if statement %}{{ statement.get_period_label }}{% else %}{{ month }}.{{ year }}{% endif %}
+        </div>
+        <div class="fin-table-subtitle">План / Факт / Прогноз / Отклонение</div>
+      </div>
+    </div>
+
+    <div class="fin-table-wrap">
+      <table class="fin-table">
+        <thead>
+          <tr>
+            <th>Показатель</th>
+            <th class="text-right">План</th>
+            <th class="text-right">Факт</th>
+            <th class="text-right">Прогноз</th>
+            <th class="text-right">Отклонение</th>
+            <th class="text-right">% отклонения</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr class="fin-row {% if row.is_margin %}fin-row--info{% else %}fin-row--secondary{% endif %}">
+            <td><strong>{{ row.label }}</strong></td>
+            <td class="text-right fin-amount">
+              {% if row.is_margin %}—{% else %}{{ row.plan|floatformat:0 }} ₸{% endif %}
+            </td>
+            <td class="text-right fin-amount">
+              {% if row.is_margin %}{{ row.fact|floatformat:2 }}%{% else %}{{ row.fact|floatformat:0 }} ₸{% endif %}
+            </td>
+            <td class="text-right fin-muted">
+              {% if row.is_margin %}—{% elif row.forecast is not None %}{{ row.forecast|floatformat:0 }} ₸{% else %}—{% endif %}
+            </td>
+            <td class="text-right">
+              {% if row.is_margin or row.variance is None %}—{% else %}
+                <span class="fin-amount {% if row.variance > 0 %}fin-success{% elif row.variance < 0 %}fin-danger{% else %}fin-muted{% endif %}">
+                  {% if row.variance > 0 %}+{% endif %}{{ row.variance|floatformat:0 }} ₸
+                </span>
+              {% endif %}
+            </td>
+            <td class="text-right">
+              {% if row.variance_pct is not None %}
+                <span class="fin-badge {% if row.variance_pct >= 0 %}fin-badge--success{% else %}fin-badge--danger{% endif %}">
+                  {% if row.variance_pct > 0 %}+{% endif %}{{ row.variance_pct }}%
+                </span>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="fin-empty-state">
+              <i class="bi bi-graph-up"></i>
+              <strong>Нет данных за выбранный период</strong>
+              <span>Добавьте отчёт ОПиУ в админ-панели</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
+{% endblock %}

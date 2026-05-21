@@ -197,6 +197,8 @@ class MenuItem:
             MenuItem('fin_dash', 'dashboard:dashboard', '', 'Финансовый дашборд'),
             MenuItem('fin_reports', 'reports:home', '', 'Финансовые отчеты'),
             MenuItem('fin_invoices', 'finances:reg', '', 'Счета и оплаты'),
+            MenuItem('fin_opiu', 'finances:opiu', '', 'ОПиУ'),
+            MenuItem('fin_cashflow', 'finances:cashflow', '', 'ДДС'),
         ]
 
         items = {
@@ -235,7 +237,7 @@ class MenuItem:
             RoleEnums.OWNER.value: [
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_common_submenu + [
                     MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
-                    MenuItem('fin_scenarios', 'dashboard:dashboard', '', 'Финансовые сценарии'),
+                    MenuItem('fin_scenarios', 'finances:credit_model_list', '', 'Кредитная модель'),
                     MenuItem('fin_registers', 'finances:reg', '', 'Финансовые реестры'),
                 ]),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
@@ -244,7 +246,7 @@ class MenuItem:
             RoleEnums.CFO.value: [
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_common_submenu + [
                     MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
-                    MenuItem('fin_scenarios', 'dashboard:dashboard', '', 'Финансовые сценарии'),
+                    MenuItem('fin_scenarios', 'finances:credit_model_list', '', 'Кредитная модель'),
                 ]),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
@@ -252,9 +254,11 @@ class MenuItem:
             RoleEnums.CHIEF_ACCOUNTANT.value: [
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=[
                     MenuItem('fin_reports', 'reports:home', '', 'Финансовые отчеты'),
+                    MenuItem('fin_opiu', 'finances:opiu', '', 'ОПиУ'),
+                    MenuItem('fin_cashflow', 'finances:cashflow', '', 'ДДС'),
                     MenuItem('fin_invoices', 'finances:reg', '', 'Счета и оплаты'),
                     MenuItem('fin_registers', 'finances:reg', '', 'Финансовые реестры'),
-                    MenuItem('fin_budget', 'finances:budget', '', 'Бюджетирование'),
+                    MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
                 ]),
             ],
 

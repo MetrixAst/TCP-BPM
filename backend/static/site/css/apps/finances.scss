@@ -2215,3 +2215,87 @@ body.invoice-edit-body {
     background: #2f6bed;
     color: #fff;
   }
+// ── FE-5.5: OPIU / Cashflow / Credit (+ shared form helpers) ─────────────────
+
+.fin-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: $fin-muted;
+  text-decoration: none;
+  margin-bottom: 8px;
+  &:hover { color: $fin-primary; }
+}
+
+.fin-page-subtitle {
+  font-size: 14px;
+  color: $fin-muted;
+  margin: 4px 0 0;
+}
+
+.fin-form-card { max-width: 720px; margin: 0 auto; padding: 24px; }
+
+.fin-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.fin-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  input, select, textarea {
+    width: 100%;
+    border: 1px solid $fin-border;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    background: $fin-field-bg;
+  }
+}
+
+.fin-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid $fin-border;
+  padding-top: 16px;
+}
+
+.fin-field-error { font-size: 12px; color: $fin-danger; }
+
+// ── FE-5.5: OPIU / Cashflow / Credit ──────────────────────────────────────────
+
+.fin-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.fin-summary-card {
+  background: $fin-card-bg;
+  border: 1px solid $fin-border;
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &__label { font-size: 12px; color: $fin-muted; text-transform: uppercase; letter-spacing: .04em; }
+  &__value { font-size: 20px; font-weight: 700; color: $fin-text; }
+
+  &--success { border-left: 4px solid $fin-success; }
+  &--danger  { border-left: 4px solid $fin-danger; }
+}
+
+.fin-badge--success { background: #e8f8ef; color: $fin-success; }
+.fin-badge--danger  { background: #fff1f0; color: $fin-danger; }
+
+@media (max-width: 768px) {
+  .fin-summary-cards { grid-template-columns: 1fr; }
+  .fin-form-grid { grid-template-columns: 1fr; }
+}
