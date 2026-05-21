@@ -29,5 +29,9 @@ urlpatterns = [
     path('invoices/<int:pk>/viewed/', views.invoice_mark_viewed, name='invoice_mark_viewed'),
     path('invoices/<int:pk>/paid/', views.invoice_mark_paid, name='invoice_mark_paid'),
     path('invoices/<int:pk>/cancel/', views.invoice_cancel, name='invoice_cancel'),
-    
+
+    path('opiu/', views.financial_statement, name='opiu'),
+    path('cashflow/', views.cashflow_register, name='cashflow'),
+    path('credit-model/', views.credit_model_list, name='credit_model_list'),
+    path('credit-model/create/', views.credit_model_create, name='credit_model_create'),
 ]

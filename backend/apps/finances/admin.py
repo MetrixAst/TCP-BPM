@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord
+from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel
 
 @admin.register(TenantPaymentRegistry)
 class TenantPaymentRegistryAdmin(admin.ModelAdmin):
@@ -256,4 +256,12 @@ class CashFlowRecordAdmin(admin.ModelAdmin):
         return False
 
     def has_change_permission(self, request, obj=None):
-        return False  
+        return False
+
+
+@admin.register(CreditModel)
+class CreditModelAdmin(admin.ModelAdmin):
+    list_display = ('name', 'scenario', 'period_start', 'period_end', 'loan_amount', 'dscr', 'risk_level', 'created_at')
+    list_filter = ('scenario', 'risk_level')
+    search_fields = ('name',)
+    readonly_fields = ('dscr', 'free_cashflow', 'risk_level', 'created_at', 'updated_at')

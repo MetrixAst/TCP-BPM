@@ -2215,8 +2215,9 @@ body.invoice-edit-body {
     background: #2f6bed;
     color: #fff;
   }
+}
 
-// ── FE-5.4: Budget styles ─────────────────────────────────────────────────────
+// ── FE-5.4 / FE-5.5: Shared finance UI ───────────────────────────────────────
 
 .fin-overrun-alert {
   display: flex;
@@ -2246,13 +2247,12 @@ body.invoice-edit-body {
 .fin-page-subtitle {
   font-size: 14px;
   color: $fin-muted;
-  margin: 0;
+  margin: 4px 0 0;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-// Progress bar
 .fin-progress-wrap {
   display: flex;
   align-items: center;
@@ -2286,14 +2286,12 @@ body.invoice-edit-body {
   text-align: right;
 }
 
-// Inline colour helpers
 .fin-amount  { font-variant-numeric: tabular-nums; }
 .fin-muted   { color: $fin-muted; }
 .fin-danger  { color: $fin-danger; font-weight: 600; }
 .fin-success { color: $fin-success; font-weight: 600; }
 .text-right  { text-align: right; }
 
-// Badge
 .fin-badge {
   display: inline-block;
   padding: 2px 8px;
@@ -2301,12 +2299,12 @@ body.invoice-edit-body {
   font-size: 11px;
   font-weight: 600;
   &--neutral { background: #f0f0f0; color: $fin-muted; }
+  &--success { background: #e8f8ef; color: $fin-success; }
+  &--danger  { background: #fff1f0; color: $fin-danger; }
 }
 
-// Total footer row
 .fin-total-row td { background: #f8f7ff; font-weight: 700; }
 
-// Action buttons (icon-only)
 .fin-action-btn {
   display: inline-flex;
   align-items: center;
@@ -2328,8 +2326,7 @@ body.invoice-edit-body {
     &:hover { background: $fin-danger; color: #fff; } }
 }
 
-// Form card
-.fin-form-card { max-width: 640px; margin: 0 auto; }
+.fin-form-card { max-width: 720px; margin: 0 auto; padding: 24px; }
 
 .fin-form-grid {
   display: grid;
@@ -2393,3 +2390,31 @@ body.invoice-edit-body {
 }
 
 .fin-select-wrap select { appearance: none; }
+
+.fin-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.fin-summary-card {
+  background: $fin-card-bg;
+  border: 1px solid $fin-border;
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &__label { font-size: 12px; color: $fin-muted; text-transform: uppercase; letter-spacing: .04em; }
+  &__value { font-size: 20px; font-weight: 700; color: $fin-text; }
+
+  &--success { border-left: 4px solid $fin-success; }
+  &--danger  { border-left: 4px solid $fin-danger; }
+}
+
+@media (max-width: 768px) {
+  .fin-summary-cards { grid-template-columns: 1fr; }
+  .fin-form-grid { grid-template-columns: 1fr; }
+}

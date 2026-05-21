@@ -8,7 +8,10 @@ from django import forms as django_forms
 from project.utils import get_or_none
 
 from .forms import FinanceItemForm, GeneratedInvoiceForm, GeneratedInvoiceItemFormSet
-from .models import FinanceItem, TenantPaymentRegistry, GeneratedInvoice, BudgetCategory, BudgetItem
+from .models import (
+    FinanceItem, TenantPaymentRegistry, GeneratedInvoice, BudgetCategory, BudgetItem,
+    FinancialStatement, CashFlowRecord, CreditModel,
+)
 from .serializers import FinanceItemSerializer
 
 from datetime import date
@@ -680,3 +683,242 @@ def budget_item_delete(request, pk):
         item.delete()
         messages.success(request, 'Строка бюджета удалена.')
     return redirect('finances:budget_detail', pk=category_pk)
+
+
+# ── FE-5.5: ОПиУ / ДДС / Кредитная модель ────────────────────────────────────
+
+def _variance_pct(plan, fact):
+    if not plan or plan == 0:
+        return None
+    return round((fact - plan) / plan * 100, 1)
+
+
+def _build_opiu_rows(statement):
+    """Строит строки таблицы ОПиУ из FinancialStatement."""
+    if not statement:
+        return []
+
+    def row(label, plan, fact, forecast=None, margin_fact=None):
+        is_margin = margin_fact is not None
+        if is_margin:
+            return {
+                'label': label,
+                'plan': None,
+                'fact': margin_fact,
+                'forecast': None,
+                'variance': None,
+                'variance_pct': None,
+                'margin_fact': margin_fact,
+                'is_margin': True,
+            }
+        variance = fact - plan
+        return {
+            'label': label,
+            'plan': plan,
+            'fact': fact,
+            'forecast': forecast,
+            'variance': variance,
+            'variance_pct': _variance_pct(plan, fact),
+            'margin_fact': None,
+            'is_margin': False,
+        }
+
+    rows = [
+        row('Выручка', statement.revenue_plan, statement.revenue_fact, statement.revenue_forecast),
+        row('EBITDA', statement.ebitda_plan, statement.ebitda_fact, statement.ebitda_forecast),
+        row(
+            'Операционная прибыль',
+            statement.operating_profit_plan,
+            statement.operating_profit_fact,
+        ),
+        row('Чистая прибыль', statement.net_profit_plan, statement.net_profit_fact, statement.net_profit_forecast),
+    ]
+    rows.append(row(
+        'Рентабельность (чистая), %',
+        None,
+        statement.net_profit_fact,
+        margin_fact=statement.net_margin_fact,
+    ))
+    return rows
+
+
+@need_permission(PermissionEnums.FINANCE_REPORTS)
+def financial_statement(request):
+    today = date.today()
+    try:
+        year  = int(request.GET.get('year', today.year))
+        month = int(request.GET.get('month', today.month))
+    except (ValueError, TypeError):
+        year, month = today.year, today.month
+
+    period_type = request.GET.get('period_type', FinancialStatement.Period.MONTHLY)
+
+    qs = FinancialStatement.objects.filter(
+        period_type=period_type,
+        year=year,
+    )
+    if period_type == FinancialStatement.Period.MONTHLY:
+        qs = qs.filter(month=month)
+    statement = qs.first()
+
+    if month == 1:
+        prev_year, prev_month = year - 1, 12
+    else:
+        prev_year, prev_month = year, month - 1
+    if month == 12:
+        next_year, next_month = year + 1, 1
+    else:
+        next_year, next_month = year, month + 1
+
+    context = {
+        'statement':   statement,
+        'rows':        _build_opiu_rows(statement),
+        'year':        year,
+        'month':       month,
+        'period_type': period_type,
+        'period_choices': FinancialStatement.Period.choices,
+        'prev_year':   prev_year,
+        'prev_month':  prev_month,
+        'next_year':   next_year,
+        'next_month':  next_month,
+    }
+    return render(request, 'site/finances/opiu.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_REPORTS)
+def cashflow_register(request):
+    today = date.today()
+    date_from = request.GET.get('date_from') or today.replace(day=1).isoformat()
+    date_to   = request.GET.get('date_to') or today.isoformat()
+    direction = request.GET.get('direction', '')
+    flow_type = request.GET.get('flow_type', '')
+    counterparty_id = request.GET.get('counterparty', '')
+
+    qs = CashFlowRecord.objects.select_related('counterparty', 'budget_category').all()
+
+    try:
+        qs = qs.filter(transaction_date__gte=date.fromisoformat(date_from))
+        qs = qs.filter(transaction_date__lte=date.fromisoformat(date_to))
+    except ValueError:
+        pass
+
+    if direction:
+        qs = qs.filter(direction=direction)
+    if flow_type:
+        qs = qs.filter(flow_type=flow_type)
+    if counterparty_id:
+        qs = qs.filter(counterparty_id=counterparty_id)
+
+    records = qs.order_by('-transaction_date', '-created_at')[:500]
+
+    total_inflow = sum(r.amount for r in records if r.direction == CashFlowRecord.Direction.INFLOW)
+    total_outflow = sum(r.amount for r in records if r.direction == CashFlowRecord.Direction.OUTFLOW)
+
+    from onec.models import Counterparty
+    counterparties = Counterparty.objects.order_by('short_name')[:200]
+
+    context = {
+        'records':        records,
+        'date_from':      date_from,
+        'date_to':        date_to,
+        'f_direction':    direction,
+        'f_flow_type':    flow_type,
+        'f_counterparty': counterparty_id,
+        'directions':     CashFlowRecord.Direction.choices,
+        'flow_types':     CashFlowRecord.FlowType.choices,
+        'counterparties': counterparties,
+        'total_inflow':   total_inflow,
+        'total_outflow':  total_outflow,
+        'net_flow':       total_inflow - total_outflow,
+    }
+    return render(request, 'site/finances/cashflow.html', context)
+
+
+def _can_manage_credit(user):
+    role = user.role.value if hasattr(user.role, 'value') else user.role
+    return role in (RoleEnums.CFO.value, RoleEnums.OWNER.value, RoleEnums.ADMINISTRATOR.value)
+
+
+@need_permission(PermissionEnums.FINANCE_SCENARIOS)
+def credit_model_list(request):
+    models_qs = CreditModel.objects.all()
+    can_create = _can_manage_credit(request.user)
+
+    context = {
+        'credit_models': models_qs,
+        'can_create':    can_create,
+        'scenario_choices': CreditModel.Scenario.choices,
+    }
+    return render(request, 'site/finances/credit_model.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_SCENARIOS)
+def credit_model_create(request):
+    if not _can_manage_credit(request.user):
+        return HttpResponseForbidden('<h1>403</h1><p>Кредитная модель доступна только CFO.</p>')
+
+    import json
+
+    class CreditModelForm(django_forms.ModelForm):
+        projected_income_json   = django_forms.CharField(
+            label='Прогноз доходов (JSON)', required=False,
+            widget=django_forms.Textarea(attrs={'rows': 3, 'placeholder': '{"2026-01": "1000000"}'}),
+        )
+        projected_expenses_json = django_forms.CharField(
+            label='Прогноз расходов (JSON)', required=False,
+            widget=django_forms.Textarea(attrs={'rows': 3}),
+        )
+        projected_cashflow_json = django_forms.CharField(
+            label='Прогноз ДДС (JSON)', required=False,
+            widget=django_forms.Textarea(attrs={'rows': 3}),
+        )
+
+        class Meta:
+            model = CreditModel
+            fields = [
+                'name', 'scenario', 'period_start', 'period_end',
+                'loan_amount', 'loan_rate',
+            ]
+            widgets = {
+                'period_start': django_forms.DateInput(attrs={'type': 'date'}),
+                'period_end':   django_forms.DateInput(attrs={'type': 'date'}),
+            }
+
+        def _parse_json_field(self, raw, field_name):
+            if not raw or not raw.strip():
+                return {}
+            try:
+                return json.loads(raw)
+            except json.JSONDecodeError:
+                raise django_forms.ValidationError(f'Некорректный JSON в поле {field_name}')
+
+        def clean(self):
+            cleaned = super().clean()
+            cleaned['projected_income']   = self._parse_json_field(
+                cleaned.get('projected_income_json', ''), 'доходов'
+            )
+            cleaned['projected_expenses'] = self._parse_json_field(
+                cleaned.get('projected_expenses_json', ''), 'расходов'
+            )
+            cleaned['projected_cashflow'] = self._parse_json_field(
+                cleaned.get('projected_cashflow_json', ''), 'ДДС'
+            )
+            return cleaned
+
+    form = CreditModelForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        cm = form.save(commit=False)
+        cm.projected_income   = form.cleaned_data['projected_income']
+        cm.projected_expenses = form.cleaned_data['projected_expenses']
+        cm.projected_cashflow = form.cleaned_data['projected_cashflow']
+        cm.calculate_dscr()
+        cm.save()
+        messages.success(request, f'Сценарий «{cm.name}» создан. DSCR: {cm.dscr or "—"}')
+        return redirect('finances:credit_model_list')
+
+    context = {
+        'form':       form,
+        'title':      'Новый кредитный сценарий',
+        'show_form':  True,
+    }
+    return render(request, 'site/finances/credit_model.html', context)
