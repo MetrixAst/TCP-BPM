@@ -17,6 +17,7 @@ from django.conf.urls.static import static
 from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from django.conf.urls import handler403, handler404, handler500
 
@@ -39,6 +40,8 @@ urlpatterns = [
     path('tenants/', include(('tenants.urls', 'tenants'))),
     path('addits/', include(('addits.urls', 'addits'))),
     path('api/enbek/', include('enbek.urls')),
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/v1/', include('project.api_urls')),
     path('', include(('dashboard.urls', 'dashboard'))),
 ]

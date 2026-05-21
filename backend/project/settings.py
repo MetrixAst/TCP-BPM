@@ -51,7 +51,8 @@ INSTALLED_APPS = [
     'addits',
     'enbek',
     'onec',
-    'rest_framework'
+    'rest_framework',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -184,7 +185,17 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DATETIME_FORMAT': "%d.%m.%Y, %H:%M",
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'TRC BPM API',
+    'DESCRIPTION': 'MetriX BPM — Tasks, HR, Finances, 1C Integration',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
+    'SERVE_AUTHENTICATION': [],
 }
 
 # SIMPLE_JWT = {
