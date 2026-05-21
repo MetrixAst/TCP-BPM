@@ -2,143 +2,131 @@
 {% load static %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=9999">
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe61">
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-3">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">Финансовый дашборд</h4>
-    <span class="text-muted small">{{ today }}</span>
+<div class="fin-page">
+
+  {# ── Заголовок страницы ── #}
+  <div class="fin-filter-card" style="margin-bottom:16px;">
+    <div class="fin-filter-card__header">
+      <h1 class="fin-page-title">Финансовый дашборд</h1>
+      <span style="margin-left:12px;font-size:13px;color:var(--fin-muted,#74728a);">{{ today }}</span>
+    </div>
+
+    {# Мультивалютный тоггл #}
+    <div class="fin-currency-toggle">
+      <span class="fin-currency-label">Валюта:</span>
+      <select id="currencySelect" class="fin-input" style="width:auto;min-width:90px;">
+        <option value="">KZT</option>
+        <option value="USD">USD</option>
+        <option value="EUR">EUR</option>
+        <option value="RUB">RUB</option>
+      </select>
+      <span id="rateHint" class="fin-currency-rate"></span>
+    </div>
+
+    {# Excel-экспорт #}
+    <a href="?export=xlsx" class="fin-btn fin-btn--light" style="white-space:nowrap;">
+      <i class="bi bi-download"></i> Экспорт
+    </a>
   </div>
 
-  <div class="row g-3 mb-4">
-    <div class="col-md-3">
-      <div class="card shadow-sm h-100 border-start border-4 border-primary">
-        <div class="card-body">
-          <div class="text-muted small">Кассовый остаток (90 дней)</div>
-          <div class="fs-5 fw-bold" id="kpi-cash-balance">{{ cash_balance|floatformat:0 }} ₸</div>
-        </div>
-      </div>
+  {# ── KPI-плитки ── #}
+  <div class="fin-kpi-grid">
+    <div class="fin-kpi-card" data-drill-type="cash" data-drill-period="{{ today|date:'Y-m' }}">
+      <span class="fin-kpi-label"><i class="bi bi-wallet2"></i> Остаток ДС</span>
+      <span class="fin-kpi-value" id="kpi-cash-balance">{{ cash_balance|floatformat:0 }} ₸</span>
+      <span class="fin-kpi-sub" id="kpi-cash-balance-fx"></span>
+      <span class="fin-kpi-sub">за 90 дней</span>
     </div>
-    <div class="col-md-3">
-      <div class="card shadow-sm h-100 border-start border-4 border-success">
-        <div class="card-body">
-          <div class="text-muted small">Выручка MTD</div>
-          <div class="fs-5 fw-bold" id="kpi-revenue-mtd">{{ revenue_mtd|floatformat:0 }} ₸</div>
-          <div class="small {% if revenue_mtd_change >= 0 %}text-success{% else %}text-danger{% endif %}">
-            {% if revenue_mtd_change >= 0 %}▲{% else %}▼{% endif %}
-            {{ revenue_mtd_change|floatformat:1 }}% к пред. месяцу
-          </div>
-        </div>
-      </div>
+
+    <div class="fin-kpi-card" data-drill-type="revenue" data-drill-period="{{ today|date:'Y-m' }}">
+      <span class="fin-kpi-label"><i class="bi bi-graph-up-arrow"></i> Выручка (месяц)</span>
+      <span class="fin-kpi-value" id="kpi-revenue-mtd">{{ revenue_mtd|floatformat:0 }} ₸</span>
+      <span class="fin-kpi-sub" id="kpi-revenue-mtd-fx"></span>
+      <span class="fin-kpi-trend {% if revenue_mtd_change >= 0 %}is-up{% else %}is-down{% endif %}" id="kpi-revenue-trend">
+        {% if revenue_mtd_change >= 0 %}<i class="bi bi-arrow-up-short"></i>{% else %}<i class="bi bi-arrow-down-short"></i>{% endif %}
+        {{ revenue_mtd_change|floatformat:1 }}%
+      </span>
     </div>
-    <div class="col-md-3">
-      <div class="card shadow-sm h-100 border-start border-4 border-info">
-        <div class="card-body">
-          <div class="text-muted small">Выручка YTD</div>
-          <div class="fs-5 fw-bold" id="kpi-revenue-ytd">{{ revenue_ytd|floatformat:0 }} ₸</div>
-        </div>
-      </div>
+
+    <div class="fin-kpi-card" data-drill-type="revenue_ytd" data-drill-period="{{ today|date:'Y' }}">
+      <span class="fin-kpi-label"><i class="bi bi-calendar-check"></i> Выручка (год)</span>
+      <span class="fin-kpi-value" id="kpi-revenue-ytd">{{ revenue_ytd|floatformat:0 }} ₸</span>
+      <span class="fin-kpi-sub">с начала года</span>
     </div>
-    <div class="col-md-3">
-      <div class="card shadow-sm h-100 border-start border-4 border-warning">
-        <div class="card-body">
-          <div class="text-muted small">Расходы MTD</div>
-          <div class="fs-5 fw-bold" id="kpi-expenses-mtd">{{ expenses_mtd|floatformat:0 }} ₸</div>
-        </div>
-      </div>
+
+    <div class="fin-kpi-card" data-drill-type="expenses" data-drill-period="{{ today|date:'Y-m' }}">
+      <span class="fin-kpi-label"><i class="bi bi-arrow-down-circle"></i> Расходы (месяц)</span>
+      <span class="fin-kpi-value" id="kpi-expenses-mtd">{{ expenses_mtd|floatformat:0 }} ₸</span>
+      <span class="fin-kpi-sub">текущий месяц</span>
     </div>
-    <div class="col-md-3">
-      <div class="card shadow-sm h-100 border-start border-4 {% if net_cf >= 0 %}border-success{% else %}border-danger{% endif %}">
-        <div class="card-body">
-          <div class="text-muted small">Чистый CF (MTD)</div>
-          <div class="fs-5 fw-bold {% if net_cf >= 0 %}text-success{% else %}text-danger{% endif %}" id="kpi-net-cf">
-            {{ net_cf|floatformat:0 }} ₸
-          </div>
-        </div>
-      </div>
+
+    <div class="fin-kpi-card" data-drill-type="net_cf" data-drill-period="{{ today|date:'Y-m' }}">
+      <span class="fin-kpi-label"><i class="bi bi-activity"></i> Чистый CF (месяц)</span>
+      <span class="fin-kpi-value {% if net_cf >= 0 %}fin-kpi-value--success{% else %}fin-kpi-value--danger{% endif %}" id="kpi-net-cf">
+        {{ net_cf|floatformat:0 }} ₸
+      </span>
+      <span class="fin-kpi-sub {% if budget_deviation_pct >= 0 %}fin-kpi-sub--success{% else %}fin-kpi-sub--danger{% endif %}">
+        Откл. бюджета: {% if budget_deviation_pct >= 0 %}+{% endif %}{{ budget_deviation_pct|floatformat:1 }}%
+      </span>
     </div>
-    <div class="col-md-3">
-      <div class="card shadow-sm h-100 border-start border-4 border-secondary">
-        <div class="card-body">
-          <div class="text-muted small">Отклонение бюджета</div>
-          <div class="fs-5 fw-bold {% if budget_deviation_pct >= 0 %}text-success{% else %}text-danger{% endif %}" id="kpi-budget-dev">
-            {% if budget_deviation_pct >= 0 %}+{% endif %}{{ budget_deviation_pct|floatformat:1 }}%
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card shadow-sm h-100 border-start border-4 border-danger">
-        <div class="card-body">
-          <div class="text-muted small">Просрочек</div>
-          <div class="fs-5 fw-bold text-danger" id="kpi-overdue-count">{{ overdue_count }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card shadow-sm h-100 border-start border-4 border-danger">
-        <div class="card-body">
-          <div class="text-muted small">Сумма просрочки</div>
-          <div class="fs-5 fw-bold text-danger" id="kpi-overdue-amount">{{ overdue_amount|floatformat:0 }} ₸</div>
-        </div>
-      </div>
+
+    <div class="fin-kpi-card fin-kpi-card--alert" data-drill-type="overdue" data-drill-period="{{ today|date:'Y-m' }}">
+      <span class="fin-kpi-label"><i class="bi bi-exclamation-triangle"></i> Просрочка</span>
+      <span class="fin-kpi-value fin-kpi-value--danger" id="kpi-overdue-amount">{{ overdue_amount|floatformat:0 }} ₸</span>
+      <span class="fin-kpi-sub fin-kpi-sub--danger">
+        <i class="bi bi-receipt"></i> {{ overdue_count }} позиций
+      </span>
     </div>
   </div>
 
-  <div class="row g-3">
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <span class="fw-semibold">Детализация</span>
-        </div>
-        <div class="card-body">
-          <div class="btn-group mb-3" role="group">
-            <button class="btn btn-outline-primary btn-sm" onclick="loadDrilldown('revenue')">Выручка</button>
-            <button class="btn btn-outline-warning btn-sm" onclick="loadDrilldown('expenses')">Расходы</button>
-            <button class="btn btn-outline-danger btn-sm" onclick="loadDrilldown('overdue')">Просрочки</button>
-            <button class="btn btn-outline-secondary btn-sm" onclick="loadDrilldown('budget')">Бюджет</button>
-          </div>
-          <div id="drilldown-result" class="small text-muted">Нажмите кнопку для детализации</div>
+  {# ── Графики ── #}
+  <div class="fin-chart-grid">
+    <div class="fin-chart-card">
+      <div class="fin-chart-header">
+        <span class="fin-chart-title">Поступления vs Выбытия</span>
+        <div class="fin-chart-toggle">
+          <button class="fin-chart-btn is-active" data-days="30">30д</button>
+          <button class="fin-chart-btn" data-days="60">60д</button>
+          <button class="fin-chart-btn" data-days="90">90д</button>
         </div>
       </div>
+      <div id="cashflowSpinner" class="fin-chart-spinner"><span class="fin-spinner"></span></div>
+      <canvas id="cashflowChart" height="200" style="display:none;"></canvas>
+    </div>
+
+    <div class="fin-chart-card">
+      <div class="fin-chart-header">
+        <span class="fin-chart-title">Недельный CF</span>
+      </div>
+      <div id="weeklySpinner" class="fin-chart-spinner"><span class="fin-spinner"></span></div>
+      <canvas id="weeklyChart" height="200" style="display:none;"></canvas>
     </div>
   </div>
+
+  {# ── Drill-down боковая панель ── #}
+  <aside class="fin-drill-panel" id="drillPanel" aria-hidden="true">
+    <div class="fin-drill-panel__overlay" data-close-drill></div>
+    <div class="fin-drill-panel__content">
+      <div class="fin-drill-panel__header">
+        <h2 id="drillTitle">—</h2>
+        <button data-close-drill class="fin-day-panel__close" aria-label="Закрыть">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div id="drillBody" class="fin-drill-body">
+        <div class="fin-empty">Загрузка...</div>
+      </div>
+    </div>
+  </aside>
+
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-function loadDrilldown(type) {
-  const today = new Date();
-  const period = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
-  const el = document.getElementById('drilldown-result');
-  el.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Загрузка...';
-
-  fetch(`/finances/dashboard/drilldown/?type=${type}&period=${period}`)
-    .then(r => r.json())
-    .then(d => {
-      if (!d.data || d.data.length === 0) {
-        el.innerHTML = '<em>Нет данных</em>';
-        return;
-      }
-      let html = `<table class="table table-sm table-hover"><thead><tr>`;
-      const keys = Object.keys(d.data[0]);
-      keys.forEach(k => html += `<th>${k}</th>`);
-      html += `</tr></thead><tbody>`;
-      d.data.slice(0, 20).forEach(row => {
-        html += '<tr>';
-        keys.forEach(k => {
-          const v = row[k];
-          html += `<td>${v !== null && v !== undefined ? v : '—'}</td>`;
-        });
-        html += '</tr>';
-      });
-      html += '</tbody></table>';
-      el.innerHTML = html;
-    })
-    .catch(() => { el.innerHTML = '<span class="text-danger">Ошибка загрузки</span>'; });
-}
-</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="{% static 'site/js/apps/dashboard.js' %}?v=fe61"></script>
 {% endblock %}
