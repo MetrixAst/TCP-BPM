@@ -2775,3 +2775,36 @@ body.invoice-edit-body {
     font-weight: 500;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   FE-6.4 — Forecast CF + Scenarios utilities
+   ═══════════════════════════════════════════════════════════ */
+
+.fin-text--success { color: $fin-success; }
+.fin-text--warning { color: $fin-warning; }
+.fin-text--danger  { color: $fin-danger; }
+
+.fin-btn--sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FE-6.2 — Multi-currency toggle
+   ═══════════════════════════════════════════════════════════ */
+
+.fin-currency-stale-banner {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 149, 0, 0.1);
+  border: 1px solid $fin-warning;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: $fin-warning;
+  font-weight: 600;
+}
