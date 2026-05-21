@@ -2,133 +2,156 @@
 {% load static %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=9999">
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe63">
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-3">
-  <h4 class="mb-3">Аналитика аренды</h4>
+<div class="fin-page">
 
-  <div class="row g-3 mb-4">
-    <div class="col-md-4">
-      <div class="card shadow-sm h-100">
-        <div class="card-body">
-          <div class="text-muted small">Выручка YTD</div>
-          <div class="fs-5 fw-bold">{{ total_revenue_ytd|floatformat:0 }} ₸</div>
-        </div>
-      </div>
+  {# ── Заголовок ── #}
+  <div class="fin-filter-card" style="margin-bottom:16px;">
+    <div class="fin-filter-card__header">
+      <h1 class="fin-page-title">Аналитика аренды</h1>
     </div>
-    <div class="col-md-4">
-      <div class="card shadow-sm h-100">
-        <div class="card-body">
-          <div class="text-muted small">Вакантность</div>
-          <div class="fs-5 fw-bold">{{ vacancy_rate }}%</div>
-        </div>
-      </div>
+    <a href="?export=xlsx" class="fin-btn fin-btn--light" style="white-space:nowrap;">
+      <i class="bi bi-download"></i> Экспорт
+    </a>
+  </div>
+
+  {# ── KPI-строка (3 плитки) ── #}
+  <div class="fin-kpi-grid fin-kpi-grid--3col">
+    <div class="fin-kpi-card">
+      <span class="fin-kpi-label"><i class="bi bi-building"></i> Вакантность</span>
+      <span class="fin-kpi-value {% if vacancy_rate > 20 %}fin-kpi-value--danger{% elif vacancy_rate > 10 %}fin-kpi-value--warning{% else %}fin-kpi-value--success{% endif %}">
+        {{ vacancy_rate|floatformat:1 }}%
+      </span>
+      <span class="fin-kpi-sub">доля незанятых площадей</span>
     </div>
-    <div class="col-md-4">
-      <div class="card shadow-sm h-100">
-        <div class="card-body">
-          <div class="text-muted small">Средняя ставка (₸/м²)</div>
-          <div class="fs-5 fw-bold">{{ avg_rate_per_sqm|floatformat:0 }}</div>
-        </div>
-      </div>
+
+    <div class="fin-kpi-card">
+      <span class="fin-kpi-label"><i class="bi bi-cash-coin"></i> Средняя ставка</span>
+      <span class="fin-kpi-value">{{ avg_rate_per_sqm|floatformat:0 }} ₸/м²</span>
+      <span class="fin-kpi-sub">средневзвешенная по договорам</span>
     </div>
-    <div class="col-md-4">
-      <div class="card shadow-sm h-100">
-        <div class="card-body">
-          <div class="text-muted small">Итого просрочка</div>
-          <div class="fs-5 fw-bold text-danger">{{ total_overdue|floatformat:0 }} ₸</div>
-        </div>
-      </div>
+
+    <div class="fin-kpi-card fin-kpi-card--alert">
+      <span class="fin-kpi-label"><i class="bi bi-exclamation-circle"></i> Просрочка</span>
+      <span class="fin-kpi-value fin-kpi-value--danger">{{ total_overdue|floatformat:0 }} ₸</span>
+      <span class="fin-kpi-sub fin-kpi-sub--danger">по всем арендаторам</span>
     </div>
   </div>
 
-  <div class="row g-3 mb-4">
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">ТОП-10 арендаторов (YTD)</div>
-        <div class="card-body p-0">
-          <table class="table table-hover mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>#</th>
-                <th>Арендатор</th>
-                <th class="text-end">Оплачено, ₸</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in top_tenants %}
-              <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ row.tenant.name|default:"—" }}</td>
-                <td class="text-end">{{ row.total_paid|floatformat:0 }}</td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="3" class="text-center text-muted py-3">Нет данных</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold text-danger">Должники (просрочка)</div>
-        <div class="card-body p-0">
-          <table class="table table-hover mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Арендатор</th>
-                <th class="text-end">Долг, ₸</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in top_debtors %}
-              <tr>
-                <td>{{ row.tenant.name|default:"—" }}</td>
-                <td class="text-end text-danger">{{ row.total_debt|floatformat:0 }}</td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="2" class="text-center text-muted py-3">Нет просрочек</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
+  {# ── Выручка YTD ── #}
+  <div style="margin-bottom:20px;">
+    <div class="fin-kpi-card" style="max-width:320px;">
+      <span class="fin-kpi-label"><i class="bi bi-bar-chart-line"></i> Выручка за год (YTD)</span>
+      <span class="fin-kpi-value fin-kpi-value--success">{{ total_revenue_ytd|floatformat:0 }} ₸</span>
+      <span class="fin-kpi-sub">с 1 января текущего года</span>
     </div>
   </div>
 
-  <div class="card shadow-sm">
-    <div class="card-header fw-semibold">Динамика поступлений (последние 6 периодов)</div>
-    <div class="card-body">
-      <canvas id="rentDynamicsChart" height="100"></canvas>
+  {# ── Графики: Doughnut + Line ── #}
+  <div class="fin-chart-grid fin-chart-grid--even">
+    <div class="fin-chart-card">
+      <div class="fin-chart-header">
+        <span class="fin-chart-title">Доли арендаторов в выручке (YTD)</span>
+      </div>
+      <canvas id="tenantPieChart" height="260"></canvas>
+    </div>
+
+    <div class="fin-chart-card">
+      <div class="fin-chart-header">
+        <span class="fin-chart-title">Динамика поступлений (6 мес.)</span>
+      </div>
+      <canvas id="dynamicsChart" height="260"></canvas>
     </div>
   </div>
+
+  {# ── Таблицы: ТОП арендаторов + Должники ── #}
+  <div class="fin-chart-grid fin-chart-grid--even" style="margin-top:20px;">
+
+    {# ТОП-10 арендаторов #}
+    <div class="fin-chart-card">
+      <div class="fin-chart-header">
+        <span class="fin-chart-title">ТОП-10 арендаторов по оплатам (YTD)</span>
+      </div>
+      <div class="fin-table-wrap">
+        <table class="fin-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Арендатор</th>
+              <th class="fin-table__col--num">Оплачено, ₸</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in top_tenants %}
+            <tr class="fin-row">
+              <td class="fin-muted-text">{{ forloop.counter }}</td>
+              <td>{{ row.tenant.name|default:"—" }}</td>
+              <td class="fin-table__col--num"><strong>{{ row.total_paid|floatformat:0 }}</strong></td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3" class="fin-empty">
+                <i class="bi bi-inbox"></i> Нет данных
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {# Должники #}
+    <div class="fin-chart-card">
+      <div class="fin-chart-header">
+        <span class="fin-chart-title" style="color:#ff3b30;">
+          <i class="bi bi-exclamation-triangle-fill"></i> Должники
+        </span>
+      </div>
+      <div class="fin-table-wrap">
+        <table class="fin-table">
+          <thead>
+            <tr>
+              <th>Арендатор</th>
+              <th class="fin-table__col--num">Долг, ₸</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in top_debtors %}
+            <tr class="fin-row fin-row--danger">
+              <td>{{ d.tenant.name|default:"—" }}</td>
+              <td class="fin-table__col--num"><strong>{{ d.total_debt|floatformat:0 }} ₸</strong></td>
+              <td><span class="fin-status fin-status--danger">Просрочен</span></td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3" class="fin-empty">
+                <i class="bi bi-check-circle text-success"></i> Должников нет
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
 </div>
+
+{# Данные для JS-графиков (безопасная передача через JSON) #}
+<script type="application/json" id="tenantData">
+{"labels":[{% for t in top_tenants %}"{{ t.tenant.name|default:'—'|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}],"values":[{% for t in top_tenants %}{{ t.total_paid|floatformat:0 }}{% if not forloop.last %},{% endif %}{% endfor %}]}
+</script>
+<script type="application/json" id="dynamicsData">
+{"labels":{{ rent_dynamics.labels|safe }},"actual":{{ rent_dynamics.actual|safe }}}
+</script>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-<script>
-(function () {
-  const labels = {{ rent_dynamics.labels|safe }};
-  const actual = {{ rent_dynamics.actual|safe }};
-  new Chart(document.getElementById('rentDynamicsChart'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Поступления, ₸',
-        data: actual,
-        backgroundColor: 'rgba(13,110,253,0.6)',
-        borderColor: 'rgba(13,110,253,1)',
-        borderWidth: 1,
-      }]
-    },
-    options: { responsive: true, plugins: { legend: { display: false } } }
-  });
-})();
-</script>
+<script src="{% static 'site/js/apps/rent-analytics.js' %}?v=fe63"></script>
 {% endblock %}
