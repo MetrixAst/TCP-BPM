@@ -2635,3 +2635,156 @@ class UtilityRegistryTest(TestCase):
             r = self.client.get(url)
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r['Content-Type'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+# ─── BE-2.21: hr_check_expirations ────────────────────────────────────────────
+
+class HrCheckExpirationsTaskTest(TestCase):
+    """Tests for the hr_check_expirations Celery task."""
+
+    def setUp(self):
+        self.dept = Department.objects.create(name='Expiry Dept')
+        _, self.emp = make_user('exp_emp', RoleEnums.STAFF.value, self.dept)
+        self.work_category = WorkCategory.objects.create(
+            name='Heights', code='HGT', category_group='Safety', risk_level='high'
+        )
+        self.cert_type = CertificationType.objects.create(name='Safety Cert', code='SC')
+
+    # ── EmployeeDocument ────────────────────────────────────────────────────
+
+    def test_active_document_becomes_expired(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type='employment_contract',
+            title='Contract',
+            status=DocumentStatusEnum.ACTIVE,
+            expires_at=date.today() - timedelta(days=1),
+        )
+        from hr.tasks import hr_check_expirations
+        result = hr_check_expirations()
+        doc.refresh_from_db()
+        self.assertEqual(doc.status, DocumentStatusEnum.EXPIRED)
+        self.assertEqual(result['documents']['expired'], 1)
+
+    def test_expiring_document_becomes_expired(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type='nda',
+            title='NDA',
+            status=DocumentStatusEnum.EXPIRING,
+            expires_at=date.today() - timedelta(days=5),
+        )
+        from hr.tasks import hr_check_expirations
+        hr_check_expirations()
+        doc.refresh_from_db()
+        self.assertEqual(doc.status, DocumentStatusEnum.EXPIRED)
+
+    def test_active_document_becomes_expiring_within_30_days(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type='other',
+            title='Misc Doc',
+            status=DocumentStatusEnum.ACTIVE,
+            expires_at=date.today() + timedelta(days=15),
+        )
+        from hr.tasks import hr_check_expirations
+        result = hr_check_expirations()
+        doc.refresh_from_db()
+        self.assertEqual(doc.status, DocumentStatusEnum.EXPIRING)
+        self.assertEqual(result['documents']['expiring'], 1)
+
+    def test_active_document_far_future_unchanged(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type='other',
+            title='Future Doc',
+            status=DocumentStatusEnum.ACTIVE,
+            expires_at=date.today() + timedelta(days=90),
+        )
+        from hr.tasks import hr_check_expirations
+        hr_check_expirations()
+        doc.refresh_from_db()
+        self.assertEqual(doc.status, DocumentStatusEnum.ACTIVE)
+
+    def test_draft_document_not_touched(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type='other',
+            title='Draft Doc',
+            status=DocumentStatusEnum.DRAFT,
+            expires_at=date.today() - timedelta(days=10),
+        )
+        from hr.tasks import hr_check_expirations
+        hr_check_expirations()
+        doc.refresh_from_db()
+        self.assertEqual(doc.status, DocumentStatusEnum.DRAFT)
+
+    def test_revoked_document_not_touched(self):
+        doc = EmployeeDocument.objects.create(
+            employee=self.emp,
+            doc_type='other',
+            title='Revoked Doc',
+            status=DocumentStatusEnum.REVOKED,
+            expires_at=date.today() - timedelta(days=3),
+        )
+        from hr.tasks import hr_check_expirations
+        hr_check_expirations()
+        doc.refresh_from_db()
+        self.assertEqual(doc.status, DocumentStatusEnum.REVOKED)
+
+    # ── EmployeeWorkPermit (computed status) ────────────────────────────────
+
+    def test_task_counts_expired_work_permits(self):
+        EmployeeWorkPermit.objects.create(
+            employee=self.emp,
+            category=self.work_category,
+            issue_date=date.today() - timedelta(days=100),
+            expiry_date=date.today() - timedelta(days=10),
+        )
+        from hr.tasks import hr_check_expirations
+        result = hr_check_expirations()
+        self.assertGreaterEqual(result['work_permits']['expired'], 1)
+
+    def test_task_counts_expiring_work_permits(self):
+        EmployeeWorkPermit.objects.create(
+            employee=self.emp,
+            category=self.work_category,
+            issue_date=date.today() - timedelta(days=100),
+            expiry_date=date.today() + timedelta(days=15),
+        )
+        from hr.tasks import hr_check_expirations
+        result = hr_check_expirations()
+        self.assertGreaterEqual(result['work_permits']['expiring'], 1)
+
+    # ── EmployeeCertification (computed status) ─────────────────────────────
+
+    def test_task_counts_expired_certifications(self):
+        EmployeeCertification.objects.create(
+            employee=self.emp,
+            cert_type=self.cert_type,
+            issue_date=date.today() - timedelta(days=200),
+            expiry_date=date.today() - timedelta(days=5),
+        )
+        from hr.tasks import hr_check_expirations
+        result = hr_check_expirations()
+        self.assertGreaterEqual(result['certifications']['expired'], 1)
+
+    def test_task_counts_expiring_certifications(self):
+        EmployeeCertification.objects.create(
+            employee=self.emp,
+            cert_type=self.cert_type,
+            issue_date=date.today() - timedelta(days=200),
+            expiry_date=date.today() + timedelta(days=20),
+        )
+        from hr.tasks import hr_check_expirations
+        result = hr_check_expirations()
+        self.assertGreaterEqual(result['certifications']['expiring'], 1)
+
+    def test_task_returns_expected_keys(self):
+        from hr.tasks import hr_check_expirations
+        result = hr_check_expirations()
+        self.assertIn('documents', result)
+        self.assertIn('work_permits', result)
+        self.assertIn('certifications', result)
+        for section in result.values():
+            self.assertIn('expired', section)
+            self.assertIn('expiring', section)
