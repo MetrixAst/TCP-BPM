@@ -203,6 +203,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'hr.tasks.hr_check_expirations',
         'schedule': crontab(hour=6, minute=0),
     },
+    'fetch-exchange-rates-daily': {
+        'task': 'finances.tasks.fetch_exchange_rates',
+        'schedule': crontab(hour=14, minute=0),
+    },
 }
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'

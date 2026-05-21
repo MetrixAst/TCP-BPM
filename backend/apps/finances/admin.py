@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel
+from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel, ExchangeRate
 
 @admin.register(TenantPaymentRegistry)
 class TenantPaymentRegistryAdmin(admin.ModelAdmin):
@@ -265,3 +265,13 @@ class CreditModelAdmin(admin.ModelAdmin):
     list_filter = ('scenario', 'risk_level')
     search_fields = ('name',)
     readonly_fields = ('dscr', 'free_cashflow', 'risk_level', 'created_at', 'updated_at')
+
+
+@admin.register(ExchangeRate)
+class ExchangeRateAdmin(admin.ModelAdmin):
+    list_display  = ('currency', 'date', 'rate', 'source')
+    list_filter   = ('currency', 'source')
+    search_fields = ('currency',)
+    ordering      = ('-date', 'currency')
+    date_hierarchy = 'date'
+    readonly_fields = ('source',)
