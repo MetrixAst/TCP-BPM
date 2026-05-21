@@ -2497,6 +2497,8 @@ class CertificationFixtureTest(TestCase):
 def make_user(username, role, dept, head=False, is_superuser=False):
     if is_superuser:
         user = User.objects.create_superuser(username=username, password='pass', email=f"{username}@test.kz")
+        user.role = role
+        user.save(update_fields=['role'])
     else:
         user = User.objects.create_user(username=username, password='pass')
         user.role = role
@@ -2788,3 +2790,159 @@ class HrCheckExpirationsTaskTest(TestCase):
         for section in result.values():
             self.assertIn('expired', section)
             self.assertIn('expiring', section)
+
+
+# ─── COLLAB-1: HR integration smoke-test ──────────────────────────────────────
+
+import copy
+from django.conf import settings as django_settings
+
+_COLLAB_HR_TEMPLATES = copy.deepcopy(django_settings.TEMPLATES)
+_COLLAB_HR_TEMPLATES[0]['OPTIONS']['context_processors'] = [
+    'django.template.context_processors.request',
+    'django.contrib.auth.context_processors.auth',
+    'django.contrib.messages.context_processors.messages',
+]
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'], TEMPLATES=_COLLAB_HR_TEMPLATES)
+class HRCollabSmokeTest(TestCase):
+    """Smoke-test HR-экранов и разграничение доступа (COLLAB-1)."""
+
+    ADMIN_SCREENS = [
+        ('hr:org', {}),
+        ('hr:employees', {}),
+        ('hr:create_employee', {}),
+        ('hr:companies', {}),
+        ('hr:positions', {}),
+        ('hr:vacations', {}),
+        ('hr:sick_leaves', {}),
+        ('hr:contracts', {}),
+        ('hr:calendar', {'category': 'vacation'}),
+        ('hr:leave_list', {}),
+        ('hr:leave_create', {}),
+        ('hr:leave_timeline', {}),
+        ('hr:documents_list', {}),
+        ('hr:documents_create', {}),
+        ('hr:permits_list', {}),
+        ('hr:permits_create', {}),
+        ('hr:certifications_list', {}),
+        ('hr:certifications_create', {}),
+        ('hr:attendance_checkin', {}),
+        ('hr:attendance_journal', {}),
+        ('hr:attendance_my', {}),
+    ]
+
+    STAFF_SCREENS = [
+        ('hr:org', {}),
+        ('hr:employees', {}),
+        ('hr:leave_list', {}),
+        ('hr:attendance_my', {}),
+        ('hr:attendance_checkin', {}),
+    ]
+
+    def setUp(self):
+        self.client = Client()
+        self.company = Company.objects.create(name='CollabCo', bin_number='123456789012')
+        self.dept = Department.objects.create(name='Collab IT', company=self.company)
+        self.admin, _ = make_user('collab_admin', RoleEnums.ADMINISTRATOR.value, self.dept, is_superuser=True)
+        self.staff, self.staff_emp = make_user('collab_staff', RoleEnums.STAFF.value, self.dept)
+        self.leave_type = LeaveType.objects.create(name='Ежегодный', max_days_per_year=24)
+
+    def _get_screens(self, user, screens):
+        self.client.login(username=user.username, password='pass')
+        results = []
+        for name, kwargs in screens:
+            url = reverse(name, kwargs=kwargs)
+            results.append((name, self.client.get(url).status_code))
+        self.client.logout()
+        return results
+
+    def test_administrator_all_hr_screens_200(self):
+        for name, code in self._get_screens(self.admin, self.ADMIN_SCREENS):
+            with self.subTest(screen=name):
+                self.assertEqual(code, 200, f'Admin: {name} returned {code}')
+
+    def test_staff_companies_and_positions_access(self):
+        """Staff имеет HR, но без HR_COMPANIES/HR_POSITIONS в меню — экраны по @need_permission(HR)."""
+        self.client.login(username=self.staff.username, password='pass')
+        for name in ('hr:companies', 'hr:positions'):
+            with self.subTest(screen=name):
+                self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+        self.client.logout()
+
+    def test_staff_core_hr_screens_200(self):
+        for name, code in self._get_screens(self.staff, self.STAFF_SCREENS):
+            with self.subTest(screen=name):
+                self.assertEqual(code, 200)
+
+    def test_leave_export_excel_download(self):
+        LeaveRequest.objects.create(
+            employee=self.staff_emp,
+            leave_type=self.leave_type,
+            start_date=date(2026, 9, 1),
+            end_date=date(2026, 9, 5),
+            status=LeaveStatusEnum.APPROVED,
+        )
+        self.client.login(username=self.admin.username, password='pass')
+        response = self.client.get(reverse('hr:leave_export_excel'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response['Content-Type'],
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+
+    def test_hr_chain_document_permit_cert_leave(self):
+        """Цепочка: документ → допуск → сертификация → отпуск."""
+        self.client.login(username=self.admin.username, password='pass')
+        cat = WorkCategory.objects.create(name='Высота', code='COLLAB-H1')
+        cert_type = CertificationType.objects.create(
+            name='Первая помощь', code='COLLAB-FA', is_mandatory=True,
+        )
+
+        doc_data = {
+            'employee': self.staff_emp.pk,
+            'doc_type': DocumentTypeEnum.NDA,
+            'title': 'Collab NDA',
+            'version': '1',
+            'status': DocumentStatusEnum.ACTIVE,
+            'signed_at': date.today().strftime('%d.%m.%Y'),
+            'file': get_fake_file(),
+        }
+        self.assertEqual(self.client.post(reverse('hr:documents_create'), doc_data).status_code, 302)
+        self.assertTrue(EmployeeDocument.objects.filter(title='Collab NDA').exists())
+
+        permit_data = {
+            'employee': self.staff_emp.pk,
+            'category': cat.pk,
+            'issue_date': date.today().strftime('%d.%m.%Y'),
+            'expiry_date': (date.today() + timedelta(days=365)).strftime('%d.%m.%Y'),
+            'document_number': 'COLLAB-WP-1',
+            'scan': get_fake_file('permit.jpg'),
+        }
+        self.assertEqual(self.client.post(reverse('hr:permits_create'), permit_data).status_code, 302)
+        self.assertTrue(EmployeeWorkPermit.objects.filter(document_number='COLLAB-WP-1').exists())
+
+        cert_data = {
+            'employee': self.staff_emp.pk,
+            'cert_type': cert_type.pk,
+            'issue_date': date.today().strftime('%d.%m.%Y'),
+            'expiry_date': (date.today() + timedelta(days=180)).strftime('%d.%m.%Y'),
+            'certificate_number': 'COLLAB-CERT-1',
+        }
+        self.assertEqual(self.client.post(reverse('hr:certifications_create'), cert_data).status_code, 302)
+        self.assertTrue(EmployeeCertification.objects.filter(certificate_number='COLLAB-CERT-1').exists())
+
+        self.client.logout()
+        self.client.login(username=self.staff.username, password='pass')
+        leave_data = {
+            'leave_type': self.leave_type.id,
+            'start_date': '2026-10-01',
+            'end_date': '2026-10-05',
+            'comment': 'COLLAB leave',
+        }
+        response = self.client.post(reverse('hr:leave_create'), leave_data)
+        self.assertIn(response.status_code, (200, 302))
+        self.assertTrue(
+            LeaveRequest.objects.filter(employee=self.staff_emp, comment='COLLAB leave').exists()
+        )
