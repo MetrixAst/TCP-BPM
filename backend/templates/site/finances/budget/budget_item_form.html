@@ -1,41 +1,90 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ title }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<div class="container my-5" style="max-width: 600px;">
+{% extends "site/base.html" %}
+{% load static %}
 
-    <div class="card shadow-sm">
-        <div class="card-header bg-dark text-white">
-            <h4 class="mb-0">{{ title }}</h4>
-        </div>
-        <div class="card-body p-4">
-            <p class="text-muted">Категория: <strong>{{ category.name }}</strong></p>
-            
-            <form method="POST">
-                {% csrf_token %}
-                
-                {% for field in form %}
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}
-                            <div class="text-danger small">{{ field.errors }}</div>
-                        {% endif %}
-                    </div>
-                {% endfor %}
+{% block title %}{{ title }} | Бюджет | metriX BPM{% endblock %}
 
-                <div class="d-flex justify-content-between pt-3">
-                    <a href="{% url 'finances:budget_detail' category.pk %}" class="btn btn-outline-secondary">Отмена</a>
-                    <button type="submit" class="btn btn-success px-4">Сохранить запись</button>
-                </div>
-            </form>
-        </div>
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe54-budget">
+{% endblock %}
+
+{% block content %}
+<section class="fin-page fin-page--narrow">
+
+  <div class="fin-filter-card">
+    <div class="fin-filter-card__header">
+      <div>
+        <a href="{% url 'finances:budget_detail' category.pk %}" class="fin-back-link">
+          <i class="bi bi-arrow-left"></i> Назад к статье
+        </a>
+        <h1 class="fin-page-title">{{ title }}</h1>
+        <p class="fin-page-subtitle">
+          Категория: <strong>{{ category.name }}</strong>
+          {% if category.category_type == 'income' %}
+            <span class="fin-status fin-status--success">Доход</span>
+          {% else %}
+            <span class="fin-status fin-status--warning">Расход</span>
+          {% endif %}
+        </p>
+      </div>
     </div>
+  </div>
 
-</div>
-</body>
-</html>
+  <div class="fin-table-card fin-form-card">
+    <form method="POST" id="budget-item-form">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="fin-form-errors">
+        {% for err in form.non_field_errors %}
+          <span>{{ err }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="fin-form-grid">
+        {% for field in form %}
+        <div class="fin-form-field {% if field.errors %}fin-form-field--error{% endif %}">
+          <label class="fin-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {% if field.field.widget.input_type == 'select' %}
+            <div class="fin-select-wrap">{{ field }}</div>
+          {% else %}
+            {{ field }}
+          {% endif %}
+          {% if field.help_text %}
+            <span class="fin-field-hint">{{ field.help_text }}</span>
+          {% endif %}
+          {% for err in field.errors %}
+            <span class="fin-field-error">{{ err }}</span>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Живой расчёт % освоения -->
+      <div class="fin-live-calc" id="live-calc" style="display:none">
+        <div class="fin-live-calc__label">Предварительный % освоения</div>
+        <div class="fin-progress-wrap">
+          <div class="fin-progress">
+            <div class="fin-progress__bar" id="live-bar" style="width:0%"></div>
+          </div>
+          <span class="fin-progress-label" id="live-pct">0%</span>
+        </div>
+      </div>
+
+      <div class="fin-form-actions">
+        <a href="{% url 'finances:budget_detail' category.pk %}" class="fin-btn fin-btn--light">
+          Отмена
+        </a>
+        <button type="submit" class="fin-btn fin-btn--primary">
+          <i class="bi bi-check-lg"></i> Сохранить
+        </button>
+      </div>
+    </form>
+  </div>
+
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/budget.js' %}?v=fe54"></script>
+{% endblock %}

@@ -2215,3 +2215,181 @@ body.invoice-edit-body {
     background: #2f6bed;
     color: #fff;
   }
+
+// ── FE-5.4: Budget styles ─────────────────────────────────────────────────────
+
+.fin-overrun-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff1f0;
+  border: 1px solid $fin-danger;
+  border-radius: 8px;
+  color: $fin-danger;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 20px;
+  margin-bottom: 16px;
+}
+
+.fin-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: $fin-muted;
+  text-decoration: none;
+  margin-bottom: 8px;
+  &:hover { color: $fin-primary; }
+}
+
+.fin-page-subtitle {
+  font-size: 14px;
+  color: $fin-muted;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// Progress bar
+.fin-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+}
+
+.fin-progress {
+  flex: 1;
+  height: 6px;
+  background: #eceaf3;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.fin-progress__bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width .3s ease;
+  &--success { background: $fin-success; }
+  &--warning  { background: $fin-warning; }
+  &--danger   { background: $fin-danger; }
+}
+
+.fin-progress-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: $fin-text;
+  white-space: nowrap;
+  min-width: 38px;
+  text-align: right;
+}
+
+// Inline colour helpers
+.fin-amount  { font-variant-numeric: tabular-nums; }
+.fin-muted   { color: $fin-muted; }
+.fin-danger  { color: $fin-danger; font-weight: 600; }
+.fin-success { color: $fin-success; font-weight: 600; }
+.text-right  { text-align: right; }
+
+// Badge
+.fin-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  &--neutral { background: #f0f0f0; color: $fin-muted; }
+}
+
+// Total footer row
+.fin-total-row td { background: #f8f7ff; font-weight: 700; }
+
+// Action buttons (icon-only)
+.fin-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: $fin-field-bg;
+  color: $fin-text;
+  border: 1px solid $fin-border;
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .15s;
+  &:hover { background: darken($fin-field-bg, 5%); }
+  &--primary { background: $fin-primary; color: #fff; border-color: $fin-primary;
+    &:hover { background: $fin-primary-hover; } }
+  &--danger  { background: #fff1f0; color: $fin-danger; border-color: $fin-danger;
+    &:hover { background: $fin-danger; color: #fff; } }
+}
+
+// Form card
+.fin-form-card { max-width: 640px; margin: 0 auto; }
+
+.fin-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.fin-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  label, .fin-label { margin-bottom: 0; }
+  input, select, textarea {
+    width: 100%;
+    border: 1px solid $fin-border;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: $fin-text;
+    background: $fin-field-bg;
+    &:focus { outline: none; border-color: $fin-primary; background: #fff; }
+  }
+  &--error input, &--error select { border-color: $fin-danger; }
+}
+
+.fin-field-hint  { font-size: 11px; color: $fin-muted; }
+.fin-field-error { font-size: 12px; color: $fin-danger; }
+
+.fin-form-errors {
+  background: #fff1f0;
+  border: 1px solid $fin-danger;
+  border-radius: 8px;
+  padding: 10px 16px;
+  color: $fin-danger;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.fin-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid $fin-border;
+  padding-top: 16px;
+}
+
+.fin-live-calc {
+  background: $fin-field-bg;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  &__label { font-size: 12px; color: $fin-muted; margin-bottom: 6px; }
+}
+
+.fin-input--danger { border-color: $fin-danger !important; }
+
+.fin-page--narrow {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.fin-select-wrap select { appearance: none; }

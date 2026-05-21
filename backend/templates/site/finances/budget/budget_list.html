@@ -1,130 +1,192 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Бюджетирование (Plan/Fact/Forecast)</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<div class="container my-5">
+{% extends "site/base.html" %}
+{% load static %}
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="text" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
+{% block title %}Бюджет | metriX BPM{% endblock %}
 
-    {% if has_overrun %}
-        <div class="alert alert-danger d-flex align-items-center" role="alert">
-            <strong class="me-2"></strong> Обнаружен критический перерасход по статьям расходов (>110% от плана)
-        </div>
-    {% endif %}
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe54-budget">
+{% endblock %}
 
-    <div class="card card-body mb-4 shadow-sm">
-        <h3 class="card-title text-primary mb-3">Контроль бюджетов: {{ year }} г. / Месяц: {{ month }}</h3>
-        <form method="GET" class="row g-3 align-items-center">
-            <div class="col-auto">
-                <label class="form-label font-weight-bold">Период:</label>
-                <select name="period_type" class="form-select form-select-sm">
-                    <option value="monthly" {% if period_type == 'monthly' %}selected{% endif %}>Ежемесячно</option>
-                    <option value="quarterly" {% if period_type == 'quarterly' %}selected{% endif %}>Поквартально</option>
-                    <option value="yearly" {% if period_type == 'yearly' %}selected{% endif %}>Ежегодно</option>
-                </select>
-            </div>
-            <div class="col-auto">
-                <label class="form-label">Тип статей:</label>
-                <select name="cat_type" class="form-select form-select-sm">
-                    <option value="">Все статьи</option>
-                    <option value="income" {% if cat_type == 'income' %}selected{% endif %}>Доходы</option>
-                    <option value="expense" {% if cat_type == 'expense' %}selected{% endif %}>Расходы</option>
-                </select>
-            </div>
-            <div class="col-auto pt-4">
-                <button type="submit" class="btn btn-primary btn-sm px-4">Применить фильтр</button>
-                <a href="?year={{ prev_year }}&month={{ prev_month }}&period_type={{ period_type }}" class="btn btn-outline-secondary btn-sm">⬅️ Пред. месяц</a>
-                <a href="?year={{ next_year }}&month={{ next_month }}&period_type={{ period_type }}" class="btn btn-outline-secondary btn-sm">След. месяц ➡️</a>
-            </div>
-        </form>
+{% block content %}
+<section class="fin-page">
+
+  {% if has_overrun %}
+  <div class="fin-overrun-alert">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>Обнаружен перерасход по одной или нескольким статьям (факт &gt; 110% плана)</span>
+  </div>
+  {% endif %}
+
+  <div class="fin-filter-card">
+    <div class="fin-filter-card__header">
+      <h1 class="fin-page-title">Бюджет — {{ year }} / {{ month }} мес.</h1>
     </div>
 
-    <div class="table-responsive bg-white rounded shadow-sm p-3">
-        <table class="table table-hover align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>Категория / Статья</th>
-                    <th>Тип</th>
-                    <th class="text-end">План (Plan)</th>
-                    <th class="text-end">Факт (Fact)</th>
-                    <th class="text-end">Прогноз (Forecast)</th>
-                    <th class="text-end">Отклонение</th>
-                    <th class="text-center">% Освоения</th>
-                    <th class="text-center">Статус/Сигнал</th>
-                    <th class="text-center">Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in rows %}
-                <tr class="{% if row.overrun %}table-danger{% endif %}">
-                    <td>
-                        <strong>{{ row.cat.name }}</strong>
-                    </td>
-                    <td>
-                        {% if row.cat.category_type == 'income' %}
-                            <span class="badge bg-success">Доход</span>
-                        {% else %}
-                            <span class="badge bg-warning text-dark">Расход</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-end fw-bold">{{ row.plan }} ₸</td>
-                    <td class="text-end text-success fw-bold">{{ row.fact }} ₸</td>
-                    <td class="text-end text-muted">{{ row.forecast }} ₸</td>
-                    <td class="text-end {% if row.variance > 0 and row.cat.category_type == 'expense' %}text-danger fw-bold{% elif row.variance < 0 and row.cat.category_type == 'expense' %}text-success{% else %}text-secondary{% endif %}">
-                        {{ row.variance }} ₸
-                    </td>
-                    <td class="text-center fw-bold">
-                        {% if row.exec_pct is not None %}
-                            {{ row.exec_pct }}%
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-                    <td class="text-center">
-                        {% if row.overrun %}
-                            <span class="badge bg-danger animate-pulse">Перерасход!</span>
-                        {% else %}
-                            <span class="badge bg-light text-success">Норма</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-center">
-                        <div class="btn-group btn-group-sm">
-                            <a href="{% url 'finances:budget_detail' row.cat.pk %}" class="btn btn-info text-white">Детали / Подстатьи</a>
-                            {% if can_edit %}
-                                <a href="{% url 'finances:budget_item_create' row.cat.pk %}" class="btn btn-success">+ Добавить факт</a>
-                            {% endif %}
-                        </div>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="9" class="text-center text-muted py-4">Данные за выбранный период не найдены.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-            <tfoot class="table-light fw-bold">
-                <tr>
-                    <td colspan="2">Оборот по выборке:</td>
-                    <td class="text-end text-primary">{{ total_plan }} ₸</td>
-                    <td class="text-end text-success">{{ total_fact }} ₸</td>
-                    <td colspan="5"></td>
-                </tr>
-            </tfoot>
-        </table>
+    <form method="GET" class="fin-filter-form">
+      <div class="fin-field">
+        <label class="fin-label">Период</label>
+        <select name="period_type" class="fin-input">
+          <option value="monthly"   {% if period_type == 'monthly'   %}selected{% endif %}>Ежемесячно</option>
+          <option value="quarterly" {% if period_type == 'quarterly' %}selected{% endif %}>Поквартально</option>
+          <option value="yearly"    {% if period_type == 'yearly'    %}selected{% endif %}>Ежегодно</option>
+        </select>
+      </div>
+
+      <div class="fin-field">
+        <label class="fin-label">Тип статей</label>
+        <select name="cat_type" class="fin-input">
+          <option value="">Все</option>
+          <option value="income"  {% if cat_type == 'income'  %}selected{% endif %}>Доходы</option>
+          <option value="expense" {% if cat_type == 'expense' %}selected{% endif %}>Расходы</option>
+        </select>
+      </div>
+
+      <div class="fin-field">
+        <label class="fin-label">Год</label>
+        <input type="number" name="year" value="{{ year }}" class="fin-input" style="width:90px">
+      </div>
+
+      <div class="fin-field">
+        <label class="fin-label">Месяц</label>
+        <input type="number" name="month" value="{{ month }}" min="1" max="12" class="fin-input" style="width:70px">
+      </div>
+
+      <button type="submit" class="fin-btn fin-btn--primary">Применить</button>
+
+      <a href="?year={{ prev_year }}&month={{ prev_month }}&period_type={{ period_type }}" class="fin-btn fin-btn--light">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+      <a href="?year={{ next_year }}&month={{ next_month }}&period_type={{ period_type }}" class="fin-btn fin-btn--light">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+
+      {% if can_edit %}
+      <a href="/admin/finances/budgetcategory/add/" class="fin-btn fin-btn--primary" style="margin-left:auto">
+        <i class="bi bi-plus-lg"></i> Создать статью
+      </a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="fin-table-card">
+    <div class="fin-table-head">
+      <div>
+        <div class="fin-table-title">Статьи бюджета</div>
+        <div class="fin-table-subtitle">{{ rows|length }} категори{{ rows|length|pluralize:"я,и,й" }}</div>
+      </div>
+      <div class="fin-legend">
+        <span class="fin-legend__dot fin-legend__dot--success"></span>В норме
+        <span class="fin-legend__dot fin-legend__dot--danger"></span>Перерасход
+      </div>
     </div>
 
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <div class="fin-table-wrap">
+      <table class="fin-table" id="budget-table">
+        <thead>
+          <tr>
+            <th>Категория</th>
+            <th>Тип</th>
+            <th class="text-right">План</th>
+            <th class="text-right">Факт</th>
+            <th class="text-right">Прогноз</th>
+            <th>% освоения</th>
+            <th class="text-right">Отклонение</th>
+            <th>Статус</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for row in rows %}
+          <tr class="fin-row {% if row.overrun %}fin-row--danger{% elif row.exec_pct >= 80 %}fin-row--success{% else %}fin-row--secondary{% endif %}"
+              data-plan="{{ row.plan }}" data-fact="{{ row.fact }}">
+
+            <td>
+              <div class="fin-tenant">
+                <strong class="fin-tenant__name">{{ row.cat.name }}</strong>
+                {% if row.cat.description %}
+                <span class="fin-tenant__sub">{{ row.cat.description|truncatechars:40 }}</span>
+                {% endif %}
+              </div>
+            </td>
+
+            <td>
+              {% if row.cat.category_type == 'income' %}
+                <span class="fin-status fin-status--success">Доход</span>
+              {% else %}
+                <span class="fin-status fin-status--warning">Расход</span>
+              {% endif %}
+            </td>
+
+            <td class="text-right fin-amount">{{ row.plan|floatformat:0 }} ₸</td>
+            <td class="text-right fin-amount">{{ row.fact|floatformat:0 }} ₸</td>
+            <td class="text-right fin-amount fin-muted">{{ row.forecast|floatformat:0 }} ₸</td>
+
+            <td>
+              <div class="fin-progress-wrap">
+                <div class="fin-progress">
+                  <div class="fin-progress__bar {% if row.overrun %}fin-progress__bar--danger{% elif row.exec_pct >= 80 %}fin-progress__bar--success{% else %}fin-progress__bar--warning{% endif %}"
+                       style="width: {{ row.exec_pct|floatformat:0 }}%"
+                       data-pct="{{ row.exec_pct }}">
+                  </div>
+                </div>
+                <span class="fin-progress-label">{{ row.exec_pct }}%</span>
+              </div>
+            </td>
+
+            <td class="text-right">
+              <span class="fin-amount {% if row.variance > 0 and row.cat.category_type == 'expense' %}fin-danger{% elif row.variance < 0 and row.cat.category_type == 'expense' %}fin-success{% else %}fin-muted{% endif %}">
+                {% if row.variance > 0 %}+{% endif %}{{ row.variance|floatformat:0 }} ₸
+              </span>
+            </td>
+
+            <td>
+              {% if row.overrun %}
+                <span class="fin-status fin-status--danger">Перерасход</span>
+              {% else %}
+                <span class="fin-status fin-status--success">Норма</span>
+              {% endif %}
+            </td>
+
+            <td>
+              <div class="fin-actions">
+                <a href="{% url 'finances:budget_detail' row.cat.pk %}" class="fin-action-btn">
+                  <i class="bi bi-eye"></i>
+                </a>
+                {% if can_edit %}
+                <a href="{% url 'finances:budget_item_create' row.cat.pk %}" class="fin-action-btn fin-action-btn--primary">
+                  <i class="bi bi-plus"></i>
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="fin-empty-state">
+              <i class="bi bi-pie-chart"></i>
+              <strong>Статьи бюджета не найдены</strong>
+              <span>Создайте первую категорию или измените фильтры</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+
+        <tfoot>
+          <tr class="fin-total-row">
+            <td colspan="2"><strong>Итого</strong></td>
+            <td class="text-right"><strong>{{ total_plan|floatformat:0 }} ₸</strong></td>
+            <td class="text-right"><strong>{{ total_fact|floatformat:0 }} ₸</strong></td>
+            <td colspan="5"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/budget.js' %}?v=fe54"></script>
+{% endblock %}
