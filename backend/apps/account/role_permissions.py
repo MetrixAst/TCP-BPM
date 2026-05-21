@@ -213,6 +213,7 @@ class MenuItem:
         finance_full_submenu = finance_common_submenu + [
             MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
             MenuItem('fin_credit', 'finances:credit_model_list', '', 'Кредитная модель'),
+            MenuItem('fin_rent_analytics', 'finances:rent_analytics', '', 'Аналитика аренды'),
         ]
 
         finance_readonly_submenu = [
@@ -223,6 +224,7 @@ class MenuItem:
             MenuItem('fin_reg', 'finances:reg', '', 'Реестр оплат'),
             MenuItem('fin_calendar', 'finances:payment_calendar', '', 'Календарь платежей'),
             MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
+            MenuItem('fin_rent_analytics', 'finances:rent_analytics', '', 'Аналитика аренды'),
         ]
 
         items = {

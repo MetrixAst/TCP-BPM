@@ -38,4 +38,6 @@ urlpatterns = [
     path('dashboard/', views.dashboard, name='dashboard'),
     path('dashboard/kpi/', views.dashboard_kpi, name='dashboard_kpi'),
     path('dashboard/drilldown/', views.dashboard_drilldown, name='dashboard_drilldown'),
+
+    path('analytics/rent/', views.rent_analytics, name='rent_analytics'),
 ]

@@ -1134,3 +1134,97 @@ def credit_model_create(request):
         'show_form':  True,
     }
     return render(request, 'site/finances/credit_model.html', context)
+
+
+# ── BE-6.4: Аналитика аренды ──────────────────────────────────────────────────
+
+@need_permission(PermissionEnums.FINANCE_DASHBOARD)
+def rent_analytics(request):
+    from django.db.models import Sum
+    from tenants.models import Tenant
+
+    today = date.today()
+    current_year = today.year
+
+    ytd_qs = TenantPaymentRegistry.objects.filter(
+        period__year=current_year
+    ).values('tenant').annotate(total_paid=Sum('paid')).order_by('-total_paid')
+
+    tenant_ids = [row['tenant'] for row in ytd_qs]
+    tenants_map = {t.pk: t for t in Tenant.objects.filter(pk__in=tenant_ids)}
+
+    top_tenants = []
+    for row in ytd_qs[:10]:
+        t = tenants_map.get(row['tenant'])
+        top_tenants.append({
+            'tenant': t,
+            'total_paid': row['total_paid'],
+        })
+
+    all_tenants = Tenant.objects.all()
+    total_area = sum(t.area or 0 for t in all_tenants)
+    occupied_tenant_ids = set(
+        TenantPaymentRegistry.objects.filter(
+            period__year=current_year
+        ).values_list('tenant_id', flat=True).distinct()
+    )
+    occupied_area = sum(
+        t.area or 0 for t in all_tenants if t.pk in occupied_tenant_ids
+    )
+    if total_area > 0:
+        vacancy_rate = round((total_area - occupied_area) / total_area * 100, 2)
+    else:
+        vacancy_rate = 0
+
+    if occupied_area > 0:
+        total_revenue_ytd = sum(row['total_paid'] or 0 for row in ytd_qs)
+        avg_rate_per_sqm = round(float(total_revenue_ytd) / occupied_area, 2) if occupied_area else 0
+    else:
+        avg_rate_per_sqm = 0
+        total_revenue_ytd = 0
+
+    overdue_qs = TenantPaymentRegistry.objects.filter(
+        status=TenantPaymentRegistry.Status.OVERDUE
+    ).values('tenant').annotate(total_debt=Sum('balance')).order_by('-total_debt')
+
+    overdue_tenant_ids = [row['tenant'] for row in overdue_qs]
+    overdue_tenants_map = {t.pk: t for t in Tenant.objects.filter(pk__in=overdue_tenant_ids)}
+
+    top_debtors = []
+    total_overdue = 0
+    for row in overdue_qs:
+        t = overdue_tenants_map.get(row['tenant'])
+        debt = row['total_debt'] or 0
+        total_overdue += float(debt)
+        top_debtors.append({
+            'tenant': t,
+            'total_debt': debt,
+        })
+
+    from django.db.models.functions import TruncMonth
+    dynamics_qs = (
+        TenantPaymentRegistry.objects
+        .annotate(month=TruncMonth('period'))
+        .values('month')
+        .annotate(total_paid=Sum('paid'))
+        .order_by('month')
+    )
+    all_periods = list(dynamics_qs)
+    last_6 = all_periods[-6:] if len(all_periods) >= 6 else all_periods
+
+    rent_dynamics = {
+        'labels': [row['month'].strftime('%Y-%m') for row in last_6],
+        'actual': [float(row['total_paid'] or 0) for row in last_6],
+    }
+
+    context = {
+        'top_tenants': top_tenants,
+        'vacancy_rate': vacancy_rate,
+        'avg_rate_per_sqm': avg_rate_per_sqm,
+        'top_debtors': top_debtors,
+        'rent_dynamics': rent_dynamics,
+        'total_revenue_ytd': total_revenue_ytd,
+        'total_overdue': total_overdue,
+        'today': today,
+    }
+    return render(request, 'site/finances/rent_analytics.html', context)
