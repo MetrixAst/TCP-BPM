@@ -72,6 +72,10 @@ class RolePermissions:
             PermissionEnums.COMMENT,
             PermissionEnums.HR_JOURNAL, 
             PermissionEnums.FINANCE_INVOICES,
+            PermissionEnums.FINANCE_REGISTERS,
+            PermissionEnums.FINANCE_BUDGET,
+            PermissionEnums.FINANCE_REPORTS,
+            PermissionEnums.FINANCE_SCENARIOS,
         ],
         RoleEnums.OWNER.value: [
             PermissionEnums.PROFILE,
@@ -92,6 +96,7 @@ class RolePermissions:
             PermissionEnums.FINANCE_SCENARIOS,
             PermissionEnums.FINANCE_REPORTS,
             PermissionEnums.FINANCE_INVOICES,
+            PermissionEnums.FINANCE_REGISTERS,
         ],
         RoleEnums.CHIEF_ACCOUNTANT.value: [
             PermissionEnums.PROFILE,
@@ -196,9 +201,26 @@ class MenuItem:
         finance_common_submenu = [
             MenuItem('fin_dash', 'dashboard:dashboard', '', 'Финансовый дашборд'),
             MenuItem('fin_reports', 'reports:home', '', 'Финансовые отчеты'),
-            MenuItem('fin_invoices', 'finances:reg', '', 'Счета и оплаты'),
+            MenuItem('fin_reg', 'finances:reg', '', 'Реестр оплат'),
+            MenuItem('fin_calendar', 'finances:payment_calendar', '', 'Календарь платежей'),
+            MenuItem('fin_invoices', 'finances:invoice_list', '', 'Счета'),
             MenuItem('fin_opiu', 'finances:opiu', '', 'ОПиУ'),
             MenuItem('fin_cashflow', 'finances:cashflow', '', 'ДДС'),
+        ]
+
+        finance_full_submenu = finance_common_submenu + [
+            MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
+            MenuItem('fin_credit', 'finances:credit_model_list', '', 'Кредитная модель'),
+        ]
+
+        finance_readonly_submenu = [
+            MenuItem('fin_reports', 'reports:home', '', 'Финансовые отчеты'),
+            MenuItem('fin_opiu', 'finances:opiu', '', 'ОПиУ'),
+            MenuItem('fin_cashflow', 'finances:cashflow', '', 'ДДС'),
+            MenuItem('fin_invoices', 'finances:invoice_list', '', 'Счета'),
+            MenuItem('fin_reg', 'finances:reg', '', 'Реестр оплат'),
+            MenuItem('fin_calendar', 'finances:payment_calendar', '', 'Календарь платежей'),
+            MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
         ]
 
         items = {
@@ -210,10 +232,7 @@ class MenuItem:
                     MenuItem('tenants_list', 'tenants:list', '', 'Арендаторы'),
                 ]),
                 MenuItem('purchases', 'documents:list', 'folder2', 'Закупки', url_param=['purchases']),
-                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=[
-                    MenuItem('reg', 'finances:reg', '', 'Реестр оплат'),
-                    MenuItem('calendar', 'finances:calendar', '', 'Финансовый календарь'),
-                    MenuItem('budget', 'documents:list', '', 'Бюджет компании', url_param=['budget']),
+                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu + [
                     MenuItem('bill', 'finances:bill', '', 'Счет компании'),
                 ]),
                 MenuItem('hr', '#hr', 'people', 'HR', submenu=[
@@ -235,31 +254,17 @@ class MenuItem:
             ],
 
             RoleEnums.OWNER.value: [
-                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_common_submenu + [
-                    MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
-                    MenuItem('fin_scenarios', 'finances:credit_model_list', '', 'Кредитная модель'),
-                    MenuItem('fin_registers', 'finances:reg', '', 'Финансовые реестры'),
-                ]),
+                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
             RoleEnums.CFO.value: [
-                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_common_submenu + [
-                    MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
-                    MenuItem('fin_scenarios', 'finances:credit_model_list', '', 'Кредитная модель'),
-                ]),
+                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
             RoleEnums.CHIEF_ACCOUNTANT.value: [
-                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=[
-                    MenuItem('fin_reports', 'reports:home', '', 'Финансовые отчеты'),
-                    MenuItem('fin_opiu', 'finances:opiu', '', 'ОПиУ'),
-                    MenuItem('fin_cashflow', 'finances:cashflow', '', 'ДДС'),
-                    MenuItem('fin_invoices', 'finances:reg', '', 'Счета и оплаты'),
-                    MenuItem('fin_registers', 'finances:reg', '', 'Финансовые реестры'),
-                    MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
-                ]),
+                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_readonly_submenu),
             ],
 
             RoleEnums.STAFF.value: [

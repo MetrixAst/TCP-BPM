@@ -2123,3 +2123,100 @@ class InvoiceSendViewTest(TestCase):
         self.client.post(url, {'sent_via': 'email'})
         invoice.refresh_from_db()
         self.assertIsNone(invoice.sent_at)
+
+
+# ─── COLLAB-3: Finance screens smoke-test ─────────────────────────────────────
+
+from django.test import TestCase, Client, override_settings
+from django.urls import reverse
+from account.models import UserAccount
+from account.role_permissions import RoleEnums
+
+
+def _fin_user(username, role):
+    user, _ = UserAccount.objects.get_or_create(
+        username=username,
+        defaults={'role': role, 'is_superuser': True},
+    )
+    user.role = role
+    user.set_password('pass')
+    user.save()
+    return user
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'])
+class FinanceSmokeTest(TestCase):
+    """Smoke-test цепочки финансовых экранов и разграничение ролей."""
+
+    FINANCE_URLS = [
+        ('finances:reg', {}),
+        ('finances:payment_calendar', {}),
+        ('finances:invoice_list', {}),
+        ('finances:budget_list', {}),
+        ('finances:opiu', {}),
+        ('finances:cashflow', {}),
+    ]
+
+    def setUp(self):
+        self.cfo = _fin_user('collab_cfo', RoleEnums.CFO.value)
+        self.owner = _fin_user('collab_owner', RoleEnums.OWNER.value)
+        self.accountant = _fin_user('collab_ca', RoleEnums.CHIEF_ACCOUNTANT.value)
+        self.staff = _fin_user('collab_staff', RoleEnums.STAFF.value)
+
+    def _get_all(self, user, urls):
+        self.client.login(username=user.username, password='pass')
+        results = []
+        for name, kwargs in urls:
+            url = reverse(name, kwargs=kwargs)
+            r = self.client.get(url)
+            results.append((name, r.status_code))
+        self.client.logout()
+        return results
+
+    def test_cfo_sees_all_finance_screens(self):
+        for name, code in self._get_all(self.cfo, self.FINANCE_URLS):
+            with self.subTest(screen=name):
+                self.assertEqual(code, 200, f'CFO: {name} returned {code}')
+
+    def test_cfo_sees_credit_model(self):
+        self.client.login(username=self.cfo.username, password='pass')
+        r = self.client.get(reverse('finances:credit_model_list'))
+        self.assertEqual(r.status_code, 200)
+        r2 = self.client.get(reverse('finances:credit_model_create'))
+        self.assertEqual(r2.status_code, 200)
+
+    def test_owner_sees_credit_model(self):
+        self.client.login(username=self.owner.username, password='pass')
+        self.assertEqual(self.client.get(reverse('finances:credit_model_list')).status_code, 200)
+
+    def test_chief_accountant_readonly_finance_screens(self):
+        for name, code in self._get_all(self.accountant, self.FINANCE_URLS):
+            with self.subTest(screen=name):
+                self.assertEqual(code, 200)
+
+    def test_chief_accountant_denied_credit_model(self):
+        self.client.login(username=self.accountant.username, password='pass')
+        r = self.client.get(reverse('finances:credit_model_list'))
+        self.assertIn(r.status_code, (302, 403))
+
+    def test_chief_accountant_cannot_create_budget_item(self):
+        from finances.models import BudgetCategory
+        cat = BudgetCategory.objects.create(name='Smoke Cat', category_type='expense')
+        self.client.login(username=self.accountant.username, password='pass')
+        r = self.client.get(reverse('finances:budget_item_create', kwargs={'category_pk': cat.pk}))
+        self.assertEqual(r.status_code, 403)
+
+    def test_staff_denied_finance_screens(self):
+        for name, code in self._get_all(self.staff, self.FINANCE_URLS[:2]):
+            with self.subTest(screen=name):
+                self.assertIn(code, (302, 403))
+
+    def test_finance_chain_urls_resolve(self):
+        names = [
+            'finances:reg', 'finances:payment_calendar', 'finances:invoice_list',
+            'finances:budget_list', 'finances:opiu', 'finances:cashflow',
+            'finances:credit_model_list',
+        ]
+        for name in names:
+            with self.subTest(url=name):
+                self.assertTrue(reverse(name))

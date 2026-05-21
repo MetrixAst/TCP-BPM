@@ -20,14 +20,6 @@ from django.utils import timezone
 
 from account.role_permissions import RoleEnums
 
-def payment_reg(request):
-    context = {
-
-    }
-
-    return render(request, 'site/finances/payment_register.html', context)
-
-
 
 @need_permission(PermissionEnums.FINANCES)
 def calendar(request):
@@ -71,15 +63,6 @@ def calendar_action(request, action):
     return JsonResponse({}, status=400)
 
 
-
-def budget_list(request):
-    context = {
-
-    }
-
-    return render(request, 'site/finances/budget/budget_list.html', context)
-
-
 def budget(request, pk):
     context = {
 
@@ -89,11 +72,7 @@ def budget(request, pk):
 
 
 def budget_create(request):
-    context = {
-
-    }
-
-    return render(request, 'site/finances/budget/budget_create.html', context)
+    return redirect('finances:budget_list')
 
 
 def bill(request):
@@ -104,7 +83,7 @@ def bill(request):
     return render(request, 'site/finances/bill.html', context)
 
 
-@need_permission(PermissionEnums.FINANCES)
+@need_permission(PermissionEnums.FINANCE_REGISTERS)
 def payment_reg(request):
     qs = TenantPaymentRegistry.objects.select_related(
         'tenant', 'tenant__category', 'tenant__room'
@@ -170,7 +149,7 @@ def payment_reg(request):
 
     return render(request, 'site/finances/payment_register.html', context)
 
-@need_permission(PermissionEnums.FINANCES)
+@need_permission(PermissionEnums.FINANCE_REGISTERS)
 def payment_calendar(request):
     from datetime import date, timedelta
     from calendar import monthrange
@@ -249,7 +228,7 @@ def payment_calendar(request):
     return render(request, 'site/finances/payment_calendar.html', context)
 
 
-@need_permission(PermissionEnums.FINANCES)
+@need_permission(PermissionEnums.FINANCE_REGISTERS)
 def payment_calendar_day(request, year, month, day):
     from datetime import date
     from .models import PaymentCalendarEntry
