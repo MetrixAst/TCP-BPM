@@ -199,6 +199,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'hr.tasks.sync_enbek_data',
         'schedule': crontab(minute=0, hour='*/6'),
     },
+    'fetch-exchange-rates-daily': {
+        'task': 'finances.tasks.fetch_exchange_rates',
+        'schedule': crontab(hour=14, minute=0),
+    },
 }
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'

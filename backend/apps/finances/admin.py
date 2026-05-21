@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord
+from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, ExchangeRate
 
 @admin.register(TenantPaymentRegistry)
 class TenantPaymentRegistryAdmin(admin.ModelAdmin):
@@ -257,3 +257,12 @@ class CashFlowRecordAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False  
+
+@admin.register(ExchangeRate)
+class ExchangeRateAdmin(admin.ModelAdmin):
+    list_display  = ('currency', 'date', 'rate', 'source')
+    list_filter   = ('currency', 'source')
+    search_fields = ('currency',)
+    ordering      = ('-date', 'currency')
+    date_hierarchy = 'date'
+    readonly_fields = ('source',)

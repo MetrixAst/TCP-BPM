@@ -1,3 +1,5 @@
+from datetime import date as date_type
+
 from django.db import models
 from account.models import UserAccount
 
@@ -552,3 +554,68 @@ class CashFlowRecord(models.Model):
     @property
     def is_outflow(self):
         return self.direction == self.Direction.OUTFLOW
+
+class ExchangeRate(models.Model):
+    """Курс валюты НБ РК на конкретную дату."""
+
+    currency = models.CharField('Валюта', max_length=3)   # USD, EUR, RUB, CNY …
+    date     = models.DateField('Дата')
+    rate     = models.DecimalField('Курс к KZT', max_digits=20, decimal_places=6)
+    source   = models.CharField('Источник', max_length=50, default='nbrk')
+
+    class Meta:
+        verbose_name        = 'Курс валюты'
+        verbose_name_plural = 'Курсы валют'
+        unique_together     = ('currency', 'date')
+        ordering            = ['-date', 'currency']
+        indexes             = [
+            models.Index(fields=['date']),
+            models.Index(fields=['currency', 'date']),
+        ]
+
+    def __str__(self):
+        return f"{self.currency}/{self.date}: {self.rate}"
+
+    @classmethod
+    def convert(cls, amount, from_currency, to_currency='KZT', date=None):
+        """
+        Конвертирует сумму через курс НБ РК.
+        Поддерживает: any→KZT, KZT→any, any→any (через KZT).
+        """
+        from decimal import Decimal
+
+        if from_currency == to_currency:
+            return Decimal(str(amount))
+
+        lookup_date = date or date_type.today()
+        amount = Decimal(str(amount))
+
+        def get_rate(currency):
+            try:
+                return cls.objects.filter(
+                    currency=currency,
+                    date__lte=lookup_date,
+                ).order_by('-date').values_list('rate', flat=True).first()
+            except cls.DoesNotExist:
+                return None
+
+        if to_currency == 'KZT':
+            rate = get_rate(from_currency)
+            if rate is None:
+                raise ValueError(f"Курс {from_currency}/KZT на {lookup_date} не найден")
+            return amount * Decimal(str(rate))
+
+        if from_currency == 'KZT':
+            rate = get_rate(to_currency)
+            if rate is None:
+                raise ValueError(f"Курс {to_currency}/KZT на {lookup_date} не найден")
+            return amount / Decimal(str(rate))
+
+        # Конвертация через KZT: from → KZT → to
+        rate_from = get_rate(from_currency)
+        rate_to   = get_rate(to_currency)
+        if rate_from is None:
+            raise ValueError(f"Курс {from_currency}/KZT на {lookup_date} не найден")
+        if rate_to is None:
+            raise ValueError(f"Курс {to_currency}/KZT на {lookup_date} не найден")
+        return (amount * Decimal(str(rate_from))) / Decimal(str(rate_to))
