@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem
+from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem, FinancialStatement
 
 @admin.register(TenantPaymentRegistry)
 class TenantPaymentRegistryAdmin(admin.ModelAdmin):
@@ -160,6 +160,47 @@ class BudgetItemAdmin(admin.ModelAdmin):
         }),
         ('Аналитика', {
             'fields': ('variance', 'variance_pct', 'execution_pct'),
+        }),
+        ('Прочее', {
+            'fields': ('note', 'created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+@admin.register(FinancialStatement)
+class FinancialStatementAdmin(admin.ModelAdmin):
+    list_display = (
+        '__str__', 'period_type', 'year', 'month', 'quarter',
+        'revenue_fact', 'ebitda_fact', 'net_profit_fact',
+        'ebitda_margin_fact', 'net_margin_fact',
+    )
+    list_filter   = ('period_type', 'year')
+    search_fields = ('note',)
+    readonly_fields = (
+        'ebitda_margin_fact', 'net_margin_fact', 'operating_margin_fact',
+        'revenue_variance', 'net_profit_variance', 'ebitda_variance',
+        'created_at', 'updated_at',
+    )
+    filter_horizontal = ('revenue_categories', 'expense_categories')
+    fieldsets = (
+        ('Период', {
+            'fields': ('period_type', 'year', 'month', 'quarter'),
+        }),
+        ('Выручка (Revenue)', {
+            'fields': ('revenue_plan', 'revenue_fact', 'revenue_forecast', 'revenue_variance'),
+        }),
+        ('EBITDA', {
+            'fields': ('ebitda_plan', 'ebitda_fact', 'ebitda_forecast', 'ebitda_variance', 'ebitda_margin_fact'),
+        }),
+        ('Операционная прибыль', {
+            'fields': ('operating_profit_plan', 'operating_profit_fact', 'operating_margin_fact'),
+        }),
+        ('Чистая прибыль (Net profit)', {
+            'fields': ('net_profit_plan', 'net_profit_fact', 'net_profit_forecast', 'net_profit_variance', 'net_margin_fact'),
+        }),
+        ('Drill-down категории', {
+            'fields': ('revenue_categories', 'expense_categories'),
+            'classes': ('collapse',),
         }),
         ('Прочее', {
             'fields': ('note', 'created_at', 'updated_at'),

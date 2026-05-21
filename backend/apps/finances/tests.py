@@ -4,7 +4,7 @@ from django.db import IntegrityError
 from datetime import date
 from decimal import Decimal
 
-from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem
+from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem, FinancialStatement
 from tenants.models import Tenant, TenantCategory, Room
 
 from django.urls import reverse
@@ -1478,3 +1478,180 @@ class BudgetItemModelTest(TestCase):
         self.assertEqual(item.plan, Decimal('0'))
         self.assertEqual(item.fact, Decimal('0'))
         self.assertEqual(item.forecast, Decimal('0'))
+
+
+class FinancialStatementModelTest(TestCase):
+
+    def setUp(self):
+        self.cat_income = BudgetCategory.objects.create(
+            name='Выручка ОПиУ', category_type=BudgetCategory.Type.INCOME,
+        )
+        self.cat_expense = BudgetCategory.objects.create(
+            name='Расходы ОПиУ', category_type=BudgetCategory.Type.EXPENSE,
+        )
+
+    def _make_statement(self, **kwargs):
+        defaults = dict(
+            period_type=FinancialStatement.Period.MONTHLY,
+            year=2026, month=5,
+            revenue_plan=Decimal('1000000'),
+            revenue_fact=Decimal('900000'),
+            revenue_forecast=Decimal('950000'),
+            ebitda_plan=Decimal('400000'),
+            ebitda_fact=Decimal('360000'),
+            ebitda_forecast=Decimal('380000'),
+            operating_profit_plan=Decimal('300000'),
+            operating_profit_fact=Decimal('270000'),
+            net_profit_plan=Decimal('200000'),
+            net_profit_fact=Decimal('180000'),
+            net_profit_forecast=Decimal('190000'),
+        )
+        defaults.update(kwargs)
+        return FinancialStatement.objects.create(**defaults)
+
+    def test_create_monthly(self):
+        s = self._make_statement()
+        self.assertEqual(s.year, 2026)
+        self.assertEqual(s.month, 5)
+        self.assertEqual(s.period_type, 'monthly')
+
+    def test_create_quarterly(self):
+        s = self._make_statement(
+            period_type=FinancialStatement.Period.QUARTERLY,
+            month=None, quarter=2,
+        )
+        self.assertEqual(s.quarter, 2)
+
+    def test_create_yearly(self):
+        s = self._make_statement(
+            period_type=FinancialStatement.Period.YEARLY,
+            month=None,
+        )
+        self.assertEqual(s.period_type, 'yearly')
+
+    def test_str_monthly(self):
+        s = self._make_statement()
+        self.assertEqual(str(s), 'ОПиУ | 05.2026')
+
+    def test_str_quarterly(self):
+        s = self._make_statement(
+            period_type=FinancialStatement.Period.QUARTERLY,
+            month=None, quarter=1,
+        )
+        self.assertEqual(str(s), 'ОПиУ | Q1 2026')
+
+    def test_str_yearly(self):
+        s = self._make_statement(
+            period_type=FinancialStatement.Period.YEARLY,
+            month=None,
+        )
+        self.assertEqual(str(s), 'ОПиУ | 2026')
+
+    def test_ebitda_margin_fact(self):
+        s = self._make_statement(
+            revenue_fact=Decimal('1000000'),
+            ebitda_fact=Decimal('400000'),
+        )
+        self.assertEqual(s.ebitda_margin_fact, 40.0)
+
+    def test_net_margin_fact(self):
+        s = self._make_statement(
+            revenue_fact=Decimal('1000000'),
+            net_profit_fact=Decimal('200000'),
+        )
+        self.assertEqual(s.net_margin_fact, 20.0)
+
+    def test_operating_margin_fact(self):
+        s = self._make_statement(
+            revenue_fact=Decimal('1000000'),
+            operating_profit_fact=Decimal('300000'),
+        )
+        self.assertEqual(s.operating_margin_fact, 30.0)
+
+    def test_margin_none_when_revenue_zero(self):
+        s = self._make_statement(revenue_fact=Decimal('0'))
+        self.assertIsNone(s.ebitda_margin_fact)
+        self.assertIsNone(s.net_margin_fact)
+        self.assertIsNone(s.operating_margin_fact)
+
+    def test_revenue_variance(self):
+        s = self._make_statement(
+            revenue_plan=Decimal('1000000'),
+            revenue_fact=Decimal('900000'),
+        )
+        self.assertEqual(s.revenue_variance, Decimal('-100000'))
+
+    def test_net_profit_variance(self):
+        s = self._make_statement(
+            net_profit_plan=Decimal('200000'),
+            net_profit_fact=Decimal('220000'),
+        )
+        self.assertEqual(s.net_profit_variance, Decimal('20000'))
+
+    def test_ebitda_variance(self):
+        s = self._make_statement(
+            ebitda_plan=Decimal('400000'),
+            ebitda_fact=Decimal('380000'),
+        )
+        self.assertEqual(s.ebitda_variance, Decimal('-20000'))
+
+    def test_defaults_zero(self):
+        s = FinancialStatement.objects.create(
+            period_type=FinancialStatement.Period.MONTHLY,
+            year=2026, month=6,
+        )
+        self.assertEqual(s.revenue_plan, Decimal('0'))
+        self.assertEqual(s.net_profit_fact, Decimal('0'))
+        self.assertEqual(s.ebitda_forecast, Decimal('0'))
+
+    def test_unique_together(self):
+        self._make_statement()
+        obj, created = FinancialStatement.objects.get_or_create(
+            period_type=FinancialStatement.Period.MONTHLY,
+            year=2026, month=5,
+            defaults={'revenue_plan': Decimal('999999')},
+            )
+        self.assertFalse(created)
+        self.assertEqual(
+            FinancialStatement.objects.filter(period_type='monthly', year=2026, month=5).count(), 1
+            )
+
+    def test_different_months_allowed(self):
+        self._make_statement(month=1)
+        s2 = self._make_statement(month=2)
+        self.assertIsNotNone(s2.pk)
+
+    def test_revenue_categories_m2m(self):
+        s = self._make_statement()
+        s.revenue_categories.add(self.cat_income)
+        self.assertIn(self.cat_income, s.revenue_categories.all())
+
+    def test_expense_categories_m2m(self):
+        s = self._make_statement()
+        s.expense_categories.add(self.cat_expense)
+        self.assertIn(self.cat_expense, s.expense_categories.all())
+
+    def test_revenue_categories_empty_by_default(self):
+        s = self._make_statement()
+        self.assertEqual(s.revenue_categories.count(), 0)
+
+    def test_period_label_monthly(self):
+        s = self._make_statement(month=3)
+        self.assertEqual(s.get_period_label(), '03.2026')
+
+    def test_period_label_quarterly(self):
+        s = self._make_statement(
+            period_type=FinancialStatement.Period.QUARTERLY,
+            month=None, quarter=4,
+        )
+        self.assertEqual(s.get_period_label(), 'Q4 2026')
+
+    def test_related_name_revenue_statements(self):
+        s = self._make_statement()
+        s.revenue_categories.add(self.cat_income)
+        self.assertIn(s, self.cat_income.revenue_statements.all())
+
+    def test_related_name_expense_statements(self):
+        s = self._make_statement()
+        s.expense_categories.add(self.cat_expense)
+        self.assertIn(s, self.cat_expense.expense_statements.all())

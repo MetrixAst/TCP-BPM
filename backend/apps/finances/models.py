@@ -360,3 +360,114 @@ class BudgetItem(models.Model):
         if self.plan == 0:
             return None
         return round(self.fact / self.plan * 100, 2)
+
+class FinancialStatement(models.Model):
+
+    class Period(models.TextChoices):
+        MONTHLY   = 'monthly',   'Месяц'
+        QUARTERLY = 'quarterly', 'Квартал'
+        YEARLY    = 'yearly',    'Год'
+
+    period_type = models.CharField('Тип периода', max_length=10, choices=Period.choices, default=Period.MONTHLY, db_index=True)
+    year    = models.PositiveIntegerField('Год', db_index=True)
+    month   = models.PositiveSmallIntegerField('Месяц (1-12)', null=True, blank=True)
+    quarter = models.PositiveSmallIntegerField('Квартал (1-4)', null=True, blank=True)
+
+    revenue_plan     = models.DecimalField('Выручка план', max_digits=16, decimal_places=2, default=0)
+    revenue_fact     = models.DecimalField('Выручка факт', max_digits=16, decimal_places=2, default=0)
+    revenue_forecast = models.DecimalField('Выручка прогноз', max_digits=16, decimal_places=2, default=0)
+
+    ebitda_plan     = models.DecimalField('EBITDA план', max_digits=16, decimal_places=2, default=0)
+    ebitda_fact     = models.DecimalField('EBITDA факт', max_digits=16, decimal_places=2, default=0)
+    ebitda_forecast = models.DecimalField('EBITDA прогноз', max_digits=16, decimal_places=2, default=0)
+
+    operating_profit_plan = models.DecimalField('Операционная прибыль план', max_digits=16, decimal_places=2, default=0)
+    operating_profit_fact = models.DecimalField('Операционная прибыль факт', max_digits=16, decimal_places=2, default=0)
+
+    net_profit_plan     = models.DecimalField('Чистая прибыль план', max_digits=16, decimal_places=2, default=0)
+    net_profit_fact     = models.DecimalField('Чистая прибыль факт', max_digits=16, decimal_places=2, default=0)
+    net_profit_forecast = models.DecimalField('Чистая прибыль прогноз', max_digits=16, decimal_places=2, default=0)
+
+    revenue_categories = models.ManyToManyField(
+        BudgetCategory, blank=True,
+        related_name='revenue_statements',
+        verbose_name='Категории выручки',
+        limit_choices_to={'category_type': 'income'},
+    )
+    expense_categories = models.ManyToManyField(
+        BudgetCategory, blank=True,
+        related_name='expense_statements',
+        verbose_name='Категории расходов',
+        limit_choices_to={'category_type': 'expense'},
+    )
+
+    note       = models.TextField('Примечание', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def validate_unique(self, exclude=None):
+        super().validate_unique(exclude=exclude)
+        from django.core.exceptions import ValidationError
+        qs = FinancialStatement.objects.filter(
+            period_type=self.period_type,
+            year=self.year,
+            month=self.month,
+            quarter=self.quarter,
+        )
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        if qs.exists():
+            raise ValidationError(
+            f'Отчёт ОПиУ за этот период уже существует.'
+        )
+
+
+    class Meta:
+        verbose_name        = 'Отчёт ОПиУ'
+        verbose_name_plural = 'Отчёты ОПиУ'
+        ordering            = ['-year', '-month', '-quarter']
+        unique_together     = [('period_type', 'year', 'month', 'quarter')]
+        indexes             = [
+            models.Index(fields=['year', 'month']),
+            models.Index(fields=['period_type', 'year']),
+        ]
+
+    def __str__(self):
+        return f"ОПиУ | {self.get_period_label()}"
+
+    def get_period_label(self):
+        if self.period_type == self.Period.MONTHLY and self.month:
+            return f"{self.month:02d}.{self.year}"
+        if self.period_type == self.Period.QUARTERLY and self.quarter:
+            return f"Q{self.quarter} {self.year}"
+        return str(self.year)
+
+    @property
+    def ebitda_margin_fact(self):
+        if not self.revenue_fact:
+            return None
+        return round(self.ebitda_fact / self.revenue_fact * 100, 2)
+
+    @property
+    def net_margin_fact(self):
+        if not self.revenue_fact:
+            return None
+        return round(self.net_profit_fact / self.revenue_fact * 100, 2)
+
+    @property
+    def operating_margin_fact(self):
+        if not self.revenue_fact:
+            return None
+        return round(self.operating_profit_fact / self.revenue_fact * 100, 2)
+
+    @property
+    def revenue_variance(self):
+        return self.revenue_fact - self.revenue_plan
+
+    @property
+    def net_profit_variance(self):
+        return self.net_profit_fact - self.net_profit_plan
+
+    @property
+    def ebitda_variance(self):
+        return self.ebitda_fact - self.ebitda_plan
