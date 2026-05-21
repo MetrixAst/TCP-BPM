@@ -1287,6 +1287,21 @@ def get_finance_filters(request):
     return JsonResponse(filters)
 
 
+# ── BE-6.9: Multi-currency balances ───────────────────────────────────────────
+
+@need_permission(PermissionEnums.FINANCE_DASHBOARD)
+def dashboard_balances(request):
+    from .services.balances import get_balances_with_conversion
+    currency = request.GET.get('currency', 'USD').upper()
+    allowed  = {'USD', 'EUR', 'RUB', 'CNY', 'KZT'}
+    if currency not in allowed:
+        return JsonResponse({'error': f'Unsupported currency: {currency}'}, status=400)
+    if currency == 'KZT':
+        return JsonResponse({'error': 'Use KZT as base currency; select USD, EUR, RUB or CNY'}, status=400)
+    data = get_balances_with_conversion(currency=currency)
+    return JsonResponse(data)
+
+
 # ── BE-6.2: CF chart endpoints ────────────────────────────────────────────────
 
 @need_permission(PermissionEnums.FINANCE_DASHBOARD)

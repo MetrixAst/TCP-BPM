@@ -53,4 +53,6 @@ urlpatterns = [
 
     path('filters/save/', views.save_finance_filters, name='save_finance_filters'),
     path('filters/', views.get_finance_filters, name='get_finance_filters'),
+
+    path('dashboard/balances/', views.dashboard_balances, name='dashboard_balances'),
 ]
