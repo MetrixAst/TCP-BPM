@@ -4,7 +4,7 @@ from django.db import IntegrityError
 from datetime import date
 from decimal import Decimal
 
-from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord
+from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel
 from tenants.models import Tenant, TenantCategory, Room
 
 from django.urls import reverse
@@ -2977,3 +2977,83 @@ class CashflowForecastViewTest(TestCase):
 
     def test_forecast_view_403_unauthenticated(self):
         self.assertIn(self.client.get('/finances/dashboard/forecast/').status_code, (302, 403))
+
+
+# ── BE-6.6: Сценарии ──────────────────────────────────────────────────────────
+
+def make_user_be66(role, username):
+    return User.objects.create_user(username=username, password='pass', role=role)
+
+
+class ScenariosListViewTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo = make_user_be66(RoleEnums.CFO.value, 'cfo_scen')
+        self.today = date.today()
+        CreditModel.objects.create(
+            name='Сценарий А',
+            scenario=CreditModel.Scenario.BASE,
+            period_start=self.today,
+            period_end=self.today.replace(year=self.today.year + 1),
+            loan_amount=Decimal('5000000.00'),
+            loan_rate=Decimal('12.00'),
+        )
+
+    def _login(self):
+        self.client.force_login(self.cfo)
+
+    def test_scenarios_list_200(self):
+        self._login()
+        self.assertEqual(self.client.get('/finances/scenarios/').status_code, 200)
+
+    def test_scenarios_list_context(self):
+        self._login()
+        response = self.client.get('/finances/scenarios/')
+        self.assertIn('models', response.context)
+        self.assertEqual(len(response.context['models']), 1)
+
+    def test_scenarios_list_403_unauthenticated(self):
+        self.assertIn(self.client.get('/finances/scenarios/').status_code, (302, 403))
+
+
+class ScenarioDetailJsonTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo = make_user_be66(RoleEnums.CFO.value, 'cfo_scen_json')
+        self.today = date.today()
+        self.scenario = CreditModel.objects.create(
+            name='Сценарий Б',
+            scenario=CreditModel.Scenario.STRESS,
+            period_start=self.today,
+            period_end=self.today.replace(year=self.today.year + 2),
+            loan_amount=Decimal('10000000.00'),
+            loan_rate=Decimal('15.00'),
+        )
+
+    def _login(self):
+        self.client.force_login(self.cfo)
+
+    def test_scenario_json_200(self):
+        self._login()
+        self.assertEqual(self.client.get(f'/finances/scenarios/{self.scenario.pk}/json/').status_code, 200)
+
+    def test_scenario_json_structure(self):
+        self._login()
+        data = self.client.get(f'/finances/scenarios/{self.scenario.pk}/json/').json()
+        for key in ('id', 'name', 'scenario', 'loan_amount', 'loan_rate', 'projected_cashflow'):
+            self.assertIn(key, data, f'Missing key: {key}')
+
+    def test_scenario_json_values(self):
+        self._login()
+        data = self.client.get(f'/finances/scenarios/{self.scenario.pk}/json/').json()
+        self.assertEqual(data['name'], 'Сценарий Б')
+        self.assertEqual(data['loan_amount'], 10000000.0)
+
+    def test_scenario_json_404(self):
+        self._login()
+        self.assertIn(self.client.get('/finances/scenarios/9999/json/').status_code, (200, 404))
+
+    def test_scenario_json_403_unauthenticated(self):
+        self.assertIn(self.client.get(f'/finances/scenarios/{self.scenario.pk}/json/').status_code, (302, 403))

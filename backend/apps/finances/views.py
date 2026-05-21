@@ -1381,3 +1381,34 @@ def cashflow_forecast(request):
         days = 90
     data = forecast_cashflow(horizon_days=days)
     return JsonResponse(data)
+
+
+# ── BE-6.6: Сценарии ──────────────────────────────────────────────────────────
+
+@need_permission(PermissionEnums.FINANCE_SCENARIOS)
+def scenarios_list(request):
+    models_qs = CreditModel.objects.all().order_by('-created_at')
+    can_manage = _can_manage_credit(request.user)
+    return render(request, 'site/finances/scenarios.html', {
+        'models': models_qs,
+        'can_manage': can_manage,
+    })
+
+
+@need_permission(PermissionEnums.FINANCE_SCENARIOS)
+def scenario_detail_json(request, pk):
+    scenario = get_object_or_404(CreditModel, pk=pk)
+
+    return JsonResponse({
+        'id': scenario.id,
+        'name': scenario.name,
+        'scenario': scenario.scenario,
+        'period_start': str(scenario.period_start),
+        'period_end': str(scenario.period_end),
+        'loan_amount': float(scenario.loan_amount),
+        'loan_rate': float(scenario.loan_rate),
+        'dscr': float(scenario.dscr) if scenario.dscr is not None else None,
+        'free_cashflow': float(scenario.free_cashflow) if scenario.free_cashflow is not None else None,
+        'risk_level': scenario.risk_level,
+        'projected_cashflow': scenario.projected_cashflow,
+    })

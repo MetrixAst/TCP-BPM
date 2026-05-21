@@ -47,4 +47,7 @@ urlpatterns = [
     path('dashboard/drilldown/record/<str:onec_id>/', views.drilldown_record, name='drilldown_record'),
 
     path('dashboard/forecast/', views.cashflow_forecast, name='cashflow_forecast'),
+
+    path('scenarios/', views.scenarios_list, name='scenarios_list'),
+    path('scenarios/<int:pk>/json/', views.scenario_detail_json, name='scenario_detail_json'),
 ]
