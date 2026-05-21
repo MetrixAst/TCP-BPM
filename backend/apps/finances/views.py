@@ -965,6 +965,7 @@ def _compute_dashboard_kpis():
 @need_permission(PermissionEnums.FINANCE_DASHBOARD)
 def dashboard(request):
     context = _compute_dashboard_kpis()
+    context['can_manage'] = _can_manage_credit(request.user)
     return render(request, 'site/finances/dashboard.html', context)
 
 

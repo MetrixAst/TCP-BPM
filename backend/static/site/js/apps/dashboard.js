@@ -301,6 +301,18 @@ async function loadBalances(currency) {
         hintEl.classList.remove('is-stale');
       }
     }
+
+    /* Stale banner */
+    const banner  = document.getElementById('rateStaleBanner');
+    const bannerT = document.getElementById('rateStaleBannerText');
+    if (banner && bannerT) {
+      if (!d.rate_is_fresh) {
+        bannerT.textContent = `Курс устарел. Последний актуальный: ${d.rate} ₸ / ${d.currency} на ${d.rate_date}`;
+        banner.style.display = 'flex';
+      } else {
+        banner.style.display = 'none';
+      }
+    }
   } catch (e) {
     console.error('loadBalances error', e);
   }
