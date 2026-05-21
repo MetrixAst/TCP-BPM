@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord
@@ -2392,3 +2392,156 @@ class FetchExchangeRatesTaskTest(TestCase):
         from finances.tasks import fetch_exchange_rates
         result = fetch_exchange_rates()
         self.assertIn('created', result)
+
+
+# ── BE-6.5: Прогноз CF ────────────────────────────────────────────────────────
+
+def make_user_be65(role, username):
+    return User.objects.create_user(username=username, password='pass', role=role)
+
+
+class ForecastServiceTest(TestCase):
+
+    def setUp(self):
+        self.today = date.today()
+        self.tenant = make_tenant('ФорекастТенант')
+
+        PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-F-001',
+            expected_date=self.today + timedelta(days=5),
+            expected_amount=Decimal('500000.00'),
+            status=PaymentCalendarEntry.Status.PLAN,
+        )
+        PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-F-002',
+            expected_date=self.today + timedelta(days=15),
+            expected_amount=Decimal('300000.00'),
+            status=PaymentCalendarEntry.Status.PLAN,
+        )
+        PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-F-HIST',
+            expected_date=self.today - timedelta(days=30),
+            expected_amount=Decimal('400000.00'),
+            actual_amount=Decimal('360000.00'),
+            status=PaymentCalendarEntry.Status.FACT,
+            actual_date=self.today - timedelta(days=30),
+        )
+        CashFlowRecord.objects.create(
+            direction=CashFlowRecord.Direction.OUTFLOW,
+            flow_type=CashFlowRecord.FlowType.OPERATING,
+            amount=Decimal('90000.00'),
+            transaction_date=self.today - timedelta(days=10),
+        )
+
+    def test_forecast_returns_required_keys(self):
+        from finances.services.forecast import forecast_cashflow
+        result = forecast_cashflow(horizon_days=30)
+        for key in ('labels', 'projected_income', 'projected_expense', 'net_cf', 'gap_dates'):
+            self.assertIn(key, result, f'Missing key: {key}')
+
+    def test_forecast_labels_length_30(self):
+        from finances.services.forecast import forecast_cashflow
+        result = forecast_cashflow(horizon_days=30)
+        self.assertEqual(len(result['labels']), 30)
+        self.assertEqual(len(result['projected_income']), 30)
+        self.assertEqual(len(result['projected_expense']), 30)
+        self.assertEqual(len(result['net_cf']), 30)
+
+    def test_forecast_labels_length_60(self):
+        from finances.services.forecast import forecast_cashflow
+        result = forecast_cashflow(horizon_days=60)
+        self.assertEqual(len(result['labels']), 60)
+
+    def test_forecast_labels_length_90(self):
+        from finances.services.forecast import forecast_cashflow
+        result = forecast_cashflow(horizon_days=90)
+        self.assertEqual(len(result['labels']), 90)
+
+    def test_gap_dates_is_list(self):
+        from finances.services.forecast import forecast_cashflow
+        result = forecast_cashflow(horizon_days=30)
+        self.assertIsInstance(result['gap_dates'], list)
+
+    def test_gap_dates_are_in_labels(self):
+        from finances.services.forecast import forecast_cashflow
+        result = forecast_cashflow(horizon_days=30)
+        for gd in result['gap_dates']:
+            self.assertIn(gd, result['labels'], f'gap_date {gd} not in labels')
+
+    def test_gap_dates_identified_correctly(self):
+        from finances.services.forecast import forecast_cashflow
+        result = forecast_cashflow(horizon_days=30)
+        for i, gd in enumerate(result['gap_dates']):
+            idx = result['labels'].index(gd)
+            self.assertLess(result['net_cf'][idx], 0, f'net_cf on gap_date {gd} should be < 0')
+
+    def test_projected_income_has_nonzero_on_plan_days(self):
+        from finances.services.forecast import forecast_cashflow
+        result = forecast_cashflow(horizon_days=30)
+        day5 = (self.today + timedelta(days=5)).isoformat()
+        if day5 in result['labels']:
+            idx = result['labels'].index(day5)
+            self.assertGreater(result['projected_income'][idx], 0)
+
+    def test_empty_plan_no_income(self):
+        from finances.services.forecast import forecast_cashflow
+        PaymentCalendarEntry.objects.filter(status=PaymentCalendarEntry.Status.PLAN).delete()
+        result = forecast_cashflow(horizon_days=7)
+        self.assertEqual(sum(result['projected_income']), 0)
+
+
+class CashflowForecastViewTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo = make_user_be65(RoleEnums.CFO.value, 'cfo_forecast')
+        self.tenant = make_tenant('ВьюФорекаст')
+        self.today = date.today()
+
+        PaymentCalendarEntry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-VF-001',
+            expected_date=self.today + timedelta(days=10),
+            expected_amount=Decimal('200000.00'),
+            status=PaymentCalendarEntry.Status.PLAN,
+        )
+
+    def _login(self):
+        self.client.force_login(self.cfo)
+
+    def test_view_returns_200(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/forecast/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_default_horizon_90(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/forecast/')
+        data = response.json()
+        self.assertEqual(len(data['labels']), 90)
+
+    def test_days_param_30(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/forecast/?days=30')
+        data = response.json()
+        self.assertEqual(len(data['labels']), 30)
+
+    def test_days_param_60(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/forecast/?days=60')
+        data = response.json()
+        self.assertEqual(len(data['labels']), 60)
+
+    def test_json_structure(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/forecast/?days=30')
+        data = response.json()
+        for key in ('labels', 'projected_income', 'projected_expense', 'net_cf', 'gap_dates'):
+            self.assertIn(key, data)
+
+    def test_403_unauthenticated(self):
+        response = self.client.get('/finances/dashboard/forecast/')
+        self.assertIn(response.status_code, (302, 403))

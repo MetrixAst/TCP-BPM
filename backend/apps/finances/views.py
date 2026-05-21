@@ -9,8 +9,8 @@ from project.utils import get_or_none
 
 from .forms import FinanceItemForm, GeneratedInvoiceForm, GeneratedInvoiceItemFormSet
 from .models import (
-    FinanceItem, TenantPaymentRegistry, GeneratedInvoice, BudgetCategory, BudgetItem,
-    FinancialStatement, CashFlowRecord, CreditModel,
+    FinanceItem, TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice,
+    BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel,
 )
 from .serializers import FinanceItemSerializer
 
@@ -839,6 +839,19 @@ def cashflow_register(request):
 def _can_manage_credit(user):
     role = user.role.value if hasattr(user.role, 'value') else user.role
     return role in (RoleEnums.CFO.value, RoleEnums.OWNER.value, RoleEnums.ADMINISTRATOR.value)
+
+
+# ── BE-6.5: Прогноз CF ────────────────────────────────────────────────────────
+
+@need_permission(PermissionEnums.FINANCE_DASHBOARD)
+def cashflow_forecast(request):
+    from .services.forecast import forecast_cashflow
+    try:
+        days = max(1, min(int(request.GET.get('days', 90)), 365))
+    except (ValueError, TypeError):
+        days = 90
+    data = forecast_cashflow(horizon_days=days)
+    return JsonResponse(data)
 
 
 @need_permission(PermissionEnums.FINANCE_SCENARIOS)

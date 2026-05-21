@@ -34,4 +34,6 @@ urlpatterns = [
     path('cashflow/', views.cashflow_register, name='cashflow'),
     path('credit-model/', views.credit_model_list, name='credit_model_list'),
     path('credit-model/create/', views.credit_model_create, name='credit_model_create'),
+
+    path('dashboard/forecast/', views.cashflow_forecast, name='cashflow_forecast'),
 ]
