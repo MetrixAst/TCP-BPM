@@ -1,556 +1,581 @@
-# TRC BPM — Sprint 2 (Phase 6 BE — Дашборды Backend)
+# TRC BPM — Sprint 3 (Phase 6 FE — Дашборды Frontend)
 
 **Ветка:** `sprint`  
-**Базируется от:** `sprint` (все Phase 5 задачи выполнены и влиты)  
-**Цель:** реализовать backend финансовых дашбордов → прогресс ~70% → ~78%
+**Цель:** реализовать frontend финансовых дашбордов → ~78% → ~85%  
+**Исполнитель:** FE (Анель)
 
 ---
 
 ## Что уже сделано (не трогать)
 
-### Phase 5 — ПОЛНОСТЬЮ ЗАКРЫТА ✅
-- BE-2.fix ✅ — companies.html + positions.html
-- BE-2.21 ✅ — Celery hr_check_expirations (ежедневно 06:00)
-- BE-5.1–5.11 ✅ — все финансовые модели и views
-- BE-5.12 ✅ — CreditModel (сценарии + DSCR)
-- BE-5.13 ✅ — ExchangeRate + Celery НБ РК (ежедневно 14:00)
-- BE-5.14 ✅ — Отправка счетов email/мессенджеры
-- FE-5.1–5.5 ✅ — все финансовые шаблоны
-- COLLAB-3 ✅ — стыковка финансов core
+### Все Phase 5 + Phase 6 BE ✅
+- BE-6.1 ✅ — dashboard view + `/finances/dashboard/kpi/` + `/finances/dashboard/drilldown/`
+- BE-6.2 ✅ — `/finances/dashboard/cashflow-daily/` + `/finances/dashboard/cashflow-weekly/`
+- BE-6.3 ✅ — `/finances/dashboard/drilldown/record/<onec_id>/`
+- BE-6.4 ✅ — `/finances/analytics/rent/`
+- BE-6.5 ✅ — `/finances/dashboard/forecast/?days=30|60|90`
+- BE-6.6 ✅ — `/finances/scenarios/` + `/finances/scenarios/<pk>/json/`
+- BE-6.7 ✅ — `?export=xlsx` в реестре, ДДС, бюджете, ОПиУ
+- BE-6.8 ✅ — `/finances/filters/save/` + `/finances/filters/`
+- BE-6.9 ✅ — `/finances/dashboard/balances/?currency=USD|EUR|RUB`
 
-### Структура проекта
-- **Стек:** Django 4.2 + DRF + Celery + PostgreSQL + Redis + Bootstrap 5 + Vanilla JS
-- **Финансы:** `backend/apps/finances/` — models.py, views.py, urls.py, tests.py, admin.py
-- **Сервисы:** `backend/apps/finances/services/` — nbrk.py, notifications.py
-- **Шаблоны:** `backend/templates/site/finances/`
-- **Статика:** `backend/static/site/css/apps/finances.scss`, `backend/static/site/js/apps/`
-- **Роли:** `backend/apps/account/role_permissions.py` (Owner, CFO, ChiefAccountant, Administrator)
-- **Permissions:** FINANCE_DASHBOARD, FINANCE_BUDGET, FINANCE_SCENARIOS, FINANCE_REPORTS, FINANCE_INVOICES, FINANCE_REGISTERS
+### Стек и соглашения
+- **Шаблоны:** Django Templates SSR, `{% extends "site/base.html" %}`
+- **Стили:** `fin-*` CSS-классы из `backend/static/site/css/apps/finances.scss`  
+  Переменные: `$fin-primary:#2f6bed`, `$fin-success:#22a85a`, `$fin-danger:#ff3b30`, `$fin-warning:#ff9500`
+- **JS:** Vanilla JS + Chart.js (уже подключён глобально через base.html или подключать через `{% block scripts %}`)
+- **Иконки:** Bootstrap Icons (`bi bi-*`)
+- **Образцы верстки:** `invoice_list.html`, `payment_calendar.html`, `budget_list.html`
+- **Каждый шаблон** подключает `finances.css`: `<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=...">`
 
-### Ключевые модели (все в `backend/apps/finances/models.py`)
-- `TenantPaymentRegistry` — реестр платежей арендаторов (status: paid/partial/pending/overdue/cancelled)
-- `PaymentCalendarEntry` — календарь платежей (status: plan/fact/overdue, expected_date, actual_amount)
-- `GeneratedInvoice` — счета (status: created/sent/viewed/paid/cancelled)
-- `BudgetCategory` + `BudgetItem` — бюджетирование (plan/fact/forecast по категориям)
-- `FinancialStatement` — ОПиУ (revenue, ebitda, operating_profit, net_profit)
-- `CashFlowRecord` — ДДС (amount, flow_type: income/expense, category FK, onec_id)
-- `CreditModel` — кредитная модель (scenario: base/stress/optimistic, DSCR)
-- `ExchangeRate` — курсы валют (currency, date, rate, метод convert())
-
-### Существующие views (backend/apps/finances/views.py)
-- `payment_reg`, `payment_calendar`, `payment_calendar_day`
-- `invoice_list`, `invoice_create`, `invoice_detail`, `invoice_edit`, `invoice_send`, etc.
-- `budget_list`, `budget`, `budget_create`
-- `financial_statement`, `cashflow_register`
-- `credit_model_list`, `credit_model_create`
+### Правила
+1. Ветки от `sprint`, PR в `sprint`
+2. Коммиты: `FE-6.1: Executive Dashboard шаблон + Chart.js`
+3. Для каждого нового JS-файла — `backend/static/site/js/apps/<name>.js`
+4. Новые SCSS-классы — добавлять в `backend/static/site/css/apps/finances.scss`
+5. Chart.js подключать: `<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>` в `{% block scripts %}`
 
 ---
 
-## Задачи Спринта 2
+## Задачи Спринта 3
 
-### Порядок выполнения (строгий!)
+### Порядок выполнения
 ```
-BE-6.4 и BE-6.1 — параллельно (не зависят друг от друга)
-BE-6.2 и BE-6.3 — после BE-6.1
-BE-6.5 — независимо
-BE-6.6 — после BE-6.5
-BE-6.7, BE-6.8, BE-6.9 — после предыдущих
+FE-6.3 и FE-6.5 — независимы, можно начать сразу
+FE-6.1 — самый большой (14h), запускать параллельно
+FE-6.2 — после FE-6.1
+FE-6.4 — после FE-6.1 (использует те же layout-паттерны)
+COLLAB-4 — после всех FE-6.x
 ```
 
 ---
 
-### BE-6.4 — Backend аналитики аренды (5h)
+### FE-6.1 — Executive Dashboard (14h)
 **Статус:** ❌  
-**Ветка:** `feature/TASK-6.4-rent-analytics-api`  
+**Ветка:** `feature/FE-6.1-executive-dashboard`  
 **Файлы:**
-- `backend/apps/finances/views.py` — добавить view
-- `backend/apps/finances/urls.py` — добавить URL
-- `backend/apps/finances/tests.py` — тесты
+- `backend/templates/site/finances/dashboard.html` — уже создан BE (пустой или stub), **переверстать полностью**
+- `backend/static/site/js/apps/dashboard.js` — создать
+- `backend/static/site/css/apps/finances.scss` — добавить классы `fin-kpi-*`, `fin-chart-*`
 
-**Что сделать:**
-
-View `rent_analytics(request)` → GET `/finances/analytics/rent/`
-
-Возвращает `render()` с контекстом (не JSON — это SSR-шаблон):
+**Контекст из view `dashboard(request)`:**
 ```python
 context = {
-    'top_tenants': [...],       # ТОП-10 по выручке YTD
-    'vacancy_rate': 8.5,        # % вакантных площадей
-    'avg_rate_per_sqm': 12500,  # средняя ставка тг/м²
-    'top_debtors': [...],       # ТОП должников (overdue)
-    'rent_dynamics': {          # динамика за 6 мес
-        'labels': ['2026-01', ...],
-        'actual': [8200000, ...]
-    },
-    'total_revenue_ytd': ...,
-    'total_overdue': ...,
+    'cash_balance': Decimal,         # остаток ДС
+    'revenue_mtd': Decimal,          # выручка текущий месяц
+    'revenue_ytd': Decimal,          # выручка текущий год
+    'revenue_mtd_change': float,     # % изменение vs прошлый месяц (может быть отрицательным)
+    'expenses_mtd': Decimal,         # расходы текущий месяц
+    'net_cf': Decimal,               # net cash flow = revenue_mtd - expenses_mtd
+    'budget_deviation_pct': float,   # % отклонения от бюджета
+    'overdue_count': int,            # кол-во просроченных платежей
+    'overdue_amount': Decimal,       # сумма просроченных
+    'today': date,
 }
 ```
 
-Расчёты из `TenantPaymentRegistry`:
-- `top_tenants` — группировка по `tenant`, сумма `paid` за текущий год, сортировка desc, топ-10
-- `vacancy_rate` — если у `Tenant` есть поле `area` (м²), считать долю вакантных. Если поля нет — ставить 0
-- `top_debtors` — `TenantPaymentRegistry.objects.filter(status='overdue')`, группировка по tenant, сумма долга
-- `rent_dynamics` — группировка по `period` (DateField), sum `paid`, последние 6 периодов
+**Что сделать в шаблоне:**
 
-Добавить в `urls.py`:
-```python
-path('analytics/rent/', views.rent_analytics, name='rent_analytics'),
+**1. KPI-плитки (6 штук)** — верхняя строка:
+```html
+<div class="fin-kpi-grid">
+  <!-- Остаток ДС -->
+  <div class="fin-kpi-card">
+    <span class="fin-kpi-label">Остаток ДС</span>
+    <span class="fin-kpi-value">{{ cash_balance|floatformat:0 }} ₸</span>
+    <span class="fin-kpi-sub">за 90 дней</span>
+  </div>
+  <!-- Выручка MTD с трендом -->
+  <div class="fin-kpi-card">
+    <span class="fin-kpi-label">Выручка (месяц)</span>
+    <span class="fin-kpi-value">{{ revenue_mtd|floatformat:0 }} ₸</span>
+    <span class="fin-kpi-trend {% if revenue_mtd_change >= 0 %}is-up{% else %}is-down{% endif %}">
+      {{ revenue_mtd_change|floatformat:1 }}%
+    </span>
+  </div>
+  <!-- Выручка YTD -->
+  <!-- Расходы MTD -->
+  <!-- Чистый CF -->
+  <!-- Просрочка -->
+</div>
 ```
 
-Добавить в меню (`role_permissions.py`) для Owner/CFO/ChiefAccountant/Administrator.
+Каждая плитка — кликабельна, открывает drill-down панель. Добавить `data-drill-type="revenue"` и т.д.
 
-Написать тесты: `RentAnalyticsViewTest` — 200 статус, контекст содержит нужные ключи, фильтрация по периоду.
+**2. Графики Chart.js (2 штуки):**
+
+```html
+<div class="fin-chart-grid">
+  <div class="fin-chart-card">
+    <div class="fin-chart-header">
+      <span class="fin-chart-title">Поступления vs Выбытия</span>
+      <div class="fin-chart-toggle">
+        <button class="fin-chart-btn is-active" data-days="30">30д</button>
+        <button class="fin-chart-btn" data-days="60">60д</button>
+        <button class="fin-chart-btn" data-days="90">90д</button>
+      </div>
+    </div>
+    <canvas id="cashflowChart" height="200"></canvas>
+  </div>
+  <div class="fin-chart-card">
+    <div class="fin-chart-header">
+      <span class="fin-chart-title">Недельный CF</span>
+    </div>
+    <canvas id="weeklyChart" height="200"></canvas>
+  </div>
+</div>
+```
+
+**3. Drill-down панель (sidebar):**
+```html
+<aside class="fin-drill-panel" id="drillPanel" aria-hidden="true">
+  <div class="fin-drill-panel__overlay" data-close-drill></div>
+  <div class="fin-drill-panel__content">
+    <div class="fin-drill-panel__header">
+      <h2 id="drillTitle">—</h2>
+      <button data-close-drill class="fin-day-panel__close"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div id="drillBody" class="fin-drill-body">
+      <div class="fin-empty">Загрузка...</div>
+    </div>
+  </div>
+</aside>
+```
+
+**4. Мультивалютный тоггл (вверху страницы):**
+```html
+<div class="fin-currency-toggle">
+  <span class="fin-currency-label">KZT</span>
+  <select id="currencySelect" class="fin-input" style="width:auto">
+    <option value="">KZT</option>
+    <option value="USD">USD</option>
+    <option value="EUR">EUR</option>
+    <option value="RUB">RUB</option>
+  </select>
+  <span id="rateHint" class="fin-currency-rate"></span>
+</div>
+```
+
+**`dashboard.js` — основной JS:**
+```javascript
+// 1. Загрузить графики при старте
+async function loadCashflowChart(days = 30) {
+  const resp = await fetch(`/finances/dashboard/cashflow-daily/?days=${days}`);
+  const data = await resp.json();
+  // Создать/обновить Chart.js Bar chart
+  // income — синий, expense — красный, net — серый линия
+  // Отрицательные значения net подсвечивать красным
+}
+
+async function loadWeeklyChart(weeks = 12) {
+  const resp = await fetch(`/finances/dashboard/cashflow-weekly/?weeks=${weeks}`);
+  const data = await resp.json();
+  // Line chart
+}
+
+// 2. Drill-down
+async function openDrillPanel(type, period) {
+  const resp = await fetch(`/finances/dashboard/drilldown/?type=${type}&period=${period}`);
+  const data = await resp.json();
+  // Заполнить drillBody таблицей с данными
+  // Для каждой записи с onec_id — кликабельная ссылка
+}
+
+// 3. KPI refresh (AJAX, каждые 5 минут)
+async function refreshKPIs() {
+  const resp = await fetch('/finances/dashboard/kpi/');
+  const data = await resp.json();
+  // Обновить значения в плитках без перезагрузки
+}
+
+// 4. Мультивалюта
+async function loadBalances(currency) {
+  const resp = await fetch(`/finances/dashboard/balances/?currency=${currency}`);
+  const data = await resp.json();
+  // Показать курс рядом с тогглом
+  // Обновить значения cash_balance и revenue в KZT + в валюте
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadCashflowChart(30);
+  loadWeeklyChart(12);
+  // toggle handlers, drill panel handlers, KPI refresh interval
+});
+```
+
+**Новые SCSS-классы для `finances.scss`:**
+```scss
+.fin-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  @media (max-width: 768px) { grid-template-columns: 1fr 1fr; }
+}
+.fin-kpi-card {
+  background: $fin-card-bg;
+  border: 1px solid $fin-border;
+  border-radius: 8px;
+  padding: 20px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  &:hover { border-color: $fin-primary; }
+}
+.fin-kpi-label { font-size: 12px; color: $fin-muted; display: block; }
+.fin-kpi-value { font-size: 24px; font-weight: 600; color: $fin-text; display: block; margin: 4px 0; }
+.fin-kpi-sub   { font-size: 11px; color: $fin-muted; }
+.fin-kpi-trend { font-size: 12px; font-weight: 600;
+  &.is-up   { color: $fin-success; }
+  &.is-down { color: $fin-danger; }
+}
+.fin-chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-top: 20px; }
+.fin-chart-card { background: $fin-card-bg; border: 1px solid $fin-border; border-radius: 8px; padding: 20px; }
+.fin-chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.fin-chart-title  { font-weight: 600; font-size: 14px; color: $fin-text; }
+.fin-chart-toggle { display: flex; gap: 4px; }
+.fin-chart-btn    { padding: 4px 10px; font-size: 12px; border: 1px solid $fin-border; border-radius: 4px; background: none; cursor: pointer; color: $fin-muted;
+  &.is-active { background: $fin-primary; color: #fff; border-color: $fin-primary; }
+}
+.fin-drill-panel {
+  position: fixed; top: 0; right: -480px; width: 480px; height: 100vh;
+  background: $fin-card-bg; border-left: 1px solid $fin-border; z-index: 1000;
+  transition: right 0.25s ease; display: flex; flex-direction: column;
+  &.is-open { right: 0; }
+  &__overlay { position: fixed; inset: 0; background: rgba(0,0,0,.25); display: none; }
+  &.is-open &__overlay { display: block; }
+  &__content { display: flex; flex-direction: column; height: 100%; overflow-y: auto; }
+  &__header { padding: 20px; border-bottom: 1px solid $fin-border; display: flex; justify-content: space-between; align-items: center; }
+}
+.fin-drill-body { padding: 16px; flex: 1; }
+.fin-currency-toggle { display: flex; align-items: center; gap: 8px; }
+.fin-currency-rate   { font-size: 11px; color: $fin-muted; }
+```
 
 ---
 
-### BE-6.1 — Executive Dashboard Backend (6h)
-**Статус:** ❌  
-**Ветка:** `feature/TASK-6.1-dashboard-backend`  
+### FE-6.2 — Toggle KZT/USD на дашборде (3h)
+**Статус:** ❌ (зависит от FE-6.1)  
+**Ветка:** `feature/FE-6.2-multi-currency-ui`  
 **Файлы:**
-- `backend/apps/finances/views.py`
-- `backend/apps/finances/urls.py`
-- `backend/apps/finances/tests.py`
+- `backend/templates/site/finances/dashboard.html` — расширить (уже создан в FE-6.1)
+- `backend/static/site/js/apps/dashboard.js` — расширить `loadBalances()`
 
-**Что сделать:**
-
-Два endpoint-а:
-
-**1. View `dashboard(request)` → GET `/finances/dashboard/`**
-
-SSR-шаблон с контекстом:
-```python
-context = {
-    'cash_balance': Decimal,       # сумма actual_amount за 90 дней, status=fact
-    'revenue_mtd': Decimal,        # TenantPaymentRegistry.paid за текущий месяц
-    'revenue_ytd': Decimal,        # за текущий год
-    'revenue_mtd_change': float,   # % изменение vs прошлый месяц
-    'expenses_mtd': Decimal,       # CashFlowRecord flow_type=expense за месяц
-    'net_cf': Decimal,             # revenue_mtd - expenses_mtd
-    'budget_deviation_pct': float, # (fact-plan)/plan*100 по BudgetItem
-    'overdue_count': int,
-    'overdue_amount': Decimal,
-    'today': date.today(),
+**Endpoint:** `GET /finances/dashboard/balances/?currency=USD`  
+**Ответ:**
+```json
+{
+  "cash_balance_kzt": 45000000,
+  "cash_balance_foreign": 95000,
+  "revenue_mtd_kzt": 12500000,
+  "revenue_mtd_foreign": 26455,
+  "currency": "USD",
+  "rate": 473.5,
+  "rate_date": "2026-05-21",
+  "rate_is_fresh": true
 }
 ```
 
-**2. JSON endpoint `dashboard_kpi(request)` → GET `/finances/dashboard/kpi/`**
-
-Возвращает `JsonResponse` с теми же данными (для AJAX-обновления FE):
-```python
-return JsonResponse({
-    'cash_balance': float(cash_balance),
-    'revenue_mtd': float(revenue_mtd),
-    'revenue_ytd': float(revenue_ytd),
-    'revenue_mtd_change': revenue_mtd_change,
-    'expenses_mtd': float(expenses_mtd),
-    'net_cf': float(net_cf),
-    'budget_deviation_pct': budget_deviation_pct,
-    'overdue_count': overdue_count,
-    'overdue_amount': float(overdue_amount),
-})
-```
-
-Добавить drill-down endpoint `dashboard_drilldown(request)` → GET `/finances/dashboard/drilldown/`
-
-Принимает `?type=revenue|expenses|overdue|budget&period=2026-05`.
-Возвращает `JsonResponse` со списком записей для детализации:
-- `type=revenue` → список `TenantPaymentRegistry` за период
-- `type=expenses` → список `CashFlowRecord` flow_type=expense за период
-- `type=overdue` → список `TenantPaymentRegistry` status=overdue
-- `type=budget` → список `BudgetItem` с отклонением
-
-Добавить в `urls.py`:
-```python
-path('dashboard/', views.dashboard, name='dashboard'),
-path('dashboard/kpi/', views.dashboard_kpi, name='dashboard_kpi'),
-path('dashboard/drilldown/', views.dashboard_drilldown, name='dashboard_drilldown'),
-```
-
-Тесты: `DashboardViewTest` — 200, контекст, JSON структура. `DashboardDrilldownTest` — все 4 типа.
-
----
-
-### BE-6.2 — CF chart endpoints (3h)
-**Статус:** ❌ (зависит от BE-6.1)  
-**Ветка:** `feature/TASK-6.2-cashflow-charts-api`  
-**Файлы:**
-- `backend/apps/finances/views.py`
-- `backend/apps/finances/urls.py`
-- `backend/apps/finances/tests.py`
-
 **Что сделать:**
-
-```python
-# GET /finances/dashboard/cashflow-daily/?days=30|60|90
-def cashflow_daily(request):
-    days = int(request.GET.get('days', 30))
-    # CashFlowRecord за последние N дней, группировка по date
-    # Возвращает JsonResponse
-    return JsonResponse({
-        'labels': ['2026-05-01', ...],
-        'income': [1200000, ...],
-        'expense': [900000, ...],
-        'net': [300000, ...],   # income - expense
-    })
-
-# GET /finances/dashboard/cashflow-weekly/?weeks=12
-def cashflow_weekly(request):
-    weeks = int(request.GET.get('weeks', 12))
-    # Группировка по неделям
-    ...
-```
-
-Источник данных: `CashFlowRecord` + `PaymentCalendarEntry` (status=fact).
-
-Добавить в `urls.py`:
-```python
-path('dashboard/cashflow-daily/', views.cashflow_daily, name='cashflow_daily'),
-path('dashboard/cashflow-weekly/', views.cashflow_weekly, name='cashflow_weekly'),
-```
-
-Тесты: структура ответа (labels/income/expense/net), параметр days, пустые данные → пустые массивы.
+- При выборе валюты из select (`currencySelect`) — вызывать `loadBalances(currency)`
+- Обновлять плитки "Остаток ДС" и "Выручка MTD" — показывать **оба значения** (KZT основное + валюта мелко)
+- Рядом с тогглом показывать: `Курс: 473.5 ₸ / USD на 21.05.2026`
+- Если `rate_is_fresh = false` — показывать баннер: `Курс устарел (последний: ...)` в `.fin-currency-rate.is-stale`
 
 ---
 
-### BE-6.3 — Drill-down до документа 1С (4h)
-**Статус:** ❌ (зависит от BE-6.1)  
-**Ветка:** `feature/TASK-6.3-drilldown-api`  
-**Файлы:**
-- `backend/apps/finances/views.py`
-- `backend/apps/finances/urls.py`
-- `backend/apps/finances/tests.py`
-
-**Что сделать:**
-
-Endpoint для детализации операции 1С по `onec_id`:
-
-```python
-# GET /finances/dashboard/drilldown/record/<onec_id>/
-def drilldown_record(request, onec_id):
-    # Ищем CashFlowRecord с этим onec_id
-    record = get_object_or_404(CashFlowRecord, onec_id=onec_id)
-    # Ищем связанного контрагента в onec приложении
-    from onec.models import Counterparty  # если модель там
-    counterparty = None
-    try:
-        counterparty = Counterparty.objects.filter(id_1c=onec_id).first()
-    except Exception:
-        pass
-
-    return JsonResponse({
-        'record': {
-            'id': record.id,
-            'date': str(record.date),
-            'amount': float(record.amount),
-            'flow_type': record.flow_type,
-            'description': getattr(record, 'description', ''),
-            'onec_id': record.onec_id,
-        },
-        'counterparty_url': f'/onec/counterparties/{counterparty.pk}/' if counterparty else None,
-        'counterparty_name': counterparty.full_name if counterparty else None,
-    })
-```
-
-Добавить в `urls.py`:
-```python
-path('dashboard/drilldown/record/<str:onec_id>/', views.drilldown_record, name='drilldown_record'),
-```
-
-Тесты: 200 со связанным контрагентом, 200 без контрагента, 404 для несуществующего onec_id.
-
----
-
-### BE-6.5 — Backend прогноза CF (6h)
+### FE-6.3 — Аналитика аренды (6h)
 **Статус:** ❌  
-**Ветка:** `feature/TASK-6.5-forecast-api`  
+**Ветка:** `feature/FE-6.3-rent-analytics-template`  
 **Файлы:**
-- `backend/apps/finances/services/forecast.py` — создать
-- `backend/apps/finances/views.py`
-- `backend/apps/finances/urls.py`
-- `backend/apps/finances/tests.py`
+- `backend/templates/site/finances/rent_analytics.html` — **переверстать** (stub от BE)
+- `backend/static/site/js/apps/rent-analytics.js` — создать
+
+**Контекст из view `rent_analytics(request)`:**
+```python
+context = {
+    'top_tenants': [{'tenant': obj, 'total_paid': Decimal}, ...],   # ТОП-10
+    'vacancy_rate': float,        # % вакантности
+    'avg_rate_per_sqm': float,    # тг/м²
+    'top_debtors': [{'tenant': obj, 'total_debt': Decimal}, ...],
+    'total_revenue_ytd': float,
+    'total_overdue': float,
+    'rent_dynamics': {'labels': [...], 'actual': [...]},
+}
+```
 
 **Что сделать:**
 
-Сервис `backend/apps/finances/services/forecast.py`:
-```python
-from datetime import date, timedelta
-from decimal import Decimal
-from .models import PaymentCalendarEntry, CashFlowRecord
+**1. KPI-строка (3 плитки):**
+- Вакантность: `{{ vacancy_rate }}%`
+- Средняя ставка: `{{ avg_rate_per_sqm|floatformat:0 }} ₸/м²`
+- Просрочка: `{{ total_overdue|floatformat:0 }} ₸`
 
-def forecast_cashflow(horizon_days: int = 90):
-    """
-    Прогноз CF на horizon_days дней вперёд.
-    Алгоритм:
-    1. Берём PaymentCalendarEntry status=plan за ближайшие horizon_days дней
-    2. Считаем средний % исполнения из исторических fact (actual_amount/expected_amount)
-    3. Прогнозируем ожидаемые поступления
-    4. Добавляем CashFlowRecord ожидаемые расходы (из повторяющихся записей)
-    5. Выявляем точки кассового разрыва (net_cf < 0)
-    Возвращает: {labels, projected_income, projected_expense, net_cf, gap_dates}
-    """
-    today = date.today()
-    end_date = today + timedelta(days=horizon_days)
-    ...
-```
+**2. Два графика Chart.js (Pie + Line) в сетке:**
 
-View:
-```python
-# GET /finances/dashboard/forecast/?days=30|60|90
-def cashflow_forecast(request):
-    days = int(request.GET.get('days', 90))
-    data = forecast_cashflow(horizon_days=days)
-    return JsonResponse(data)
-```
+`rent-analytics.js`:
+```javascript
+// Pie chart — доли арендаторов в выручке
+function renderTenantPie(data) {
+  // data.labels = [tenant names], data.values = [amounts]
+  // из top_tenants через data-атрибуты или JSON в <script type="application/json">
+  new Chart(document.getElementById('tenantPieChart'), {
+    type: 'doughnut',
+    data: { labels: data.labels, datasets: [{ data: data.values, backgroundColor: [...] }] },
+    options: { plugins: { legend: { position: 'right' } } }
+  });
+}
 
-Добавить в `urls.py`:
-```python
-path('dashboard/forecast/', views.cashflow_forecast, name='cashflow_forecast'),
-```
-
-Тесты: `ForecastServiceTest` — структура ответа, gap_dates правильно определяются, горизонт 30/60/90 дней.
-
----
-
-### BE-6.6 — Backend сценариев (5h)
-**Статус:** ❌ (зависит от BE-6.5)  
-**Ветка:** `feature/TASK-6.6-scenarios-api`  
-**Файлы:**
-- `backend/apps/finances/views.py`
-- `backend/apps/finances/urls.py`
-- `backend/apps/finances/forms.py`
-- `backend/apps/finances/tests.py`
-
-**Что сделать:**
-
-View для сравнения сценариев CreditModel (только CFO):
-```python
-# GET /finances/scenarios/
-@need_permission(PermissionEnums.FINANCE_SCENARIOS)
-def scenarios_list(request):
-    scenarios = CreditModel.objects.all().order_by('-created_at')
-    comparison = []
-    for s in scenarios:
-        s.calculate_dscr()
-        comparison.append({
-            'obj': s,
-            'dscr': s.dscr,
-            'free_cashflow': s.free_cashflow,
-            'risk_level': s.risk_level,
-        })
-    return render(request, 'site/finances/scenarios.html', {'comparison': comparison})
-
-# GET /finances/scenarios/<pk>/json/ — JSON для графика
-def scenario_detail_json(request, pk):
-    scenario = get_object_or_404(CreditModel, pk=pk)
-    return JsonResponse({
-        'name': scenario.name,
-        'scenario': scenario.scenario,
-        'projected_cashflow': scenario.projected_cashflow,
-        'dscr': float(scenario.dscr or 0),
-        'risk_level': scenario.risk_level,
-    })
-```
-
-Добавить в `urls.py`:
-```python
-path('scenarios/', views.scenarios_list, name='scenarios_list'),
-path('scenarios/<int:pk>/json/', views.scenario_detail_json, name='scenario_detail_json'),
-```
-
-Добавить в меню для Owner/CFO.
-
-Тесты: 200 для CFO, 403 для ChiefAccountant, JSON-структура.
-
----
-
-### BE-6.7 — Excel-export финансовых отчётов (5h)
-**Статус:** ❌  
-**Ветка:** `feature/TASK-6.7-excel-export`  
-**Файлы:**
-- `backend/apps/finances/services/excel.py` — создать
-- `backend/apps/finances/views.py`
-- `backend/apps/finances/urls.py`
-- `backend/apps/finances/tests.py`
-
-**Что сделать:**
-
-Сервис `backend/apps/finances/services/excel.py` с функциями:
-```python
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment
-from django.http import HttpResponse
-
-def export_payment_registry(queryset) -> HttpResponse:
-    """Экспорт TenantPaymentRegistry в Excel"""
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = 'Реестр оплат'
-    headers = ['Арендатор', 'Договор', 'Период', 'Начислено', 'Оплачено', 'Баланс', 'Статус']
-    # ... заполнить данные, стилизовать
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename="payment_registry.xlsx"'
-    wb.save(response)
-    return response
-
-def export_budget(queryset) -> HttpResponse: ...
-def export_cashflow(queryset) -> HttpResponse: ...
-def export_financial_statement(queryset) -> HttpResponse: ...
-```
-
-Добавить в views кнопки экспорта (если `?export=xlsx` в GET):
-```python
-# В payment_reg view:
-if request.GET.get('export') == 'xlsx':
-    return export_payment_registry(qs)
-```
-
-То же самое для: `cashflow_register`, `budget_list`, `financial_statement`.
-
-Добавить в шаблоны кнопку «Экспорт Excel» (уже есть в финансовых шаблонах — проверить).
-
-Тесты: response Content-Type, Content-Disposition, статус 200.
-
----
-
-### BE-6.8 — Глобальные финансовые фильтры (3h)
-**Статус:** ❌  
-**Ветка:** `feature/TASK-6.8-finance-filters`  
-**Файлы:**
-- `backend/apps/finances/views.py`
-- `backend/apps/finances/urls.py`
-- `backend/apps/finances/tests.py`
-
-**Что сделать:**
-
-Сохранение и применение глобальных фильтров через сессию:
-```python
-# POST /finances/filters/save/ — сохранить фильтры в session
-def save_finance_filters(request):
-    if request.method == 'POST':
-        import json
-        filters = json.loads(request.body)
-        request.session['finance_filters'] = {
-            'company': filters.get('company', ''),
-            'tenant': filters.get('tenant', ''),
-            'category': filters.get('category', ''),
-            'period_from': filters.get('period_from', ''),
-            'period_to': filters.get('period_to', ''),
-        }
-        return JsonResponse({'status': 'ok'})
-    return JsonResponse({'error': 'POST only'}, status=405)
-
-# GET /finances/filters/ — получить текущие фильтры
-def get_finance_filters(request):
-    filters = request.session.get('finance_filters', {})
-    return JsonResponse(filters)
-```
-
-Добавить в `urls.py`:
-```python
-path('filters/save/', views.save_finance_filters, name='save_finance_filters'),
-path('filters/', views.get_finance_filters, name='get_finance_filters'),
-```
-
-Тесты: сохранение в сессию, получение, пустые фильтры по умолчанию.
-
----
-
-### BE-6.9 — Мультивалюта backend (3h)
-**Статус:** ❌ (зависит от BE-5.13 ✅ и BE-6.1)  
-**Ветка:** `feature/TASK-6.9-multi-currency-backend`  
-**Файлы:**
-- `backend/apps/finances/services/balances.py` — создать
-- `backend/apps/finances/views.py`
-- `backend/apps/finances/urls.py`
-- `backend/apps/finances/tests.py`
-
-**Что сделать:**
-
-Сервис `backend/apps/finances/services/balances.py`:
-```python
-from .models import ExchangeRate, PaymentCalendarEntry, TenantPaymentRegistry
-
-def get_balances_with_conversion(currency='USD'):
-    """
-    Возвращает ключевые балансы в KZT и указанной валюте.
-    """
-    from datetime import date
-    today = date.today()
-    # Берём курс на сегодня (или последний доступный)
-    rate = ExchangeRate.objects.filter(
-        currency=currency
-    ).order_by('-date').first()
-
-    cash_balance_kzt = # ... считать из PaymentCalendarEntry
-    revenue_mtd_kzt = # ... из TenantPaymentRegistry
-
-    return {
-        'cash_balance_kzt': float(cash_balance_kzt),
-        'cash_balance_foreign': float(ExchangeRate.convert(cash_balance_kzt, 'KZT', currency)) if rate else None,
-        'revenue_mtd_kzt': float(revenue_mtd_kzt),
-        'revenue_mtd_foreign': float(ExchangeRate.convert(revenue_mtd_kzt, 'KZT', currency)) if rate else None,
-        'currency': currency,
-        'rate': float(rate.rate) if rate else None,
-        'rate_date': str(rate.date) if rate else None,
-        'rate_is_fresh': (today - rate.date).days <= 1 if rate else False,
+// Line chart — динамика поступлений за 6 мес
+function renderDynamicsChart(dynamics) {
+  new Chart(document.getElementById('dynamicsChart'), {
+    type: 'line',
+    data: {
+      labels: dynamics.labels,
+      datasets: [{ label: 'Поступления', data: dynamics.actual,
+        borderColor: '#2f6bed', backgroundColor: 'rgba(47,107,237,0.1)', fill: true }]
     }
+  });
+}
 ```
 
-View:
-```python
-# GET /finances/dashboard/balances/?currency=USD|EUR|RUB
-def dashboard_balances(request):
-    currency = request.GET.get('currency', 'USD')
-    data = get_balances_with_conversion(currency=currency)
-    return JsonResponse(data)
+Передавать данные в JS через JSON в шаблоне:
+```html
+<script type="application/json" id="tenantData">
+  {"labels": [{% for t in top_tenants %}"{{ t.tenant.name }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+   "values": [{% for t in top_tenants %}{{ t.total_paid|floatformat:0 }}{% if not forloop.last %},{% endif %}{% endfor %}]}
+</script>
 ```
 
-Добавить в `urls.py`:
-```python
-path('dashboard/balances/', views.dashboard_balances, name='dashboard_balances'),
+**3. Таблица ТОП должников:**
+```html
+<table class="fin-table">
+  <thead><tr><th>Арендатор</th><th>Долг</th><th>Статус</th></tr></thead>
+  <tbody>
+    {% for d in top_debtors %}
+    <tr class="fin-row fin-row--danger">
+      <td>{{ d.tenant.name }}</td>
+      <td><strong>{{ d.total_debt|floatformat:0 }} ₸</strong></td>
+      <td><span class="fin-status fin-status--danger">Просрочен</span></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="3" class="fin-empty">Должников нет</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
 ```
-
-Тесты: ответ содержит rate/rate_date, конвертация правильная, fallback при отсутствии курса.
 
 ---
 
-## Итого Спринт 2
+### FE-6.4 — Прогноз CF + Сценарии (8h)
+**Статус:** ❌  
+**Ветка:** `feature/FE-6.4-forecast-scenarios`  
+**Файлы:**
+- `backend/templates/site/finances/dashboard.html` — добавить секцию прогноза (или отдельная страница)
+- `backend/templates/site/finances/scenarios.html` — **переверстать** (stub от BE)
+- `backend/static/site/js/apps/forecast.js` — создать
+
+**Endpoint прогноза:** `GET /finances/dashboard/forecast/?days=30|60|90`  
+**Ответ:**
+```json
+{
+  "labels": ["2026-05-22", ...],
+  "projected_income": [1200000, ...],
+  "projected_expense": [900000, ...],
+  "net_cf": [300000, ...],
+  "gap_dates": ["2026-06-03", ...]   // дни кассового разрыва (net_cf < 0)
+}
+```
+
+**`forecast.js`:**
+```javascript
+async function loadForecast(days = 90) {
+  const resp = await fetch(`/finances/dashboard/forecast/?days=${days}`);
+  const data = await resp.json();
+
+  // Line chart с 3 линиями: доходы (синий), расходы (красный), net (серый)
+  // gap_dates — точки с net_cf < 0 подсвечивать красными маркерами
+  const gapSet = new Set(data.gap_dates);
+  const pointColors = data.labels.map((label, i) =>
+    data.net_cf[i] < 0 ? '#ff3b30' : '#22a85a'
+  );
+
+  new Chart(document.getElementById('forecastChart'), {
+    type: 'line',
+    data: {
+      labels: data.labels,
+      datasets: [
+        { label: 'Прогноз поступлений', data: data.projected_income, borderColor: '#2f6bed', fill: false },
+        { label: 'Прогноз расходов',    data: data.projected_expense, borderColor: '#ff3b30', fill: false },
+        { label: 'Чистый CF',           data: data.net_cf, borderColor: '#7b7890',
+          pointBackgroundColor: pointColors, pointRadius: 5, fill: false }
+      ]
+    },
+    options: {
+      plugins: {
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('ru')} ₸` } }
+      }
+    }
+  });
+
+  // Вывести ближайший gap_date если есть
+  if (data.gap_dates.length > 0) {
+    document.getElementById('gapAlert').textContent =
+      `Ближайший кассовый разрыв: ${data.gap_dates[0]}`;
+    document.getElementById('gapAlert').style.display = 'block';
+  }
+}
+```
+
+**`scenarios.html` — список сценариев (контекст из BE-6.6):**
+```python
+context = {
+    'models': CreditModel queryset,
+    'can_manage': bool,   # True для CFO/Owner
+}
+```
+
+**Endpoint сценария:** `GET /finances/scenarios/<pk>/json/`  
+Возвращает projected_cashflow + DSCR для графика.
+
+Шаблон:
+- Таблица сравнения: Название / Сценарий / DSCR / Free CF / Risk Level / badge цветом
+- Для каждого сценария — кнопка «Показать на графике» → загружает JSON и рисует Line chart
+- Только `can_manage` видит кнопку «Создать» (ссылка на `credit_model_create`)
+
+---
+
+### FE-6.5 — Глобальные финансовые фильтры (4h)
+**Статус:** ❌  
+**Ветка:** `feature/FE-6.5-finance-filters-ui`  
+**Файлы:**
+- `backend/templates/site/components/finance_filters.html` — создать
+- `backend/static/site/js/apps/finance-filters.js` — создать
+
+**Endpoints:**
+- `POST /finances/filters/save/` (JSON body) — сохранить в сессию
+- `GET /finances/filters/` — получить текущие
+
+**`finance_filters.html` — универсальный компонент:**
+```html
+{% load static %}
+<section class="fin-filter-card fin-global-filter">
+  <form id="globalFilterForm" class="fin-filter-form">
+    {% csrf_token %}
+    <div class="fin-field">
+      <label class="fin-label">Арендатор</label>
+      <div class="fin-custom-select" data-filter-key="tenant">
+        <input type="hidden" name="tenant" value="">
+        <button type="button" class="fin-custom-select__button">
+          <span class="fin-custom-select__value">Все</span>
+          <span class="fin-custom-select__arrow"></span>
+        </button>
+        <div class="fin-custom-select__dropdown">
+          <!-- tenants — передавать через include context или отдельный AJAX -->
+        </div>
+      </div>
+    </div>
+    <div class="fin-field fin-field--date">
+      <label class="fin-label">Период с</label>
+      <input type="date" name="period_from" class="fin-input fin-date-input" data-filter-key="period_from">
+    </div>
+    <div class="fin-field fin-field--date">
+      <label class="fin-label">По</label>
+      <input type="date" name="period_to" class="fin-input fin-date-input" data-filter-key="period_to">
+    </div>
+    <button type="button" id="applyGlobalFilters" class="fin-btn fin-btn--primary">Применить</button>
+    <button type="button" id="resetGlobalFilters" class="fin-btn fin-btn--light">Сбросить</button>
+  </form>
+</section>
+```
+
+**`finance-filters.js`:**
+```javascript
+async function loadSavedFilters() {
+  const resp = await fetch('/finances/filters/');
+  const filters = await resp.json();
+  // Заполнить поля формы из сессии
+  Object.entries(filters).forEach(([key, value]) => {
+    const el = document.querySelector(`[data-filter-key="${key}"]`);
+    if (el) el.value = value;
+  });
+}
+
+async function saveFilters(filters) {
+  await fetch('/finances/filters/save/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+    body: JSON.stringify(filters)
+  });
+}
+
+document.getElementById('applyGlobalFilters')?.addEventListener('click', async () => {
+  const filters = {};
+  document.querySelectorAll('[data-filter-key]').forEach(el => {
+    filters[el.dataset.filterKey] = el.value;
+  });
+  await saveFilters(filters);
+  window.location.reload();  // перезагрузить страницу с фильтрами
+});
+
+document.getElementById('resetGlobalFilters')?.addEventListener('click', async () => {
+  await saveFilters({});
+  window.location.reload();
+});
+
+document.addEventListener('DOMContentLoaded', loadSavedFilters);
+```
+
+Добавить `{% include 'site/components/finance_filters.html' %}` в:
+- `dashboard.html`
+- `payment_register.html`
+- `cashflow.html`
+
+---
+
+### COLLAB-4 — Стыковка дашбордов (8h)
+**Статус:** ❌ (после всех FE-6.x)  
+**Ветка:** `feature/COLLAB-4-dashboards`  
+
+**Что проверить:**
+1. Dashboard: KPI плитки загружаются, графики рисуются, drill-down открывается
+2. Мультивалюта: toggle USD/EUR/RUB обновляет плитки, курс отображается
+3. Аналитика аренды: Pie chart и Line chart работают с реальными данными
+4. Прогноз CF: горизонт 30/60/90 переключается, gap_dates отображаются красным
+5. Сценарии: таблица сравнения, график по сценарию, права CFO/Owner
+6. Глобальные фильтры: сохраняются в сессию, применяются при перезагрузке
+7. Excel-export: кнопка на каждом финансовом экране скачивает файл
+8. Мобильная адаптивность: `@media (max-width: 768px)` на всех экранах
+9. Права по ролям: CFO видит сценарии и бюджет CRUD, ChiefAccountant — read-only
+
+**Исправить все расхождения между BE-контекстом и шаблонами.**
+
+---
+
+## Итого Спринт 3
 
 | Задача | Ветка | Оценка | Зависит от |
 |--------|-------|--------|------------|
-| BE-6.4 | feature/TASK-6.4-rent-analytics-api | 5h | — |
-| BE-6.1 | feature/TASK-6.1-dashboard-backend | 6h | — |
-| BE-6.2 | feature/TASK-6.2-cashflow-charts-api | 3h | BE-6.1 |
-| BE-6.3 | feature/TASK-6.3-drilldown-api | 4h | BE-6.1 |
-| BE-6.5 | feature/TASK-6.5-forecast-api | 6h | — |
-| BE-6.6 | feature/TASK-6.6-scenarios-api | 5h | BE-6.5 |
-| BE-6.7 | feature/TASK-6.7-excel-export | 5h | — |
-| BE-6.8 | feature/TASK-6.8-finance-filters | 3h | — |
-| BE-6.9 | feature/TASK-6.9-multi-currency-backend | 3h | BE-5.13 ✅ |
-| **ИТОГО** | | **40h** | |
+| FE-6.1 | feature/FE-6.1-executive-dashboard | 14h | — |
+| FE-6.2 | feature/FE-6.2-multi-currency-ui | 3h | FE-6.1 |
+| FE-6.3 | feature/FE-6.3-rent-analytics-template | 6h | — |
+| FE-6.4 | feature/FE-6.4-forecast-scenarios | 8h | — |
+| FE-6.5 | feature/FE-6.5-finance-filters-ui | 4h | — |
+| COLLAB-4 | feature/COLLAB-4-dashboards | 8h | все выше |
+| **ИТОГО** | | **43h** | |
 
-**После Спринта 2 → ~78%**
+**После Спринта 3 → ~85%**
 
 ---
 
-## Правила
+## После Спринта 3 — Спринт 4 (Phase 7: Финализация)
 
-1. **Каждая задача — отдельная ветка** от `sprint` (не от develop)
-2. **PR в ветку `sprint`** (base branch = sprint), не в develop
-3. **Тесты обязательны** для каждой задачи
-4. **Коммит-сообщения:** `BE-6.1: dashboard backend + KPI endpoints`
-5. **Декоратор прав:** использовать `@need_permission(PermissionEnums.FINANCE_DASHBOARD)` на views дашборда
-6. Смотреть примеры в `backend/apps/finances/views.py` — уже есть паттерны для context + render
+BE-задачи (Дарья):
+- BE-7.1: Единое REST API DRF (Tasks + HR + Finances) — 8h
+- BE-7.2: JWT аутентификация — 3h
+- BE-7.3: Swagger / OpenAPI — 3h
+- BE-7.4: Тесты coverage > 70% — 10h
+- BE-7.5: Docker + production deployment — 5h
+- BE-7.6: CI/CD GitHub Actions — 4h
+- BE-7.7: Audit trail (AuditLog + middleware) — 8h
+- COLLAB-5: UAT сценарии на staging — 12h
 
----
-
-## Следующий шаг после Спринта 2 — Спринт 3 (Phase 6 FE)
-
-FE-задачи дашбордов (Анель):
-- FE-6.1: Executive Dashboard (KPI tiles + Chart.js) — 14h
-- FE-6.2: Toggle KZT/USD UI — 3h
-- FE-6.3: Аналитика аренды (Pie + Line charts) — 6h
-- FE-6.4: Прогноз CF + сценарии (3 линии) — 8h
-- FE-6.5: Глобальные фильтры UI — 4h
-- COLLAB-4: Стыковка дашбордов — 8h
+**После Спринта 4 → ~100%**
