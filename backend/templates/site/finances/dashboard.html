@@ -33,6 +33,12 @@
     </a>
   </div>
 
+  {# Стейл-баннер курса (FE-6.2) — показывается при rate_is_fresh=false #}
+  <div id="rateStaleBanner" class="fin-overrun-alert" style="display:none;">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span id="rateStaleBannerText">Курс устарел</span>
+  </div>
+
   {% include 'site/components/finance_filters.html' %}
 
   {# ── KPI-плитки ── #}
