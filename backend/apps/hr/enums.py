@@ -50,6 +50,7 @@ class DocumentTypeEnum(models.TextChoices):
 class DocumentStatusEnum(models.TextChoices):
     DRAFT = 'draft', 'Черновик'
     ACTIVE = 'active', 'Активен'
+    EXPIRING = 'expiring', 'Истекает'
     EXPIRED = 'expired', 'Истёк'
     REVOKED = 'revoked', 'Отозван'
 

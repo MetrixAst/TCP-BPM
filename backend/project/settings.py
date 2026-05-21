@@ -199,6 +199,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'hr.tasks.sync_enbek_data',
         'schedule': crontab(minute=0, hour='*/6'),
     },
+    'hr-check-expirations': {
+        'task': 'hr.tasks.hr_check_expirations',
+        'schedule': crontab(hour=6, minute=0),
+    },
 }
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
