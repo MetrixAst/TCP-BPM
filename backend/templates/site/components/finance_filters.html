@@ -1,0 +1,53 @@
+{% load static %}
+{#
+  Универсальный компонент глобальных финансовых фильтров.
+  Включать через: {% include 'site/components/finance_filters.html' %}
+  Опциональный контекст: finance_filter_tenants — queryset/list арендаторов для селекта.
+#}
+<section class="fin-filter-card fin-global-filter">
+  <form id="globalFilterForm" class="fin-filter-form" autocomplete="off">
+    {% csrf_token %}
+
+    <div class="fin-field">
+      <label class="fin-label">Арендатор</label>
+      <div class="fin-custom-select" data-filter-key="tenant">
+        <input type="hidden" name="tenant" id="gf-tenant" value="">
+        <button type="button" class="fin-custom-select__button">
+          <span class="fin-custom-select__value">Все</span>
+          <i class="bi bi-chevron-down fin-custom-select__arrow"></i>
+        </button>
+        <div class="fin-custom-select__dropdown">
+          <div class="fin-custom-select__option" data-value="">Все арендаторы</div>
+          {% if finance_filter_tenants %}
+            {% for tenant in finance_filter_tenants %}
+            <div class="fin-custom-select__option" data-value="{{ tenant.pk }}">{{ tenant.name }}</div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="fin-field fin-field--date">
+      <label class="fin-label">Период с</label>
+      <input type="date" name="period_from" id="gf-period-from"
+             class="fin-input fin-date-input" data-filter-key="period_from">
+    </div>
+
+    <div class="fin-field fin-field--date">
+      <label class="fin-label">По</label>
+      <input type="date" name="period_to" id="gf-period-to"
+             class="fin-input fin-date-input" data-filter-key="period_to">
+    </div>
+
+    <button type="button" id="applyGlobalFilters" class="fin-btn fin-btn--primary">
+      <i class="bi bi-funnel"></i> Применить
+    </button>
+    <button type="button" id="resetGlobalFilters" class="fin-btn fin-btn--light">
+      <i class="bi bi-x-circle"></i> Сбросить
+    </button>
+  </form>
+
+  <div id="activeFiltersHint" class="fin-global-filter__hint" style="display:none;">
+    <i class="bi bi-funnel-fill"></i> Фильтры активны
+  </div>
+</section>

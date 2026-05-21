@@ -2420,6 +2420,7 @@ body.invoice-edit-body {
 }
 
 /* ═══════════════════════════════════════════════════════════
+<<<<<<< HEAD
    FE-6.1 — Executive Dashboard & FE-6.3 — Rent Analytics
    ═══════════════════════════════════════════════════════════ */
 
@@ -2741,4 +2742,36 @@ body.invoice-edit-body {
   color: $fin-primary;
   text-decoration: none;
   &:hover { text-decoration: underline; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FE-6.5 — Global Finance Filters
+   ═══════════════════════════════════════════════════════════ */
+
+.fin-global-filter {
+  position: relative;
+}
+
+.fin-global-filter__hint {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: $fin-primary;
+  white-space: nowrap;
+
+  i { font-size: 13px; }
+}
+
+.fin-custom-select__dropdown {
+  &.is-open { display: block; }
+}
+
+.fin-custom-select__option {
+  &.is-selected {
+    background: $fin-field-bg;
+    color: $fin-primary;
+    font-weight: 500;
+  }
 }

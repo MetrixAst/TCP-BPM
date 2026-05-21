@@ -33,6 +33,8 @@
     </a>
   </div>
 
+  {% include 'site/components/finance_filters.html' %}
+
   {# ── KPI-плитки ── #}
   <div class="fin-kpi-grid">
     <div class="fin-kpi-card" data-drill-type="cash" data-drill-period="{{ today|date:'Y-m' }}">
@@ -128,5 +130,6 @@
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="{% static 'site/js/apps/finance-filters.js' %}?v=fe65"></script>
 <script src="{% static 'site/js/apps/dashboard.js' %}?v=fe61"></script>
 {% endblock %}
