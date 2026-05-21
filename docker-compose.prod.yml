@@ -1,0 +1,35 @@
+# Production overlay: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+version: "3.8"
+
+services:
+  web:
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py migrate --noinput &&
+             daphne project.asgi:application -b 0.0.0.0 -p 8000"
+    environment:
+      - DEBUG=False
+      - DATABASE=postgres
+    restart: always
+    volumes:
+      - static_volume:/home/app/web/assets
+      - media_volume:/home/app/web/media
+
+  celery_worker:
+    restart: always
+    volumes: []
+
+  celery_beat:
+    restart: always
+    volumes: []
+
+  nginx:
+    restart: always
+    ports:
+      - "80:80"
+
+  db:
+    restart: always
+
+  redis:
+    restart: always
