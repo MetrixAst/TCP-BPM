@@ -70,7 +70,8 @@ class RolePermissions:
             PermissionEnums.REQUISTIONS,
             PermissionEnums.REPORTS,
             PermissionEnums.COMMENT,
-            PermissionEnums.HR_JOURNAL, 
+            PermissionEnums.HR_JOURNAL,
+            PermissionEnums.FINANCE_DASHBOARD,
             PermissionEnums.FINANCE_INVOICES,
             PermissionEnums.FINANCE_REGISTERS,
             PermissionEnums.FINANCE_BUDGET,
@@ -101,10 +102,11 @@ class RolePermissions:
         RoleEnums.CHIEF_ACCOUNTANT.value: [
             PermissionEnums.PROFILE,
             PermissionEnums.DASHBOARD,
+            PermissionEnums.FINANCE_DASHBOARD,
             PermissionEnums.FINANCE_REPORTS,
             PermissionEnums.FINANCE_INVOICES,
             PermissionEnums.FINANCE_REGISTERS,
-            PermissionEnums.FINANCE_BUDGET, 
+            PermissionEnums.FINANCE_BUDGET,
         ],
         RoleEnums.STAFF.value: [
             PermissionEnums.PROFILE,
@@ -211,6 +213,7 @@ class MenuItem:
         finance_full_submenu = finance_common_submenu + [
             MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
             MenuItem('fin_credit', 'finances:credit_model_list', '', 'Кредитная модель'),
+            MenuItem('fin_rent_analytics', 'finances:rent_analytics', '', 'Аналитика аренды'),
         ]
 
         finance_readonly_submenu = [
@@ -221,6 +224,7 @@ class MenuItem:
             MenuItem('fin_reg', 'finances:reg', '', 'Реестр оплат'),
             MenuItem('fin_calendar', 'finances:payment_calendar', '', 'Календарь платежей'),
             MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
+            MenuItem('fin_rent_analytics', 'finances:rent_analytics', '', 'Аналитика аренды'),
         ]
 
         items = {

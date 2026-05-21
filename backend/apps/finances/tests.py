@@ -2392,3 +2392,92 @@ class FetchExchangeRatesTaskTest(TestCase):
         from finances.tasks import fetch_exchange_rates
         result = fetch_exchange_rates()
         self.assertIn('created', result)
+
+
+# ── BE-6.4: Аналитика аренды ──────────────────────────────────────────────────
+
+def make_user(role, username=None):
+    username = username or f'user_{role}'
+    return User.objects.create_user(
+        username=username,
+        password='pass',
+        role=role,
+    )
+
+
+class RentAnalyticsViewTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo_user = make_user(RoleEnums.CFO.value, 'cfo_rent')
+        self.tenant = make_tenant('АренАналитик')
+        self.today = date.today()
+
+        TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-RA-001',
+            period=date(self.today.year, 1, 1),
+            charged=Decimal('200000.00'),
+            paid=Decimal('150000.00'),
+            status=TenantPaymentRegistry.Status.PARTIAL,
+        )
+        TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-RA-002',
+            period=date(self.today.year, 2, 1),
+            charged=Decimal('200000.00'),
+            paid=Decimal('200000.00'),
+            status=TenantPaymentRegistry.Status.PAID,
+        )
+        TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-RA-003',
+            period=date(self.today.year, 3, 1),
+            charged=Decimal('200000.00'),
+            paid=Decimal('0.00'),
+            balance=Decimal('200000.00'),
+            onec_id='ONEC-RA-003',
+            status=TenantPaymentRegistry.Status.OVERDUE,
+        )
+
+    def _login(self, user):
+        self.client.force_login(user)
+
+    def test_rent_analytics_returns_200(self):
+        self._login(self.cfo_user)
+        response = self.client.get('/finances/analytics/rent/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_rent_analytics_context_keys(self):
+        self._login(self.cfo_user)
+        response = self.client.get('/finances/analytics/rent/')
+        self.assertEqual(response.status_code, 200)
+        for key in ('top_tenants', 'vacancy_rate', 'avg_rate_per_sqm',
+                    'top_debtors', 'rent_dynamics', 'total_revenue_ytd', 'total_overdue'):
+            self.assertIn(key, response.context, f'Missing context key: {key}')
+
+    def test_top_tenants_ytd(self):
+        self._login(self.cfo_user)
+        response = self.client.get('/finances/analytics/rent/')
+        top = response.context['top_tenants']
+        self.assertGreaterEqual(len(top), 1)
+        total = top[0]['total_paid']
+        self.assertEqual(total, Decimal('350000.00'))
+
+    def test_top_debtors_overdue(self):
+        self._login(self.cfo_user)
+        response = self.client.get('/finances/analytics/rent/')
+        debtors = response.context['top_debtors']
+        self.assertGreaterEqual(len(debtors), 1)
+
+    def test_rent_dynamics_structure(self):
+        self._login(self.cfo_user)
+        response = self.client.get('/finances/analytics/rent/')
+        dynamics = response.context['rent_dynamics']
+        self.assertIn('labels', dynamics)
+        self.assertIn('actual', dynamics)
+        self.assertEqual(len(dynamics['labels']), len(dynamics['actual']))
+
+    def test_403_for_unauthenticated(self):
+        response = self.client.get('/finances/analytics/rent/')
+        self.assertIn(response.status_code, (302, 403))
