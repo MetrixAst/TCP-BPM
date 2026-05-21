@@ -1800,3 +1800,185 @@ class CashFlowRecordModelTest(TestCase):
             CashFlowRecord.objects.values_list('transaction_date', flat=True)
         )
         self.assertEqual(dates, sorted(dates, reverse=True))
+
+
+class BudgetViewsTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo_user = User.objects.create_user(
+            username='cfo_user', password='pass',
+            role=RoleEnums.CFO.value,
+        )
+        self.accountant_user = User.objects.create_user(
+            username='accountant_user', password='pass',
+            role=RoleEnums.CHIEF_ACCOUNTANT.value,
+        )
+        self.staff_user = User.objects.create_user(
+            username='budget_staff', password='pass',
+            role=RoleEnums.STAFF.value,
+        )
+        self.cat_income = BudgetCategory.objects.create(
+            name='Доходы тест', category_type=BudgetCategory.Type.INCOME,
+        )
+        self.cat_expense = BudgetCategory.objects.create(
+            name='Расходы тест', category_type=BudgetCategory.Type.EXPENSE,
+        )
+        self.item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=5,
+            plan=Decimal('500000'),
+            fact=Decimal('450000'),
+            forecast=Decimal('480000'),
+        )
+        self.overrun_item = BudgetItem.objects.create(
+            category=self.cat_expense,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=5,
+            plan=Decimal('100000'),
+            fact=Decimal('120000'),
+        )
+
+
+    def test_list_requires_login(self):
+        r = self.client.get(reverse('finances:budget_list'))
+        self.assertEqual(r.status_code, 302)
+
+    def test_staff_cannot_access(self):
+        self.client.login(username='budget_staff', password='pass')
+        r = self.client.get(reverse('finances:budget_list'))
+        self.assertEqual(r.status_code, 403)
+
+    def test_cfo_can_access_list(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'))
+        self.assertEqual(r.status_code, 200)
+
+    def test_accountant_can_access_list(self):
+        self.client.login(username='accountant_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'))
+        self.assertEqual(r.status_code, 200)
+
+    def test_list_context_has_rows(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'), {'year': 2026, 'month': 5})
+        self.assertIn('rows', r.context)
+
+    def test_cfo_can_edit(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'))
+        self.assertTrue(r.context['can_edit'])
+
+    def test_accountant_cannot_edit(self):
+        self.client.login(username='accountant_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'))
+        self.assertFalse(r.context['can_edit'])
+
+    def test_overrun_signal(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'), {'year': 2026, 'month': 5})
+        rows = r.context['rows']
+        expense_row = next(row for row in rows if row['cat'] == self.cat_expense)
+        self.assertTrue(expense_row['overrun'])
+
+    def test_no_overrun_for_income(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'), {'year': 2026, 'month': 5})
+        rows = r.context['rows']
+        income_row = next(row for row in rows if row['cat'] == self.cat_income)
+        self.assertFalse(income_row['overrun'])
+
+    def test_has_overrun_flag(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_list'), {'year': 2026, 'month': 5})
+        self.assertTrue(r.context['has_overrun'])
+
+
+    def test_detail_returns_200(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_detail', args=[self.cat_income.pk]))
+        self.assertEqual(r.status_code, 200)
+
+    def test_detail_context_has_rows(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_detail', args=[self.cat_income.pk]))
+        self.assertIn('rows', r.context)
+        items = [row['item'] for row in r.context['rows']]
+        self.assertIn(self.item, items)
+
+    def test_detail_variance(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_detail', args=[self.cat_income.pk]))
+        row = r.context['rows'][0]
+        self.assertEqual(row['variance'], Decimal('-50000'))
+
+    def test_detail_exec_pct(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.get(reverse('finances:budget_detail', args=[self.cat_income.pk]))
+        row = r.context['rows'][0]
+        self.assertEqual(row['exec_pct'], 90.0)
+
+    def test_detail_404_on_missing(self):
+        self.client.login(username='cfo_user', password='pass')
+        from finances.models import BudgetCategory
+        self.assertFalse(BudgetCategory.objects.filter(pk=999999).exists())
+
+
+    def test_create_requires_cfo(self):
+        self.client.login(username='accountant_user', password='pass')
+        r = self.client.get(
+            reverse('finances:budget_item_create', args=[self.cat_income.pk])
+        )
+        self.assertEqual(r.status_code, 403)
+
+    def test_cfo_can_create(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.post(
+            reverse('finances:budget_item_create', args=[self.cat_income.pk]),
+            {
+                'period_type': 'monthly',
+                'year': 2026, 'month': 6,
+                'plan': '600000', 'fact': '0', 'forecast': '0',
+            }
+        )
+        self.assertRedirects(r, reverse('finances:budget_detail', args=[self.cat_income.pk]))
+        self.assertTrue(BudgetItem.objects.filter(category=self.cat_income, month=6).exists())
+
+
+    def test_edit_requires_cfo(self):
+        self.client.login(username='accountant_user', password='pass')
+        r = self.client.get(reverse('finances:budget_item_edit', args=[self.item.pk]))
+        self.assertEqual(r.status_code, 403)
+
+    def test_cfo_can_edit_item(self):
+        self.client.login(username='cfo_user', password='pass')
+        r = self.client.post(
+            reverse('finances:budget_item_edit', args=[self.item.pk]),
+            {
+                'period_type': 'monthly',
+                'year': 2026, 'month': 5,
+                'plan': '550000', 'fact': '450000', 'forecast': '480000',
+            }
+        )
+        self.assertRedirects(r, reverse('finances:budget_detail', args=[self.cat_income.pk]))
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.plan, Decimal('550000'))
+
+
+    def test_delete_requires_cfo(self):
+        self.client.login(username='accountant_user', password='pass')
+        r = self.client.post(reverse('finances:budget_item_delete', args=[self.item.pk]))
+        self.assertEqual(r.status_code, 403)
+
+    def test_cfo_can_delete(self):
+        self.client.login(username='cfo_user', password='pass')
+        item = BudgetItem.objects.create(
+            category=self.cat_income,
+            period_type=BudgetItem.Period.MONTHLY,
+            year=2026, month=7,
+            plan=Decimal('100000'),
+        )
+        r = self.client.post(reverse('finances:budget_item_delete', args=[item.pk]))
+        self.assertRedirects(r, reverse('finances:budget_detail', args=[self.cat_income.pk]))
+        self.assertFalse(BudgetItem.objects.filter(pk=item.pk).exists())

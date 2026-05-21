@@ -99,6 +99,7 @@ class RolePermissions:
             PermissionEnums.FINANCE_REPORTS,
             PermissionEnums.FINANCE_INVOICES,
             PermissionEnums.FINANCE_REGISTERS,
+            PermissionEnums.FINANCE_BUDGET, 
         ],
         RoleEnums.STAFF.value: [
             PermissionEnums.PROFILE,
@@ -233,7 +234,7 @@ class MenuItem:
 
             RoleEnums.OWNER.value: [
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_common_submenu + [
-                    MenuItem('fin_budget', 'documents:list', '', 'Бюджетирование', url_param=['budget']),
+                    MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
                     MenuItem('fin_scenarios', 'dashboard:dashboard', '', 'Финансовые сценарии'),
                     MenuItem('fin_registers', 'finances:reg', '', 'Финансовые реестры'),
                 ]),
@@ -242,7 +243,7 @@ class MenuItem:
 
             RoleEnums.CFO.value: [
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_common_submenu + [
-                    MenuItem('fin_budget', 'documents:list', '', 'Бюджетирование', url_param=['budget']),
+                    MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
                     MenuItem('fin_scenarios', 'dashboard:dashboard', '', 'Финансовые сценарии'),
                 ]),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
@@ -253,6 +254,7 @@ class MenuItem:
                     MenuItem('fin_reports', 'reports:home', '', 'Финансовые отчеты'),
                     MenuItem('fin_invoices', 'finances:reg', '', 'Счета и оплаты'),
                     MenuItem('fin_registers', 'finances:reg', '', 'Финансовые реестры'),
+                    MenuItem('fin_budget', 'finances:budget', '', 'Бюджетирование'),
                 ]),
             ],
 
