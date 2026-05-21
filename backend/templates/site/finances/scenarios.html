@@ -1,0 +1,113 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=9999">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Сравнение кредитных сценариев</h4>
+    <a href="{% url 'finances:credit_model_create' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg"></i> Новый сценарий
+    </a>
+  </div>
+
+  {% if comparison %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Название</th>
+          <th>Сценарий</th>
+          <th>Период</th>
+          <th class="text-end">Кредит, ₸</th>
+          <th class="text-end">DSCR</th>
+          <th class="text-end">Свободный CF, ₸</th>
+          <th>Риск</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in comparison %}
+        <tr>
+          <td class="fw-semibold">{{ row.obj.name }}</td>
+          <td>{{ row.obj.get_scenario_display }}</td>
+          <td class="text-muted small">{{ row.obj.period_start }} — {{ row.obj.period_end }}</td>
+          <td class="text-end">{{ row.obj.loan_amount|floatformat:0 }}</td>
+          <td class="text-end {% if row.dscr and row.dscr >= 1.5 %}text-success{% elif row.dscr and row.dscr >= 1.0 %}text-warning{% else %}text-danger{% endif %}">
+            {{ row.dscr|floatformat:4|default:"—" }}
+          </td>
+          <td class="text-end {% if row.free_cashflow and row.free_cashflow >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {{ row.free_cashflow|floatformat:0|default:"—" }}
+          </td>
+          <td>
+            {% if row.risk_level == 'low' %}
+              <span class="badge bg-success">Низкий</span>
+            {% elif row.risk_level == 'medium' %}
+              <span class="badge bg-warning text-dark">Средний</span>
+            {% else %}
+              <span class="badge bg-danger">Высокий</span>
+            {% endif %}
+          </td>
+          <td>
+            <button class="btn btn-outline-secondary btn-sm"
+                    onclick="loadScenarioChart({{ row.obj.pk }})">
+              <i class="bi bi-bar-chart"></i>
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card shadow-sm mt-3" id="scenario-chart-card" style="display:none">
+    <div class="card-header fw-semibold" id="scenario-chart-title">Сценарий</div>
+    <div class="card-body">
+      <canvas id="scenarioChart" height="80"></canvas>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="alert alert-info">Сценарии ещё не созданы.</div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+let scenarioChart = null;
+
+function loadScenarioChart(pk) {
+  fetch(`/finances/scenarios/${pk}/json/`)
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('scenario-chart-card').style.display = '';
+      document.getElementById('scenario-chart-title').textContent =
+        `${d.name} (${d.scenario}) — DSCR: ${d.dscr.toFixed(4)}, Риск: ${d.risk_level}`;
+
+      const labels = Object.keys(d.projected_cashflow);
+      const values = Object.values(d.projected_cashflow).map(Number);
+
+      if (scenarioChart) scenarioChart.destroy();
+      scenarioChart = new Chart(document.getElementById('scenarioChart'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Прогноз ДДС, ₸',
+            data: values,
+            backgroundColor: values.map(v => v >= 0 ? 'rgba(25,135,84,0.6)' : 'rgba(220,53,69,0.6)'),
+            borderColor: values.map(v => v >= 0 ? '#198754' : '#dc3545'),
+            borderWidth: 1,
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+      });
+    });
+}
+</script>
+{% endblock %}

@@ -34,4 +34,7 @@ urlpatterns = [
     path('cashflow/', views.cashflow_register, name='cashflow'),
     path('credit-model/', views.credit_model_list, name='credit_model_list'),
     path('credit-model/create/', views.credit_model_create, name='credit_model_create'),
+
+    path('scenarios/', views.scenarios_list, name='scenarios_list'),
+    path('scenarios/<int:pk>/json/', views.scenario_detail_json, name='scenario_detail_json'),
 ]

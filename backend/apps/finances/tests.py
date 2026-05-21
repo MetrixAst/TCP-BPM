@@ -1,10 +1,13 @@
 from django.test import TestCase, Client
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
-from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord
+from .models import (
+    TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem,
+    BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel,
+)
 from tenants.models import Tenant, TenantCategory, Room
 
 from django.urls import reverse
@@ -2392,3 +2395,107 @@ class FetchExchangeRatesTaskTest(TestCase):
         from finances.tasks import fetch_exchange_rates
         result = fetch_exchange_rates()
         self.assertIn('created', result)
+
+
+# ── BE-6.6: Сценарии кредитных моделей ───────────────────────────────────────
+
+def make_user_be66(role, username):
+    return User.objects.create_user(username=username, password='pass', role=role)
+
+
+def make_credit_model(name='Тест Сценарий', scenario='base'):
+    return CreditModel.objects.create(
+        name=name,
+        scenario=scenario,
+        period_start=date(2026, 1, 1),
+        period_end=date(2026, 12, 31),
+        projected_income={'2026-01': '1000000', '2026-06': '1200000'},
+        projected_expenses={'2026-01': '500000', '2026-06': '600000'},
+        projected_cashflow={'2026-01': '500000', '2026-06': '600000'},
+        loan_amount=Decimal('5000000.00'),
+        loan_rate=Decimal('12.00'),
+    )
+
+
+class ScenariosListViewTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo   = make_user_be66(RoleEnums.CFO.value, 'cfo_scen')
+        self.owner = make_user_be66(RoleEnums.OWNER.value, 'owner_scen')
+        self.ca    = make_user_be66(RoleEnums.CHIEF_ACCOUNTANT.value, 'ca_scen')
+        self.scenario = make_credit_model()
+
+    def _login(self, user):
+        self.client.force_login(user)
+
+    def test_200_for_cfo(self):
+        self._login(self.cfo)
+        response = self.client.get('/finances/scenarios/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_200_for_owner(self):
+        self._login(self.owner)
+        response = self.client.get('/finances/scenarios/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_403_for_chief_accountant(self):
+        self._login(self.ca)
+        response = self.client.get('/finances/scenarios/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_context_comparison_key(self):
+        self._login(self.cfo)
+        response = self.client.get('/finances/scenarios/')
+        self.assertIn('comparison', response.context)
+
+    def test_comparison_contains_dscr(self):
+        self._login(self.cfo)
+        response = self.client.get('/finances/scenarios/')
+        comparison = response.context['comparison']
+        self.assertGreaterEqual(len(comparison), 1)
+        row = comparison[0]
+        for key in ('obj', 'dscr', 'free_cashflow', 'risk_level'):
+            self.assertIn(key, row)
+
+    def test_403_unauthenticated(self):
+        response = self.client.get('/finances/scenarios/')
+        self.assertIn(response.status_code, (302, 403))
+
+
+class ScenarioDetailJsonTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo      = make_user_be66(RoleEnums.CFO.value, 'cfo_scjson')
+        self.scenario = make_credit_model('JSON Сценарий', 'stress')
+
+    def _login(self):
+        self.client.force_login(self.cfo)
+
+    def test_200_response(self):
+        self._login()
+        response = self.client.get(f'/finances/scenarios/{self.scenario.pk}/json/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_json_structure(self):
+        self._login()
+        response = self.client.get(f'/finances/scenarios/{self.scenario.pk}/json/')
+        data = response.json()
+        for key in ('id', 'name', 'scenario', 'projected_cashflow',
+                    'dscr', 'free_cashflow', 'risk_level',
+                    'loan_amount', 'loan_rate', 'period_start', 'period_end'):
+            self.assertIn(key, data, f'Missing JSON key: {key}')
+
+    def test_dscr_is_float(self):
+        self._login()
+        response = self.client.get(f'/finances/scenarios/{self.scenario.pk}/json/')
+        data = response.json()
+        self.assertIsInstance(data['dscr'], float)
+
+    def test_scenario_value(self):
+        self._login()
+        response = self.client.get(f'/finances/scenarios/{self.scenario.pk}/json/')
+        data = response.json()
+        self.assertEqual(data['scenario'], 'stress')
+        self.assertEqual(data['name'], 'JSON Сценарий')

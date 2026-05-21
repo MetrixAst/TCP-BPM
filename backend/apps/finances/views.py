@@ -841,6 +841,47 @@ def _can_manage_credit(user):
     return role in (RoleEnums.CFO.value, RoleEnums.OWNER.value, RoleEnums.ADMINISTRATOR.value)
 
 
+# ── BE-6.6: Сценарии кредитных моделей ───────────────────────────────────────
+
+@need_permission(PermissionEnums.FINANCE_SCENARIOS)
+def scenarios_list(request):
+    scenarios = CreditModel.objects.all().order_by('-created_at')
+    comparison = []
+    for s in scenarios:
+        s.calculate_dscr()
+        comparison.append({
+            'obj': s,
+            'dscr': s.dscr,
+            'free_cashflow': s.free_cashflow,
+            'risk_level': s.risk_level,
+        })
+    return render(request, 'site/finances/scenarios.html', {
+        'comparison': comparison,
+        'scenario_choices': CreditModel.Scenario.choices,
+    })
+
+
+@need_permission(PermissionEnums.FINANCE_SCENARIOS)
+def scenario_detail_json(request, pk):
+    scenario = get_object_or_404(CreditModel, pk=pk)
+    scenario.calculate_dscr()
+    return JsonResponse({
+        'id': scenario.pk,
+        'name': scenario.name,
+        'scenario': scenario.scenario,
+        'projected_cashflow': scenario.projected_cashflow,
+        'projected_income': scenario.projected_income,
+        'projected_expenses': scenario.projected_expenses,
+        'dscr': float(scenario.dscr or 0),
+        'free_cashflow': float(scenario.free_cashflow or 0),
+        'risk_level': scenario.risk_level,
+        'loan_amount': float(scenario.loan_amount),
+        'loan_rate': float(scenario.loan_rate),
+        'period_start': str(scenario.period_start),
+        'period_end': str(scenario.period_end),
+    })
+
+
 @need_permission(PermissionEnums.FINANCE_SCENARIOS)
 def credit_model_list(request):
     models_qs = CreditModel.objects.all()

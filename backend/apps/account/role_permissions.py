@@ -211,6 +211,7 @@ class MenuItem:
         finance_full_submenu = finance_common_submenu + [
             MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
             MenuItem('fin_credit', 'finances:credit_model_list', '', 'Кредитная модель'),
+            MenuItem('fin_scenarios', 'finances:scenarios_list', '', 'Сравнение сценариев'),
         ]
 
         finance_readonly_submenu = [
