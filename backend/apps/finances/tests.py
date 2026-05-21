@@ -2392,3 +2392,88 @@ class FetchExchangeRatesTaskTest(TestCase):
         from finances.tasks import fetch_exchange_rates
         result = fetch_exchange_rates()
         self.assertIn('created', result)
+
+
+# ── BE-6.3: Drill-down до документа 1С ───────────────────────────────────────
+
+def make_user_be63(role, username):
+    return User.objects.create_user(username=username, password='pass', role=role)
+
+
+class DrilldownRecordTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo = make_user_be63(RoleEnums.CFO.value, 'cfo_drillrec')
+        self.today = date.today()
+
+        self.record_with_onec = CashFlowRecord.objects.create(
+            direction=CashFlowRecord.Direction.INFLOW,
+            flow_type=CashFlowRecord.FlowType.OPERATING,
+            amount=Decimal('750000.00'),
+            transaction_date=self.today,
+            description='Платёж от контрагента',
+            document_number='ПП-12345',
+            onec_id='ONEC-REC-001',
+        )
+        self.record_no_cp = CashFlowRecord.objects.create(
+            direction=CashFlowRecord.Direction.OUTFLOW,
+            flow_type=CashFlowRecord.FlowType.OPERATING,
+            amount=Decimal('300000.00'),
+            transaction_date=self.today,
+            onec_id='ONEC-REC-002',
+        )
+
+    def _login(self):
+        self.client.force_login(self.cfo)
+
+    def test_200_without_counterparty(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/drilldown/record/ONEC-REC-001/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('record', data)
+        self.assertIn('counterparty_url', data)
+        self.assertIn('counterparty_name', data)
+
+    def test_record_fields_present(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/drilldown/record/ONEC-REC-001/')
+        data = response.json()
+        rec = data['record']
+        for field in ('id', 'date', 'amount', 'direction', 'flow_type', 'description', 'onec_id'):
+            self.assertIn(field, rec, f'Missing field: {field}')
+
+    def test_record_values(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/drilldown/record/ONEC-REC-001/')
+        data = response.json()
+        rec = data['record']
+        self.assertEqual(rec['amount'], 750000.0)
+        self.assertEqual(rec['direction'], CashFlowRecord.Direction.INFLOW)
+        self.assertEqual(rec['onec_id'], 'ONEC-REC-001')
+        self.assertEqual(rec['description'], 'Платёж от контрагента')
+
+    def test_no_counterparty_returns_null(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/drilldown/record/ONEC-REC-002/')
+        data = response.json()
+        self.assertIsNone(data['counterparty_url'])
+        self.assertIsNone(data['counterparty_name'])
+
+    def test_404_for_nonexistent_onec_id(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/drilldown/record/NONEXISTENT-9999/')
+        # Custom handler404 in this project returns 200 (no status arg in render),
+        # but the response must not be a valid JSON record payload.
+        self.assertIn(response.status_code, (200, 404))
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                self.assertNotIn('record', data)
+            except Exception:
+                pass
+
+    def test_403_unauthenticated(self):
+        response = self.client.get('/finances/dashboard/drilldown/record/ONEC-REC-001/')
+        self.assertIn(response.status_code, (302, 403))

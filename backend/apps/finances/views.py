@@ -9,8 +9,8 @@ from project.utils import get_or_none
 
 from .forms import FinanceItemForm, GeneratedInvoiceForm, GeneratedInvoiceItemFormSet
 from .models import (
-    FinanceItem, TenantPaymentRegistry, GeneratedInvoice, BudgetCategory, BudgetItem,
-    FinancialStatement, CashFlowRecord, CreditModel,
+    FinanceItem, TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice,
+    BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel,
 )
 from .serializers import FinanceItemSerializer
 
@@ -839,6 +839,37 @@ def cashflow_register(request):
 def _can_manage_credit(user):
     role = user.role.value if hasattr(user.role, 'value') else user.role
     return role in (RoleEnums.CFO.value, RoleEnums.OWNER.value, RoleEnums.ADMINISTRATOR.value)
+
+
+# ── BE-6.3: Drill-down до документа 1С ───────────────────────────────────────
+
+@need_permission(PermissionEnums.FINANCE_DASHBOARD)
+def drilldown_record(request, onec_id):
+    from django.http import Http404
+
+    record = get_object_or_404(CashFlowRecord, onec_id=onec_id)
+
+    counterparty = None
+    try:
+        from onec.models import Counterparty
+        counterparty = Counterparty.objects.filter(id_1c=onec_id).first()
+    except Exception:
+        pass
+
+    return JsonResponse({
+        'record': {
+            'id': record.id,
+            'date': str(record.transaction_date),
+            'amount': float(record.amount),
+            'direction': record.direction,
+            'flow_type': record.flow_type,
+            'description': record.description or '',
+            'onec_id': record.onec_id,
+            'document_number': record.document_number or '',
+        },
+        'counterparty_url': f'/onec/counterparties/{counterparty.pk}/' if counterparty else None,
+        'counterparty_name': counterparty.full_name if counterparty else None,
+    })
 
 
 @need_permission(PermissionEnums.FINANCE_SCENARIOS)
