@@ -1,0 +1,119 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% block content %}
+<div class="page-title-container">
+  <div class="row">
+    <div class="col-12 col-sm-6">
+      <h1 class="mb-0 pb-0 display-4">Счёт №{{ invoice.number }}</h1>
+      <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+        <ul class="breadcrumb pt-0">
+          <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'finances:invoice_list' %}">Счета</a></li>
+          <li class="breadcrumb-item active">№{{ invoice.number }}</li>
+        </ul>
+      </nav>
+    </div>
+    <div class="col-12 col-sm-6 d-flex align-items-center justify-content-end gap-2">
+      <span class="badge bg-{{ color }} fs-6">{{ invoice.get_status_display }}</span>
+      {% if invoice.status == 'created' %}
+        <a href="{% url 'finances:invoice_edit' invoice.pk %}" class="btn btn-outline-primary btn-sm">Редактировать</a>
+        <form action="{% url 'finances:invoice_send' invoice.pk %}" method="post" style="display:inline;">
+          {% csrf_token %}
+          <select name="sent_via" class="form-select form-select-sm d-inline w-auto">
+            <option value="email">Email</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="telegram">Telegram</option>
+            <option value="manual">Вручную</option>
+          </select>
+          <button class="btn btn-info btn-sm">Отправить</button>
+        </form>
+        <form action="{% url 'finances:invoice_cancel' invoice.pk %}" method="post"
+              onsubmit="return confirm('Отменить счёт?');" style="display:inline;">
+          {% csrf_token %}
+          <button class="btn btn-outline-danger btn-sm">Отменить</button>
+        </form>
+      {% elif invoice.status == 'sent' %}
+        <form action="{% url 'finances:invoice_mark_viewed' invoice.pk %}" method="post" style="display:inline;">
+          {% csrf_token %}
+          <button class="btn btn-warning btn-sm">Отметить просмотренным</button>
+        </form>
+        <form action="{% url 'finances:invoice_mark_paid' invoice.pk %}" method="post" style="display:inline;">
+          {% csrf_token %}
+          <button class="btn btn-success btn-sm">Отметить оплаченным</button>
+        </form>
+        <form action="{% url 'finances:invoice_cancel' invoice.pk %}" method="post"
+              onsubmit="return confirm('Отменить счёт?');" style="display:inline;">
+          {% csrf_token %}
+          <button class="btn btn-outline-danger btn-sm">Отменить</button>
+        </form>
+      {% elif invoice.status == 'viewed' %}
+        <form action="{% url 'finances:invoice_mark_paid' invoice.pk %}" method="post" style="display:inline;">
+          {% csrf_token %}
+          <button class="btn btn-success btn-sm">Отметить оплаченным</button>
+        </form>
+        <form action="{% url 'finances:invoice_cancel' invoice.pk %}" method="post"
+              onsubmit="return confirm('Отменить счёт?');" style="display:inline;">
+          {% csrf_token %}
+          <button class="btn btn-outline-danger btn-sm">Отменить</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Данные счёта</div>
+      <div class="card-body">
+        <table class="table table-sm">
+          <tr><td>Арендатор</td><td>{{ invoice.tenant.name|default:"—" }}</td></tr>
+          <tr><td>Контрагент</td><td>{{ invoice.counterparty.short_name|default:"—" }}</td></tr>
+          <tr><td>Договор</td><td>{{ invoice.contract_number|default:"—" }}</td></tr>
+          <tr><td>Период</td><td>{{ invoice.period|date:"m.Y"|default:"—" }}</td></tr>
+          <tr><td>Отправлен через</td><td>{{ invoice.get_sent_via_display|default:"—" }}</td></tr>
+          <tr><td>Дата отправки</td><td>{{ invoice.sent_at|date:"d.m.Y H:i"|default:"—" }}</td></tr>
+          <tr><td>Комментарий</td><td>{{ invoice.comment|default:"—" }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Суммы</div>
+      <div class="card-body text-center">
+        <h3>{{ invoice.total_amount|floatformat:0 }} ₸</h3>
+        <p class="text-muted">НДС: {{ invoice.vat_amount|floatformat:0 }} ₸</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">Позиции</div>
+  <div class="nested_table first_big">
+    <div class="outer">
+      <div class="tr th">
+        <p>Наименование</p>
+        <p>Кол-во</p>
+        <p>Ед.</p>
+        <p>Цена</p>
+        <p>НДС %</p>
+        <p>Сумма НДС</p>
+        <p>Итого</p>
+      </div>
+      {% for item in invoice.items.all %}
+      <div class="tr">
+        <p>{{ item.name }}</p>
+        <p>{{ item.quantity }}</p>
+        <p>{{ item.unit|default:"—" }}</p>
+        <p>{{ item.price|floatformat:0 }} ₸</p>
+        <p>{{ item.vat_rate }}%</p>
+        <p>{{ item.vat_amount|floatformat:0 }} ₸</p>
+        <p>{{ item.total|floatformat:0 }} ₸</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
