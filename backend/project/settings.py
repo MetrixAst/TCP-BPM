@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'addits',
     'enbek',
     'onec',
+    'audit',
     'rest_framework',
     'drf_spectacular',
 ]
@@ -61,6 +62,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'audit.middleware.AuditMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

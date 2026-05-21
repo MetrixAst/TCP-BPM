@@ -40,6 +40,7 @@ urlpatterns = [
     path('tasks/', include(('tasks.urls', 'tasks'))),
     path('tenants/', include(('tenants.urls', 'tenants'))),
     path('addits/', include(('addits.urls', 'addits'))),
+    path('audit/', include(('audit.urls', 'audit'))),
     path('api/enbek/', include('enbek.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
