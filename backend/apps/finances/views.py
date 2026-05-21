@@ -1,18 +1,21 @@
 from django.shortcuts import redirect, render, get_object_or_404
 from account.role_permissions import need_permission, PermissionEnums
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.contrib import messages
+from decimal import Decimal
+from django import forms as django_forms
 
 from project.utils import get_or_none
 
 from .forms import FinanceItemForm, GeneratedInvoiceForm, GeneratedInvoiceItemFormSet
-from .models import FinanceItem, TenantPaymentRegistry, GeneratedInvoice
+from .models import FinanceItem, TenantPaymentRegistry, GeneratedInvoice, BudgetCategory, BudgetItem
 from .serializers import FinanceItemSerializer
 
 from datetime import date
 from django.db.models import Q
 from django.utils import timezone
 
+from account.role_permissions import RoleEnums
 
 def payment_reg(request):
     context = {
@@ -459,3 +462,221 @@ def invoice_cancel(request, pk):
         invoice.save()
         messages.success(request, f'Счёт №{invoice.number} отменён.')
     return redirect('finances:invoice_detail', pk=pk)
+
+def _get_budget_access(user):
+    if not user.is_authenticated:
+        return False, False
+    
+    role = user.role.value if hasattr(user.role, 'value') else user.role
+
+    can_edit = role in [
+        RoleEnums.CFO.value,
+        RoleEnums.ADMINISTRATOR.value,
+        RoleEnums.OWNER.value
+    ]
+    can_read = can_edit or role == RoleEnums.CHIEF_ACCOUNTANT.value
+
+    return can_edit, can_read
+
+
+@need_permission(PermissionEnums.FINANCE_BUDGET)
+def budget_list(request):
+    today = date.today()
+    try:
+        year  = int(request.GET.get('year',  today.year))
+        month = int(request.GET.get('month', today.month))
+    except (ValueError, TypeError):
+        year, month = today.year, today.month
+
+    period_type = request.GET.get('period_type', 'monthly')
+    cat_type    = request.GET.get('cat_type', '')
+
+    can_edit, _ = _get_budget_access(request.user)
+
+    categories = BudgetCategory.objects.filter(
+        parent=None, is_active=True
+    ).prefetch_related('children')
+
+    if cat_type:
+        categories = categories.filter(category_type=cat_type)
+
+    OVERRUN_THRESHOLD = 10 
+
+    def _get_all_ids(cat):
+        ids = [cat.pk]
+        for child in cat.children.all():
+            ids.extend(_get_all_ids(child))
+        return ids
+
+    def get_items_for_category(cat):
+        qs = BudgetItem.objects.filter(
+            category__id__in=_get_all_ids(cat),
+            period_type=period_type,
+            year=year,
+        )
+        if period_type == 'monthly':
+            qs = qs.filter(month=month)
+
+        plan     = sum(i.plan     for i in qs) or Decimal('0')
+        fact     = sum(i.fact     for i in qs) or Decimal('0')
+        forecast = sum(i.forecast for i in qs) or Decimal('0')
+        
+        variance = fact - plan
+        
+        exec_pct = round((fact / plan) * 100, 1) if plan and plan > 0 else (100.0 if fact else 0.0)
+        
+        is_expense = getattr(cat, 'category_type', '') == 'expense'
+        overrun  = is_expense and exec_pct > (100 + OVERRUN_THRESHOLD)
+
+        return {
+            'plan': plan, 'fact': fact, 'forecast': forecast,
+            'variance': variance, 'exec_pct': exec_pct, 'overrun': overrun,
+        }
+
+    rows = []
+    total_plan = total_fact = Decimal('0')
+    has_overrun = False
+
+    for cat in categories:
+        data = get_items_for_category(cat)
+        rows.append({'cat': cat, **data})
+        
+        total_plan += data['plan']
+        total_fact += data['fact']
+        if data['overrun']:
+            has_overrun = True
+
+    if month == 1:
+        prev_year, prev_month = year - 1, 12
+    else:
+        prev_year, prev_month = year, month - 1
+        
+    if month == 12:
+        next_year, next_month = year + 1, 1
+    else:
+        next_year, next_month = year, month + 1
+
+    context = {
+        'rows':        rows,
+        'year':        year,
+        'month':       month,
+        'period_type': period_type,
+        'cat_type':    cat_type,
+        'can_edit':    can_edit, 
+        'has_overrun': has_overrun,
+        'total_plan':  total_plan,
+        'total_fact':  total_fact,
+        'prev_year':   prev_year, 'prev_month': prev_month,
+        'next_year':   next_year, 'next_month': next_month,
+        'today':       today,
+    }
+    return render(request, 'site/finances/budget/budget_list.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_BUDGET)
+def budget_detail(request, pk):
+    category = get_object_or_404(BudgetCategory, pk=pk)
+    can_edit, _ = _get_budget_access(request.user)
+
+    items = BudgetItem.objects.filter(
+        category=category
+    ).order_by('year', 'month', 'quarter')
+
+    rows = []
+    for item in items:
+        plan = item.plan or Decimal('0')
+        fact = item.fact or Decimal('0')
+        
+        variance = fact - plan
+        exec_pct = round((fact / plan) * 100, 1) if plan > 0 else (100.0 if fact else 0.0)
+        overrun = (category.category_type == 'expense' and exec_pct > 110)
+
+        rows.append({
+            'item':      item,
+            'variance':  variance,
+            'exec_pct':  exec_pct,
+            'overrun':   overrun,
+        })
+
+    context = {
+        'category': category,
+        'rows':     rows,
+        'can_edit': can_edit,
+    }
+    return render(request, 'site/finances/budget/budget_detail.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_BUDGET)
+def budget_item_create(request, category_pk):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden("<h1>403 Forbidden</h1><p>Доступ на создание ограничен для вашей роли (Chief Accountant имеет доступ только на чтение).</p>")
+
+    category = get_object_or_404(BudgetCategory, pk=category_pk)
+
+    class BudgetItemForm(django_forms.ModelForm):
+        class Meta:
+            model  = BudgetItem
+            fields = ['period_type', 'year', 'month', 'quarter', 'plan', 'fact', 'forecast', 'note']
+            widgets = {
+                'note': django_forms.Textarea(attrs={'rows': 2}),
+            }
+
+    form = BudgetItemForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        item = form.save(commit=False)
+        item.category = category
+        item.save()
+        messages.success(request, 'Строка бюджета добавлена.')
+        return redirect('finances:budget_detail', pk=category_pk)
+
+    context = {
+        'form':     form,
+        'category': category,
+        'title':    f'Добавить строку: {category.name}',
+    }
+    return render(request, 'site/finances/budget/budget_item_form.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_BUDGET)
+def budget_item_edit(request, pk):
+    item     = get_object_or_404(BudgetItem, pk=pk)
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden("<h1>403 Forbidden</h1><p>Редактирование доступно только CFO.</p>")
+
+    class BudgetItemForm(django_forms.ModelForm):
+        class Meta:
+            model  = BudgetItem
+            fields = ['period_type', 'year', 'month', 'quarter', 'plan', 'fact', 'forecast', 'note']
+            widgets = {
+                'note': django_forms.Textarea(attrs={'rows': 2}),
+            }
+
+    form = BudgetItemForm(request.POST or None, instance=item)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Строка бюджета обновлена.')
+        return redirect('finances:budget_detail', pk=item.category.pk)
+
+    context = {
+        'form':     form,
+        'category': item.category,
+        'title':    f'Редактировать: {item.category.name}',
+        'item':     item,
+    }
+    return render(request, 'site/finances/budget/budget_item_form.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_BUDGET)
+def budget_item_delete(request, pk):
+    item = get_object_or_404(BudgetItem, pk=pk)
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden("<h1>403 Forbidden</h1><p>Удаление доступно только CFO.</p>")
+
+    category_pk = item.category.pk
+    if request.method == 'POST':
+        item.delete()
+        messages.success(request, 'Строка бюджета удалена.')
+    return redirect('finances:budget_detail', pk=category_pk)
