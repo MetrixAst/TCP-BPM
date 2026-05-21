@@ -147,6 +147,10 @@ def payment_reg(request):
         'f_period_to': period_to,
     }
 
+    if request.GET.get('export') == 'xlsx':
+        from .services.excel import export_payment_registry
+        return export_payment_registry(qs)
+
     return render(request, 'site/finances/payment_register.html', context)
 
 @need_permission(PermissionEnums.FINANCE_REGISTERS)
@@ -575,6 +579,20 @@ def budget_list(request):
         'next_year':   next_year, 'next_month': next_month,
         'today':       today,
     }
+    if request.GET.get('export') == 'xlsx':
+        from .services.excel import export_budget
+        all_ids = []
+        for cat in categories:
+            all_ids.extend(_get_all_ids(cat))
+        export_qs = BudgetItem.objects.filter(
+            category__id__in=all_ids,
+            period_type=period_type,
+            year=year,
+        )
+        if period_type == 'monthly':
+            export_qs = export_qs.filter(month=month)
+        return export_budget(export_qs.select_related('category'))
+
     return render(request, 'site/finances/budget/budget_list.html', context)
 
 
@@ -784,6 +802,13 @@ def financial_statement(request):
         'next_year':   next_year,
         'next_month':  next_month,
     }
+    if request.GET.get('export') == 'xlsx':
+        from .services.excel import export_financial_statement
+        export_qs = FinancialStatement.objects.filter(period_type=period_type, year=year)
+        if period_type == FinancialStatement.Period.MONTHLY:
+            export_qs = export_qs.filter(month=month)
+        return export_financial_statement(export_qs)
+
     return render(request, 'site/finances/opiu.html', context)
 
 
@@ -810,6 +835,10 @@ def cashflow_register(request):
         qs = qs.filter(flow_type=flow_type)
     if counterparty_id:
         qs = qs.filter(counterparty_id=counterparty_id)
+
+    if request.GET.get('export') == 'xlsx':
+        from .services.excel import export_cashflow
+        return export_cashflow(qs.order_by('-transaction_date', '-created_at'))
 
     records = qs.order_by('-transaction_date', '-created_at')[:500]
 
