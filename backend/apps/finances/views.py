@@ -1339,3 +1339,32 @@ def cashflow_weekly(request):
         net.append(week_income - week_expense)
 
     return JsonResponse({'labels': labels, 'income': income, 'expense': expense, 'net': net})
+
+
+# ── BE-6.3: Drill-down до документа 1С ───────────────────────────────────────
+
+@need_permission(PermissionEnums.FINANCE_DASHBOARD)
+def drilldown_record(request, onec_id):
+    record = get_object_or_404(CashFlowRecord, onec_id=onec_id)
+
+    counterparty = None
+    try:
+        from onec.models import Counterparty
+        counterparty = Counterparty.objects.filter(id_1c=onec_id).first()
+    except Exception:
+        pass
+
+    return JsonResponse({
+        'record': {
+            'id': record.id,
+            'date': str(record.transaction_date),
+            'amount': float(record.amount),
+            'direction': record.direction,
+            'flow_type': record.flow_type,
+            'description': record.description or '',
+            'onec_id': record.onec_id,
+            'document_number': record.document_number or '',
+        },
+        'counterparty_url': f'/onec/counterparties/{counterparty.pk}/' if counterparty else None,
+        'counterparty_name': counterparty.full_name if counterparty else None,
+    })

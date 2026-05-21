@@ -43,4 +43,6 @@ urlpatterns = [
 
     path('dashboard/cashflow-daily/', views.cashflow_daily, name='cashflow_daily'),
     path('dashboard/cashflow-weekly/', views.cashflow_weekly, name='cashflow_weekly'),
+
+    path('dashboard/drilldown/record/<str:onec_id>/', views.drilldown_record, name='drilldown_record'),
 ]

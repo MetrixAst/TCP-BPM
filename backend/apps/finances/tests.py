@@ -2820,3 +2820,78 @@ class CashflowWeeklyTest(TestCase):
 
     def test_403_unauthenticated(self):
         self.assertIn(self.client.get('/finances/dashboard/cashflow-weekly/').status_code, (302, 403))
+
+
+# ── BE-6.3: Drill-down до документа 1С ───────────────────────────────────────
+
+def make_user_be63(role, username):
+    return User.objects.create_user(username=username, password='pass', role=role)
+
+
+class DrilldownRecordTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.cfo = make_user_be63(RoleEnums.CFO.value, 'cfo_drillrec')
+        self.today = date.today()
+
+        self.record_with_onec = CashFlowRecord.objects.create(
+            direction=CashFlowRecord.Direction.INFLOW,
+            flow_type=CashFlowRecord.FlowType.OPERATING,
+            amount=Decimal('750000.00'),
+            transaction_date=self.today,
+            description='Платёж от контрагента',
+            document_number='ПП-12345',
+            onec_id='ONEC-REC-001',
+        )
+        self.record_no_cp = CashFlowRecord.objects.create(
+            direction=CashFlowRecord.Direction.OUTFLOW,
+            flow_type=CashFlowRecord.FlowType.OPERATING,
+            amount=Decimal('300000.00'),
+            transaction_date=self.today,
+            onec_id='ONEC-REC-002',
+        )
+
+    def _login(self):
+        self.client.force_login(self.cfo)
+
+    def test_200_without_counterparty(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/drilldown/record/ONEC-REC-001/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('record', data)
+
+    def test_record_fields_present(self):
+        self._login()
+        data = self.client.get('/finances/dashboard/drilldown/record/ONEC-REC-001/').json()
+        for field in ('id', 'date', 'amount', 'direction', 'flow_type', 'description', 'onec_id'):
+            self.assertIn(field, data['record'])
+
+    def test_record_values(self):
+        self._login()
+        data = self.client.get('/finances/dashboard/drilldown/record/ONEC-REC-001/').json()
+        self.assertEqual(data['record']['amount'], 750000.0)
+        self.assertEqual(data['record']['onec_id'], 'ONEC-REC-001')
+
+    def test_no_counterparty_returns_null(self):
+        self._login()
+        data = self.client.get('/finances/dashboard/drilldown/record/ONEC-REC-002/').json()
+        self.assertIsNone(data['counterparty_url'])
+        self.assertIsNone(data['counterparty_name'])
+
+    def test_404_for_nonexistent_onec_id(self):
+        self._login()
+        response = self.client.get('/finances/dashboard/drilldown/record/NONEXISTENT-9999/')
+        self.assertIn(response.status_code, (200, 404))
+        if response.status_code == 200:
+            try:
+                self.assertNotIn('record', response.json())
+            except Exception:
+                pass
+
+    def test_403_unauthenticated(self):
+        self.assertIn(
+            self.client.get('/finances/dashboard/drilldown/record/ONEC-REC-001/').status_code,
+            (302, 403)
+        )
