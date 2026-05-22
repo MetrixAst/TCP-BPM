@@ -1,0 +1,78 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Сертификация — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-detail-page">
+
+  <div class="hr-registry-detail-card">
+    <div class="hr-registry-detail-card__header">
+      <div>
+        <a href="{% url 'hr:certifications_list' %}" class="hr-registry-detail-card__back">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h1>{{ certification.cert_type.name|default:"Сертификация" }}</h1>
+        <p>{{ certification.issuing_body|default:"Кем выдано не указано" }}</p>
+      </div>
+
+      <div class="hr-registry-detail-card__actions">
+        {% if certification.scan %}
+          <a href="{{ certification.scan.url }}" target="_blank" class="hr-registry-btn hr-registry-btn--light">
+            <i class="bi bi-file-earmark-text"></i>
+            Открыть скан
+          </a>
+        {% endif %}
+
+        {% if is_hr %}
+          <a href="{% url 'hr:certifications_edit' certification.pk %}" class="hr-registry-btn hr-registry-btn--primary">
+            <i class="bi bi-pencil"></i>
+            Редактировать
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="hr-registry-detail-grid">
+      <div class="hr-registry-detail-item">
+        <span>Сотрудник</span>
+        <strong>{{ certification.employee|default:"—" }}</strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Отдел</span>
+        <strong>{{ certification.employee.department|default:"—" }}</strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Тип</span>
+        <strong>{{ certification.cert_type.name|default:"—" }}</strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Номер сертификата</span>
+        <strong>{{ certification.certificate_number|default:"—" }}</strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Статус</span>
+        <strong>
+          <span class="hr-registry-status hr-registry-status--{{ certification.status }}">
+            {{ certification.get_status_display|default:"—" }}
+          </span>
+        </strong>
+      </div>
+
+      <div class="hr-registry-detail-item">
+        <span>Дата истечения</span>
+        <strong>{{ certification.expiry_date|date:"d.m.Y"|default:"Бессрочно" }}</strong>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

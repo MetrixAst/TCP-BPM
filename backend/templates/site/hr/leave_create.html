@@ -1,109 +1,113 @@
 {% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Новая заявка на отпуск — metriX BPM{% endblock %}
+
+{% block body_classes %}leave-create-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/leaves.css' %}?v=10002">
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4 class="card-title mb-0">Подать заявку на отпуск</h4>
-                    <a href="{% url 'hr:leave_list' %}" class="btn btn-outline-secondary btn-sm">Назад</a>
-                </div>
-                <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
+<div class="leave-create-page">
+  <div class="leave-create-card">
 
-                        <div class="mb-3">
-                            <label class="form-label">Тип отпуска</label>
-                            {{ form.leave_type }}
-                            {% if form.leave_type.errors %}
-                                <div class="text-danger small">{{ form.leave_type.errors }}</div>
-                            {% endif %}
-                        </div>
+    <div class="leave-create-card__header">
+      <h1 class="leave-create-card__title">Новая заявка на отпуск</h1>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Дата начала</label>
-                                {{ form.start_date }}
-                                {% if form.start_date.errors %}
-                                    <div class="text-danger small">{{ form.start_date.errors }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Дата окончания</label>
-                                {{ form.end_date }}
-                                {% if form.end_date.errors %}
-                                    <div class="text-danger small">{{ form.end_date.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
+      <a href="{% url 'hr:leave_list' %}"
+         class="leave-create-card__close"
+         aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
+    </div>
 
-                        <div class="mb-3">
-                            <div class="alert alert-info py-2 px-3" id="days-preview" style="display:none;">
-                                Рабочих дней: <strong id="days-count">—</strong>
-                            </div>
-                        </div>
+    <form method="post"
+          class="leave-create-form"
+          id="leaveCreateForm"
+          data-calculate-url="{% url 'hr:ajax_calculate_days' %}">
+      {% csrf_token %}
 
-                        <div class="mb-3">
-                            <label class="form-label">Комментарий</label>
-                            {{ form.comment }}
-                            {% if form.comment.errors %}
-                                <div class="text-danger small">{{ form.comment.errors }}</div>
-                            {% endif %}
-                        </div>
+      <div class="leave-create-card__body">
 
-                        {% if form.non_field_errors %}
-                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-                        {% endif %}
+        <section class="leave-create-section">
+          <h2 class="leave-create-section__title">Данные отпуска</h2>
 
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">Отправить заявку</button>
-                            <a href="{% url 'hr:leave_list' %}" class="btn btn-outline-secondary">Отмена</a>
-                        </div>
-                    </form>
+          <div class="leave-create-grid leave-create-grid--2">
+
+            <div class="leave-create-field {% if form.leave_type.errors %}is-invalid{% endif %}">
+              <label class="leave-create-field__label">Тип отпуска<span>*</span></label>
+              {{ form.leave_type }}
+              {% if form.leave_type.errors %}
+                <div class="leave-create-field__error">{{ form.leave_type.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="leave-create-field leave-create-field--preview">
+                <label class="leave-create-field__label">Рабочих дней</label>
+                <div class="leave-days-preview" id="days-preview">
+                  <span class="leave-days-preview__label">Итого:</span>
+                  <strong id="days-count">—</strong>
                 </div>
             </div>
-        </div>
-    </div>
+
+            <div class="leave-create-field {% if form.start_date.errors %}is-invalid{% endif %}">
+              <label class="leave-create-field__label">Дата начала<span>*</span></label>
+              {{ form.start_date }}
+              {% if form.start_date.errors %}
+                <div class="leave-create-field__error">{{ form.start_date.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="leave-create-field {% if form.end_date.errors %}is-invalid{% endif %}">
+              <label class="leave-create-field__label">Дата окончания<span>*</span></label>
+              {{ form.end_date }}
+              {% if form.end_date.errors %}
+                <div class="leave-create-field__error">{{ form.end_date.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+          </div>
+
+          <div class="leave-create-field {% if form.comment.errors %}is-invalid{% endif %}">
+            <label class="leave-create-field__label">Комментарий</label>
+            {{ form.comment }}
+            {% if form.comment.errors %}
+              <div class="leave-create-field__error">{{ form.comment.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          {% if form.non_field_errors %}
+            <div class="leave-create-alert">
+              {{ form.non_field_errors }}
+            </div>
+          {% endif %}
+        </section>
+
+      </div>
+
+      <div class="leave-create-card__footer">
+        <a href="{% url 'hr:leave_list' %}"
+           class="leave-create-btn leave-create-btn--cancel">
+          Отменить
+        </a>
+
+        <button type="submit"
+                class="leave-create-btn leave-create-btn--save">
+          Отправить заявку
+        </button>
+      </div>
+
+    </form>
+  </div>
 </div>
+{% endblock %}
 
-<script>
-(function () {
-    const startInput = document.getElementById('id_start_date');
-    const endInput   = document.getElementById('id_end_date');
-    const preview    = document.getElementById('days-preview');
-    const counter    = document.getElementById('days-count');
-    const ajaxUrl    = '{% url "hr:ajax_calculate_days" %}';
-
-    let debounceTimer = null;
-
-    function calculate() {
-        const start = startInput.value;
-        const end   = endInput.value;
-
-        if (!start || !end) {
-            preview.style.display = 'none';
-            return;
-        }
-
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(function () {
-            fetch(ajaxUrl + '?start=' + start + '&end=' + end)
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    if (data.days !== undefined) {
-                        counter.textContent = data.days;
-                        preview.style.display = 'block';
-                    }
-                })
-                .catch(function () {
-                    preview.style.display = 'none';
-                });
-        }, 400);
-    }
-
-    startInput.addEventListener('change', calculate);
-    endInput.addEventListener('change', calculate);
-})();
-</script>
+{% block scripts %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/leaves.js' %}?v=10002"></script>
 {% endblock %}
