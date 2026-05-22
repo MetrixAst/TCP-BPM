@@ -29,6 +29,7 @@ urlpatterns = [
 
     path('budget-plan/', views.budget_list, name='budget_list'),
     path('budget-plan/<int:pk>/', views.budget_detail, name='budget_detail'),
+    path('budget-plan/create/', views.budget_item_create_general, name='budget_item_create_general'),
     path('budget-plan/<int:category_pk>/create/', views.budget_item_create, name='budget_item_create'),
     path('budget-plan/item/<int:pk>/edit/', views.budget_item_edit, name='budget_item_edit'),
     path('budget-plan/item/<int:pk>/delete/', views.budget_item_delete, name='budget_item_delete'),

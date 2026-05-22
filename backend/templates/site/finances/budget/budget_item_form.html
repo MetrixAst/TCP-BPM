@@ -29,7 +29,11 @@
                 {% endfor %}
 
                 <div class="d-flex justify-content-between pt-3">
-                    <a href="{% url 'finances:budget_detail' category.pk %}" class="btn btn-outline-secondary">Отмена</a>
+                    {% if category %}
+                        <a href="{% url 'finances:budget_detail' category.pk %}" class="btn btn-outline-secondary">Отмена</a>
+                    {% else %}
+                        <a href="{% url 'finances:budget_list' %}" class="btn btn-outline-secondary">Отмена</a>
+                    {% endif %}
                     <button type="submit" class="btn btn-success px-4">Сохранить запись</button>
                 </div>
             </form>
