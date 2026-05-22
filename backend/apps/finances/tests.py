@@ -1,3 +1,4 @@
+import datetime
 from django.test import TestCase, Client
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
@@ -8,11 +9,13 @@ from decimal import Decimal
 
 from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel
 from tenants.models import Tenant, TenantCategory, Room
+from finances.models import ExchangeRate
 
 from django.urls import reverse
 from account.role_permissions import RoleEnums
 from account.models import UserAccount as User
 
+from unittest.mock import patch, MagicMock
 
 
 def make_tenant(name='ТестАрендатор'):
@@ -2178,3 +2181,308 @@ class CreditModelTest(TestCase):
         )
         models = list(CreditModel.objects.all())
         self.assertEqual(len(models), 2)
+
+
+class ExchangeRateModelTest(TestCase):
+
+    def _make_rate(self, **kwargs):
+        defaults = dict(
+            currency="USD",
+            date=datetime.date(2026, 5, 22),
+            rate=Decimal("450.0000"),
+        )
+        defaults.update(kwargs)
+        return ExchangeRate.objects.create(**defaults)
+
+    def test_create_usd(self):
+        r = self._make_rate()
+        self.assertEqual(r.currency, "USD")
+        self.assertEqual(r.date, datetime.date(2026, 5, 22))
+        self.assertEqual(r.rate, Decimal("450.0000"))
+
+    def test_create_eur(self):
+        r = self._make_rate(currency="EUR", rate=Decimal("490.0000"))
+        self.assertEqual(r.currency, "EUR")
+
+    def test_create_rub(self):
+        r = self._make_rate(currency="RUB", rate=Decimal("4.9500"))
+        self.assertEqual(r.currency, "RUB")
+
+    def test_str(self):
+        r = self._make_rate()
+        s = str(r)
+        self.assertIn("USD", s)
+        self.assertIn("KZT", s)
+        self.assertIn("450", s)
+        self.assertIn("2026", s)
+
+    def test_unique_together_same_currency_same_date(self):
+        self._make_rate()
+        with self.assertRaises(Exception):
+            self._make_rate() 
+
+    def test_unique_together_same_currency_different_date(self):
+        self._make_rate(date=datetime.date(2026, 5, 21))
+        r2 = self._make_rate(date=datetime.date(2026, 5, 22))
+        self.assertIsNotNone(r2.pk)
+
+    def test_unique_together_different_currency_same_date(self):
+        self._make_rate(currency="USD")
+        r2 = self._make_rate(currency="EUR", rate=Decimal("490.0000"))
+        self.assertIsNotNone(r2.pk)
+
+    def test_get_rate_returns_correct_object(self):
+        self._make_rate(currency="USD", rate=Decimal("450.0000"))
+        r = ExchangeRate.get_rate("USD", datetime.date(2026, 5, 22))
+        self.assertEqual(r.rate, Decimal("450.0000"))
+
+    def test_get_rate_case_insensitive(self):
+        self._make_rate(currency="USD")
+        r = ExchangeRate.get_rate("usd", datetime.date(2026, 5, 22))
+        self.assertEqual(r.currency, "USD")
+
+    def test_get_rate_kzt_returns_one(self):
+        r = ExchangeRate.get_rate("KZT", datetime.date(2026, 5, 22))
+        self.assertEqual(r.rate, Decimal("1.0"))
+        self.assertIsNone(r.pk) 
+
+    def test_get_rate_not_found_raises(self):
+        with self.assertRaises(ExchangeRate.DoesNotExist):
+            ExchangeRate.get_rate("USD", datetime.date(2000, 1, 1))
+
+    def test_get_latest_rate_returns_most_recent(self):
+        self._make_rate(date=datetime.date(2026, 5, 20), rate=Decimal("448.0000"))
+        self._make_rate(date=datetime.date(2026, 5, 22), rate=Decimal("450.0000"))
+        self._make_rate(date=datetime.date(2026, 5, 21), rate=Decimal("449.0000"))
+        r = ExchangeRate.get_latest_rate("USD")
+        self.assertEqual(r.date, datetime.date(2026, 5, 22))
+        self.assertEqual(r.rate, Decimal("450.0000"))
+
+    def test_get_latest_rate_kzt_returns_one(self):
+        r = ExchangeRate.get_latest_rate("KZT")
+        self.assertEqual(r.rate, Decimal("1.0"))
+        self.assertIsNone(r.pk)
+
+    def test_get_latest_rate_not_found_raises(self):
+        with self.assertRaises(ExchangeRate.DoesNotExist):
+            ExchangeRate.get_latest_rate("XYZ")
+
+    def test_convert_to_kzt(self):
+        self._make_rate(currency="USD", rate=Decimal("450.0000"))
+        result = ExchangeRate.convert(100, "USD", "KZT", date=datetime.date(2026, 5, 22))
+        self.assertEqual(result, Decimal("45000.00"))
+
+    def test_convert_to_kzt_default(self):
+        """to='KZT' — значение по умолчанию."""
+        self._make_rate(currency="EUR", rate=Decimal("490.0000"))
+        result = ExchangeRate.convert(10, "EUR", date=datetime.date(2026, 5, 22))
+        self.assertEqual(result, Decimal("4900.00"))
+
+    def test_convert_from_kzt(self):
+        self._make_rate(currency="USD", rate=Decimal("500.0000"))
+        result = ExchangeRate.convert(5000, "KZT", "USD", date=datetime.date(2026, 5, 22))
+        self.assertEqual(result, Decimal("10.000000"))
+
+    def test_convert_same_currency_returns_same_amount(self):
+        result = ExchangeRate.convert(Decimal("999.99"), "USD", "USD")
+        self.assertEqual(result, Decimal("999.99"))
+
+    def test_convert_kzt_to_kzt(self):
+        result = ExchangeRate.convert(1000, "KZT", "KZT")
+        self.assertEqual(result, Decimal("1000"))
+
+    def test_convert_cross_rate(self):
+        self._make_rate(currency="USD", rate=Decimal("500.0000"))
+        self._make_rate(currency="EUR", rate=Decimal("550.0000"))
+        result = ExchangeRate.convert(110, "USD", "EUR", date=datetime.date(2026, 5, 22))
+        self.assertEqual(result, Decimal("100.000000"))
+
+    def test_convert_uses_latest_rate_when_no_date(self):
+        self._make_rate(
+            currency="USD",
+            date=datetime.date(2026, 5, 21),
+            rate=Decimal("448.0000"),
+        )
+        self._make_rate(
+            currency="USD",
+            date=datetime.date(2026, 5, 22),
+            rate=Decimal("450.0000"),
+        )
+        result = ExchangeRate.convert(1, "USD")
+        self.assertEqual(result, Decimal("450.00"))
+
+    def test_convert_zero_amount(self):
+        self._make_rate(currency="USD", rate=Decimal("450.0000"))
+        result = ExchangeRate.convert(0, "USD", "KZT", date=datetime.date(2026, 5, 22))
+        self.assertEqual(result, Decimal("0.00"))
+
+    def test_convert_decimal_amount(self):
+        self._make_rate(currency="USD", rate=Decimal("400.0000"))
+        result = ExchangeRate.convert(Decimal("2.5"), "USD", "KZT", date=datetime.date(2026, 5, 22))
+        self.assertEqual(result, Decimal("1000.00"))
+
+    def test_convert_rate_not_found_raises(self):
+        with self.assertRaises(ExchangeRate.DoesNotExist):
+            ExchangeRate.convert(100, "USD", "KZT", date=datetime.date(2000, 1, 1))
+
+    def test_ordering_by_date_desc(self):
+        self._make_rate(currency="USD", date=datetime.date(2026, 5, 20))
+        self._make_rate(currency="USD", date=datetime.date(2026, 5, 22))
+        self._make_rate(currency="USD", date=datetime.date(2026, 5, 21))
+        dates = list(ExchangeRate.objects.values_list("date", flat=True))
+        self.assertEqual(dates, sorted(dates, reverse=True))
+
+
+class NBRKServiceTest(TestCase):
+    SAMPLE_XML = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        "<rates>"
+        "<generator>National Bank of Kazakhstan</generator>"
+        "<date>22.05.2026</date>"
+        "<item><fullname>US Dollar</fullname><title>USD</title>"
+        "<quant>1</quant><index>USD</index><change>0.5</change>"
+        "<units>450.5000</units></item>"
+        "<item><fullname>Euro</fullname><title>EUR</title>"
+        "<quant>1</quant><index>EUR</index><change>-0.3</change>"
+        "<units>490.2500</units></item>"
+        "<item><fullname>Japanese Yen</fullname><title>JPY</title>"
+        "<quant>100</quant><index>JPY</index><change>0.1</change>"
+        "<units>300.0000</units></item>"
+        "</rates>"
+    ).encode("utf-8")
+
+    def test_parse_xml_returns_all_currencies(self):
+        from finances.services.nbrk import _parse_xml
+        result = _parse_xml(self.SAMPLE_XML)
+        self.assertEqual(len(result), 3)
+
+    def test_parse_xml_currency_codes(self):
+        from finances.services.nbrk import _parse_xml
+        result = _parse_xml(self.SAMPLE_XML)
+        codes = {r["currency"] for r in result}
+        self.assertEqual(codes, {"USD", "EUR", "JPY"})
+
+    def test_parse_xml_rate_value(self):
+        from finances.services.nbrk import _parse_xml
+        result = _parse_xml(self.SAMPLE_XML)
+        usd = next(r for r in result if r["currency"] == "USD")
+        self.assertEqual(usd["rate"], Decimal("450.5000"))
+
+    def test_parse_xml_quant_applied(self):
+        from finances.services.nbrk import _parse_xml
+        result = _parse_xml(self.SAMPLE_XML)
+        jpy = next(r for r in result if r["currency"] == "JPY")
+        self.assertEqual(jpy["rate"], Decimal("3.0000"))
+
+    def test_parse_xml_date_parsed(self):
+        from finances.services.nbrk import _parse_xml
+        result = _parse_xml(self.SAMPLE_XML)
+        self.assertEqual(result[0]["date"], datetime.date(2026, 5, 22))
+
+    def test_parse_xml_filter_currencies(self):
+        from finances.services.nbrk import _parse_xml
+        result = _parse_xml(self.SAMPLE_XML, currencies=["USD"])
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["currency"], "USD")
+
+    def test_parse_xml_invalid_raises(self):
+        from finances.services.nbrk import _parse_xml, NBRKServiceError
+        with self.assertRaises(NBRKServiceError):
+            _parse_xml(b"not xml at all {{{}}")
+
+    def test_parse_xml_json_error_response(self):
+        from finances.services.nbrk import NBRKServiceError
+        json_error = b'{"code":500,"message":"Invalid format date."}'
+        with self.assertRaises(NBRKServiceError):
+            from finances.services.nbrk import _parse_xml
+            _parse_xml(json_error)
+
+    def test_save_rates_creates_records(self):
+        from finances.services.nbrk import save_rates
+        rates = [
+            {"currency": "USD", "date": datetime.date(2026, 5, 22), "rate": Decimal("450.0000")},
+            {"currency": "EUR", "date": datetime.date(2026, 5, 22), "rate": Decimal("490.0000")},
+        ]
+        created, updated = save_rates(rates)
+        self.assertEqual(created, 2)
+        self.assertEqual(updated, 0)
+        self.assertEqual(ExchangeRate.objects.count(), 2)
+
+    def test_save_rates_updates_existing(self):
+        from finances.services.nbrk import save_rates
+        ExchangeRate.objects.create(
+            currency="USD",
+            date=datetime.date(2026, 5, 22),
+            rate=Decimal("448.0000"),
+        )
+        rates = [
+            {"currency": "USD", "date": datetime.date(2026, 5, 22), "rate": Decimal("450.0000")},
+        ]
+        created, updated = save_rates(rates)
+        self.assertEqual(created, 0)
+        self.assertEqual(updated, 1)
+        self.assertEqual(ExchangeRate.objects.get(currency="USD").rate, Decimal("450.0000"))
+
+    def test_save_rates_skips_invalid(self):
+        from finances.services.nbrk import save_rates
+        rates = [
+            {"currency": "", "date": datetime.date(2026, 5, 22), "rate": Decimal("450.0000")},
+            {"currency": "USD", "date": None, "rate": Decimal("450.0000")},
+            {"currency": "EUR", "date": datetime.date(2026, 5, 22), "rate": Decimal("490.0000")},
+        ]
+        created, updated = save_rates(rates)
+        self.assertEqual(created, 1)
+        self.assertEqual(ExchangeRate.objects.count(), 1)
+
+    @patch("finances.services.nbrk.requests.get")
+    def test_fetch_nbrk_rates_passes_showdate(self, mock_get):
+        from finances.services.nbrk import fetch_nbrk_rates
+        mock_resp = MagicMock()
+        mock_resp.content = self.SAMPLE_XML
+        mock_resp.headers = {"Content-Type": "application/xml"}
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        fetch_nbrk_rates(date=datetime.date(2026, 5, 22))
+
+        call_kwargs = mock_get.call_args
+        params = call_kwargs[1].get("params") or call_kwargs[0][1]
+        self.assertIn("showdate", params)
+        self.assertEqual(params["showdate"], "22.05.2026")
+
+    @patch("finances.services.nbrk.requests.get")
+    def test_fetch_nbrk_rates_uses_today_when_no_date(self, mock_get):
+        from finances.services.nbrk import fetch_nbrk_rates
+        mock_resp = MagicMock()
+        mock_resp.content = self.SAMPLE_XML
+        mock_resp.headers = {"Content-Type": "application/xml"}
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        fetch_nbrk_rates()
+
+        call_kwargs = mock_get.call_args
+        params = call_kwargs[1].get("params") or call_kwargs[0][1]
+        expected = datetime.date.today().strftime("%d.%m.%Y")
+        self.assertEqual(params["showdate"], expected)
+
+    @patch("finances.services.nbrk.requests.get")
+    def test_fetch_nbrk_rates_raises_on_json_error(self, mock_get):
+        from finances.services.nbrk import fetch_nbrk_rates, NBRKServiceError
+        mock_resp = MagicMock()
+        mock_resp.content = b'{"code":500,"message":"Invalid format date."}'
+        mock_resp.headers = {"Content-Type": "application/json"}
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        with self.assertRaises(NBRKServiceError):
+            fetch_nbrk_rates()
+
+    @patch("finances.services.nbrk.requests.get")
+    def test_fetch_nbrk_rates_raises_on_network_error(self, mock_get):
+        import requests as req
+        from finances.services.nbrk import fetch_nbrk_rates, NBRKServiceError
+        mock_get.side_effect = req.ConnectionError("timeout")
+
+        with self.assertRaises(NBRKServiceError):
+            fetch_nbrk_rates()

@@ -4,6 +4,7 @@ from account.models import UserAccount
 from .enums import FinanceItemType
 
 from tenants.models import Tenant
+from decimal import Decimal
 
 class FinanceItem(models.Model):
 
@@ -702,3 +703,79 @@ class CreditModel(models.Model):
                 self.risk_level = CreditModel.RiskLevel.HIGH
 
         super().save(*args, **kwargs)
+
+
+class ExchangeRate(models.Model):
+    currency = models.CharField(
+        "Код валюты",
+        max_length=10,
+        help_text="ISO 4217, например: USD, EUR, RUB",
+    )
+    date = models.DateField("Дата курса")
+    rate = models.DecimalField(
+        "Курс к KZT",
+        max_digits=18,
+        decimal_places=4,
+    )
+
+    class Meta:
+        unique_together = ("currency", "date")
+        ordering = ["-date", "currency"]
+        verbose_name = "Курс валюты"
+        verbose_name_plural = "Курсы валют"
+        indexes = [
+            models.Index(fields=["currency", "date"]),
+            models.Index(fields=["date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.currency}/KZT = {self.rate} ({self.date})"
+    @classmethod
+    def get_rate(cls, currency: str, date) -> "ExchangeRate":
+        currency = currency.upper().strip()
+        if currency == "KZT":
+            return cls(currency="KZT", date=date, rate=Decimal("1.0"))
+        return cls.objects.get(currency=currency, date=date)
+
+    @classmethod
+    def get_latest_rate(cls, currency: str) -> "ExchangeRate":
+        currency = currency.upper().strip()
+        if currency == "KZT":
+            import datetime
+            return cls(currency="KZT", date=datetime.date.today(), rate=Decimal("1.0"))
+        return cls.objects.filter(currency=currency).latest("date")
+
+    @classmethod
+    def convert(
+        cls,
+        amount,
+        from_currency: str,
+        to: str = "KZT",
+        date=None,
+    ) -> Decimal:
+        amount = Decimal(str(amount))
+        from_currency = from_currency.upper().strip()
+        to = to.upper().strip()
+
+        if from_currency == to:
+            return amount
+
+        def _get(currency):
+            if date:
+                return cls.get_rate(currency, date).rate
+            return cls.get_latest_rate(currency).rate
+
+        if to == "KZT":
+            return (amount * _get(from_currency)).quantize(Decimal("0.01"))
+
+        if from_currency == "KZT":
+            to_rate = _get(to)
+            if to_rate == 0:
+                raise ValueError(f"Нулевой курс для {to}")
+            return (amount / to_rate).quantize(Decimal("0.000001"))
+
+        amount_in_kzt = amount * _get(from_currency)
+        to_rate = _get(to)
+        if to_rate == 0:
+            raise ValueError(f"Нулевой курс для {to}")
+        return (amount_in_kzt / to_rate).quantize(Decimal("0.000001"))
