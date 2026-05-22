@@ -1,92 +1,116 @@
 {% extends "site/base.html" %}
+{% load static %}
 
 {% block content %}
-<div class="container mt-4">
-    <h3>Выставить новый счет</h3>
-    <form method="post">
-        {% csrf_token %}
-        <div class="card mb-4">
-            <div class="card-body">
-                <label><b>Контрагент:</b></label>
-                <select name="counterparty" id="cp_select" class="form-control" required></select>
-                <br>
-                <label>Комментарий:</label>
-                <textarea name="comment" class="form-control" rows="2"></textarea>
-            </div>
-        </div>
-
-        <h5>Позиции счета</h5>
-        <table class="table table-bordered" id="itemsTable">
-            <thead>
-                <tr>
-                    <th>Наименование</th>
-                    <th width="100">Кол-во</th>
-                    <th width="150">Цена</th>
-                    <th width="40"></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><input type="text" name="item_name[]" class="form-control" required></td>
-                    <td><input type="number" name="item_qty[]" class="form-control" value="1" required></td>
-                    <td><input type="number" name="item_price[]" class="form-control" value="0" required></td>
-                    <td></td>
-                </tr>
-            </tbody>
-        </table>
-        <button type="button" id="addRow" class="btn btn-sm btn-info">+ Добавить товар</button>
-        <hr>
-        <button type="submit" class="btn btn-success">Создать и отправить в 1С</button>
-    </form>
-</div>
-
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/css/bootstrap-datepicker.min.css">
 
 <script>
-    window.addEventListener('load', function() {
-        
-        $('#cp_select').select2({
-            ajax: {
-                url: "{% url 'onec:counterparty_search_api' %}",
-                dataType: 'json',
-                delay: 250,
-                data: function (params) {
-                    return { q: params.term };
-                },
-                processResults: function (data) {
-                    return { results: data.results };
-                },
-                cache: true
-            },
-            placeholder: 'Введите название или БИН',
-            minimumInputLength: 1,
-            width: '100%',
-            dropdownParent: $('#cp_select').parent()
-        });
-
-        $('#addRow').click(function() {
-            const newRow = `
-                <tr>
-                    <td><input type="text" name="item_name[]" class="form-control" required></td>
-                    <td><input type="number" name="item_qty[]" class="form-control" value="1" step="0.1" required></td>
-                    <td><input type="number" name="item_price[]" class="form-control" value="0" step="0.01" required></td>
-                    <td class="text-center">
-                        <button type="button" class="btn btn-sm btn-danger removeRow">×</button>
-                    </td>
-                </tr>`;
-            $('#itemsTable tbody').append(newRow);
-        });
-
-        $(document).on('click', '.removeRow', function() {
-            if ($('#itemsTable tbody tr').length > 1) {
-                $(this).closest('tr').remove();
-            } else {
-                alert("В счете должна быть как минимум одна позиция.");
-            }
-        });
-    });
+  document.body.classList.add('onec-invoice-body');
 </script>
 
+
+<div class="onec-create-page">
+  <form method="post" class="onec-create-card" id="onecInvoiceForm">
+    {% csrf_token %}
+
+    <div class="onec-create-card__header">
+      <h1 class="onec-create-card__title">Новый счёт</h1>
+      <a href="{% url 'onec:counterparty_list' %}" class="onec-create-card__close">×</a>
+    </div>
+
+    <div class="onec-create-card__section-title">Данные счёта</div>
+
+    <div class="onec-form-grid">
+      <div class="onec-form-field onec-form-field--full">
+        <label class="onec-label">Контрагент<span>*</span></label>
+        <select
+          name="counterparty"
+          id="cp_select"
+          class="onec-select"
+          data-url="{% url 'onec:counterparty_search_api' %}"
+          data-detail-base="/onec/api/counterparties/"
+          required
+        ></select>
+      </div>
+
+      <div class="onec-form-field">
+        <label class="onec-label">Дата счёта</label>
+        <input type="text" name="invoice_date" class="onec-input onec-date-input" placeholder="дд.мм.гггг" autocomplete="off">
+      </div>
+
+      <div class="onec-form-field">
+        <label class="onec-label">Код назначения платежа</label>
+        <input type="text" name="payment_code" class="onec-input" placeholder="КНП">
+      </div>
+
+      <div class="onec-form-field onec-form-field--full">
+        <label class="onec-label">Назначение платежа</label>
+        <textarea name="comment" class="onec-textarea" placeholder="Назначение платежа / комментарий к счёту"></textarea>
+      </div>
+    </div>
+
+    <div class="onec-preview-grid" id="counterpartyPreview" hidden>
+      <div class="onec-preview-card">
+        <div class="onec-preview-card__title">Банковские реквизиты</div>
+        <div class="onec-preview-card__body" id="bankAccountsPreview">—</div>
+      </div>
+
+      <div class="onec-preview-card">
+        <div class="onec-preview-card__title">Договоры</div>
+        <div class="onec-preview-card__body" id="contractsPreview">—</div>
+      </div>
+    </div>
+
+    <div class="onec-create-card__section-title onec-create-card__section-title--items">
+      Позиции счёта
+    </div>
+
+    <div class="onec-invoice-head">
+      <button type="button" class="onec-btn onec-btn--light" id="addRow">
+        <i class="bi bi-plus-lg"></i>
+        Добавить позицию
+      </button>
+    </div>
+
+    <div class="onec-items-list" id="itemsTable">
+      <div class="onec-items-list__head">
+        <div>Наименование</div>
+        <div>Кол-во</div>
+        <div>Цена</div>
+        <div>Итого</div>
+        <div></div>
+      </div>
+
+      <div class="onec-items-list__body">
+        <div class="onec-items-row">
+          <input type="text" name="item_name[]" class="onec-input" placeholder="Товар или услуга" required>
+          <input type="number" name="item_qty[]" class="onec-input onec-item-qty" value="1" step="0.1" min="0" required>
+          <input type="number" name="item_price[]" class="onec-input onec-item-price" value="0" step="0.01" min="0" required>
+          <div class="onec-item-total">0.00</div>
+          <div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="onec-invoice-summary">
+      <span>Итого:</span>
+      <strong id="invoiceTotal">0.00</strong>
+    </div>
+
+    <div class="onec-create-footer">
+      <a href="{% url 'onec:counterparty_list' %}" class="onec-btn onec-btn--ghost">Отменить</a>
+      <button type="submit" class="onec-btn onec-btn--primary">Создать</button>
+    </div>
+  </form>
+</div>
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/js/bootstrap-datepicker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/locales/bootstrap-datepicker.ru.min.js"></script>
+<script src="{% static 'site/js/apps/onec.js' %}?v=4"></script>
+{% endblock %}
 {% endblock %}

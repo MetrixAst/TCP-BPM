@@ -1,86 +1,226 @@
-{% extends 'site/base.html' %}
+{% extends "site/base.html" %}
 {% load static %}
+
+{% block title %}{{ title }} — metriX BPM{% endblock %}
+
+{% block body_classes %}invoice-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe53-create-1">
+{% endblock %}
+
 {% block content %}
-<div class="page-title-container">
-  <div class="row">
-    <div class="col-12">
-      <h1 class="mb-0 pb-0 display-4">{{ title }}</h1>
-      <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
-        <ul class="breadcrumb pt-0">
-          <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-          <li class="breadcrumb-item"><a href="{% url 'finances:invoice_list' %}">Счета</a></li>
-          <li class="breadcrumb-item active">{{ title }}</li>
-        </ul>
-      </nav>
+<div class="invoice-edit-page">
+  <div class="invoice-edit-card">
+
+    <div class="invoice-edit-card__header">
+      <h1 class="invoice-edit-card__title">{{ title }}</h1>
+
+      <a href="{% url 'finances:invoice_list' %}" class="invoice-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
     </div>
+
+    <form method="post" class="invoice-edit-form" id="invoiceForm">
+      {% csrf_token %}
+
+      <div class="invoice-edit-card__body">
+
+        <section class="invoice-edit-section">
+          <h2 class="invoice-edit-section__title">Данные счёта</h2>
+
+          <div class="invoice-edit-grid invoice-edit-grid--2">
+            <div class="invoice-edit-field">
+              <label class="invoice-edit-field__label">{{ form.tenant.label }}</label>
+              {{ form.tenant.as_widget }}
+              {% if form.tenant.errors %}<div class="invoice-edit-field__error">{{ form.tenant.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="invoice-edit-field">
+              <label class="invoice-edit-field__label">{{ form.counterparty.label }}</label>
+              {{ form.counterparty.as_widget }}
+              {% if form.counterparty.errors %}<div class="invoice-edit-field__error">{{ form.counterparty.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="invoice-edit-field">
+              <label class="invoice-edit-field__label">{{ form.number.label }}<span>*</span></label>
+              {{ form.number }}
+              {% if form.number.errors %}<div class="invoice-edit-field__error">{{ form.number.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="invoice-edit-field">
+              <label class="invoice-edit-field__label">{{ form.period.label }}</label>
+              {{ form.period }}
+              {% if form.period.errors %}<div class="invoice-edit-field__error">{{ form.period.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="invoice-edit-field">
+              <label class="invoice-edit-field__label">{{ form.contract_number.label }}</label>
+              {{ form.contract_number }}
+              {% if form.contract_number.errors %}<div class="invoice-edit-field__error">{{ form.contract_number.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="invoice-edit-field">
+              <label class="invoice-edit-field__label">{{ form.sent_via.label }}</label>
+              {{ form.sent_via.as_widget }}
+              {% if form.sent_via.errors %}<div class="invoice-edit-field__error">{{ form.sent_via.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="invoice-edit-grid invoice-edit-grid--2">
+            <div class="invoice-edit-field">
+              <label class="invoice-edit-field__label">{{ form.total_amount.label }}</label>
+              {{ form.total_amount }}
+              {% if form.total_amount.errors %}<div class="invoice-edit-field__error">{{ form.total_amount.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="invoice-edit-field">
+              <label class="invoice-edit-field__label">{{ form.vat_amount.label }}</label>
+              {{ form.vat_amount }}
+              {% if form.vat_amount.errors %}<div class="invoice-edit-field__error">{{ form.vat_amount.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="invoice-edit-field">
+            <label class="invoice-edit-field__label">{{ form.comment.label }}</label>
+            {{ form.comment }}
+            {% if form.comment.errors %}<div class="invoice-edit-field__error">{{ form.comment.errors.0 }}</div>{% endif %}
+          </div>
+        </section>
+
+        <section class="invoice-edit-section">
+          <div class="invoice-edit-section__head">
+            <h2 class="invoice-edit-section__title">Позиции счёта</h2>
+
+            <button type="button" class="invoice-edit-btn invoice-edit-btn--ghost" id="addInvoiceItem">
+              + Добавить позицию
+            </button>
+          </div>
+
+          {{ formset.management_form }}
+
+          <div class="invoice-items" id="invoiceItems">
+            {% for item_form in formset %}
+              <div class="invoice-item-row">
+                {{ item_form.id }}
+
+                <div class="invoice-edit-field invoice-edit-field--name">
+                  <label class="invoice-edit-field__label">Наименование</label>
+                  {{ item_form.name }}
+                </div>
+
+                <div class="invoice-edit-field">
+                  <label class="invoice-edit-field__label">Кол-во</label>
+                  {{ item_form.quantity }}
+                </div>
+
+                <div class="invoice-edit-field">
+                  <label class="invoice-edit-field__label">Ед.</label>
+                  {{ item_form.unit }}
+                </div>
+
+                <div class="invoice-edit-field">
+                  <label class="invoice-edit-field__label">Цена</label>
+                  {{ item_form.price }}
+                </div>
+
+                <div class="invoice-edit-field">
+                  <label class="invoice-edit-field__label">НДС %</label>
+                  {{ item_form.vat_rate }}
+                </div>
+
+                <div class="invoice-item-total">
+                  <span>Итого</span>
+                  <strong data-row-total>0 ₸</strong>
+                </div>
+
+                <div class="invoice-item-delete">
+                  {% if item_form.DELETE %}
+                    {{ item_form.DELETE }}
+                  {% endif %}
+                  <button type="button" class="invoice-remove-row">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <template id="invoiceItemTemplate">
+            <div class="invoice-item-row">
+              {{ formset.empty_form.id }}
+
+              <div class="invoice-edit-field invoice-edit-field--name">
+                <label class="invoice-edit-field__label">Наименование</label>
+                {{ formset.empty_form.name }}
+              </div>
+
+              <div class="invoice-edit-field">
+                <label class="invoice-edit-field__label">Кол-во</label>
+                {{ formset.empty_form.quantity }}
+              </div>
+
+              <div class="invoice-edit-field">
+                <label class="invoice-edit-field__label">Ед.</label>
+                {{ formset.empty_form.unit }}
+              </div>
+
+              <div class="invoice-edit-field">
+                <label class="invoice-edit-field__label">Цена</label>
+                {{ formset.empty_form.price }}
+              </div>
+
+              <div class="invoice-edit-field">
+                <label class="invoice-edit-field__label">НДС %</label>
+                {{ formset.empty_form.vat_rate }}
+              </div>
+
+              <div class="invoice-item-total">
+                <span>Итого</span>
+                <strong data-row-total>0 ₸</strong>
+              </div>
+
+              <div class="invoice-item-delete">
+                {% if formset.empty_form.DELETE %}
+                  {{ formset.empty_form.DELETE }}
+                {% endif %}
+                <button type="button" class="invoice-remove-row">
+                  <i class="bi bi-x"></i>
+                </button>
+              </div>
+            </div>
+          </template>
+        </section>
+
+      </div>
+
+      <div class="invoice-pdf-preview">
+        <i class="bi bi-file-earmark-pdf"></i>
+        <div>
+          <strong>PDF preview</strong>
+          <span>Будет подключено после BE-5.14</span>
+        </div>
+      </div>
+
+      <div class="invoice-edit-card__footer">
+        <a href="{% url 'finances:invoice_list' %}" class="invoice-edit-btn invoice-edit-btn--cancel">
+          Отменить
+        </a>
+
+        <button type="submit" class="invoice-edit-btn invoice-edit-btn--save">
+          Сохранить
+        </button>
+      </div>
+    </form>
+
   </div>
 </div>
-
-<form method="post">
-  {% csrf_token %}
-  <div class="row">
-    <div class="col-md-8">
-      <div class="card mb-4">
-        <div class="card-header">Основные данные</div>
-        <div class="card-body">
-          {% for field in form %}
-          <div class="mb-3">
-            <label class="form-label">{{ field.label }}</label>
-            {{ field }}
-            {% if field.errors %}
-              <div class="text-danger small">{{ field.errors }}</div>
-            {% endif %}
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-
-      <div class="card mb-4">
-        <div class="card-header">Позиции счёта</div>
-        <div class="card-body">
-          {{ formset.management_form }}
-          {% for item_form in formset %}
-          <div class="row mb-2 align-items-end">
-            <div class="col-md-4">
-              <label class="form-label">Наименование</label>
-              {{ item_form.name }}
-            </div>
-            <div class="col-md-1">
-              <label class="form-label">Кол-во</label>
-              {{ item_form.quantity }}
-            </div>
-            <div class="col-md-1">
-              <label class="form-label">Ед.</label>
-              {{ item_form.unit }}
-            </div>
-            <div class="col-md-2">
-              <label class="form-label">Цена</label>
-              {{ item_form.price }}
-            </div>
-            <div class="col-md-2">
-              <label class="form-label">НДС %</label>
-              {{ item_form.vat_rate }}
-            </div>
-            <div class="col-md-1">
-              {% if item_form.DELETE %}
-                <label class="form-label">Удалить</label>
-                {{ item_form.DELETE }}
-              {% endif %}
-            </div>
-            {{ item_form.id }}
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="d-flex gap-2">
-    <button type="submit" class="btn btn-primary">Сохранить</button>
-    <a href="{% url 'finances:invoice_list' %}" class="btn btn-outline-secondary">Отмена</a>
-  </div>
-</form>
 {% endblock %}
+
 {% block scripts %}
-  <script src="{% static 'site/js/forms/controls.select2.js' %}"></script>
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/invoices.js' %}?v=fe53-create-1"></script>
 {% endblock %}

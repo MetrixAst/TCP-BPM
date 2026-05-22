@@ -13,27 +13,26 @@ class TaskStatusEnum(CustomEnum):
         full = {
             cls.CREATED.value[0]: {
                 'title': cls.CREATED.value[1],
-                'icon': 'flag',
-                'color': 'secondary',
+                'color': 'neutral',
             },
+
             cls.ACCEPTED.value[0]: {
                 'title': cls.ACCEPTED.value[1],
-                'icon': 'check',
-                'color': 'primary',
+                'color': 'info',
             },
+
             cls.REJECTED.value[0]: {
                 'title': cls.REJECTED.value[1],
-                'icon': 'close',
                 'color': 'danger',
             },
+
             cls.REVISION.value[0]: {
                 'title': cls.REVISION.value[1],
-                'icon': 'edit',
                 'color': 'warning',
             },
+
             cls.COMPLETED.value[0]: {
                 'title': cls.COMPLETED.value[1],
-                'icon': 'check',
                 'color': 'success',
             },
         }

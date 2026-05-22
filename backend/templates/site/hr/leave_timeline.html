@@ -1,0 +1,61 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Timeline отпусков — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/leaves.css' %}?v=10004">
+{% endblock %}
+
+{% block content %}
+<div class="leave-timeline-page" id="leaveTimelinePage" data-source-url="/hr/leaves/timeline/">
+
+  <div class="leave-timeline-page__top">
+    <div>
+      <h1 class="leave-timeline-page__title">Timeline отпусков</h1>
+      <p class="leave-timeline-page__subtitle">Gantt-представление заявок сотрудников</p>
+    </div>
+
+    <div class="leave-timeline-page__actions">
+      <a href="{% url 'hr:leave_list' %}" class="leaves-page__btn leaves-page__btn--outline">
+        Список
+      </a>
+
+      <a href="{% url 'hr:leave_export_excel' %}" class="leaves-page__btn leaves-page__btn--outline">
+        <i class="bi bi-file-earmark-excel"></i>
+        Excel
+      </a>
+
+      <a href="{% url 'hr:leave_create' %}" class="leaves-page__btn leaves-page__btn--primary">
+        <i class="bi bi-plus-lg"></i>
+        Подать заявку
+      </a>
+    </div>
+  </div>
+
+  <div class="leave-timeline-panel">
+    <div class="leave-timeline-panel__header">
+      <div class="leave-timeline-panel__title">Календарь</div>
+
+      <div class="leave-timeline-legend">
+        <span><i class="leave-dot leave-dot--pending"></i> На рассмотрении</span>
+        <span><i class="leave-dot leave-dot--approved"></i> Одобрено</span>
+        <span><i class="leave-dot leave-dot--rejected"></i> Отклонено</span>
+      </div>
+    </div>
+
+    <div class="leave-timeline" id="leaveTimeline">
+      <div class="leave-timeline__empty">
+        <i class="bi bi-calendar-range"></i>
+        <strong>Timeline пока пустой</strong>
+        <span>Данные появятся после подключения backend render/API</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/leaves.js' %}?v=10004"></script>
+{% endblock %}

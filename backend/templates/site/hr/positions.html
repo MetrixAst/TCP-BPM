@@ -1,40 +1,164 @@
 {% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Должности | metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Должности</h2>
-    </div>
+<div class="hr-page">
+  <div class="hr-list-top">
+    <h1>Должности</h1>
 
-    <div class="card">
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Наименование должности</th>
-                        <th>Департамент</th>
-                        <th class="text-center">Количество сотрудников</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for position in positions %}
-                    <tr>
-                        <td><strong>{{ position.title }}</strong></td>
-                        <td>{{ position.department.name|default:"—" }}</td>
-                        <td class="text-center">
-                            <span class="badge bg-secondary">
-                                {{ position.employees.count }}
-                            </span>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="3" class="text-center py-4 text-muted">Должности не определены</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="hr-list-top__actions">
+      <div class="hr-search">
+        <i class="bi bi-search"></i>
+        <input type="search" class="hr-table-search" placeholder="Поиск должности">
+      </div>
+
+      <button type="button"
+              class="hr-btn hr-btn--primary"
+              data-hr-modal-open="positionCreateModal">
+        <i class="bi bi-plus-lg"></i>
+        <span>Новая должность</span>
+      </button>
     </div>
+  </div>
+
+  <div class="hr-card">
+    <div class="hr-table hr-table--positions">
+      <div class="hr-table__head">
+        <div>ФИО</div>
+        <div>Должность</div>
+        <div>Отдел</div>
+        <div>Сотрудники</div>
+        <div></div>
+      </div>
+
+      <div class="hr-table__body">
+        {% for position in positions %}
+        <div class="hr-table__row">
+          <div class="hr-muted">—</div>
+
+          <div>
+            <strong>{{ position.title }}</strong>
+          </div>
+
+          <div class="hr-muted">
+            {% if position.department %}{{ position.department.name }}{% else %}—{% endif %}
+          </div>
+
+          <div>
+            <span class="hr-count">{{ position.employees.count }}</span>
+          </div>
+
+          <div class="hr-row-actions">
+            <button type="button"
+                    class="hr-icon-action"
+                    data-hr-modal-open="positionEditModal{{ position.id }}">
+              <i class="bi bi-pencil"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="hr-inline-modal" id="positionEditModal{{ position.id }}" hidden>
+          <div class="hr-inline-modal__backdrop" data-hr-modal-close></div>
+
+          <div class="hr-inline-modal__card">
+            <div class="hr-inline-modal__header">
+              <h2>Редактирование должности</h2>
+              <button type="button" class="hr-inline-modal__close" data-hr-modal-close>
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+
+            <form class="hr-inline-form">
+              <div class="hr-inline-grid">
+                <label class="hr-inline-field">
+                  <span>ФИО</span>
+                  <input type="text" placeholder="ФИО сотрудника">
+                </label>
+
+                <label class="hr-inline-field">
+                  <span>Должность</span>
+                  <input type="text" value="{{ position.title }}" placeholder="Должность">
+                </label>
+
+                <label class="hr-inline-field hr-inline-field--full">
+                  <span>Отдел</span>
+                  <input type="text"
+                         value="{% if position.department %}{{ position.department.name }}{% endif %}"
+                         placeholder="Отдел">
+                </label>
+              </div>
+
+              <div class="hr-inline-modal__footer">
+                <button type="button" class="hr-edit-btn hr-edit-btn--cancel" data-hr-modal-close>
+                  Отменить
+                </button>
+                <button type="button" class="hr-edit-btn hr-edit-btn--save" disabled>
+                  Сохранить
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        {% empty %}
+        <div class="hr-empty">
+          <i class="bi bi-person-badge"></i>
+          <h3>Должности не определены</h3>
+          <p>Пока список должностей пустой.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="hr-inline-modal" id="positionCreateModal" hidden>
+    <div class="hr-inline-modal__backdrop" data-hr-modal-close></div>
+
+    <div class="hr-inline-modal__card">
+      <div class="hr-inline-modal__header">
+        <h2>Новая должность</h2>
+        <button type="button" class="hr-inline-modal__close" data-hr-modal-close>
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+
+      <form class="hr-inline-form">
+        <div class="hr-inline-grid">
+          <label class="hr-inline-field">
+            <span>ФИО</span>
+            <input type="text" placeholder="ФИО сотрудника">
+          </label>
+
+          <label class="hr-inline-field">
+            <span>Должность</span>
+            <input type="text" placeholder="Должность">
+          </label>
+
+          <label class="hr-inline-field hr-inline-field--full">
+            <span>Отдел</span>
+            <input type="text" placeholder="Отдел">
+          </label>
+        </div>
+
+        <div class="hr-inline-modal__footer">
+          <button type="button" class="hr-edit-btn hr-edit-btn--cancel" data-hr-modal-close>
+            Отменить
+          </button>
+          <button type="button" class="hr-edit-btn hr-edit-btn--save" disabled>
+            Сохранить
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/hr.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock scripts %}
