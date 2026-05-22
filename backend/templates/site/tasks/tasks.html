@@ -1,115 +1,192 @@
 {% extends 'site/base.html' %}
-{% load static %}
-{% load site_tags %}
+{% load static site_tags %}
+
+{% block title %}Менеджер задач — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'3' }}" />
+{% endblock %}
 
 {% block content %}
 
-    <!-- Title and Top Buttons Start -->
-    <div class="page-title-container">
-        <div class="row g-0">
-            <div class="col-auto mb-2 mb-md-0 me-auto">
-                <div class="w-auto sw-md-25">
-                    <h1 class="mb-0 pb-0 display-4" id="title">Задачи</h1>
-                    <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
-                        <ul class="breadcrumb pt-0">
-                            <li class="breadcrumb-item">
-                                <a href="{% url 'dashboard:base' %}">Главная</a>
-                            </li>
-                            <li class="breadcrumb-item">
-                                <a href="{% url 'tasks:list' %}">Менеджер задач</a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
-            </div>
-            <div class="col-12 col-md d-flex align-items-start justify-content-end justify-content-lg-start">
-                <form class="me-lg-auto w-100 w-md-auto search-input-container border border-separator">
-                    <input class="form-control search" name="search" type="text" autocomplete="off" placeholder="Поиск по задачам"/>
-                    <span class="search-magnifier-icon">
-                        <i data-acorn-icon="search"></i>
-                    </span>
-                </form>
+<div class="tasks-page" id="tasksPage">
+  <div class="tasks-page__top">
+    <div class="tasks-page__header">
+      <h1 class="tasks-page__title">Менеджер задач</h1>
 
-                {% if can_create %}
-                    <a href="{% url 'tasks:edit' 0 %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1" id="mobile_button" data-icon="plus" data-icon="plus">
-                        <i data-acorn-icon="plus"></i>
-                        <span>Новая задача</span>
-                    </a>
+      <form method="get" class="tasks-page__toolbar" id="tasksFilterForm">
+        <div class="tasks-page__field">
+          <label class="tasks-page__label" for="taskSearch">Поиск</label>
+          <div class="tasks-page__search">
+            <i class="bi bi-search tasks-page__search-icon"></i>
+            <input type="search"
+                  class="tasks-page__search-input"
+                  id="taskSearch"
+                  name="q"
+                  value="{{ request.GET.q|default:'' }}"
+                  placeholder="Поиск задач"
+                  autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="tasks-page__field">
+          <label class="tasks-page__label" for="taskStateFilter">Состояние</label>
+          <div class="tasks-page__state-control">
+              <select id="taskStateFilter" name="state" class="tasks-page__select">
+                  <option value="" {% if not request.GET.state %}selected{% endif %}>Все</option>
+                  <option value="created" {% if request.GET.state == 'created' %}selected{% endif %}>Открыта</option>
+                  <option value="accepted" {% if request.GET.state == 'accepted' %}selected{% endif %}>В работе</option>
+                  <option value="revision" {% if request.GET.state == 'revision' %}selected{% endif %}>На доработке</option>
+                  <option value="completed" {% if request.GET.state == 'completed' %}selected{% endif %}>Завершена</option>
+                  <option value="rejected" {% if request.GET.state == 'rejected' %}selected{% endif %}>Отклонена</option>
+                </select>
+
+            {% if request.GET.state %}
+              <i class="bi bi-check-circle-fill tasks-page__state-check"></i>
+            {% endif %}
+          </div>
+        </div>
+
+        <button type="submit" class="tasks-page__btn tasks-page__btn--ghost">
+          Искать
+        </button>
+
+        <button type="button" class="tasks-page__btn tasks-page__btn--outline" id="taskSettingsBtn">
+          <i class="bi bi-gear"></i>
+          Настроить
+          <i class="bi bi-chevron-down"></i>
+        </button>
+
+        {% if can_create %}
+          <a href="{% url 'tasks:edit' 0 %}" class="tasks-page__btn tasks-page__btn--primary">
+            <i class="bi bi-plus-lg"></i>
+            Создать
+          </a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <div class="tasks-panel">
+
+    <nav class="tasks-tabs" id="tasksTabs">
+        <span class="tasks-tabs__label">Показывать</span>
+      
+        {% for key, current in role_tabs.items %}
+          {% if key == "all" %}
+            <a href="{% url 'tasks:list' %}"
+               class="tasks-tabs__item {% if action == 'all' or not action %}is-active{% endif %}">
+              {{ current.title }}
+              <span class="tasks-tabs__count {% if action != 'all' and action %}tasks-tabs__count--muted{% endif %}">
+                {{ current.count|default:0 }}
+              </span>
+            </a>
+          {% else %}
+            <a href="{% url 'tasks:by_type' key %}"
+               class="tasks-tabs__item {% if action == key %}is-active{% endif %}">
+              {{ current.title }}
+              <span class="tasks-tabs__count {% if action != key %}tasks-tabs__count--muted{% endif %}">
+                {{ current.count|default:0 }}
+              </span>
+            </a>
+          {% endif %}
+        {% endfor %}
+      </nav>
+
+    <div class="tasks-table-wrap" id="tasksTableWrap">
+      <table class="tasks-table">
+        <thead>
+          <tr>
+            <th class="tasks-table__th">Название</th>
+            <th class="tasks-table__th">Автор</th>
+            <th class="tasks-table__th">Исполнитель</th>
+            <th class="tasks-table__th">Дедлайн</th>
+            <th class="tasks-table__th">Приоритет</th>
+            <th class="tasks-table__th">Статус</th>
+          </tr>
+        </thead>
+
+        <tbody id="tasksTableBody">
+          {% for current in paginator.items %}
+            <tr class="tasks-table__row"
+                data-id="{{ current.id }}"
+                data-href="{% url 'tasks:task' current.id %}">
+
+              <td class="tasks-table__td tasks-table__td--title">
+                {{ current.title }}
+              </td>
+
+              <td class="tasks-table__td">
+                {% if current.author %}
+                  {% if current.author.first_name or current.author.last_name %}
+                    {{ current.author.first_name }} {{ current.author.last_name }}
+                  {% else %}
+                    {{ current.author.username|default:current.author.email }}
+                  {% endif %}
+                {% else %}
+                  —
                 {% endif %}
-            </div>
-        </div>
-    </div>
-    <!-- Title and Top Buttons End -->
+              </td>
 
-    <div class="row g-0">
+              <td class="tasks-table__td">
+                {% firstof current.executor.get_name current.executor.username current.executor.email current.executor "—" %}
+              </td>
 
-        <div class="col-auto d-none d-lg-flex side_menu_items">
-            <div class="nav flex-column sw-25 mt-n2" id="tasksMenuColumn">
-                <div class="menu-items">
-                    <a class="nav-link px-0 task-menu-item {% if action == 'all' %}active{% endif %}" href="{% url 'tasks:list' %}">
-                        <i data-acorn-icon="list" data-acorn-size="17" class="me-2"></i>
-                        <span class="d-inline-block mt-1 align-middle">Все</span>
-                    </a>
+              <td class="tasks-table__td tasks-table__td--date">
+                {{ current.deadline|date:"d.m.Y" }}
+                {% if current.deadline %} 12:00{% endif %}
+              </td>
 
-                    {% for key, current in statuses.items %}
-                        <a class="nav-link px-0 task-menu-item {% if action == key %}active{% endif %}" href="{% url 'tasks:by_type' key %}">
-                            <i data-acorn-icon="{{current.icon}}" data-acorn-size="17" class="me-2"></i>
-                            <span class="d-inline-block mt-1 align-middle">{{current.title}}</span>
-                        </a>
-                    {% endfor %}
+              <td class="tasks-table__td">
+                {% if current.priority == 'low' %}
+                  <span class="tasks-priority tasks-priority--low">Низкий</span>
+                {% elif current.priority == 'medium' %}
+                  <span class="tasks-priority tasks-priority--medium">Средний</span>
+                {% elif current.priority == 'high' %}
+                  <span class="tasks-priority tasks-priority--high">Высокий</span>
+                {% elif current.priority == 'critical' %}
+                  <span class="tasks-priority tasks-priority--critical">Критический</span>
+                {% else %}
+                  <span class="tasks-priority">—</span>
+                {% endif %}
+              </td>
+
+              <td class="tasks-table__td">
+                <span class="tasks-status tasks-status--{{ current.status_info.color|default:'neutral' }}">
+                  {{ current.status_info.title|default:"—" }}
+                </span>
+              </td>
+
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="tasks-table__empty">
+                <div class="tasks-empty">
+                  <i class="bi bi-inbox tasks-empty__icon"></i>
+                  <div class="tasks-empty__title">Список задач пуст</div>
+                  <div class="tasks-empty__text">В этом списке пока ничего нет</div>
                 </div>
-            </div>
-        </div>
-
-        <div class="col">
-            <!-- List Items Start -->
-            <div class="row g-2 row-cols-1 row-cols-lg-2 row-cols-xl-3" id="tasksContainer">
-
-                {% for current in paginator.items %}
-
-                    <div class="col task-item indicator_item" data-type="task" data-id="{{current.id}}">
-                        <div class="card h-100">
-                            <div class="card-body position-relative">
-                                <div class="h-100">
-                                    
-                                    <div class="form-check-label h-100 text-decoration-none">
-                                        <div class="content h-100 text-decoration-none d-flex flex-column justify-content-between">
-                                            <a href="{% url 'tasks:task' current.id %}" class="mobile_link" attr-title="{{current.title}}">
-                                                <span class="h4 pe-7 lh-1-5 title">{{current.title}}</span>
-                                            </a>
-                                            <span class="text-muted d-block text-small mb-2 mt-1">Срок: {{current.deadline}}</span>
-                                            <span class="text-alternate mb-4 flex-grow-1 detail">{{current.text|truncatechars:130}}</span>
-                                            
-                                            <div class="tags mb-1">
-                                                <span class="badge opacity-75 text-decoration-none me-1 bg-outline-{{current.status_info.color}}">
-                                                    {{current.status_info.title}}
-                                                </span>
-                                            
-                                                {% if current.priority == 'low' %}
-                                                    <span class="badge bg-light text-dark text-uppercase">Низкий</span>
-                                                {% elif current.priority == 'medium' %}
-                                                    <span class="badge bg-secondary text-uppercase">Средний</span>
-                                                {% elif current.priority == 'high' %}
-                                                    <span class="badge bg-warning text-dark text-uppercase">Высокий</span>
-                                                {% elif current.priority == 'critical' %}
-                                                    <span class="badge bg-danger text-uppercase">Критический</span>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                {% endfor %}
-
-            </div>
-            <!-- List Items End -->
-
-
-            {% show_paginator paginator %}
-        </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
 
+    {% if paginator.pages_count > 1 %}
+      <div class="tasks-page__pagination">
+        {% include 'site/layouts/paginator.html' %}
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/tasks.js' %}?v={{ static_version|default:'3' }}"></script>
 {% endblock %}
