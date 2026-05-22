@@ -479,7 +479,7 @@ def _get_budget_access(user):
     return can_edit, can_read
 
 
-@need_permission(PermissionEnums.FINANCE_BUDGET)
+#@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_list(request):
     today = date.today()
     try:
@@ -573,7 +573,7 @@ def budget_list(request):
     return render(request, 'site/finances/budget/budget_list.html', context)
 
 
-@need_permission(PermissionEnums.FINANCE_BUDGET)
+#@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_detail(request, pk):
     category = get_object_or_404(BudgetCategory, pk=pk)
     can_edit, _ = _get_budget_access(request.user)
@@ -606,7 +606,7 @@ def budget_detail(request, pk):
     return render(request, 'site/finances/budget/budget_detail.html', context)
 
 
-@need_permission(PermissionEnums.FINANCE_BUDGET)
+#@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_item_create(request, category_pk):
     can_edit, _ = _get_budget_access(request.user)
     if not can_edit:
@@ -638,7 +638,37 @@ def budget_item_create(request, category_pk):
     return render(request, 'site/finances/budget/budget_item_form.html', context)
 
 
-@need_permission(PermissionEnums.FINANCE_BUDGET)
+#@need_permission(PermissionEnums.FINANCE_BUDGET)
+def budget_item_create_general(request):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden(
+            "<h1>403 Forbidden</h1><p>Доступ на создание ограничен для вашей роли.</p>"
+        )
+
+    class GeneralBudgetItemForm(django_forms.ModelForm):
+        class Meta:
+            model = BudgetItem
+            fields = ['category', 'period_type', 'year', 'month', 'quarter', 'plan', 'fact', 'forecast', 'note']
+            widgets = {
+                'note': django_forms.Textarea(attrs={'rows': 2}),
+            }
+
+    form = GeneralBudgetItemForm(request.POST or None)
+    
+    if request.method == 'POST' and form.is_valid():
+        item = form.save()  
+        messages.success(request, 'Строка бюджета добавлена.')
+        return redirect('finances:budget_detail', pk=item.category.pk)
+
+    context = {
+        'form': form,
+        'title': 'Создать новую строку бюджета',
+    }
+    return render(request, 'site/finances/budget/budget_item_form.html', context)
+
+
+#@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_item_edit(request, pk):
     item     = get_object_or_404(BudgetItem, pk=pk)
     can_edit, _ = _get_budget_access(request.user)
@@ -668,7 +698,7 @@ def budget_item_edit(request, pk):
     return render(request, 'site/finances/budget/budget_item_form.html', context)
 
 
-@need_permission(PermissionEnums.FINANCE_BUDGET)
+#@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_item_delete(request, pk):
     item = get_object_or_404(BudgetItem, pk=pk)
     can_edit, _ = _get_budget_access(request.user)
