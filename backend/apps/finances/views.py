@@ -479,7 +479,7 @@ def _get_budget_access(user):
     return can_edit, can_read
 
 
-# @need_permission(PermissionEnums.FINANCE_BUDGET)
+@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_list(request):
     today = date.today()
     try:
@@ -573,7 +573,7 @@ def budget_list(request):
     return render(request, 'site/finances/budget/budget_list.html', context)
 
 
-# @need_permission(PermissionEnums.FINANCE_BUDGET)
+@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_detail(request, pk):
     category = get_object_or_404(BudgetCategory, pk=pk)
     can_edit, _ = _get_budget_access(request.user)
@@ -606,7 +606,7 @@ def budget_detail(request, pk):
     return render(request, 'site/finances/budget/budget_detail.html', context)
 
 
-# @need_permission(PermissionEnums.FINANCE_BUDGET)
+@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_item_create(request, category_pk):
     can_edit, _ = _get_budget_access(request.user)
     if not can_edit:
@@ -638,7 +638,7 @@ def budget_item_create(request, category_pk):
     return render(request, 'site/finances/budget/budget_item_form.html', context)
 
 
-# @need_permission(PermissionEnums.FINANCE_BUDGET)
+@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_item_edit(request, pk):
     item     = get_object_or_404(BudgetItem, pk=pk)
     can_edit, _ = _get_budget_access(request.user)
@@ -668,7 +668,7 @@ def budget_item_edit(request, pk):
     return render(request, 'site/finances/budget/budget_item_form.html', context)
 
 
-# @need_permission(PermissionEnums.FINANCE_BUDGET)
+@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_item_delete(request, pk):
     item = get_object_or_404(BudgetItem, pk=pk)
     can_edit, _ = _get_budget_access(request.user)
