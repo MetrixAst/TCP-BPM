@@ -1,146 +1,264 @@
-{% extends "site/base.html" %}
-{% load static %}
+{% extends 'site/base.html' %}
+{% load static site_tags %}
+
+{% block title %}Бюджетирование — metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe54-budget">
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'3' }}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/budget.css' %}?v={{ static_version|default:'1' }}" />
 {% endblock %}
 
 {% block content %}
-<section class="bud-page">
 
-  <section class="bud-topbar">
-    <div>
-      <h1 class="bud-title">Бюджет</h1>
-      <p class="bud-subtitle">{{ year }} год / месяц: {{ month }}</p>
+<div class="tasks-page" id="budgetPage">
+  <div class="tasks-page__top">
+    <div class="tasks-page__header">
+      <h1 class="tasks-page__title">Бюджетирование</h1>
+
+      <form method="get" class="tasks-page__toolbar" id="budgetFilterForm">
+
+        <div class="tasks-page__field">
+          <label class="tasks-page__label">Период</label>
+          <div class="budget-period">
+            <a class="budget-period__nav"
+               href="?year={{ prev_year }}&month={{ prev_month }}&period_type={{ period_type }}&cat_type={{ cat_type }}"
+               aria-label="Предыдущий">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+            <span class="budget-period__label">{{ month_name|default:month }} {{ year }}</span>
+            <a class="budget-period__nav"
+               href="?year={{ next_year }}&month={{ next_month }}&period_type={{ period_type }}&cat_type={{ cat_type }}"
+               aria-label="Следующий">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <div class="tasks-page__field">
+          <label class="tasks-page__label" for="budgetCatType">Тип</label>
+          <div class="tasks-page__state-control">
+            <select id="budgetCatType"
+                    name="cat_type"
+                    class="tasks-page__select tasks-page__select--select2"
+                    data-placeholder="Все">
+              <option value=""        {% if not cat_type %}selected{% endif %}>Все статьи</option>
+              <option value="income"  {% if cat_type == 'income' %}selected{% endif %}>Доходы</option>
+              <option value="expense" {% if cat_type == 'expense' %}selected{% endif %}>Расходы</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="tasks-page__field">
+          <label class="tasks-page__label" for="budgetPeriodType">Разрез</label>
+          <div class="tasks-page__state-control">
+            <select id="budgetPeriodType"
+                    name="period_type"
+                    class="tasks-page__select tasks-page__select--select2">
+              <option value="monthly"   {% if period_type == 'monthly' %}selected{% endif %}>Месяц</option>
+              <option value="quarterly" {% if period_type == 'quarterly' %}selected{% endif %}>Квартал</option>
+              <option value="yearly"    {% if period_type == 'yearly' %}selected{% endif %}>Год</option>
+            </select>
+          </div>
+        </div>
+
+        <input type="hidden" name="year"  value="{{ year }}" />
+        <input type="hidden" name="month" value="{{ month }}" />
+
+        <button type="submit" class="tasks-page__btn tasks-page__btn--ghost">
+          Применить
+        </button>
+
+        {% if can_edit %}
+          <a href="{% url 'finances:budget_create' %}" class="tasks-page__btn tasks-page__btn--primary">
+            <i class="bi bi-plus-lg"></i>
+            Создать категорию
+          </a>
+        {% endif %}
+      </form>
     </div>
-
-    <form method="get" class="bud-filter-form">
-      <div class="bud-field">
-        <label>Период</label>
-        <select name="period_type">
-          <option value="monthly" {% if period_type == 'monthly' %}selected{% endif %}>Ежемесячно</option>
-          <option value="quarterly" {% if period_type == 'quarterly' %}selected{% endif %}>Поквартально</option>
-          <option value="yearly" {% if period_type == 'yearly' %}selected{% endif %}>Ежегодно</option>
-        </select>
-      </div>
-
-      <div class="bud-field">
-        <label>Тип статей</label>
-        <select name="cat_type">
-          <option value="">Все статьи</option>
-          <option value="income" {% if cat_type == 'income' %}selected{% endif %}>Доходы</option>
-          <option value="expense" {% if cat_type == 'expense' %}selected{% endif %}>Расходы</option>
-        </select>
-      </div>
-
-      <button type="submit" class="bud-btn bud-btn--primary">Применить</button>
-
-      <a href="?year={{ prev_year }}&month={{ prev_month }}&period_type={{ period_type }}" class="bud-btn bud-btn--light">← Пред.</a>
-      <a href="?year={{ next_year }}&month={{ next_month }}&period_type={{ period_type }}" class="bud-btn bud-btn--light">След. →</a>
-
-      <a href="{% url 'finances:budget_create' %}" class="bud-btn bud-btn--primary">
-        + Создать бюджет
-      </a>
-    </form>
-  </section>
-
-  {% if has_overrun %}
-  <div class="bud-alert">
-    Обнаружен критический перерасход по статьям расходов больше 110% от плана
   </div>
-  {% endif %}
 
-  <section class="bud-table-card">
-    <div class="bud-table-head">
-      <div>
-        <div class="bud-table-title">План / факт / прогноз</div>
-        <div class="bud-table-subtitle">Контроль освоения бюджета и отклонений</div>
+  <div class="tasks-panel">
+
+    <div class="budget-summary">
+      <div class="budget-summary__stats">
+        <div class="budget-summary__stat">
+          <span class="budget-summary__stat-label">План</span>
+          <span class="budget-summary__stat-value">{{ total_plan|default:0 }}</span>
+        </div>
+        <div class="budget-summary__stat">
+          <span class="budget-summary__stat-label">Факт</span>
+          <span class="budget-summary__stat-value">{{ total_fact|default:0 }}</span>
+        </div>
       </div>
+
+      {% if has_overrun %}
+        <span class="budget-signal budget-signal--over">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          Есть статьи с перерасходом
+        </span>
+      {% endif %}
     </div>
 
-    <div class="bud-table-wrap">
-      <table class="bud-table">
+    <div class="tasks-table-wrap" id="budgetTableWrap">
+      <table class="tasks-table">
         <thead>
           <tr>
-            <th>Категория / статья</th>
-            <th>Тип</th>
-            <th>План</th>
-            <th>Факт</th>
-            <th>Прогноз</th>
-            <th>Отклонение</th>
-            <th>% освоения</th>
-            <th>Сигнал</th>
-            <th>Действия</th>
+            <th class="tasks-table__th">Статья бюджета</th>
+            <th class="tasks-table__th">План</th>
+            <th class="tasks-table__th">Факт</th>
+            <th class="tasks-table__th">Прогноз</th>
+            <th class="tasks-table__th">Отклонение</th>
+            <th class="tasks-table__th">Освоение</th>
+            <th class="tasks-table__th">Сигнал</th>
           </tr>
         </thead>
 
-        <tbody>
+        <tbody id="budgetTableBody">
           {% for row in rows %}
-          <tr class="{% if row.overrun %}is-overrun{% endif %}">
-            <td><strong>{{ row.cat.name }}</strong></td>
+            <tr class="tasks-table__row
+                       {% if row.cat.children.all %}tasks-table__row--parent{% endif %}"
+                style="--depth: 0;"
+                data-id="{{ row.cat.id }}"
+                data-parent=""
+                data-href="{% url 'finances:budget_detail' row.cat.id %}">
 
-            <td>
-              {% if row.cat.category_type == 'income' %}
-                <span class="bud-badge bud-badge--success">Доход</span>
-              {% else %}
-                <span class="bud-badge bud-badge--warning">Расход</span>
-              {% endif %}
-            </td>
+              <td class="tasks-table__td tasks-table__td--title">
+                <span class="budget-tree__name">
+                  <button type="button"
+                          class="budget-tree__toggle {% if not row.cat.children.all %}budget-tree__toggle--leaf{% endif %}"
+                          data-budget-toggle="{{ row.cat.id }}"
+                          aria-label="Развернуть">
+                    <i class="bi bi-chevron-right"></i>
+                  </button>
+                  <span class="budget-tree__label">{{ row.cat.name }}</span>
+                  {% if row.cat.category_type == 'income' %}
+                    <span class="budget-type-dot budget-type-dot--income" title="Доход"></span>
+                  {% else %}
+                    <span class="budget-type-dot budget-type-dot--expense" title="Расход"></span>
+                  {% endif %}
+                </span>
+              </td>
 
-            <td><strong>{{ row.plan|floatformat:0 }} ₸</strong></td>
-            <td class="bud-success">{{ row.fact|floatformat:0 }} ₸</td>
-            <td class="bud-muted">{{ row.forecast|floatformat:0 }} ₸</td>
+              <td class="tasks-table__td">
+                <span class="budget-amount">{{ row.plan|default:0 }}</span>
+              </td>
 
-            <td class="{% if row.overrun %}bud-danger{% endif %}">
-              {{ row.variance|floatformat:0 }} ₸
-            </td>
+              <td class="tasks-table__td">
+                <span class="budget-amount">{{ row.fact|default:0 }}</span>
+              </td>
 
-            <td>
-              {% if row.exec_pct is not None %}
-                <div class="bud-progress">
-                    <div class="bud-progress-fill" data-progress="{{ row.exec_pct }}"></div>
+              <td class="tasks-table__td">
+                <span class="budget-amount budget-amount--forecast">{{ row.forecast|default:0 }}</span>
+              </td>
+
+              <td class="tasks-table__td">
+                <span class="budget-amount {% if row.variance > 0 %}budget-amount--up{% elif row.variance < 0 %}budget-amount--down{% endif %}">
+                  {% if row.variance > 0 %}+{% endif %}{{ row.variance|default:0 }}
+                </span>
+              </td>
+
+              <td class="tasks-table__td">
+                <div class="budget-progress">
+                  <div class="budget-progress__track">
+                    <div class="budget-progress__bar {% if row.overrun %}budget-progress__bar--over{% elif row.exec_pct >= 90 %}budget-progress__bar--warn{% else %}budget-progress__bar--ok{% endif %}"
+                         style="width: {% if row.exec_pct >= 100 %}100{% else %}{{ row.exec_pct|default:0 }}{% endif %}%;"></div>
+                  </div>
+                  <span class="budget-progress__value">{{ row.exec_pct|default:0|floatformat:0 }}%</span>
                 </div>
-                <span class="bud-progress-text">{{ row.exec_pct }}%</span>
-              {% else %}
-                —
-              {% endif %}
-            </td>
+              </td>
 
-            <td>
-              {% if row.overrun %}
-                <span class="bud-badge bud-badge--danger">Перерасход</span>
-              {% else %}
-                <span class="bud-badge bud-badge--success">Норма</span>
-              {% endif %}
-            </td>
-
-            <td>
-              <div class="bud-actions">
-                <a href="{% url 'finances:budget_detail' row.cat.pk %}" class="bud-action">Детали</a>
-                {% if can_edit %}
-                  <a href="{% url 'finances:budget_item_create' row.cat.pk %}" class="bud-action bud-action--primary">+ Факт</a>
+              <td class="tasks-table__td">
+                {% if row.overrun %}
+                  <span class="budget-signal budget-signal--over">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Перерасход
+                  </span>
+                {% elif row.exec_pct >= 90 %}
+                  <span class="budget-signal budget-signal--warn">
+                    <i class="bi bi-exclamation-circle-fill"></i> Близко
+                  </span>
+                {% else %}
+                  <span class="budget-signal budget-signal--ok">
+                    <i class="bi bi-check-circle-fill"></i> В норме
+                  </span>
                 {% endif %}
-              </div>
-            </td>
-          </tr>
+              </td>
+
+            </tr>
+
+            {% for child in row.cat.children.all %}
+              <tr class="tasks-table__row tasks-table__row--child"
+                  style="--depth: 1;"
+                  data-id="{{ child.id }}"
+                  data-parent="{{ row.cat.id }}"
+                  data-href="{% url 'finances:budget_detail' child.id %}">
+
+                <td class="tasks-table__td tasks-table__td--title">
+                  <span class="budget-tree__name">
+                    <button type="button"
+                            class="budget-tree__toggle {% if not child.children.all %}budget-tree__toggle--leaf{% endif %}"
+                            data-budget-toggle="{{ child.id }}"
+                            aria-label="Развернуть">
+                      <i class="bi bi-chevron-right"></i>
+                    </button>
+                    <span class="budget-tree__label">{{ child.name }}</span>
+                  </span>
+                </td>
+                <td class="tasks-table__td" colspan="5">
+                  <span class="budget-amount budget-amount--muted">Открыть для детализации</span>
+                </td>
+                <td class="tasks-table__td">
+                  <i class="bi bi-arrow-right" style="color:#aaa7b9;"></i>
+                </td>
+              </tr>
+
+              {% for grandchild in child.children.all %}
+                <tr class="tasks-table__row tasks-table__row--child"
+                    style="--depth: 2;"
+                    data-id="{{ grandchild.id }}"
+                    data-parent="{{ child.id }}"
+                    data-href="{% url 'finances:budget_detail' grandchild.id %}">
+                  <td class="tasks-table__td tasks-table__td--title">
+                    <span class="budget-tree__name">
+                      <button type="button" class="budget-tree__toggle budget-tree__toggle--leaf" aria-label="Лист">
+                        <i class="bi bi-chevron-right"></i>
+                      </button>
+                      <span class="budget-tree__label">{{ grandchild.name }}</span>
+                    </span>
+                  </td>
+                  <td class="tasks-table__td" colspan="5">
+                    <span class="budget-amount budget-amount--muted">Открыть для детализации</span>
+                  </td>
+                  <td class="tasks-table__td">
+                    <i class="bi bi-arrow-right" style="color:#aaa7b9;"></i>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endfor %}
+
           {% empty %}
-          <tr>
-            <td colspan="9" class="bud-empty">Данные за выбранный период не найдены</td>
-          </tr>
+            <tr>
+              <td colspan="7" class="tasks-table__empty">
+                <div class="tasks-empty">
+                  <i class="bi bi-pie-chart tasks-empty__icon"></i>
+                  <div class="tasks-empty__title">Бюджет пуст</div>
+                  <div class="tasks-empty__text">За выбранный период статей нет</div>
+                </div>
+              </td>
+            </tr>
           {% endfor %}
         </tbody>
-
-        <tfoot>
-          <tr>
-            <td colspan="2"><strong>Оборот по выборке:</strong></td>
-            <td><strong>{{ total_plan|floatformat:0 }} ₸</strong></td>
-            <td class="bud-success"><strong>{{ total_fact|floatformat:0 }} ₸</strong></td>
-            <td colspan="5"></td>
-          </tr>
-        </tfoot>
       </table>
     </div>
-  </section>
 
-</section>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/budget.js' %}?v={{ static_version|default:'1' }}"></script>
 {% endblock %}

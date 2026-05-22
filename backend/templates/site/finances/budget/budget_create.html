@@ -1,89 +1,119 @@
 {% extends 'site/base.html' %}
-{% load static %}
+{% load static site_tags %}
+
+{# ===========================================================================
+   FE-5.4 — Бюджетирование: СОЗДАНИЕ КАТЕГОРИИ (budget_create.html)
+   Используется во views.budget_create.
+   Дизайн повторяет site/tasks/edit.html (модалка по центру).
+
+   ВНИМАНИЕ: на момент верстки views.budget_create — пустая заглушка
+   (context = {}, формы нет). Шаблон написан так, чтобы:
+     • не падать без `form` (показывает заглушку-подсказку);
+     • сразу заработать, когда во вью добавят BudgetCategoryForm с полями
+       name, category_type, parent, code, order, description.
+   Поля рендерим через form.fieldname только если форма передана.
+   =========================================================================== #}
+
+{% block title %}Новая категория бюджета — metriX BPM{% endblock %}
+
+{% block body_classes %}task-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999" />
+<link rel="stylesheet" href="{% static 'site/css/apps/budget.css' %}?v=9999" />
+{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-center">
-        <div class="col-12 col-xl-8 mb-5">
-            <div class="mx-auto">
-                <form method="POST" action="{% url 'finances:budget' %}">
-                    {% csrf_token %}
-                    <div class="card mb-5">
-                        <div class="card-body">
 
-                            <h1 class="mb-3 mt-1 pb-0 display-4">Бюджет</h1>
-                            <div class="row g-3">
-                                <div class="col-md-9">
-                                    <label class="mb-3 top-label">
-                                        <input class="form-control" name="title" />
-                                        <span>ЗАГОЛОВОК</span>
-                                    </label>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="mb-3 top-label">
-                                        <input class="form-control" name="year" />
-                                        <span>ГОД</span>
-                                    </label>
-                                </div>
-                            </div>
+<div class="task-edit-page">
+  <div class="task-edit-card">
 
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <label class="d-block form-label">Документ</label>
-                                    <div class="input-group">
-                                        <input type="file" class="form-control" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload" />
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="w-100">
-                                        <label class="d-block form-label">Статус бюджета</label>
-                                        <select class="custom_select">
-                                            <option label="&nbsp;"></option>
-                                            <option>На рассмотрении</option>
-                                            <option>Отклонен</option>
-                                            <option>Согласован</option>
-                                            <option>Действующий</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <label class="d-block form-label">Ответственный</label>
-                                    <input id="usersListTags" class="users-list-container" />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="d-block form-label">Наблюдатели</label>
-                                    <input id="usersListTags2" class="users-list-container" />
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-end mt-3">
-                                <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
-                                    <span>Сохранить</span>
-                                    <i data-acorn-icon="chevron-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-        
+    <div class="task-edit-card__header">
+      <h1 class="task-edit-card__title">Новая категория бюджета</h1>
+      <a href="{% url 'finances:budget_list' %}" class="task-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
     </div>
+
+    {% if form %}
+      <form method="POST" class="task-edit-form" id="taskEditForm">
+        {% csrf_token %}
+
+        <div class="task-edit-card__body">
+
+          <section class="task-edit-section">
+            <h2 class="task-edit-section__title">Данные категории</h2>
+
+            <div class="task-edit-grid task-edit-grid--2">
+              <div class="task-edit-field {% if form.name.errors %}is-invalid{% endif %}">
+                <label class="task-edit-field__label">Название<span>*</span></label>
+                {{ form.name }}
+                {% if form.name.errors %}<div class="task-edit-field__error">{{ form.name.errors.0 }}</div>{% endif %}
+              </div>
+
+              <div class="task-edit-field {% if form.category_type.errors %}is-invalid{% endif %}">
+                <label class="task-edit-field__label">Тип<span>*</span></label>
+                {{ form.category_type }}
+                {% if form.category_type.errors %}<div class="task-edit-field__error">{{ form.category_type.errors.0 }}</div>{% endif %}
+              </div>
+
+              <div class="task-edit-field {% if form.parent.errors %}is-invalid{% endif %}">
+                <label class="task-edit-field__label">Родительская категория</label>
+                {{ form.parent }}
+                {% if form.parent.errors %}<div class="task-edit-field__error">{{ form.parent.errors.0 }}</div>{% endif %}
+              </div>
+
+              {% if form.code %}
+                <div class="task-edit-field {% if form.code.errors %}is-invalid{% endif %}">
+                  <label class="task-edit-field__label">Код</label>
+                  {{ form.code }}
+                  {% if form.code.errors %}<div class="task-edit-field__error">{{ form.code.errors.0 }}</div>{% endif %}
+                </div>
+              {% endif %}
+            </div>
+
+            {% if form.description %}
+              <div class="task-edit-field {% if form.description.errors %}is-invalid{% endif %}">
+                <label class="task-edit-field__label">Описание</label>
+                {{ form.description }}
+                {% if form.description.errors %}<div class="task-edit-field__error">{{ form.description.errors.0 }}</div>{% endif %}
+              </div>
+            {% endif %}
+          </section>
+
+        </div>
+
+        <div class="task-edit-card__footer">
+          <a href="{% url 'finances:budget_list' %}" class="task-edit-btn task-edit-btn--cancel">Отменить</a>
+          <button type="submit" class="task-edit-btn task-edit-btn--save">Сохранить</button>
+        </div>
+      </form>
+
+    {% else %}
+      {# форма ещё не подключена во вью — показываем подсказку вместо падения #}
+      <div class="task-edit-card__body">
+        <div class="tasks-empty" style="padding:40px 16px;">
+          <i class="bi bi-tools tasks-empty__icon"></i>
+          <div class="tasks-empty__title">Форма создания категории в разработке</div>
+          <div class="tasks-empty__text">
+            Подключите <code>BudgetCategoryForm</code> во view <code>budget_create</code><br>
+            и передайте её как <code>form</code> в контекст — разметка уже готова.
+          </div>
+        </div>
+      </div>
+      <div class="task-edit-card__footer">
+        <a href="{% url 'finances:budget_list' %}" class="task-edit-btn task-edit-btn--cancel">Закрыть</a>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
-    <script src="{% static 'site/js/vendor/quill.min.js' %}"></script>
-    <script src="{% static 'site/js/vendor/quill.active.js' %}"></script>
-    <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
-    <script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
-    <script src="{% static 'site/js/vendor/tagify.min.js' %}"></script>
-
-
-    <script src="{% static 'site/js/forms/controls.editor.js' %}"></script>
-    <script src="{% static 'site/js/forms/controls.datepicker.js' %}"></script>
-    <script src="{% static 'site/js/forms/controls.tag.js' %}"></script>
-    <script src="{% static 'site/js/forms/controls.select2.js' %}"></script>
-
-{% endblock scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/budget.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock %}

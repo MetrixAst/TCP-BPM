@@ -1,39 +1,126 @@
-{% extends "site/base.html" %}
-{% load static %}
+{% extends 'site/base.html' %}
+{% load static site_tags %}
+
+{# ===========================================================================
+   FE-5.4 — Бюджетирование: ФОРМА СТРОКИ (budget_item_form.html)
+   Используется во views.budget_item_create и budget_item_edit.
+   Дизайн повторяет site/tasks/edit.html (модалка по центру).
+
+   КОНТЕКСТ:
+     form     — BudgetItemForm. Поля (в порядке вью):
+                period_type, year, month, quarter, plan, fact, forecast, note
+     category — BudgetCategory (к ней принадлежит строка)
+     title    — заголовок ("Добавить строку: ..." / "Редактировать: ...")
+     item     — BudgetItem при редактировании; нет при создании
+
+   После сохранения вью делает redirect на budget_detail(category.pk).
+   =========================================================================== #}
+
+{% block title %}{{ title|default:"Строка бюджета" }} — metriX BPM{% endblock %}
+
+{% block body_classes %}task-edit-body{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe54-budget">
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999" />
+<link rel="stylesheet" href="{% static 'site/css/apps/budget.css' %}?v=9999" />
 {% endblock %}
 
 {% block content %}
-<section class="bud-form-page">
-  <div class="bud-form-card">
-    <div class="bud-form-head">
-      <div>
-        <h1>{{ title }}</h1>
-        <p>Категория: <strong>{{ category.name }}</strong></p>
-      </div>
-      <a href="{% url 'finances:budget_detail' category.pk %}" class="bud-form-close">×</a>
+
+<div class="task-edit-page">
+  <div class="task-edit-card">
+
+    <div class="task-edit-card__header">
+      <h1 class="task-edit-card__title">{{ title|default:"Строка бюджета" }}</h1>
+      <a href="{% url 'finances:budget_detail' category.id %}" class="task-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
     </div>
 
-    <form method="post" class="bud-form">
+    <form method="POST" class="task-edit-form" id="taskEditForm">
       {% csrf_token %}
 
-      {% for field in form %}
-        <div class="bud-form-field">
-          <label>{{ field.label }}</label>
-          {{ field }}
-          {% if field.errors %}
-            <div class="bud-error">{{ field.errors }}</div>
-          {% endif %}
-        </div>
-      {% endfor %}
+      <div class="task-edit-card__body">
 
-      <div class="bud-form-footer">
-        <a href="{% url 'finances:budget_detail' category.pk %}" class="bud-btn bud-btn--light">Отмена</a>
-        <button type="submit" class="bud-btn bud-btn--primary">Сохранить</button>
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Период</h2>
+
+          <div class="task-edit-grid task-edit-grid--2">
+            <div class="task-edit-field {% if form.period_type.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Тип периода<span>*</span></label>
+              {{ form.period_type }}
+              {% if form.period_type.errors %}<div class="task-edit-field__error">{{ form.period_type.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="task-edit-field {% if form.year.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Год<span>*</span></label>
+              {{ form.year }}
+              {% if form.year.errors %}<div class="task-edit-field__error">{{ form.year.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="task-edit-field {% if form.month.errors %}is-invalid{% endif %}"
+                 data-period-field="monthly">
+              <label class="task-edit-field__label">Месяц (1–12)</label>
+              {{ form.month }}
+              {% if form.month.errors %}<div class="task-edit-field__error">{{ form.month.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="task-edit-field {% if form.quarter.errors %}is-invalid{% endif %}"
+                 data-period-field="quarterly">
+              <label class="task-edit-field__label">Квартал (1–4)</label>
+              {{ form.quarter }}
+              {% if form.quarter.errors %}<div class="task-edit-field__error">{{ form.quarter.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+        </section>
+
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Суммы</h2>
+
+          <div class="task-edit-grid task-edit-grid--2">
+            <div class="task-edit-field {% if form.plan.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">План<span>*</span></label>
+              {{ form.plan }}
+              {% if form.plan.errors %}<div class="task-edit-field__error">{{ form.plan.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="task-edit-field {% if form.fact.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Факт</label>
+              {{ form.fact }}
+              {% if form.fact.errors %}<div class="task-edit-field__error">{{ form.fact.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="task-edit-field {% if form.forecast.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Прогноз</label>
+              {{ form.forecast }}
+              {% if form.forecast.errors %}<div class="task-edit-field__error">{{ form.forecast.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="task-edit-field {% if form.note.errors %}is-invalid{% endif %}">
+            <label class="task-edit-field__label">Примечание</label>
+            {{ form.note }}
+            {% if form.note.errors %}<div class="task-edit-field__error">{{ form.note.errors.0 }}</div>{% endif %}
+          </div>
+        </section>
+
       </div>
+
+      <div class="task-edit-card__footer">
+        <a href="{% url 'finances:budget_detail' category.id %}" class="task-edit-btn task-edit-btn--cancel">Отменить</a>
+        <button type="submit" class="task-edit-btn task-edit-btn--save">Сохранить</button>
+      </div>
+
     </form>
+
   </div>
-</section>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/budget.js' %}?v={{ static_version|default:'1' }}"></script>
 {% endblock %}

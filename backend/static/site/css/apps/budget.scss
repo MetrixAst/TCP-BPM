@@ -1,0 +1,674 @@
+$task-primary: #2f6bed;
+$task-primary-hover: #2458c7;
+
+$task-success: #22a85a;
+$task-danger: #ff3b30;
+$task-warning: #ff9500;
+
+$task-field-bg: #f5f3fa;
+
+$task-text: #25233f;
+$task-muted: #74728a;
+
+// ============================================================================
+// PERIOD NAVIGATION
+// ============================================================================
+
+.budget-period {
+  height: 36px;
+  padding: 0 6px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  border-radius: 999px;
+  background: $task-field-bg;
+
+  &__nav {
+    width: 28px;
+    height: 28px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    color: $task-text;
+    text-decoration: none;
+
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+
+    i {
+      font-size: 13px;
+    }
+
+    &:hover {
+      background: #ece9f4;
+      color: $task-text;
+      text-decoration: none;
+    }
+  }
+
+  &__label {
+    min-width: 120px;
+
+    text-align: center;
+    white-space: nowrap;
+
+    font-size: 13px;
+    font-weight: 600;
+    color: $task-text;
+  }
+}
+
+// ============================================================================
+// SUMMARY
+// ============================================================================
+
+.budget-summary {
+  margin-bottom: 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  flex-wrap: wrap;
+
+  &__stats {
+    display: flex;
+    gap: 24px;
+  }
+
+  &__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__stat-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: $task-muted;
+  }
+
+  &__stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: $task-text;
+
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// ============================================================================
+// AMOUNTS
+// ============================================================================
+
+.budget-amount {
+  white-space: nowrap;
+
+  font-size: 13px;
+  font-weight: 600;
+  color: $task-text;
+
+  font-variant-numeric: tabular-nums;
+
+  &--forecast {
+    color: $task-muted;
+  }
+
+  &--muted {
+    color: $task-muted;
+    font-weight: 500;
+  }
+
+  &--up {
+    color: $task-danger;
+  }
+
+  &--down {
+    color: $task-success;
+  }
+}
+
+// ============================================================================
+// CATEGORY TYPE
+// ============================================================================
+
+.budget-type-dot {
+  width: 7px;
+  height: 7px;
+
+  display: inline-block;
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  &--income {
+    background: $task-success;
+  }
+
+  &--expense {
+    background: $task-warning;
+  }
+}
+
+.budget-type-badge {
+  margin-left: 10px;
+
+  height: 22px;
+  padding: 0 10px;
+
+  display: inline-flex;
+  align-items: center;
+
+  vertical-align: middle;
+
+  border-radius: 999px;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  &--income {
+    background: #eafaf0;
+    color: $task-success;
+  }
+
+  &--expense {
+    background: #fff5e6;
+    color: #d97706;
+  }
+}
+
+// ============================================================================
+// TREE
+// ============================================================================
+
+.budget-tree {
+  &__name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding-left: calc(var(--depth, 0) * 22px);
+  }
+
+  &__toggle {
+    width: 20px;
+    height: 20px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border: 0;
+    border-radius: 6px;
+
+    background: transparent;
+    color: $task-muted;
+
+    cursor: pointer;
+
+    transition:
+      transform 0.15s ease,
+      background 0.15s ease;
+
+    i {
+      font-size: 12px;
+    }
+
+    &:hover {
+      background: $task-field-bg;
+      color: $task-text;
+    }
+
+    &.is-open {
+      transform: rotate(90deg);
+    }
+
+    &--leaf {
+      visibility: hidden;
+      cursor: default;
+    }
+  }
+
+  &__label {
+    font-weight: 600;
+    color: $task-text;
+  }
+}
+
+.tasks-table {
+  &__row {
+    &--child {
+      &.is-collapsed {
+        display: none;
+      }
+    }
+
+    &--parent {
+      .budget-tree__label {
+        font-weight: 700;
+      }
+    }
+  }
+}
+
+// ============================================================================
+// PROGRESS
+// ============================================================================
+
+.budget-progress {
+  min-width: 150px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  &__track {
+    position: relative;
+
+    flex: 1;
+
+    height: 8px;
+
+    overflow: hidden;
+
+    border-radius: 999px;
+    background: #ececf3;
+  }
+
+  &__bar {
+    position: absolute;
+    inset: 0 auto 0 0;
+
+    height: 100%;
+
+    border-radius: 999px;
+
+    background: $task-primary;
+
+    transition: width 0.3s ease;
+
+    &--ok {
+      background: $task-success;
+    }
+
+    &--warn {
+      background: $task-warning;
+    }
+
+    &--over {
+      background: $task-danger;
+    }
+  }
+
+  &__value {
+    min-width: 38px;
+
+    text-align: right;
+
+    font-size: 12px;
+    font-weight: 700;
+    color: $task-text;
+
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// ============================================================================
+// SIGNALS
+// ============================================================================
+
+.budget-signal {
+  height: 22px;
+  padding: 0 9px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  white-space: nowrap;
+
+  border-radius: 999px;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  i {
+    font-size: 12px;
+  }
+
+  &--ok {
+    background: #eafaf0;
+    color: $task-success;
+  }
+
+  &--warn {
+    background: #fff5e6;
+    color: #d97706;
+  }
+
+  &--over {
+    background: #feecec;
+    color: $task-danger;
+  }
+}
+
+// ============================================================================
+// STATS
+// ============================================================================
+
+.budget-stats {
+  margin-bottom: 4px;
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+
+  @media (max-width: 767px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.budget-stat {
+  padding: 14px 16px;
+
+  border-radius: 14px;
+  background: $task-field-bg;
+
+  &__label {
+    margin-bottom: 6px;
+
+    font-size: 11px;
+    font-weight: 500;
+    color: $task-muted;
+  }
+
+  &__value {
+    line-height: 1.1;
+
+    font-size: 20px;
+    font-weight: 700;
+    color: $task-text;
+
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__sub {
+    margin-top: 4px;
+
+    font-size: 11px;
+    color: $task-muted;
+  }
+
+  &--over {
+    background: #feecec;
+
+    .budget-stat__value {
+      color: $task-danger;
+    }
+  }
+
+  &--under {
+    background: #eafaf0;
+
+    .budget-stat__value {
+      color: $task-success;
+    }
+  }
+}
+
+// ============================================================================
+// SUBCATEGORY LINKS
+// ============================================================================
+
+.budget-subcat {
+  padding: 10px 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border-radius: 10px;
+
+  background: $task-field-bg;
+
+  text-decoration: none;
+
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #ece9f4;
+    text-decoration: none;
+  }
+
+  &__name {
+    font-size: 13px;
+    font-weight: 600;
+    color: $task-text;
+  }
+
+  &__arrow {
+    font-size: 13px;
+    color: #aaa7b9;
+  }
+}
+
+// ============================================================================
+// CHART
+// ============================================================================
+
+.budget-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  &__row {
+    padding-bottom: 16px;
+
+    border-bottom: 1px solid #f0eef6;
+
+    &:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+  }
+
+  &__head {
+    margin-bottom: 10px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  &__name {
+    font-size: 13px;
+    font-weight: 700;
+    color: $task-text;
+  }
+
+  &__bars {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__bar {
+    height: 18px;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &-track {
+      position: relative;
+
+      flex: 1;
+
+      height: 8px;
+
+      overflow: hidden;
+
+      border-radius: 999px;
+      background: #f0eef6;
+    }
+
+    &-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+
+      width: 0;
+      height: 100%;
+
+      border-radius: 999px;
+
+      transition: width 0.3s ease;
+
+      &--plan {
+        background: #c7d4f7;
+      }
+
+      &--fact {
+        background: $task-primary;
+      }
+
+      &--forecast {
+        background: #b9b6cf;
+      }
+    }
+
+    &-tag {
+      width: 56px;
+
+      font-size: 10px;
+      font-weight: 600;
+      color: $task-muted;
+
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    &-val {
+      min-width: 92px;
+
+      text-align: right;
+
+      font-size: 11px;
+      font-weight: 600;
+      color: $task-text;
+
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  &__actions {
+    margin-top: 10px;
+
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+
+    form {
+      margin: 0;
+    }
+  }
+
+  &__legend {
+    margin-bottom: 16px;
+
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    flex-wrap: wrap;
+
+    &-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+
+      font-size: 11px;
+      color: $task-muted;
+    }
+
+    &-dot {
+      width: 10px;
+      height: 10px;
+
+      border-radius: 3px;
+
+      &--plan {
+        background: #c7d4f7;
+      }
+
+      &--fact {
+        background: $task-primary;
+      }
+
+      &--forecast {
+        background: #b9b6cf;
+      }
+    }
+  }
+}
+
+// ============================================================================
+// READONLY
+// ============================================================================
+
+.budget-readonly {
+  .budget-chart__actions,
+  .task-edit-btn--save {
+    display: none;
+  }
+}
+
+#budgetPage {
+    .tasks-page__state-control {
+      .select2-container {
+        width: 210px !important;
+      }
+  
+      .select2-selection--single {
+        height: 36px !important;
+        border: 0 !important;
+        border-radius: 999px !important;
+        background: $task-field-bg !important;
+        box-shadow: none !important;
+  
+        display: flex !important;
+        align-items: center !important;
+      }
+  
+      .select2-selection__rendered {
+        padding-left: 14px !important;
+        padding-right: 34px !important;
+  
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        color: $task-text !important;
+        line-height: 36px !important;
+      }
+  
+      .select2-selection__arrow {
+        height: 36px !important;
+        right: 12px !important;
+  
+        b {
+          border-color: $task-muted transparent transparent transparent !important;
+        }
+      }
+    }
+  }
