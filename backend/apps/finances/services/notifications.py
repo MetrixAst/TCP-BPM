@@ -1,5 +1,4 @@
 import logging
-from io import BytesIO
 
 from django.conf import settings
 from django.core.mail import EmailMessage
@@ -13,23 +12,17 @@ def _render_invoice_pdf(invoice) -> bytes:
     try:
         from weasyprint import HTML
     except ImportError:
-        raise ImportError(
-            "Error"
-        )
+        raise ImportError("weasyprint не установлен.")
 
     html_string = render_to_string(
-        "finances/email/invoice_pdf.html",
+        "site/finances/invoice_pdf.html",
         {"invoice": invoice, "items": invoice.items.all()},
     )
     pdf_bytes = HTML(string=html_string, base_url=settings.BASE_DIR).write_pdf()
     return pdf_bytes
 
 
-
-
 def send_invoice_via_email(invoice, recipient_email: str | None = None) -> bool:
-    from finances.models import GeneratedInvoice
-
     if not recipient_email:
         if invoice.tenant and getattr(invoice.tenant, "email", None):
             recipient_email = invoice.tenant.email
@@ -53,7 +46,7 @@ def send_invoice_via_email(invoice, recipient_email: str | None = None) -> bool:
         subject += f" за {invoice.period.strftime('%m.%Y')}"
 
     html_body = render_to_string(
-        "finances/email/invoice.html",
+        "site/finances/invoice_email.html",
         {
             "invoice": invoice,
             "tracking_url": tracking_url,
@@ -88,14 +81,7 @@ def send_invoice_via_email(invoice, recipient_email: str | None = None) -> bool:
 def send_invoice_via_messenger(invoice, messenger: str, contact: str | None = None) -> bool:
     """
     Заглушка отправки счёта через мессенджер (Telegram / WhatsApp).
-
-    Args:
-        invoice:   Объект GeneratedInvoice.
-        messenger: 'telegram' или 'whatsapp'.
-        contact:   Номер телефона / chat_id. Если None — логируем предупреждение.
-
-    Returns:
-        False (заглушка — реальная отправка не реализована).
+    TODO: интегрировать Telegram Bot API / WhatsApp Business API
     """
     logger.warning(
         "[STUB] Отправка счёта №%s через %s на %s не реализована.",
@@ -103,7 +89,6 @@ def send_invoice_via_messenger(invoice, messenger: str, contact: str | None = No
         messenger,
         contact or "неизвестный контакт",
     )
-    # TODO: интегрировать Telegram Bot API / WhatsApp Business API
     return False
 
 
@@ -128,19 +113,7 @@ def mark_invoice_viewed(invoice) -> bool:
     return False
 
 
-
 def send_invoice(invoice, sent_via: str, contact: str | None = None) -> bool:
-    """
-    Отправляет счёт нужным способом и обновляет его статус.
-
-    Args:
-        invoice:  Объект GeneratedInvoice.
-        sent_via: 'email', 'telegram', 'whatsapp', 'manual'.
-        contact:  Email или номер телефона. Для 'manual' не нужен.
-
-    Returns:
-        True если отправка прошла успешно (или способ — manual).
-    """
     from finances.models import GeneratedInvoice
 
     success = False
@@ -150,7 +123,7 @@ def send_invoice(invoice, sent_via: str, contact: str | None = None) -> bool:
     elif sent_via in (GeneratedInvoice.SentVia.TELEGRAM, GeneratedInvoice.SentVia.WHATSAPP):
         success = send_invoice_via_messenger(invoice, messenger=sent_via, contact=contact)
     elif sent_via == GeneratedInvoice.SentVia.MANUAL:
-        success = True 
+        success = True
 
     if success:
         invoice.status = GeneratedInvoice.Status.SENT
