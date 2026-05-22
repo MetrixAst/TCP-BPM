@@ -1,0 +1,177 @@
+{% extends 'site/base.html' %}
+{% load static site_tags %}
+
+{% block title %}Кредитная модель — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'3' }}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/budget.css' %}?v={{ static_version|default:'1' }}" />
+<style>
+#creditModelPage .select2-container--default .select2-selection--single,
+#creditModelPage .select2-container--bootstrap4 .select2-selection--single {
+  height: 36px !important; border: 0 !important; border-radius: 999px !important;
+  background: #f5f3fa !important; box-shadow: none !important;
+  display: flex !important; align-items: center !important;
+}
+#creditModelPage .select2-selection__rendered {
+  height: 36px !important; line-height: 36px !important;
+  padding-left: 14px !important; padding-right: 34px !important;
+  color: #25233f !important; font-size: 13px !important; font-weight: 500 !important;
+}
+#creditModelPage .select2-selection__arrow { height: 36px !important; right: 10px !important; }
+#creditModelPage .select2-container { min-width: 140px; }
+
+/* year input — pill */
+#creditModelPage .fin-year {
+  height: 36px; padding: 0 14px; border: 0; border-radius: 999px;
+  background: #f5f3fa; color: #25233f; font-size: 13px; font-weight: 500;
+  outline: none; width: 100px;
+}
+#creditModelPage .fin-year::placeholder { color: #9a98aa; }
+
+.cm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.cm-card {
+  display: flex; flex-direction: column; gap: 14px; padding: 18px;
+  background: #fff; border: 1px solid #ebeaf1; border-radius: 16px;
+  text-decoration: none; transition: box-shadow .15s, border-color .15s;
+}
+.cm-card:hover { border-color: #c7d4f7; box-shadow: 0 4px 16px rgba(47,107,237,.08); text-decoration: none; }
+.cm-card__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cm-card__name { font-size: 15px; font-weight: 700; color: #25233f; }
+.cm-card__year { font-size: 12px; font-weight: 600; color: #74728a; background: #f5f3fa; padding: 2px 10px; border-radius: 999px; }
+.cm-card__badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.cm-card__stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+.cm-card__stat { display: flex; flex-direction: column; gap: 3px; }
+.cm-card__stat-label { font-size: 10px; color: #74728a; font-weight: 500; text-transform: uppercase; letter-spacing:.02em; }
+.cm-card__stat-value { font-size: 14px; font-weight: 700; color: #25233f; font-variant-numeric: tabular-nums; }
+.cm-dscr--good { color: #22a85a; }
+.cm-dscr--warn { color: #d97706; }
+.cm-dscr--bad  { color: #ff3b30; }
+.cm-card__footer { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid #f0eef6; }
+.cm-card__updated { font-size: 11px; color: #74728a; }
+.cm-card__arrow { color: #aaa7b9; font-size: 14px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="tasks-page" id="creditModelPage">
+  <div class="tasks-page__top">
+    <div class="tasks-page__header">
+      <h1 class="tasks-page__title">Кредитная модель</h1>
+
+      <form method="get" class="tasks-page__toolbar" id="cmFilterForm">
+        <div class="tasks-page__field">
+          <label class="tasks-page__label" for="cmScenario">Сценарий</label>
+          <div class="tasks-page__state-control">
+            <select id="cmScenario" name="scenario" class="tasks-page__select">
+              <option value="" {% if not f_scenario %}selected{% endif %}>Все</option>
+              {% for val, label in scenarios %}
+                <option value="{{ val }}" {% if f_scenario == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="tasks-page__field">
+          <label class="tasks-page__label" for="cmRisk">Риск</label>
+          <div class="tasks-page__state-control">
+            <select id="cmRisk" name="risk_level" class="tasks-page__select">
+              <option value="" {% if not f_risk_level %}selected{% endif %}>Все</option>
+              {% for val, label in risk_levels %}
+                <option value="{{ val }}" {% if f_risk_level == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="tasks-page__field">
+          <label class="tasks-page__label">Год</label>
+          <input type="number" name="year" value="{{ f_year|default:'' }}"
+                 placeholder="Год" min="2020" max="2040" class="fin-year" />
+        </div>
+
+        <button type="submit" class="tasks-page__btn tasks-page__btn--ghost">Применить</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="tasks-panel">
+    {% if models %}
+      <div class="cm-grid">
+        {% for cm in models %}
+          <a class="cm-card" href="{% url 'finances:credit_model_detail' cm.id %}">
+            <div class="cm-card__head">
+              <span class="cm-card__name">{{ cm.name }}</span>
+              <span class="cm-card__year">{{ cm.year }}</span>
+            </div>
+            <div class="cm-card__badges">
+              {% if cm.scenario == 'base' %}
+                <span class="budget-signal budget-signal--ok"><i class="bi bi-check2-circle"></i> Базовый</span>
+              {% elif cm.scenario == 'optimistic' %}
+                <span class="budget-signal budget-signal--ok" style="background:#e8f5e9;color:#1b5e20;"><i class="bi bi-graph-up-arrow"></i> Оптимистичный</span>
+              {% else %}
+                <span class="budget-signal budget-signal--over"><i class="bi bi-exclamation-triangle"></i> Стрессовый</span>
+              {% endif %}
+              {% if cm.risk_level == 'low' %}
+                <span class="budget-signal budget-signal--ok"><i class="bi bi-shield-check"></i> Низкий риск</span>
+              {% elif cm.risk_level == 'high' %}
+                <span class="budget-signal budget-signal--over"><i class="bi bi-shield-exclamation"></i> Высокий риск</span>
+              {% else %}
+                <span class="budget-signal budget-signal--warn"><i class="bi bi-shield"></i> Средний риск</span>
+              {% endif %}
+            </div>
+            <div class="cm-card__stats">
+              <div class="cm-card__stat">
+                <span class="cm-card__stat-label">Кредит</span>
+                <span class="cm-card__stat-value">{{ cm.loan_amount|default:0 }}</span>
+              </div>
+              <div class="cm-card__stat">
+                <span class="cm-card__stat-label">Ставка</span>
+                <span class="cm-card__stat-value">{{ cm.loan_rate|default:0 }}%</span>
+              </div>
+              <div class="cm-card__stat">
+                <span class="cm-card__stat-label">Срок</span>
+                <span class="cm-card__stat-value">{{ cm.loan_term_months }} мес.</span>
+              </div>
+              <div class="cm-card__stat">
+                <span class="cm-card__stat-label">DSCR</span>
+                <span class="cm-card__stat-value {% if cm.dscr_status == 'critical' %}cm-dscr--bad{% elif cm.dscr_status == 'excellent' or cm.dscr_status == 'good' %}cm-dscr--good{% else %}cm-dscr--warn{% endif %}">
+                  {{ cm.dscr|default:"—" }}
+                </span>
+              </div>
+            </div>
+            <div class="cm-card__footer">
+              <span class="cm-card__updated">{{ cm.updated_at|date:"d.m.Y" }}</span>
+              <i class="bi bi-chevron-right cm-card__arrow"></i>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="tasks-empty" style="padding:60px 16px;">
+        <i class="bi bi-bank tasks-empty__icon"></i>
+        <div class="tasks-empty__title">Кредитных моделей нет</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/budget.js' %}?v={{ static_version|default:'1' }}"></script>
+<script>
+jQuery(function($) {
+  $('#cmScenario, #cmRisk').select2({
+    minimumResultsForSearch: Infinity,
+    width: 'element'
+  }).on('change', function() {
+    $('#cmFilterForm').submit();
+  });
+});
+</script>
+{% endblock %}

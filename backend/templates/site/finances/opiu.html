@@ -1,0 +1,205 @@
+{% extends 'site/base.html' %}
+{% load static site_tags %}
+
+{% block title %}ОПиУ — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'3' }}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/budget.css' %}?v={{ static_version|default:'1' }}" />
+<style>
+#opiumPage .select2-container--default .select2-selection--single,
+#opiumPage .select2-container--bootstrap4 .select2-selection--single {
+  height: 36px !important; border: 0 !important; border-radius: 999px !important;
+  background: #f5f3fa !important; box-shadow: none !important;
+  display: flex !important; align-items: center !important;
+}
+#opiumPage .select2-selection__rendered {
+  height: 36px !important; line-height: 36px !important;
+  padding-left: 14px !important; padding-right: 34px !important;
+  color: #25233f !important; font-size: 13px !important; font-weight: 500 !important;
+}
+#opiumPage .select2-selection__arrow { height: 36px !important; right: 10px !important; }
+#opiumPage .select2-container { min-width: 140px; }
+.opiu-row--section td { background: #faf9fd; }
+.opiu-row--section .tasks-table__td--title { font-weight: 700; }
+.opiu-row--total td { border-top: 2px solid #ebeaf1; }
+.opiu-row--total .tasks-table__td--title { font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="tasks-page" id="opiumPage">
+  <div class="tasks-page__top">
+    <div class="tasks-page__header">
+      <h1 class="tasks-page__title">Отчёт о прибылях и убытках</h1>
+
+      <form method="get" class="tasks-page__toolbar" id="opiumFilterForm">
+        <div class="tasks-page__field">
+          <label class="tasks-page__label">Период</label>
+          <div class="budget-period">
+            <a class="budget-period__nav"
+               href="?year={{ prev_year }}&month={{ prev_month }}&period_type={{ period_type }}"
+               aria-label="Предыдущий"><i class="bi bi-chevron-left"></i></a>
+            <span class="budget-period__label">{{ month_name|default:month }} {{ year }}</span>
+            <a class="budget-period__nav"
+               href="?year={{ next_year }}&month={{ next_month }}&period_type={{ period_type }}"
+               aria-label="Следующий"><i class="bi bi-chevron-right"></i></a>
+          </div>
+        </div>
+
+        <div class="tasks-page__field">
+          <label class="tasks-page__label" for="opiumPeriodType">Разрез</label>
+          <div class="tasks-page__state-control">
+            <select id="opiumPeriodType" name="period_type" class="tasks-page__select">
+              <option value="monthly"   {% if period_type == 'monthly' %}selected{% endif %}>Месяц</option>
+              <option value="quarterly" {% if period_type == 'quarterly' %}selected{% endif %}>Квартал</option>
+              <option value="yearly"    {% if period_type == 'yearly' %}selected{% endif %}>Год</option>
+            </select>
+          </div>
+        </div>
+
+        <input type="hidden" name="year"  value="{{ year }}" />
+        <input type="hidden" name="month" value="{{ month }}" />
+
+        <button type="submit" class="tasks-page__btn tasks-page__btn--ghost">Применить</button>
+        <button type="button" class="tasks-page__btn tasks-page__btn--outline" onclick="window.print()">
+          <i class="bi bi-printer"></i> Печать
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="tasks-panel">
+    {% if statement %}
+
+      <div class="budget-stats" style="margin-bottom:24px;">
+        <div class="budget-stat">
+          <div class="budget-stat__label">Выручка (факт)</div>
+          <div class="budget-stat__value">{{ statement.revenue_fact|default:0 }}</div>
+          <div class="budget-stat__sub">план: {{ statement.revenue_plan|default:0 }}</div>
+        </div>
+        <div class="budget-stat">
+          <div class="budget-stat__label">EBITDA (факт)</div>
+          <div class="budget-stat__value">{{ statement.ebitda_fact|default:0 }}</div>
+          {% if statement.ebitda_margin_fact %}<div class="budget-stat__sub">маржа: {{ statement.ebitda_margin_fact }}%</div>{% endif %}
+        </div>
+        <div class="budget-stat">
+          <div class="budget-stat__label">Опер. прибыль (факт)</div>
+          <div class="budget-stat__value">{{ statement.operating_profit_fact|default:0 }}</div>
+          {% if statement.operating_margin_fact %}<div class="budget-stat__sub">маржа: {{ statement.operating_margin_fact }}%</div>{% endif %}
+        </div>
+        <div class="budget-stat {% if statement.net_profit_fact > 0 %}budget-stat--under{% elif statement.net_profit_fact < 0 %}budget-stat--over{% endif %}">
+          <div class="budget-stat__label">Чистая прибыль (факт)</div>
+          <div class="budget-stat__value">{{ statement.net_profit_fact|default:0 }}</div>
+          {% if statement.net_margin_fact %}<div class="budget-stat__sub">маржа: {{ statement.net_margin_fact }}%</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="tasks-table-wrap">
+        <table class="tasks-table">
+          <thead>
+            <tr>
+              <th class="tasks-table__th">Показатель</th>
+              <th class="tasks-table__th">План</th>
+              <th class="tasks-table__th">Факт</th>
+              <th class="tasks-table__th">Прогноз</th>
+              <th class="tasks-table__th">Отклонение</th>
+              <th class="tasks-table__th">Маржа / %</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="tasks-table__row opiu-row--section">
+              <td class="tasks-table__td tasks-table__td--title">Выручка</td>
+              <td class="tasks-table__td"><span class="budget-amount">{{ statement.revenue_plan|default:0 }}</span></td>
+              <td class="tasks-table__td"><span class="budget-amount">{{ statement.revenue_fact|default:0 }}</span></td>
+              <td class="tasks-table__td"><span class="budget-amount budget-amount--forecast">{{ statement.revenue_forecast|default:0 }}</span></td>
+              <td class="tasks-table__td">
+                <span class="budget-amount {% if statement.revenue_variance > 0 %}budget-amount--down{% elif statement.revenue_variance < 0 %}budget-amount--up{% endif %}">
+                  {% if statement.revenue_variance > 0 %}+{% endif %}{{ statement.revenue_variance }}
+                </span>
+              </td>
+              <td class="tasks-table__td">—</td>
+            </tr>
+
+            <tr class="tasks-table__row">
+              <td class="tasks-table__td" style="padding-left:36px;">EBITDA</td>
+              <td class="tasks-table__td"><span class="budget-amount">{{ statement.ebitda_plan|default:0 }}</span></td>
+              <td class="tasks-table__td"><span class="budget-amount">{{ statement.ebitda_fact|default:0 }}</span></td>
+              <td class="tasks-table__td"><span class="budget-amount budget-amount--forecast">{{ statement.ebitda_forecast|default:0 }}</span></td>
+              <td class="tasks-table__td">
+                <span class="budget-amount {% if statement.ebitda_variance > 0 %}budget-amount--down{% elif statement.ebitda_variance < 0 %}budget-amount--up{% endif %}">
+                  {% if statement.ebitda_variance > 0 %}+{% endif %}{{ statement.ebitda_variance }}
+                </span>
+              </td>
+              <td class="tasks-table__td">
+                {% if statement.ebitda_margin_fact %}<span class="budget-amount">{{ statement.ebitda_margin_fact }}%</span>{% else %}—{% endif %}
+              </td>
+            </tr>
+
+            <tr class="tasks-table__row">
+              <td class="tasks-table__td" style="padding-left:36px;">Операционная прибыль</td>
+              <td class="tasks-table__td"><span class="budget-amount">{{ statement.operating_profit_plan|default:0 }}</span></td>
+              <td class="tasks-table__td"><span class="budget-amount">{{ statement.operating_profit_fact|default:0 }}</span></td>
+              <td class="tasks-table__td"><span class="budget-amount budget-amount--forecast">—</span></td>
+              <td class="tasks-table__td">—</td>
+              <td class="tasks-table__td">
+                {% if statement.operating_margin_fact %}<span class="budget-amount">{{ statement.operating_margin_fact }}%</span>{% else %}—{% endif %}
+              </td>
+            </tr>
+
+            <tr class="tasks-table__row opiu-row--total">
+              <td class="tasks-table__td tasks-table__td--title">Чистая прибыль</td>
+              <td class="tasks-table__td"><span class="budget-amount">{{ statement.net_profit_plan|default:0 }}</span></td>
+              <td class="tasks-table__td">
+                <span class="budget-amount {% if statement.net_profit_fact > 0 %}budget-amount--down{% elif statement.net_profit_fact < 0 %}budget-amount--up{% endif %}">
+                  {{ statement.net_profit_fact|default:0 }}
+                </span>
+              </td>
+              <td class="tasks-table__td"><span class="budget-amount budget-amount--forecast">{{ statement.net_profit_forecast|default:0 }}</span></td>
+              <td class="tasks-table__td">
+                <span class="budget-amount {% if statement.net_profit_variance > 0 %}budget-amount--down{% elif statement.net_profit_variance < 0 %}budget-amount--up{% endif %}">
+                  {% if statement.net_profit_variance > 0 %}+{% endif %}{{ statement.net_profit_variance }}
+                </span>
+              </td>
+              <td class="tasks-table__td">
+                {% if statement.net_margin_fact %}<span class="budget-amount">{{ statement.net_margin_fact }}%</span>{% else %}—{% endif %}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {% if statement.note %}
+        <div style="margin-top:16px;padding:14px 18px;background:#f5f3fa;border-radius:12px;font-size:13px;color:#74728a;">
+          {{ statement.note|linebreaksbr }}
+        </div>
+      {% endif %}
+
+    {% else %}
+      <div class="tasks-empty" style="padding:60px 16px;">
+        <i class="bi bi-bar-chart-line tasks-empty__icon"></i>
+        <div class="tasks-empty__title">Данных за этот период нет</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/budget.js' %}?v={{ static_version|default:'1' }}"></script>
+<script>
+jQuery(function($) {
+  $('#opiumPeriodType').select2({
+    minimumResultsForSearch: Infinity,
+    width: 'element'
+  }).on('change', function() {
+    $('#opiumFilterForm').submit();
+  });
+});
+</script>
+{% endblock %}

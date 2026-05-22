@@ -1,0 +1,267 @@
+{% extends 'site/base.html' %}
+{% load static site_tags %}
+
+{# ===========================================================================
+   FE-5.5 — Кредитная модель: ДЕТАЛЬ (credit_model_detail.html)
+   КОНТЕКСТ из views.credit_model_detail:
+     cm         — CreditModel (.dscr, .dscr_status, .free_cashflow, .ebitda ...)
+     scenarios  — QS всех сценариев этой модели (name+year)
+     dscr_color — 'success' | 'info' | 'warning' | 'danger' | 'secondary'
+   =========================================================================== #}
+
+{% block title %}{{ cm.name }} — Кредитная модель — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999" />
+<link rel="stylesheet" href="{% static 'site/css/apps/budget.css' %}?v=9999" />
+{% endblock %}
+
+{% block content %}
+
+<div class="task-page">
+
+  <div class="task-page__main">
+
+    <div class="task-card">
+
+      <div class="task-card__breadcrumb">
+        <a href="{% url 'finances:credit_model_list' %}" class="task-card__back" aria-label="Назад">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <a href="{% url 'finances:credit_model_list' %}" class="task-card__crumb">Кредитная модель</a>
+        <span class="task-card__crumb-sep">/</span>
+        <span class="task-card__crumb task-card__crumb--current">{{ cm.name }}</span>
+        <div class="task-card__actions">
+          <button type="button" class="task-card__icon-btn" title="Печать" onclick="window.print()">
+            <i class="bi bi-printer"></i>
+          </button>
+        </div>
+      </div>
+
+      <h1 class="task-card__title">
+        {{ cm.name }}
+        <span style="font-size:14px; font-weight:500; color:#74728a; margin-left:10px;">{{ cm.year }}</span>
+      </h1>
+
+      {# --- бейдж сценария + риска --- #}
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+        {% if cm.scenario == 'base' %}
+          <span class="budget-signal budget-signal--ok"><i class="bi bi-check2-circle"></i> Базовый сценарий</span>
+        {% elif cm.scenario == 'optimistic' %}
+          <span class="budget-signal budget-signal--ok" style="background:#e8f5e9; color:#1b5e20;"><i class="bi bi-graph-up-arrow"></i> Оптимистичный</span>
+        {% else %}
+          <span class="budget-signal budget-signal--over"><i class="bi bi-exclamation-triangle"></i> Стрессовый сценарий</span>
+        {% endif %}
+
+        {% if cm.risk_level == 'low' %}
+          <span class="budget-signal budget-signal--ok"><i class="bi bi-shield-check"></i> Низкий риск</span>
+        {% elif cm.risk_level == 'high' %}
+          <span class="budget-signal budget-signal--over"><i class="bi bi-shield-exclamation"></i> Высокий риск</span>
+        {% else %}
+          <span class="budget-signal budget-signal--warn"><i class="bi bi-shield"></i> Средний риск</span>
+        {% endif %}
+      </div>
+
+      {# --- параметры кредита --- #}
+      <div class="task-card__meta">
+        <div class="task-card__meta-item">
+          <div class="task-card__meta-label">Сумма кредита</div>
+          <div class="task-card__meta-value">{{ cm.loan_amount|default:0 }}</div>
+        </div>
+        <div class="task-card__meta-item">
+          <div class="task-card__meta-label">Процентная ставка</div>
+          <div class="task-card__meta-value">{{ cm.loan_rate|default:0 }}%</div>
+        </div>
+        <div class="task-card__meta-item">
+          <div class="task-card__meta-label">Срок</div>
+          <div class="task-card__meta-value">{{ cm.loan_term_months }} мес.</div>
+        </div>
+        <div class="task-card__meta-item">
+          <div class="task-card__meta-label">Обслуживание долга / год</div>
+          <div class="task-card__meta-value">{{ cm.annual_debt_service|default:0 }}</div>
+        </div>
+      </div>
+
+      {# --- DSCR --- #}
+      <div class="cm-dscr-block">
+        <div class="cm-dscr-block__label">DSCR (Debt Service Coverage Ratio)</div>
+        <div class="cm-dscr-block__value cm-dscr-block__value--{{ dscr_color }}">
+          {{ cm.dscr|default:"—" }}
+        </div>
+        <div class="cm-dscr-block__hint">
+          {% if cm.dscr_status == 'excellent' %}Отличное покрытие долга (≥ 1.5)
+          {% elif cm.dscr_status == 'good' %}Хорошее покрытие (≥ 1.2)
+          {% elif cm.dscr_status == 'acceptable' %}Приемлемое покрытие (≥ 1.0)
+          {% elif cm.dscr_status == 'critical' %}Критично — DSCR ниже 1.0
+          {% else %}Нет данных для расчёта{% endif %}
+        </div>
+      </div>
+
+      {% if cm.description %}
+        <div class="task-card__description">{{ cm.description|linebreaksbr }}</div>
+      {% endif %}
+    </div>
+
+    {# --- прогнозный ОПиУ --- #}
+    <div class="task-section">
+      <div class="task-section__head">
+        <h3 class="task-section__title" style="font-size:18px;">Прогнозный ОПиУ</h3>
+      </div>
+      <div class="budget-stats">
+        <div class="budget-stat">
+          <div class="budget-stat__label">Выручка</div>
+          <div class="budget-stat__value">{{ cm.revenue_forecast|default:0 }}</div>
+        </div>
+        <div class="budget-stat">
+          <div class="budget-stat__label">EBITDA</div>
+          <div class="budget-stat__value">{{ cm.ebitda|default:0 }}</div>
+        </div>
+        <div class="budget-stat {% if cm.net_profit_forecast > 0 %}budget-stat--under{% elif cm.net_profit_forecast < 0 %}budget-stat--over{% endif %}">
+          <div class="budget-stat__label">Чистая прибыль</div>
+          <div class="budget-stat__value">{{ cm.net_profit_forecast|default:0 }}</div>
+        </div>
+        <div class="budget-stat {% if cm.free_cashflow > 0 %}budget-stat--under{% else %}budget-stat--over{% endif %}">
+          <div class="budget-stat__label">Free Cash Flow</div>
+          <div class="budget-stat__value">{{ cm.free_cashflow|default:0 }}</div>
+        </div>
+      </div>
+
+      {# --- прогнозный Cash Flow --- #}
+      <div style="margin-top:16px;">
+        <div class="budget-chart__legend">
+          <span style="font-size:12px; font-weight:600; color:#25233f;">Прогнозный Cash Flow</span>
+        </div>
+        <div class="tasks-table-wrap" style="margin-top:8px;">
+          <table class="tasks-table">
+            <thead>
+              <tr>
+                <th class="tasks-table__th">Вид деятельности</th>
+                <th class="tasks-table__th">Сумма</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="tasks-table__row">
+                <td class="tasks-table__td tasks-table__td--title">Операционная</td>
+                <td class="tasks-table__td">
+                  <span class="budget-amount {% if cm.operating_cashflow > 0 %}budget-amount--down{% else %}budget-amount--up{% endif %}">
+                    {{ cm.operating_cashflow|default:0 }}
+                  </span>
+                </td>
+              </tr>
+              <tr class="tasks-table__row">
+                <td class="tasks-table__td tasks-table__td--title">Инвестиционная</td>
+                <td class="tasks-table__td">
+                  <span class="budget-amount">{{ cm.forecast_cashflow.investing|default:0 }}</span>
+                </td>
+              </tr>
+              <tr class="tasks-table__row">
+                <td class="tasks-table__td tasks-table__td--title">Финансовая</td>
+                <td class="tasks-table__td">
+                  <span class="budget-amount">{{ cm.forecast_cashflow.financing|default:0 }}</span>
+                </td>
+              </tr>
+              <tr class="tasks-table__row" style="font-weight:700;">
+                <td class="tasks-table__td tasks-table__td--title">Free Cash Flow</td>
+                <td class="tasks-table__td">
+                  <span class="budget-amount {% if cm.free_cashflow > 0 %}budget-amount--down{% else %}budget-amount--up{% endif %}">
+                    {{ cm.free_cashflow|default:0 }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {# --- заметки по рискам --- #}
+    {% if cm.risk_notes %}
+      <div class="task-section">
+        <div class="task-section__head">
+          <h3 class="task-section__title" style="font-size:18px;">Комментарий по рискам</h3>
+        </div>
+        <div style="font-size:13px; color:#25233f; line-height:1.55;">
+          {{ cm.risk_notes|linebreaksbr }}
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+
+  {# --- сайдбар: сценарии + ОПиУ-связь --- #}
+  <aside class="task-page__aside">
+
+    <div class="task-section">
+      <div class="task-section__head">
+        <h3 class="task-section__title">Сценарии</h3>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        {% for s in scenarios %}
+          <a href="{% url 'finances:credit_model_detail' s.id %}"
+             class="budget-subcat {% if s.id == cm.id %}budget-subcat--active{% endif %}">
+            <span class="budget-subcat__name">{{ s.get_scenario_display }}</span>
+            <span style="font-size:11px; color:#74728a;">
+              DSCR: {{ s.dscr|default:"—" }}
+            </span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if cm.financial_statement %}
+      <div class="task-section">
+        <div class="task-section__head">
+          <h3 class="task-section__title">Отчёт ОПиУ</h3>
+        </div>
+        <div class="task-card__meta" style="grid-template-columns:1fr 1fr; margin-bottom:0;">
+          <div class="task-card__meta-item">
+            <div class="task-card__meta-label">Период</div>
+            <div class="task-card__meta-value">{{ cm.financial_statement.get_period_label }}</div>
+          </div>
+          <div class="task-card__meta-item">
+            <div class="task-card__meta-label">Выручка ф.</div>
+            <div class="task-card__meta-value">{{ cm.financial_statement.revenue_fact|default:0 }}</div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+  </aside>
+
+</div>
+
+<style>
+.cm-dscr-block {
+  margin-bottom: 22px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: #f5f3fa;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.cm-dscr-block__label { font-size: 12px; font-weight: 600; color: #74728a; flex-shrink: 0; }
+.cm-dscr-block__value {
+  font-size: 32px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.cm-dscr-block__value--success { color: #22a85a; }
+.cm-dscr-block__value--info    { color: #2f6bed; }
+.cm-dscr-block__value--warning { color: #d97706; }
+.cm-dscr-block__value--danger  { color: #ff3b30; }
+.cm-dscr-block__value--secondary { color: #74728a; }
+.cm-dscr-block__hint { font-size: 12px; color: #74728a; }
+
+.budget-subcat--active {
+  background: #eef2ff;
+  .budget-subcat__name { color: #2f6bed; }
+}
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/budget.js' %}?v=9999"></script>
+{% endblock %}

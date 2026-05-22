@@ -1,20 +1,8 @@
-/* ===========================================================================
- * FE-5.4 — Бюджетирование (budget.js)
- * Зависимости: jQuery + select2 (как в tasks.js)
- * Покрывает budget_list.html / budget_detail.html / budget_item_form.html /
- * budget_create.html
- *
- * Заметки по бэку (BE-5.11):
- *  - суммы категорий в списке агрегируются во вью (rows[].plan/fact/...);
- *  - детям категорий суммы НЕ считаются → в дереве это просто строки-ссылки;
- *  - удаление строки = обычная POST-форма с redirect (не AJAX);
- *  - exec_pct и overrun приходят из вью, тут только визуализация.
- * =========================================================================== */
 (function () {
     'use strict';
   
     document.addEventListener('DOMContentLoaded', function () {
-      initSelect2();
+      initAllSelect2();
       initRowNavigation();
       initTree();
       initChart();
@@ -22,44 +10,56 @@
       initPeriodFields();
     });
   
-    /* ----- select2 для всех select модуля -------------------------------------- */
-    function initSelect2() {
+    function initAllSelect2() {
       if (!window.jQuery || !jQuery.fn.select2) return;
   
-      // фильтры списка — авто-submit при выборе
-      jQuery('#budgetCatType, #budgetPeriodType').each(function () {
+      // Все фильтрующие select на любой странице модуля
+      // (budget_list, opiu, cashflow, credit_model)
+      jQuery(
+        '#budgetCatType, #budgetPeriodType,' +
+        '#opiumPeriodType,' +
+        '#cfDirection, #cfFlowType,' +
+        '#cmScenario, #cmRisk'
+      ).each(function () {
         var $s = jQuery(this);
-        $s.select2({ minimumResultsForSearch: Infinity, width: '170px' });
+        if ($s.data('select2')) return; // уже инициализирован
+        $s.select2({ minimumResultsForSearch: Infinity, width: '100%' });
         $s.on('change', function () {
-          var form = document.getElementById('budgetFilterForm');
+          // auto-submit ближайшей формы
+          var form = $s.closest('form')[0];
           if (form) form.submit();
         });
       });
   
-      // select-поля формы строки/категории
+      // select внутри формы строки/категории — без auto-submit
       jQuery('#taskEditForm select').each(function () {
-        jQuery(this).select2({ width: '100%' });
+        var $s = jQuery(this);
+        if ($s.data('select2')) return;
+        $s.select2({ width: '100%' });
       });
     }
   
-    /* ----- клик по строке таблицы → переход на деталь -------------------------- */
+    /* -------------------------------------------------------------------------
+     * Клик по строке таблицы → переход на деталь
+     * ------------------------------------------------------------------------- */
     function initRowNavigation() {
       document.querySelectorAll('.tasks-table__row[data-href]').forEach(function (row) {
         row.addEventListener('click', function (e) {
-          if (e.target.closest('[data-budget-toggle]') || e.target.closest('a')) return;
+          if (e.target.closest('[data-budget-toggle]') || e.target.closest('a, button, form')) return;
           window.location.href = row.dataset.href;
         });
       });
     }
   
-    /* ----- дерево категорий: раскрытие/сворачивание ---------------------------- */
+    /* -------------------------------------------------------------------------
+     * Дерево категорий (budget_list)
+     * ------------------------------------------------------------------------- */
     function initTree() {
       var rows = Array.prototype.slice.call(
         document.querySelectorAll('#budgetTableBody .tasks-table__row')
       );
       if (!rows.length) return;
   
-      // parentId -> [дочерние строки]
       var byParent = {};
       rows.forEach(function (row) {
         var pid = row.dataset.parent || '';
@@ -67,7 +67,6 @@
         (byParent[pid] = byParent[pid] || []).push(row);
       });
   
-      // по умолчанию все дочерние свёрнуты
       rows.forEach(function (row) {
         if (row.dataset.parent) row.classList.add('is-collapsed');
       });
@@ -88,7 +87,6 @@
           var id = btn.getAttribute('data-budget-toggle');
           var children = byParent[id] || [];
           var willOpen = !btn.classList.contains('is-open');
-  
           btn.classList.toggle('is-open', willOpen);
           children.forEach(function (child) {
             child.classList.toggle('is-collapsed', !willOpen);
@@ -98,13 +96,14 @@
       });
     }
   
-    /* ----- столбчатый график: нормализация ширины баров ------------------------ */
+    /* -------------------------------------------------------------------------
+     * График отклонений (budget_detail) — нормализация ширины баров
+     * ------------------------------------------------------------------------- */
     function initChart() {
       var chart = document.getElementById('budgetChart');
       if (!chart) return;
   
       var rows = Array.prototype.slice.call(chart.querySelectorAll('.budget-chart__row'));
-  
       var max = 0;
       rows.forEach(function (row) {
         ['plan', 'fact', 'forecast'].forEach(function (k) {
@@ -123,10 +122,12 @@
       });
     }
   
-    /* ----- итоги на детали (сумма по всем строкам) ----------------------------- */
+    /* -------------------------------------------------------------------------
+     * Итоги на детали (budget_detail) — суммирует строки графика
+     * ------------------------------------------------------------------------- */
     function initTotals() {
       var totals = document.getElementById('budgetTotals');
-      var chart = document.getElementById('budgetChart');
+      var chart  = document.getElementById('budgetChart');
       if (!totals || !chart) return;
   
       var sum = { plan: 0, fact: 0, forecast: 0 };
@@ -136,8 +137,8 @@
         sum.forecast += num(row.dataset.forecast);
       });
   
-      setTotal(totals, 'plan', sum.plan);
-      setTotal(totals, 'fact', sum.fact);
+      setTotal(totals, 'plan',     sum.plan);
+      setTotal(totals, 'fact',     sum.fact);
       setTotal(totals, 'forecast', sum.forecast);
   
       var variance = sum.fact - sum.plan;
@@ -147,7 +148,6 @@
       var execEl = totals.querySelector('[data-total="exec"]');
       if (execEl) execEl.textContent = exec + '%';
   
-      // подсветка карточки отклонения
       var card = document.getElementById('budgetVarianceCard');
       if (card) {
         card.classList.remove('budget-stat--over', 'budget-stat--under');
@@ -156,14 +156,9 @@
       }
     }
   
-    function setTotal(scope, key, value, signed) {
-      var el = scope.querySelector('[data-total="' + key + '"]');
-      if (!el) return;
-      var prefix = (signed && value > 0) ? '+' : '';
-      el.textContent = prefix + formatMoney(value);
-    }
-  
-    /* ----- форма строки: показывать месяц/квартал по period_type --------------- */
+    /* -------------------------------------------------------------------------
+     * Форма строки: показывать месяц / квартал по выбранному period_type
+     * ------------------------------------------------------------------------- */
     function initPeriodFields() {
       var form = document.getElementById('taskEditForm');
       if (!form) return;
@@ -180,21 +175,23 @@
         if (quarterField) quarterField.style.display = (v === 'quarterly') ? '' : 'none';
       }
       apply();
-  
-      // select2 шлёт change через jQuery
       if (window.jQuery) jQuery(sel).on('change', apply);
       else sel.addEventListener('change', apply);
     }
   
-    /* ----- helpers ------------------------------------------------------------- */
+    /* -------------------------------------------------------------------------
+     * Helpers
+     * ------------------------------------------------------------------------- */
     function num(v) {
       var n = parseFloat(String(v == null ? '' : v).replace(',', '.'));
       return isNaN(n) ? 0 : n;
     }
   
-    function formatMoney(v) {
-      // округляем и разбиваем разряды пробелом, как в RU-формате
-      var rounded = Math.round(v);
-      return rounded.toLocaleString('ru-RU');
+    function setTotal(scope, key, value, signed) {
+      var el = scope.querySelector('[data-total="' + key + '"]');
+      if (!el) return;
+      var prefix = (signed && value > 0) ? '+' : '';
+      el.textContent = prefix + Math.round(value).toLocaleString('ru-RU');
     }
+  
   })();

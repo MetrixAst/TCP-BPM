@@ -8,7 +8,7 @@ from django import forms as django_forms
 from project.utils import get_or_none
 
 from .forms import FinanceItemForm, GeneratedInvoiceForm, GeneratedInvoiceItemFormSet
-from .models import FinanceItem, TenantPaymentRegistry, GeneratedInvoice, BudgetCategory, BudgetItem
+from .models import FinanceItem, TenantPaymentRegistry, GeneratedInvoice, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel
 from .serializers import FinanceItemSerializer
 
 from datetime import date
@@ -479,7 +479,7 @@ def _get_budget_access(user):
     return can_edit, can_read
 
 
-#@need_permission(PermissionEnums.FINANCE_BUDGET)
+@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_list(request):
     today = date.today()
     try:
@@ -573,7 +573,7 @@ def budget_list(request):
     return render(request, 'site/finances/budget/budget_list.html', context)
 
 
-#@need_permission(PermissionEnums.FINANCE_BUDGET)
+@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_detail(request, pk):
     category = get_object_or_404(BudgetCategory, pk=pk)
     can_edit, _ = _get_budget_access(request.user)
@@ -606,7 +606,7 @@ def budget_detail(request, pk):
     return render(request, 'site/finances/budget/budget_detail.html', context)
 
 
-#@need_permission(PermissionEnums.FINANCE_BUDGET)
+@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_item_create(request, category_pk):
     can_edit, _ = _get_budget_access(request.user)
     if not can_edit:
@@ -638,7 +638,7 @@ def budget_item_create(request, category_pk):
     return render(request, 'site/finances/budget/budget_item_form.html', context)
 
 
-#@need_permission(PermissionEnums.FINANCE_BUDGET)
+@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_item_create_general(request):
     can_edit, _ = _get_budget_access(request.user)
     if not can_edit:
@@ -668,7 +668,7 @@ def budget_item_create_general(request):
     return render(request, 'site/finances/budget/budget_item_form.html', context)
 
 
-#@need_permission(PermissionEnums.FINANCE_BUDGET)
+@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_item_edit(request, pk):
     item     = get_object_or_404(BudgetItem, pk=pk)
     can_edit, _ = _get_budget_access(request.user)
@@ -698,7 +698,7 @@ def budget_item_edit(request, pk):
     return render(request, 'site/finances/budget/budget_item_form.html', context)
 
 
-#@need_permission(PermissionEnums.FINANCE_BUDGET)
+@need_permission(PermissionEnums.FINANCE_BUDGET)
 def budget_item_delete(request, pk):
     item = get_object_or_404(BudgetItem, pk=pk)
     can_edit, _ = _get_budget_access(request.user)
@@ -710,3 +710,171 @@ def budget_item_delete(request, pk):
         item.delete()
         messages.success(request, 'Строка бюджета удалена.')
     return redirect('finances:budget_detail', pk=category_pk)
+
+
+def opiu_list(request):
+    today = date.today()
+    try:
+        year  = int(request.GET.get('year',  today.year))
+        month = int(request.GET.get('month', today.month))
+    except (ValueError, TypeError):
+        year, month = today.year, today.month
+
+    period_type = request.GET.get('period_type', 'monthly')
+
+    qs = FinancialStatement.objects.all()
+
+    if period_type == 'monthly':
+        qs = qs.filter(period_type='monthly', year=year, month=month)
+    elif period_type == 'quarterly':
+        quarter = (month - 1) // 3 + 1
+        qs = qs.filter(period_type='quarterly', year=year, quarter=quarter)
+    else:
+        qs = qs.filter(period_type='yearly', year=year)
+
+    statement = qs.first()
+
+    if month == 1:
+        prev_year, prev_month = year - 1, 12
+    else:
+        prev_year, prev_month = year, month - 1
+    if month == 12:
+        next_year, next_month = year + 1, 1
+    else:
+        next_year, next_month = year, month + 1
+
+    all_statements = FinancialStatement.objects.order_by('-year', '-month', '-quarter')
+
+    context = {
+        'statement':    statement,
+        'year':         year,
+        'month':        month,
+        'month_name':   _month_name(month),
+        'period_type':  period_type,
+        'prev_year':    prev_year,  'prev_month':  prev_month,
+        'next_year':    next_year,  'next_month':  next_month,
+        'all_statements': all_statements,
+    }
+    return render(request, 'site/finances/opiu.html', context)
+
+
+
+def cashflow_list(request):
+    from datetime import datetime
+    today = date.today()
+
+    date_from_raw = request.GET.get('date_from', '').strip()
+    date_to_raw   = request.GET.get('date_to',   '').strip()
+    direction     = request.GET.get('direction', '')
+    flow_type     = request.GET.get('flow_type', '')
+    search        = request.GET.get('q', '').strip()
+
+    def parse_date(s):
+        """Принимает дд.мм.гггг или гггг-мм-дд, возвращает date или None."""
+        for fmt in ('%d.%m.%Y', '%Y-%m-%d'):
+            try:
+                return datetime.strptime(s, fmt).date()
+            except (ValueError, TypeError):
+                pass
+        return None
+
+    date_from = parse_date(date_from_raw)
+    date_to   = parse_date(date_to_raw)
+
+    qs = CashFlowRecord.objects.select_related(
+        'counterparty', 'budget_category'
+    ).order_by('-transaction_date', '-created_at')
+
+    if date_from:
+        qs = qs.filter(transaction_date__gte=date_from)
+    if date_to:
+        qs = qs.filter(transaction_date__lte=date_to)
+    if direction:
+        qs = qs.filter(direction=direction)
+    if flow_type:
+        qs = qs.filter(flow_type=flow_type)
+    if search:
+        qs = qs.filter(
+            Q(description__icontains=search) |
+            Q(document_number__icontains=search) |
+            Q(counterparty__short_name__icontains=search)
+        )
+
+    from django.db.models import Sum
+    totals = qs.aggregate(
+        total_inflow=Sum('amount', filter=Q(direction='inflow')),
+        total_outflow=Sum('amount', filter=Q(direction='outflow')),
+    )
+    total_inflow  = totals['total_inflow']  or Decimal('0')
+    total_outflow = totals['total_outflow'] or Decimal('0')
+    net_flow      = total_inflow - total_outflow
+
+    context = {
+        'records':       qs,
+        'total_inflow':  total_inflow,
+        'total_outflow': total_outflow,
+        'net_flow':      net_flow,
+        'directions':    CashFlowRecord.Direction.choices,
+        'flow_types':    CashFlowRecord.FlowType.choices,
+        'f_date_from':   date_from_raw,
+        'f_date_to':     date_to_raw,
+        'f_direction':   direction,
+        'f_flow_type':   flow_type,
+        'f_q':           search,
+        'today':         today,
+    }
+    return render(request, 'site/finances/cashflow.html', context)
+
+
+def credit_model_list(request):
+    scenario   = request.GET.get('scenario', '')
+    risk_level = request.GET.get('risk_level', '')
+    year       = request.GET.get('year', '')
+
+    qs = CreditModel.objects.select_related('financial_statement').order_by('-year', 'scenario')
+
+    if scenario:
+        qs = qs.filter(scenario=scenario)
+    if risk_level:
+        qs = qs.filter(risk_level=risk_level)
+    if year:
+        try:
+            qs = qs.filter(year=int(year))
+        except ValueError:
+            pass
+
+    context = {
+        'models':      qs,
+        'scenarios':   CreditModel.Scenario.choices,
+        'risk_levels': CreditModel.RiskLevel.choices,
+        'f_scenario':   scenario,
+        'f_risk_level': risk_level,
+        'f_year':       year,
+    }
+    return render(request, 'site/finances/credit_model.html', context)
+
+
+def credit_model_detail(request, pk):
+    cm = get_object_or_404(
+        CreditModel.objects.select_related('financial_statement'),
+        pk=pk
+    )
+
+    scenarios = CreditModel.objects.filter(
+        name=cm.name, year=cm.year
+    ).order_by('scenario')
+
+    DSCR_COLORS = {
+        'excellent':  'success',
+        'good':       'info',
+        'acceptable': 'warning',
+        'critical':   'danger',
+        'unknown':    'secondary',
+    }
+
+    context = {
+        'cm':          cm,
+        'scenarios':   scenarios,
+        'dscr_color':  DSCR_COLORS.get(cm.dscr_status, 'secondary'),
+    }
+    return render(request, 'site/finances/credit_model_detail.html', context)

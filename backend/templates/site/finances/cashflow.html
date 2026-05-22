@@ -1,0 +1,251 @@
+{% extends 'site/base.html' %}
+{% load static site_tags %}
+
+{% block title %}Реестр ДДС — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'3' }}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/budget.css' %}?v={{ static_version|default:'1' }}" />
+<style>
+/* select2 pill — как в tasks list */
+#cashflowPage .select2-container--default .select2-selection--single,
+#cashflowPage .select2-container--bootstrap4 .select2-selection--single {
+  height: 36px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f5f3fa !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+}
+#cashflowPage .select2-selection__rendered {
+  height: 36px !important;
+  line-height: 36px !important;
+  padding-left: 14px !important;
+  padding-right: 34px !important;
+  color: #25233f !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+#cashflowPage .select2-selection__arrow {
+  height: 36px !important;
+  right: 10px !important;
+}
+#cashflowPage .select2-container { min-width: 150px; }
+
+/* текстовый input-дата в стиле pill */
+#cashflowPage .fin-date-input {
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #f5f3fa;
+  color: #25233f;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  width: 130px;
+  cursor: pointer;
+}
+#cashflowPage .fin-date-input::placeholder { color: #9a98aa; }
+#cashflowPage .fin-date-input:focus {
+  box-shadow: 0 0 0 2px rgba(54,100,220,.14);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="tasks-page" id="cashflowPage">
+  <div class="tasks-page__top">
+    <div class="tasks-page__header">
+      <h1 class="tasks-page__title">Реестр ДДС</h1>
+
+      <form method="get" class="tasks-page__toolbar" id="cashflowFilterForm">
+
+        <div class="tasks-page__field">
+          <label class="tasks-page__label" for="cfSearch">Поиск</label>
+          <div class="tasks-page__search">
+            <i class="bi bi-search tasks-page__search-icon"></i>
+            <input type="search"
+                   class="tasks-page__search-input"
+                   id="cfSearch" name="q"
+                   value="{{ f_q|default:'' }}"
+                   placeholder="Контрагент, документ..."
+                   autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="tasks-page__field">
+          <label class="tasks-page__label" for="cfDirection">Направление</label>
+          <div class="tasks-page__state-control">
+            <select id="cfDirection" name="direction" class="tasks-page__select">
+              <option value="" {% if not f_direction %}selected{% endif %}>Все</option>
+              {% for val, label in directions %}
+                <option value="{{ val }}" {% if f_direction == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="tasks-page__field">
+          <label class="tasks-page__label" for="cfFlowType">Деятельность</label>
+          <div class="tasks-page__state-control">
+            <select id="cfFlowType" name="flow_type" class="tasks-page__select">
+              <option value="" {% if not f_flow_type %}selected{% endif %}>Все</option>
+              {% for val, label in flow_types %}
+                <option value="{{ val }}" {% if f_flow_type == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="tasks-page__field">
+          <label class="tasks-page__label">С</label>
+          <input type="text"
+                 name="date_from"
+                 id="cfDateFrom"
+                 value="{{ f_date_from|default:'' }}"
+                 placeholder="дд.мм.гггг"
+                 class="fin-date-input"
+                 autocomplete="off"
+                 readonly />
+        </div>
+
+        <div class="tasks-page__field">
+          <label class="tasks-page__label">По</label>
+          <input type="text"
+                 name="date_to"
+                 id="cfDateTo"
+                 value="{{ f_date_to|default:'' }}"
+                 placeholder="дд.мм.гггг"
+                 class="fin-date-input"
+                 autocomplete="off"
+                 readonly />
+        </div>
+
+        <button type="submit" class="tasks-page__btn tasks-page__btn--ghost">Применить</button>
+        <button type="button" class="tasks-page__btn tasks-page__btn--outline" onclick="window.print()">
+          <i class="bi bi-printer"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="tasks-panel">
+
+    <div class="budget-stats" style="grid-template-columns: repeat(3,1fr); margin-bottom:20px;">
+      <div class="budget-stat budget-stat--under">
+        <div class="budget-stat__label">Поступления</div>
+        <div class="budget-stat__value">{{ total_inflow|default:0 }}</div>
+      </div>
+      <div class="budget-stat budget-stat--over">
+        <div class="budget-stat__label">Списания</div>
+        <div class="budget-stat__value">{{ total_outflow|default:0 }}</div>
+      </div>
+      <div class="budget-stat {% if net_flow >= 0 %}budget-stat--under{% else %}budget-stat--over{% endif %}">
+        <div class="budget-stat__label">Нетто</div>
+        <div class="budget-stat__value">{% if net_flow > 0 %}+{% endif %}{{ net_flow|default:0 }}</div>
+      </div>
+    </div>
+
+    <div class="tasks-table-wrap" id="cashflowTableWrap">
+      <table class="tasks-table">
+        <thead>
+          <tr>
+            <th class="tasks-table__th">Дата</th>
+            <th class="tasks-table__th">Направление</th>
+            <th class="tasks-table__th">Деятельность</th>
+            <th class="tasks-table__th">Сумма</th>
+            <th class="tasks-table__th">Валюта</th>
+            <th class="tasks-table__th">Контрагент</th>
+            <th class="tasks-table__th">Статья бюджета</th>
+            <th class="tasks-table__th">Назначение</th>
+            <th class="tasks-table__th">Документ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in records %}
+            <tr class="tasks-table__row">
+              <td class="tasks-table__td tasks-table__td--date">{{ record.transaction_date|date:"d.m.Y" }}</td>
+              <td class="tasks-table__td">
+                {% if record.direction == 'inflow' %}
+                  <span class="budget-signal budget-signal--ok">
+                    <i class="bi bi-arrow-down-circle-fill"></i> Поступление
+                  </span>
+                {% else %}
+                  <span class="budget-signal budget-signal--over">
+                    <i class="bi bi-arrow-up-circle-fill"></i> Списание
+                  </span>
+                {% endif %}
+              </td>
+              <td class="tasks-table__td">
+                <span style="font-size:12px;color:#74728a;">{{ record.get_flow_type_display }}</span>
+              </td>
+              <td class="tasks-table__td">
+                <span class="budget-amount {% if record.direction == 'inflow' %}budget-amount--down{% else %}budget-amount--up{% endif %}">
+                  {% if record.direction == 'inflow' %}+{% else %}−{% endif %}{{ record.amount }}
+                </span>
+              </td>
+              <td class="tasks-table__td">
+                <span style="font-size:12px;color:#74728a;">{{ record.currency }}</span>
+              </td>
+              <td class="tasks-table__td">
+                {% if record.counterparty %}{{ record.counterparty.short_name|default:record.counterparty }}{% else %}—{% endif %}
+              </td>
+              <td class="tasks-table__td">
+                {% if record.budget_category %}<span style="font-size:12px;color:#74728a;">{{ record.budget_category.name }}</span>{% else %}—{% endif %}
+              </td>
+              <td class="tasks-table__td" style="max-width:220px;">
+                <span style="font-size:12px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ record.description|default:"—" }}</span>
+              </td>
+              <td class="tasks-table__td tasks-table__td--date">{{ record.document_number|default:"—" }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="9" class="tasks-table__empty">
+                <div class="tasks-empty">
+                  <i class="bi bi-cash-stack tasks-empty__icon"></i>
+                  <div class="tasks-empty__title">Операций не найдено</div>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/apps/budget.js' %}?v={{ static_version|default:'1' }}"></script>
+<script>
+jQuery(function($) {
+  // select2 для фильтров
+  $('#cfDirection, #cfFlowType').select2({
+    minimumResultsForSearch: Infinity,
+    width: 'element'
+  }).on('change', function() {
+    $('#cashflowFilterForm').submit();
+  });
+
+  // datepicker — как в task_edit (bootstrap-datepicker)
+  var dpOpts = {
+    format: 'dd.mm.yyyy',
+    autoclose: true,
+    language: 'ru',
+    todayHighlight: true,
+    weekStart: 1
+  };
+  $('#cfDateFrom').datepicker(dpOpts);
+  $('#cfDateTo').datepicker(dpOpts);
+});
+</script>
+{% endblock %}
