@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord
+from .models import TenantPaymentRegistry, GeneratedInvoice, GeneratedInvoiceItem, PaymentCalendarEntry, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel
 
 @admin.register(TenantPaymentRegistry)
 class TenantPaymentRegistryAdmin(admin.ModelAdmin):
@@ -257,3 +257,47 @@ class CashFlowRecordAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False  
+
+
+@admin.register(CreditModel)
+class CreditModelAdmin(admin.ModelAdmin):
+    list_display = (
+        'name', 'scenario', 'year',
+        'loan_amount', 'loan_rate', 'loan_term_months',
+        'annual_debt_service', 'dscr', 'dscr_status', 'risk_level',
+    )
+    list_filter  = ('scenario', 'risk_level', 'year')
+    search_fields = ('name', 'description')
+    readonly_fields = (
+        'dscr', 'dscr_status', 'ebitda',
+        'free_cashflow', 'revenue_forecast',
+        'net_profit_forecast', 'operating_cashflow',
+        'created_at', 'updated_at',
+    )
+    fieldsets = (
+        ('Основное', {
+            'fields': ('name', 'scenario', 'year', 'description'),
+        }),
+        ('Параметры кредита', {
+            'fields': (
+                'loan_amount', 'loan_rate',
+                'loan_term_months', 'annual_debt_service',
+            ),
+        }),
+        ('DSCR и риск', {
+            'fields': ('dscr', 'dscr_status', 'risk_level', 'risk_notes'),
+        }),
+        ('Прогнозный ОПиУ', {
+            'fields': ('forecast_pnl', 'ebitda', 'revenue_forecast', 'net_profit_forecast'),
+        }),
+        ('Прогнозный Cash Flow', {
+            'fields': ('forecast_cashflow', 'free_cashflow', 'operating_cashflow'),
+        }),
+        ('Связи', {
+            'fields': ('financial_statement',),
+        }),
+        ('Служебные', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )

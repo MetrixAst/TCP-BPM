@@ -1,15 +1,18 @@
 from django.test import TestCase, Client
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+from django import forms as django_forms
+from django.http import HttpResponseForbidden
 from datetime import date
 from decimal import Decimal
 
-from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord
+from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel
 from tenants.models import Tenant, TenantCategory, Room
 
 from django.urls import reverse
 from account.role_permissions import RoleEnums
 from account.models import UserAccount as User
+
 
 
 def make_tenant(name='ТестАрендатор'):
@@ -1982,3 +1985,196 @@ class BudgetViewsTest(TestCase):
         r = self.client.post(reverse('finances:budget_item_delete', args=[item.pk]))
         self.assertRedirects(r, reverse('finances:budget_detail', args=[self.cat_income.pk]))
         self.assertFalse(BudgetItem.objects.filter(pk=item.pk).exists())
+
+
+class CreditModelTest(TestCase):
+
+    def _make_credit(self, **kwargs):
+        defaults = dict(
+            name='Тест кредит',
+            scenario=CreditModel.Scenario.BASE,
+            year=2026,
+            loan_amount=Decimal('10000000'),
+            loan_rate=Decimal('12.5'),
+            loan_term_months=60,
+            annual_debt_service=Decimal('2500000'),
+            forecast_pnl={
+                'revenue': 15000000,
+                'ebitda': 5000000,
+                'operating_profit': 4000000,
+                'net_profit': 3000000,
+            },
+            forecast_cashflow={
+                'operating': 4500000,
+                'investing': -1000000,
+                'financing': -2500000,
+                'free_cashflow': 3500000,
+            },
+            risk_level=CreditModel.RiskLevel.MEDIUM,
+        )
+        defaults.update(kwargs)
+        return CreditModel.objects.create(**defaults)
+
+    def test_create_base_scenario(self):
+        m = self._make_credit()
+        self.assertEqual(m.scenario, 'base')
+        self.assertEqual(m.year, 2026)
+        self.assertEqual(m.loan_amount, Decimal('10000000'))
+
+    def test_create_stress_scenario(self):
+        m = self._make_credit(
+            name='Стресс кредит',
+            scenario=CreditModel.Scenario.STRESS,
+        )
+        self.assertEqual(m.scenario, 'stress')
+
+    def test_create_optimistic_scenario(self):
+        m = self._make_credit(
+            name='Оптимист кредит',
+            scenario=CreditModel.Scenario.OPTIMISTIC,
+        )
+        self.assertEqual(m.scenario, 'optimistic')
+
+    def test_all_scenarios(self):
+        for i, sc in enumerate(CreditModel.Scenario):
+            m = self._make_credit(name=f'Кредит {i}', scenario=sc)
+            self.assertEqual(m.scenario, sc)
+
+    def test_dscr_calculated(self):
+        m = self._make_credit(
+            forecast_pnl={'ebitda': 5000000},
+            annual_debt_service=Decimal('2500000'),
+        )
+        self.assertEqual(m.dscr, 2.0)
+
+    def test_dscr_none_when_no_debt_service(self):
+        m = self._make_credit(annual_debt_service=Decimal('0'))
+        self.assertIsNone(m.dscr)
+
+    def test_dscr_status_excellent(self):
+        m = self._make_credit(
+            forecast_pnl={'ebitda': 7500000},
+            annual_debt_service=Decimal('2500000'),
+        )
+        self.assertEqual(m.dscr_status, 'excellent')  
+
+    def test_dscr_status_good(self):
+        m = self._make_credit(
+            forecast_pnl={'ebitda': 3500000},
+            annual_debt_service=Decimal('2500000'),
+        )
+        self.assertEqual(m.dscr_status, 'good')  
+
+    def test_dscr_status_acceptable(self):
+        m = self._make_credit(
+            forecast_pnl={'ebitda': 2600000},
+            annual_debt_service=Decimal('2500000'),
+        )
+        self.assertEqual(m.dscr_status, 'acceptable')  
+
+    def test_dscr_status_critical(self):
+        m = self._make_credit(
+            forecast_pnl={'ebitda': 2000000},
+            annual_debt_service=Decimal('2500000'),
+        )
+        self.assertEqual(m.dscr_status, 'critical')  
+
+    def test_free_cashflow_property(self):
+        m = self._make_credit()
+        self.assertEqual(m.free_cashflow, 3500000)
+
+    def test_revenue_forecast_property(self):
+        m = self._make_credit()
+        self.assertEqual(m.revenue_forecast, 15000000)
+
+    def test_net_profit_forecast_property(self):
+        m = self._make_credit()
+        self.assertEqual(m.net_profit_forecast, 3000000)
+
+    def test_operating_cashflow_property(self):
+        m = self._make_credit()
+        self.assertEqual(m.operating_cashflow, 4500000)
+
+    def test_ebitda_property(self):
+        m = self._make_credit()
+        self.assertEqual(m.ebitda, 5000000)
+
+    def test_str(self):
+        m = self._make_credit()
+        s = str(m)
+        self.assertIn('Тест кредит', s)
+        self.assertIn('Базовый', s)
+        self.assertIn('2026', s)
+
+    def test_unique_together(self):
+        self._make_credit()
+        with self.assertRaises(Exception):
+            self._make_credit()
+
+    def test_different_scenarios_allowed(self):
+        self._make_credit(scenario=CreditModel.Scenario.BASE)
+        m2 = self._make_credit(
+            name='Тест кредит',
+            scenario=CreditModel.Scenario.STRESS,
+        )
+        self.assertIsNotNone(m2.pk)
+
+    def test_all_risk_levels(self):
+        for i, rl in enumerate(CreditModel.RiskLevel):
+            m = self._make_credit(
+                name=f'Риск {i}',
+                scenario=list(CreditModel.Scenario)[i % 3],
+                risk_level=rl,
+            )
+            self.assertEqual(m.risk_level, rl)
+
+    def test_financial_statement_fk_nullable(self):
+        m = self._make_credit()
+        self.assertIsNone(m.financial_statement)
+
+    def test_financial_statement_fk(self):
+        cat_income = BudgetCategory.objects.create(
+            name='FS Cat', category_type=BudgetCategory.Type.INCOME,
+        )
+        fs = FinancialStatement.objects.create(
+            period_type=FinancialStatement.Period.YEARLY,
+            year=2026,
+        )
+        m = self._make_credit(financial_statement=fs)
+        self.assertEqual(m.financial_statement, fs)
+        self.assertIn(m, fs.credit_models.all())
+
+    def test_set_null_on_statement_delete(self):
+        fs = FinancialStatement.objects.create(
+            period_type=FinancialStatement.Period.YEARLY,
+            year=2027,
+        )
+        m = self._make_credit(
+            name='ФС кредит',
+            scenario=CreditModel.Scenario.OPTIMISTIC,
+            financial_statement=fs,
+        )
+        fs.delete()
+        m.refresh_from_db()
+        self.assertIsNone(m.financial_statement)
+
+    def test_empty_json_defaults(self):
+        m = CreditModel.objects.create(
+            name='Пустой',
+            scenario=CreditModel.Scenario.BASE,
+            year=2027,
+            loan_amount=Decimal('1000000'),
+            annual_debt_service=Decimal('100000'),
+        )
+        self.assertEqual(m.ebitda, 0)
+        self.assertEqual(m.free_cashflow, 0)
+        self.assertIsNone(m.dscr)
+
+    def test_ordering(self):
+        self._make_credit(scenario=CreditModel.Scenario.BASE)
+        self._make_credit(
+            name='Тест кредит',
+            scenario=CreditModel.Scenario.STRESS,
+        )
+        models = list(CreditModel.objects.all())
+        self.assertEqual(len(models), 2)

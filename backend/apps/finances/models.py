@@ -552,3 +552,153 @@ class CashFlowRecord(models.Model):
     @property
     def is_outflow(self):
         return self.direction == self.Direction.OUTFLOW
+
+
+class CreditModel(models.Model):
+    class Scenario(models.TextChoices):
+        BASE       = 'base',       'Базовый'
+        STRESS     = 'stress',     'Стрессовый'
+        OPTIMISTIC = 'optimistic', 'Оптимистичный'
+
+    class RiskLevel(models.TextChoices):
+        LOW    = 'low',    'Низкий'
+        MEDIUM = 'medium', 'Средний'
+        HIGH   = 'high',   'Высокий'
+
+    name        = models.CharField('Название', max_length=200)
+    scenario    = models.CharField(
+        'Сценарий', max_length=15,
+        choices=Scenario.choices,
+        default=Scenario.BASE,
+        db_index=True,
+    )
+    year        = models.PositiveIntegerField('Год прогноза', db_index=True)
+    description = models.TextField('Описание', null=True, blank=True)
+    loan_amount      = models.DecimalField('Сумма кредита',      max_digits=16, decimal_places=2, default=0)
+    loan_rate        = models.DecimalField('Процентная ставка %', max_digits=6,  decimal_places=2, default=0)
+    loan_term_months = models.PositiveIntegerField('Срок кредита (мес)', default=12)
+    annual_debt_service = models.DecimalField(
+        'Годовое обслуживание долга', max_digits=16, decimal_places=2, default=0
+    )
+
+    forecast_pnl = models.JSONField(
+        'Прогнозный ОПиУ', default=dict, blank=True,
+        help_text='{"revenue": 0, "ebitda": 0, "operating_profit": 0, "net_profit": 0}'
+    )
+
+    forecast_cashflow = models.JSONField(
+        'Прогнозный Cash Flow', default=dict, blank=True,
+        help_text='{"operating": 0, "investing": 0, "financing": 0, "free_cashflow": 0}'
+    )
+
+    financial_statement = models.ForeignKey(
+        FinancialStatement,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='credit_models',
+        verbose_name='Отчёт ОПиУ',
+    )
+
+    risk_level = models.CharField(
+        'Уровень риска', max_length=10,
+        choices=RiskLevel.choices,
+        default=RiskLevel.MEDIUM,
+        db_index=True,
+    )
+    risk_notes = models.TextField('Комментарий по рискам', null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name        = 'Кредитная модель'
+        verbose_name_plural = 'Кредитные модели'
+        ordering            = ['-year', 'scenario']
+        unique_together     = [('name', 'scenario', 'year')]
+        indexes             = [
+            models.Index(fields=['scenario']),
+            models.Index(fields=['risk_level']),
+            models.Index(fields=['year', 'scenario']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} | {self.get_scenario_display()} | {self.year}"
+
+
+    @property
+    def ebitda(self):
+        return self.forecast_pnl.get('ebitda', 0)
+
+    @property
+    def free_cashflow(self):
+        return self.forecast_cashflow.get('free_cashflow', 0)
+
+    @property
+    def dscr(self):
+        if not self.annual_debt_service or not self.ebitda:
+            return None
+        try:
+            return round(float(self.ebitda) / float(self.annual_debt_service), 2)
+        except (TypeError, ZeroDivisionError):
+            return None
+
+    @property
+    def dscr_status(self):
+        d = self.dscr
+        if d is None:
+            return 'unknown'
+        if d >= 1.5:
+            return 'excellent'
+        if d >= 1.2:
+            return 'good'
+        if d >= 1.0:
+            return 'acceptable'
+        return 'critical'
+
+    @property
+    def revenue_forecast(self):
+        return self.forecast_pnl.get('revenue', 0)
+
+    @property
+    def net_profit_forecast(self):
+        return self.forecast_pnl.get('net_profit', 0)
+
+    @property
+    def operating_cashflow(self):
+        return self.forecast_cashflow.get('operating', 0)
+
+    def save(self, *args, **kwargs):
+        if self.financial_statement:
+            fs = self.financial_statement
+            
+            self.forecast_pnl = {
+                'revenue': float(fs.revenue_forecast or 0),
+                'ebitda': float(fs.ebitda_forecast or 0),
+                'operating_profit': float(fs.operating_profit_forecast or 0) if hasattr(fs, 'operating_profit_forecast') else 0,
+                'net_profit': float(fs.net_profit_forecast or 0)
+            }
+            
+            ebitda_val = float(fs.ebitda_forecast or 0)
+            monthly_debt_service = float(self.annual_debt_service or 0) / 12.0
+            op_cf = ebitda_val
+            fin_cf = -monthly_debt_service * float(self.loan_term_months) if self.loan_term_months else 0
+            free_cf = op_cf - float(self.annual_debt_service or 0)
+
+            self.forecast_cashflow = {
+                'operating': op_cf,
+                'investing': 0.0,
+                'financing': fin_cf,
+                'free_cashflow': free_cf
+            }
+            
+            dscr_val = self.dscr
+            if dscr_val is None:
+                self.risk_level = CreditModel.RiskLevel.MEDIUM
+            elif dscr_val >= 1.5:
+                self.risk_level = CreditModel.RiskLevel.LOW
+            elif dscr_val >= 1.0:
+                self.risk_level = CreditModel.RiskLevel.MEDIUM
+            else:
+                self.risk_level = CreditModel.RiskLevel.HIGH
+
+        super().save(*args, **kwargs)
