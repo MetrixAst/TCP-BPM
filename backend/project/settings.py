@@ -160,13 +160,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 
+EMAIL_HOST = config('EMAIL_HOST', default='localhost')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS = True
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER', default='noreply@localhost')
 
-# EMAIL_HOST = config('EMAIL_HOST')
-# EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-# EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-# EMAIL_USE_TLS = True
-# EMAIL_PORT = config('EMAIL_PORT')
-# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+SITE_URL = config('SITE_URL', default='http://localhost:8000')
 
 
 REST_FRAMEWORK = {

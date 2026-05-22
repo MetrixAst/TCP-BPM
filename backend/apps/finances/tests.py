@@ -1,5 +1,5 @@
 import datetime
-from django.test import TestCase, Client
+from django.test import TestCase, Client, RequestFactory, override_settings
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django import forms as django_forms
@@ -9,13 +9,13 @@ from decimal import Decimal
 
 from .models import TenantPaymentRegistry, PaymentCalendarEntry, GeneratedInvoice, GeneratedInvoiceItem, BudgetCategory, BudgetItem, FinancialStatement, CashFlowRecord, CreditModel
 from tenants.models import Tenant, TenantCategory, Room
-from finances.models import ExchangeRate
+from finances.models import ExchangeRate, GeneratedInvoice, GeneratedInvoiceItem
 
 from django.urls import reverse
 from account.role_permissions import RoleEnums
 from account.models import UserAccount as User
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, PropertyMock
 
 
 def make_tenant(name='ТестАрендатор'):
@@ -1104,16 +1104,17 @@ class InvoiceViewsTest(TestCase):
         self.assertRedirects(r, reverse('finances:invoice_list'))
         self.assertTrue(GeneratedInvoice.objects.filter(pk=self.invoice.pk).exists())
 
-
     def test_send_invoice(self):
+        from unittest.mock import patch
         self.client.login(username='inv_user', password='pass')
-        r = self.client.post(
-            reverse('finances:invoice_send', args=[self.invoice.pk]),
-            {'sent_via': 'email'},
-        )
+        with patch('finances.views._send_invoice', return_value=True) as mock_send:
+            r = self.client.post(
+                reverse('finances:invoice_send', args=[self.invoice.pk]),
+                {'sent_via': 'manual'},
+            )
         self.invoice.refresh_from_db()
         self.assertEqual(self.invoice.status, 'sent')
-        self.assertEqual(self.invoice.sent_via, 'email')
+        self.assertEqual(self.invoice.sent_via, 'manual')
         self.assertIsNotNone(self.invoice.sent_at)
 
     def test_cannot_send_already_sent(self):
@@ -1124,6 +1125,7 @@ class InvoiceViewsTest(TestCase):
             reverse('finances:invoice_send', args=[self.invoice.pk]),
             {'sent_via': 'email'},
         )
+        
         self.invoice.refresh_from_db()
         self.assertEqual(self.invoice.status, GeneratedInvoice.Status.SENT)
 
@@ -2486,3 +2488,336 @@ class NBRKServiceTest(TestCase):
 
         with self.assertRaises(NBRKServiceError):
             fetch_nbrk_rates()
+
+
+def _make_invoice(**kwargs):
+    defaults = dict(
+        number="INV-001",
+        total_amount=Decimal("100000.00"),
+        vat_amount=Decimal("12000.00"),
+        status=GeneratedInvoice.Status.CREATED,
+    )
+    defaults.update(kwargs)
+    return GeneratedInvoice.objects.create(**defaults)
+
+
+def _make_tenant(**kwargs):
+    from tenants.models import Room, TenantCategory
+    category = TenantCategory.objects.create(title="Тест")
+    room = Room.objects.create(number="101", map_id="r101", floor=1)
+    defaults = dict(
+        name="ТОО Тест",
+        category=category,
+        room=room,
+        area=100.0,
+        price=5000.0,
+        phone="+77001234567",
+        email="tenant@example.com",
+        address="г. Астана",
+        contact="Иванов И.И.",
+        start_date=datetime.date(2024, 1, 1),
+        end_date=datetime.date(2027, 1, 1),
+        discount_date=datetime.date(2025, 1, 1),
+        increase_type="percent",
+    )
+    defaults.update(kwargs)
+    return Tenant.objects.create(**defaults)
+
+
+class MarkInvoiceViewedTest(TestCase):
+
+    def test_sent_becomes_viewed(self):
+        invoice = _make_invoice(status=GeneratedInvoice.Status.SENT)
+        from finances.services.notifications import mark_invoice_viewed
+        result = mark_invoice_viewed(invoice)
+        self.assertTrue(result)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.VIEWED)
+
+    def test_created_not_changed(self):
+        invoice = _make_invoice(status=GeneratedInvoice.Status.CREATED)
+        from finances.services.notifications import mark_invoice_viewed
+        result = mark_invoice_viewed(invoice)
+        self.assertFalse(result)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.CREATED)
+
+    def test_paid_not_changed(self):
+        invoice = _make_invoice(status=GeneratedInvoice.Status.PAID)
+        from finances.services.notifications import mark_invoice_viewed
+        result = mark_invoice_viewed(invoice)
+        self.assertFalse(result)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.PAID)
+
+    def test_viewed_not_changed_again(self):
+        invoice = _make_invoice(status=GeneratedInvoice.Status.VIEWED)
+        from finances.services.notifications import mark_invoice_viewed
+        result = mark_invoice_viewed(invoice)
+        self.assertFalse(result)
+
+    def test_cancelled_not_changed(self):
+        invoice = _make_invoice(status=GeneratedInvoice.Status.CANCELLED)
+        from finances.services.notifications import mark_invoice_viewed
+        result = mark_invoice_viewed(invoice)
+        self.assertFalse(result)
+
+
+class SendInvoiceViaMessengerTest(TestCase):
+
+    def test_telegram_returns_false(self):
+        from finances.services.notifications import send_invoice_via_messenger
+        invoice = _make_invoice()
+        result = send_invoice_via_messenger(invoice, messenger="telegram", contact="+77001234567")
+        self.assertFalse(result)
+
+    def test_whatsapp_returns_false(self):
+        from finances.services.notifications import send_invoice_via_messenger
+        invoice = _make_invoice()
+        result = send_invoice_via_messenger(invoice, messenger="whatsapp", contact="+77001234567")
+        self.assertFalse(result)
+
+    def test_no_contact_returns_false(self):
+        from finances.services.notifications import send_invoice_via_messenger
+        invoice = _make_invoice()
+        result = send_invoice_via_messenger(invoice, messenger="telegram")
+        self.assertFalse(result)
+
+    def test_does_not_change_invoice_status(self):
+        from finances.services.notifications import send_invoice_via_messenger
+        invoice = _make_invoice(status=GeneratedInvoice.Status.CREATED)
+        send_invoice_via_messenger(invoice, messenger="telegram")
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.CREATED)
+
+
+class SendInvoiceViaEmailTest(TestCase):
+
+    def _mock_pdf(self):
+        return patch(
+            "finances.services.notifications._render_invoice_pdf",
+            return_value=b"%PDF-fake",
+        )
+
+    def _mock_render(self):
+        return patch(
+            "finances.services.notifications.render_to_string",
+            return_value="<html>email body</html>",
+        )
+
+    def test_raises_if_no_email_and_no_tenant(self):
+        from finances.services.notifications import send_invoice_via_email
+        invoice = _make_invoice()
+        with self.assertRaises(ValueError):
+            send_invoice_via_email(invoice, recipient_email=None)
+
+    def test_uses_tenant_email_if_no_recipient(self):
+        from finances.services.notifications import send_invoice_via_email
+        tenant = _make_tenant()
+        tenant.email = "tenant@example.com"
+        tenant.save()
+        invoice = _make_invoice(tenant=tenant)
+
+        with self._mock_pdf(), self._mock_render():
+            with patch("finances.services.notifications.EmailMessage") as mock_email_cls:
+                mock_email_inst = MagicMock()
+                mock_email_cls.return_value = mock_email_inst
+                send_invoice_via_email(invoice)
+                mock_email_cls.assert_called_once()
+                call_kwargs = mock_email_cls.call_args
+                self.assertIn("tenant@example.com", call_kwargs[1].get("to", []))
+
+    @override_settings(DEFAULT_FROM_EMAIL="noreply@test.com", SITE_URL="http://test.com")
+    def test_sends_email_with_pdf_attachment(self):
+        from finances.services.notifications import send_invoice_via_email
+        invoice = _make_invoice()
+
+        with self._mock_pdf(), self._mock_render():
+            with patch("finances.services.notifications.EmailMessage") as mock_email_cls:
+                mock_inst = MagicMock()
+                mock_email_cls.return_value = mock_inst
+                result = send_invoice_via_email(invoice, recipient_email="test@example.com")
+                self.assertTrue(result)
+                mock_inst.attach.assert_called_once()
+                attach_args = mock_inst.attach.call_args[1]
+                self.assertEqual(attach_args["mimetype"], "application/pdf")
+                mock_inst.send.assert_called_once()
+
+    def test_returns_false_on_pdf_error(self):
+        from finances.services.notifications import send_invoice_via_email
+        invoice = _make_invoice()
+
+        with patch(
+            "finances.services.notifications._render_invoice_pdf",
+            side_effect=Exception("weasyprint error"),
+        ):
+            result = send_invoice_via_email(invoice, recipient_email="test@example.com")
+            self.assertFalse(result)
+
+    def test_returns_false_on_smtp_error(self):
+        from finances.services.notifications import send_invoice_via_email
+        invoice = _make_invoice()
+
+        with self._mock_pdf(), self._mock_render():
+            with patch("finances.services.notifications.EmailMessage") as mock_email_cls:
+                mock_inst = MagicMock()
+                mock_inst.send.side_effect = Exception("SMTP error")
+                mock_email_cls.return_value = mock_inst
+                result = send_invoice_via_email(invoice, recipient_email="test@example.com")
+                self.assertFalse(result)
+
+    @override_settings(DEFAULT_FROM_EMAIL="noreply@test.com", SITE_URL="http://test.com")
+    def test_subject_includes_invoice_number(self):
+        from finances.services.notifications import send_invoice_via_email
+        invoice = _make_invoice(number="INV-999")
+
+        with self._mock_pdf(), self._mock_render():
+            with patch("finances.services.notifications.EmailMessage") as mock_email_cls:
+                mock_inst = MagicMock()
+                mock_email_cls.return_value = mock_inst
+                send_invoice_via_email(invoice, recipient_email="test@example.com")
+                subject = mock_email_cls.call_args[1]["subject"]
+                self.assertIn("INV-999", subject)
+
+    @override_settings(DEFAULT_FROM_EMAIL="noreply@test.com", SITE_URL="http://test.com")
+    def test_subject_includes_period(self):
+        from finances.services.notifications import send_invoice_via_email
+        invoice = _make_invoice(period=datetime.date(2026, 5, 1))
+
+        with self._mock_pdf(), self._mock_render():
+            with patch("finances.services.notifications.EmailMessage") as mock_email_cls:
+                mock_inst = MagicMock()
+                mock_email_cls.return_value = mock_inst
+                send_invoice_via_email(invoice, recipient_email="test@example.com")
+                subject = mock_email_cls.call_args[1]["subject"]
+                self.assertIn("05.2026", subject)
+
+
+class BuildTrackingUrlTest(TestCase):
+
+    @override_settings(SITE_URL="https://mysite.kz")
+    def test_contains_site_url(self):
+        from finances.services.notifications import _build_tracking_url
+        invoice = _make_invoice()
+        url = _build_tracking_url(invoice)
+        self.assertIn("https://mysite.kz", url)
+        self.assertIn(str(invoice.pk), url)
+
+    @override_settings(SITE_URL="https://mysite.kz/")
+    def test_no_double_slash(self):
+        from finances.services.notifications import _build_tracking_url
+        invoice = _make_invoice()
+        url = _build_tracking_url(invoice)
+        self.assertNotIn("//finances", url)
+
+    @override_settings(SITE_URL="")
+    def test_empty_site_url_returns_relative(self):
+        from finances.services.notifications import _build_tracking_url
+        invoice = _make_invoice()
+        url = _build_tracking_url(invoice)
+        self.assertIsInstance(url, str)
+
+
+class SendInvoiceFacadeTest(TestCase):
+
+    def test_manual_sets_status_sent(self):
+        from finances.services.notifications import send_invoice
+        invoice = _make_invoice(status=GeneratedInvoice.Status.CREATED)
+        result = send_invoice(invoice, sent_via="manual")
+        self.assertTrue(result)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.SENT)
+        self.assertEqual(invoice.sent_via, GeneratedInvoice.SentVia.MANUAL)
+        self.assertIsNotNone(invoice.sent_at)
+
+    def test_telegram_stub_does_not_change_status(self):
+        from finances.services.notifications import send_invoice
+        invoice = _make_invoice(status=GeneratedInvoice.Status.CREATED)
+        result = send_invoice(invoice, sent_via="telegram", contact="+77001234567")
+        self.assertFalse(result)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.CREATED)
+
+    def test_whatsapp_stub_does_not_change_status(self):
+        from finances.services.notifications import send_invoice
+        invoice = _make_invoice(status=GeneratedInvoice.Status.CREATED)
+        result = send_invoice(invoice, sent_via="whatsapp")
+        self.assertFalse(result)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.CREATED)
+
+    @override_settings(DEFAULT_FROM_EMAIL="noreply@test.com", SITE_URL="http://test.com")
+    def test_email_success_sets_status_sent(self):
+        from finances.services.notifications import send_invoice
+        invoice = _make_invoice(status=GeneratedInvoice.Status.CREATED)
+
+        with patch("finances.services.notifications.send_invoice_via_email", return_value=True):
+            result = send_invoice(invoice, sent_via="email", contact="test@example.com")
+
+        self.assertTrue(result)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.SENT)
+        self.assertEqual(invoice.sent_via, GeneratedInvoice.SentVia.EMAIL)
+
+    @override_settings(DEFAULT_FROM_EMAIL="noreply@test.com", SITE_URL="http://test.com")
+    def test_email_failure_does_not_change_status(self):
+        from finances.services.notifications import send_invoice
+        invoice = _make_invoice(status=GeneratedInvoice.Status.CREATED)
+
+        with patch("finances.services.notifications.send_invoice_via_email", return_value=False):
+            result = send_invoice(invoice, sent_via="email", contact="test@example.com")
+
+        self.assertFalse(result)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.CREATED)
+
+    def test_manual_sent_at_is_set(self):
+        from finances.services.notifications import send_invoice
+        invoice = _make_invoice(status=GeneratedInvoice.Status.CREATED)
+        send_invoice(invoice, sent_via="manual")
+        invoice.refresh_from_db()
+        self.assertIsNotNone(invoice.sent_at)
+
+
+class InvoiceTrackViewedViewTest(TestCase):
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def test_returns_gif(self):
+        invoice = _make_invoice(status=GeneratedInvoice.Status.SENT)
+        response = self.client.get(
+            reverse("finances:invoice_track_viewed", kwargs={"pk": invoice.pk})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/gif")
+
+    def test_marks_invoice_viewed(self):
+        invoice = _make_invoice(status=GeneratedInvoice.Status.SENT)
+        self.client.get(
+            reverse("finances:invoice_track_viewed", kwargs={"pk": invoice.pk})
+        )
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.VIEWED)
+
+    def test_nonexistent_invoice_returns_gif(self):
+        response = self.client.get(
+            reverse("finances:invoice_track_viewed", kwargs={"pk": 999999})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/gif")
+
+    def test_already_viewed_stays_viewed(self):
+        invoice = _make_invoice(status=GeneratedInvoice.Status.VIEWED)
+        self.client.get(
+            reverse("finances:invoice_track_viewed", kwargs={"pk": invoice.pk})
+        )
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, GeneratedInvoice.Status.VIEWED)
+
+    def test_gif_content_is_valid(self):
+        invoice = _make_invoice(status=GeneratedInvoice.Status.SENT)
+        response = self.client.get(
+            reverse("finances:invoice_track_viewed", kwargs={"pk": invoice.pk})
+        )
+        self.assertTrue(response.content.startswith(b"GIF89a"))

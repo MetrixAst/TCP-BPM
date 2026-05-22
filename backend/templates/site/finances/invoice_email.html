@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Счёт №{{ invoice.number }}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    .wrapper {
+      max-width: 600px;
+      margin: 32px auto;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .header {
+      background: #1a56db;
+      color: #fff;
+      padding: 28px 32px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .header p {
+      margin: 6px 0 0;
+      opacity: 0.85;
+      font-size: 14px;
+    }
+    .body {
+      padding: 28px 32px;
+    }
+    .body p {
+      font-size: 15px;
+      line-height: 1.6;
+      margin: 0 0 16px;
+    }
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+    .info-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #eee;
+    }
+    .info-table td:first-child {
+      color: #666;
+      width: 40%;
+    }
+    .amount-block {
+      background: #f0f4ff;
+      border-radius: 6px;
+      padding: 20px 24px;
+      text-align: center;
+      margin: 24px 0;
+    }
+    .amount-block .amount {
+      font-size: 32px;
+      font-weight: 700;
+      color: #1a56db;
+      margin: 0;
+    }
+    .amount-block .vat {
+      font-size: 13px;
+      color: #666;
+      margin: 4px 0 0;
+    }
+    .footer {
+      background: #f9f9f9;
+      padding: 20px 32px;
+      font-size: 12px;
+      color: #999;
+      border-top: 1px solid #eee;
+      text-align: center;
+    }
+
+    /* Tracking pixel — невидимый */
+    .tracking-pixel {
+      display: block;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+
+    <div class="header">
+      <h1>Счёт №{{ invoice.number }}</h1>
+      {% if invoice.period %}
+        <p>За период: {{ invoice.period|date:"m.Y" }}</p>
+      {% endif %}
+    </div>
+
+    <div class="body">
+      <p>Здравствуйте!</p>
+      <p>
+        Во вложении — счёт №<strong>{{ invoice.number }}</strong>
+        {% if invoice.period %}за {{ invoice.period|date:"m.Y" }}{% endif %}.
+        Пожалуйста, ознакомьтесь с документом.
+      </p>
+
+      <table class="info-table">
+        {% if invoice.tenant %}
+        <tr>
+          <td>Арендатор</td>
+          <td>{{ invoice.tenant.name }}</td>
+        </tr>
+        {% endif %}
+        {% if invoice.counterparty %}
+        <tr>
+          <td>Контрагент</td>
+          <td>{{ invoice.counterparty.short_name }}</td>
+        </tr>
+        {% endif %}
+        {% if invoice.contract_number %}
+        <tr>
+          <td>Договор</td>
+          <td>{{ invoice.contract_number }}</td>
+        </tr>
+        {% endif %}
+        {% if invoice.period %}
+        <tr>
+          <td>Период</td>
+          <td>{{ invoice.period|date:"m.Y" }}</td>
+        </tr>
+        {% endif %}
+      </table>
+
+      <div class="amount-block">
+        <p class="amount">{{ invoice.total_amount|floatformat:0 }} ₸</p>
+        <p class="vat">в т.ч. НДС: {{ invoice.vat_amount|floatformat:0 }} ₸</p>
+      </div>
+
+      {% if invoice.comment %}
+        <p><strong>Комментарий:</strong> {{ invoice.comment }}</p>
+      {% endif %}
+
+      <p>PDF-счёт прикреплён к этому письму.</p>
+    </div>
+
+    <div class="footer">
+      <p>Это автоматическое письмо. Пожалуйста, не отвечайте на него.</p>
+      <p>© TRC BPM</p>
+    </div>
+
+  </div>
+
+  {# Tracking pixel — 1×1 прозрачная картинка, загружаемая при открытии письма #}
+  {% if tracking_url %}
+    <img src="{{ tracking_url }}" class="tracking-pixel" width="1" height="1" alt="" />
+  {% endif %}
+
+</body>
+</html>

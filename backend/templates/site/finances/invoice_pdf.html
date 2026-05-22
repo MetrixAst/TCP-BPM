@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Счёт №{{ invoice.number }}</title>
+  <style>
+    @page { size: A4; margin: 20mm 15mm; }
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #222; }
+    h1 { font-size: 18px; margin-bottom: 4px; }
+    .meta { color: #555; margin-bottom: 20px; font-size: 11px; }
+    .parties { display: flex; gap: 40px; margin-bottom: 24px; }
+    .party { flex: 1; }
+    .party h3 { font-size: 12px; color: #888; margin: 0 0 4px; text-transform: uppercase; }
+    .party p { margin: 2px 0; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th { background: #f0f0f0; text-align: left; padding: 6px 8px; font-size: 11px; }
+    td { padding: 6px 8px; border-bottom: 1px solid #eee; font-size: 12px; }
+    .totals { text-align: right; }
+    .totals td { border: none; padding: 3px 8px; }
+    .totals .grand { font-size: 15px; font-weight: bold; }
+    .footer { margin-top: 40px; font-size: 10px; color: #aaa; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <h1>Счёт №{{ invoice.number }}</h1>
+  <p class="meta">
+    {% if invoice.period %}Период: {{ invoice.period|date:"m.Y" }} &nbsp;|&nbsp;{% endif %}
+    Дата выставления: {{ invoice.created_at|date:"d.m.Y" }}
+    {% if invoice.contract_number %}&nbsp;|&nbsp; Договор: {{ invoice.contract_number }}{% endif %}
+  </p>
+
+  <div class="parties">
+    <div class="party">
+      <h3>Поставщик</h3>
+      <p><strong>TRC BPM</strong></p>
+    </div>
+    <div class="party">
+      <h3>Покупатель</h3>
+      {% if invoice.tenant %}
+        <p><strong>{{ invoice.tenant.name }}</strong></p>
+      {% elif invoice.counterparty %}
+        <p><strong>{{ invoice.counterparty.short_name }}</strong></p>
+      {% else %}
+        <p>—</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Наименование</th>
+        <th>Кол-во</th>
+        <th>Ед.</th>
+        <th>Цена, ₸</th>
+        <th>НДС %</th>
+        <th>НДС, ₸</th>
+        <th>Итого, ₸</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ item.name }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>{{ item.unit|default:"—" }}</td>
+        <td>{{ item.price|floatformat:0 }}</td>
+        <td>{{ item.vat_rate }}%</td>
+        <td>{{ item.vat_amount|floatformat:0 }}</td>
+        <td>{{ item.total|floatformat:0 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="totals">
+    <tr>
+      <td>Итого без НДС:</td>
+      <td>{{ invoice.total_amount|floatformat:0 }} ₸</td>
+    </tr>
+    <tr>
+      <td>НДС:</td>
+      <td>{{ invoice.vat_amount|floatformat:0 }} ₸</td>
+    </tr>
+    <tr class="grand">
+      <td><strong>ИТОГО К ОПЛАТЕ:</strong></td>
+      <td><strong>{{ invoice.total_amount|floatformat:0 }} ₸</strong></td>
+    </tr>
+  </table>
+
+  {% if invoice.comment %}
+    <p><strong>Примечание:</strong> {{ invoice.comment }}</p>
+  {% endif %}
+
+  <div class="footer">
+    Сформировано автоматически системой TRC BPM
+  </div>
+
+</body>
+</html>

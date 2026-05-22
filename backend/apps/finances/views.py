@@ -17,6 +17,8 @@ from django.utils import timezone
 
 from account.role_permissions import RoleEnums
 
+from finances.services.notifications import send_invoice as _send_invoice
+
 def payment_reg(request):
     context = {
 
@@ -421,15 +423,31 @@ def invoice_delete(request, pk):
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_send(request, pk):
     invoice = get_object_or_404(GeneratedInvoice, pk=pk)
-    if request.method == 'POST' and invoice.status == GeneratedInvoice.Status.CREATED:
-        sent_via = request.POST.get('sent_via', GeneratedInvoice.SentVia.EMAIL)
-        invoice.status   = GeneratedInvoice.Status.SENT
-        invoice.sent_via = sent_via
-        invoice.sent_at  = timezone.now()
-        invoice.save()
-        messages.success(request, f'Счёт №{invoice.number} отправлен.')
-    return redirect('finances:invoice_detail', pk=pk)
 
+    if request.method != 'POST':
+        return redirect('finances:invoice_detail', pk=pk)
+
+    if invoice.status != GeneratedInvoice.Status.CREATED:
+        messages.error(request, 'Счёт уже отправлен или отменён.')
+        return redirect('finances:invoice_detail', pk=pk)
+
+    sent_via = request.POST.get('sent_via', GeneratedInvoice.SentVia.EMAIL)
+    contact  = request.POST.get('contact', '').strip() or None
+
+    success = _send_invoice(invoice, sent_via=sent_via, contact=contact)
+
+    if success:
+        invoice.refresh_from_db()
+        if invoice.status != GeneratedInvoice.Status.SENT:
+            invoice.status   = GeneratedInvoice.Status.SENT
+            invoice.sent_via = sent_via
+            invoice.sent_at  = timezone.now()
+            invoice.save()
+        messages.success(request, f'Счёт №{invoice.number} отправлен.')
+    else:
+        messages.warning(request, f'Счёт №{invoice.number} — отправка не выполнена.')
+
+    return redirect('finances:invoice_detail', pk=pk)
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_mark_viewed(request, pk):
@@ -758,28 +776,34 @@ def opiu_list(request):
 
 
 def cashflow_list(request):
+    from datetime import datetime
     today = date.today()
 
-    date_from = request.GET.get('date_from', '')
-    date_to   = request.GET.get('date_to', '')
-    direction = request.GET.get('direction', '')
-    flow_type = request.GET.get('flow_type', '')
-    search    = request.GET.get('q', '').strip()
+    date_from_raw = request.GET.get('date_from', '').strip()
+    date_to_raw   = request.GET.get('date_to',   '').strip()
+    direction     = request.GET.get('direction', '')
+    flow_type     = request.GET.get('flow_type', '')
+    search        = request.GET.get('q', '').strip()
+
+    def parse_date(s):
+        for fmt in ('%d.%m.%Y', '%Y-%m-%d'):
+            try:
+                return datetime.strptime(s, fmt).date()
+            except (ValueError, TypeError):
+                pass
+        return None
+
+    date_from = parse_date(date_from_raw)
+    date_to   = parse_date(date_to_raw)
 
     qs = CashFlowRecord.objects.select_related(
         'counterparty', 'budget_category'
     ).order_by('-transaction_date', '-created_at')
 
     if date_from:
-        try:
-            qs = qs.filter(transaction_date__gte=date_from)
-        except Exception:
-            pass
+        qs = qs.filter(transaction_date__gte=date_from)
     if date_to:
-        try:
-            qs = qs.filter(transaction_date__lte=date_to)
-        except Exception:
-            pass
+        qs = qs.filter(transaction_date__lte=date_to)
     if direction:
         qs = qs.filter(direction=direction)
     if flow_type:
@@ -807,8 +831,8 @@ def cashflow_list(request):
         'net_flow':      net_flow,
         'directions':    CashFlowRecord.Direction.choices,
         'flow_types':    CashFlowRecord.FlowType.choices,
-        'f_date_from':   date_from,
-        'f_date_to':     date_to,
+        'f_date_from':   date_from_raw,
+        'f_date_to':     date_to_raw,
         'f_direction':   direction,
         'f_flow_type':   flow_type,
         'f_q':           search,
@@ -816,32 +840,6 @@ def cashflow_list(request):
     }
     return render(request, 'site/finances/cashflow.html', context)
 
-def credit_model_list(request):
-    scenario   = request.GET.get('scenario', '')
-    risk_level = request.GET.get('risk_level', '')
-    year       = request.GET.get('year', '')
-
-    qs = CreditModel.objects.select_related('financial_statement').order_by('-year', 'scenario')
-
-    if scenario:
-        qs = qs.filter(scenario=scenario)
-    if risk_level:
-        qs = qs.filter(risk_level=risk_level)
-    if year:
-        try:
-            qs = qs.filter(year=int(year))
-        except ValueError:
-            pass
-
-    context = {
-        'models':      qs,
-        'scenarios':   CreditModel.Scenario.choices,
-        'risk_levels': CreditModel.RiskLevel.choices,
-        'f_scenario':   scenario,
-        'f_risk_level': risk_level,
-        'f_year':       year,
-    }
-    return render(request, 'site/finances/credit_model.html', context)
 
 
 def credit_model_detail(request, pk):
@@ -868,3 +866,49 @@ def credit_model_detail(request, pk):
         'dscr_color':  DSCR_COLORS.get(cm.dscr_status, 'secondary'),
     }
     return render(request, 'site/finances/credit_model_detail.html', context)
+
+def invoice_track_viewed(request, pk):
+    from django.http import HttpResponse
+    from finances.models import GeneratedInvoice
+    from finances.services.notifications import mark_invoice_viewed
+ 
+    try:
+        invoice = GeneratedInvoice.objects.get(pk=pk)
+        mark_invoice_viewed(invoice)
+    except GeneratedInvoice.DoesNotExist:
+        pass
+ 
+    TRANSPARENT_GIF = (
+        b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00'
+        b'\xff\xff\xff\x00\x00\x00\x21\xf9\x04\x00\x00\x00\x00'
+        b'\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02'
+        b'\x44\x01\x00\x3b'
+    )
+    return HttpResponse(TRANSPARENT_GIF, content_type='image/gif')
+
+def credit_model_list(request):
+    scenario   = request.GET.get('scenario', '')
+    risk_level = request.GET.get('risk_level', '')
+    year       = request.GET.get('year', '')
+
+    qs = CreditModel.objects.select_related('financial_statement').order_by('-year', 'scenario')
+
+    if scenario:
+        qs = qs.filter(scenario=scenario)
+    if risk_level:
+        qs = qs.filter(risk_level=risk_level)
+    if year:
+        try:
+            qs = qs.filter(year=int(year))
+        except ValueError:
+            pass
+
+    context = {
+        'models':       qs,
+        'scenarios':    CreditModel.Scenario.choices,
+        'risk_levels':  CreditModel.RiskLevel.choices,
+        'f_scenario':   scenario,
+        'f_risk_level': risk_level,
+        'f_year':       year,
+    }
+    return render(request, 'site/finances/credit_model.html', context)

@@ -33,4 +33,11 @@ urlpatterns = [
     path('budget-plan/<int:category_pk>/create/', views.budget_item_create, name='budget_item_create'),
     path('budget-plan/item/<int:pk>/edit/', views.budget_item_edit, name='budget_item_edit'),
     path('budget-plan/item/<int:pk>/delete/', views.budget_item_delete, name='budget_item_delete'),
+
+    path('opiu/', views.opiu_list, name='opiu_list'),
+    path('cashflow/', views.cashflow_list, name='cashflow_list'),
+    path('credit-model/', views.credit_model_list, name='credit_model_list'),
+    path('credit-model/<int:pk>/', views.credit_model_detail, name='credit_model_detail'),
+
+    path('invoices/<int:pk>/track/', views.invoice_track_viewed, name='invoice_track_viewed'),
 ]
