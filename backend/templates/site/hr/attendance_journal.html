@@ -1,83 +1,200 @@
 {% extends 'site/base.html' %}
 {% load static %}
 
+{% block title %}Журнал посещаемости — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v=10004">
+{% endblock %}
+
 {% block content %}
-    <div class="page-title-container">
-        <div class="row g-0">
-            <div class="col-auto mb-2 mb-md-0 me-auto">
-                <div class="w-auto sw-md-25">
-                    <h1 class="mb-0 pb-0 display-4">Журнал посещаемости</h1>
-                    <nav class="breadcrumb-container d-inline-block">
-                        <ul class="breadcrumb pt-0">
-                            <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-                            <li class="breadcrumb-item">Журнал</li>
-                        </ul>
-                    </nav>
-                </div>
-            </div>
-            <div class="col-12 col-md d-flex align-items-start justify-content-end">
-                <form method="get" class="d-flex align-items-center">
-                    <input type="date" name="date" class="form-control sw-15 me-2" value="{{ target_date|date:'Y-m-d' }}">
-                    <button type="submit" class="btn btn-outline-primary btn-icon btn-icon-only">
-                        <i data-acorn-icon="search"></i>
-                    </button>
-                </form>
-            </div>
-        </div>
+<div class="attendance-page">
+
+  <div class="attendance-page__top">
+    <div>
+      <h1 class="attendance-page__title">Журнал посещаемости</h1>
+      <p class="attendance-page__subtitle">Отметки сотрудников, опоздания и ранние уходы</p>
     </div>
 
-    <div class="row g-0 sh-3 mb-2 d-none d-md-flex text-muted text-small px-4">
-        <div class="col-md-3">СОТРУДНИК</div>
-        <div class="col-md-2 text-center">ПРИХОД</div>
-        <div class="col-md-2 text-center">УХОД</div>
-        <div class="col-md-2 text-center">ЧАСЫ</div>
-        <div class="col-md-3 text-end">СТАТУС</div>
+    <form method="get" class="attendance-page__filters">
+      <input type="text"
+             name="date"
+             class="attendance-page__date js-attendance-datepicker"
+             autocomplete="off"
+             placeholder="дд.мм.гггг"
+             value="{{ target_date|date:'Y-m-d' }}">
+
+      <button type="submit" class="attendance-page__btn attendance-page__btn--primary">
+        <i class="bi bi-search"></i>
+        Искать
+      </button>
+    </form>
+  </div>
+
+  <div class="attendance-page__panel">
+    <div class="attendance-page__panel-head">
+      <h2 class="attendance-page__month-title">{{ target_date|date:"d F Y" }}</h2>
     </div>
 
-    {% for item in journal %}
-    <div class="card mb-2 sh-11 sh-md-8">
-        <div class="card-body pt-0 pb-0 h-100">
-            <div class="row g-0 h-100 align-content-center">
-                <div class="col-11 col-md-3 d-flex flex-column">
-                    <div class="text-alternate">
-                        <a href="{% url 'hr:edit_employee' item.employee.id %}" class="text-alternate">
-                            {{ item.employee.user.get_full_name|default:item.employee.user.username }}
-                        </a>
-                    </div>
-                    <div class="text-small text-muted">{{ item.employee.department }}</div>
-                </div>
+    <div class="attendance-page__table-wrap">
+      <table class="attendance-table">
+        <thead>
+          <tr>
+            <th>Сотрудник</th>
+            <th>Приход</th>
+            <th>Уход</th>
+            <th>Часы</th>
+            <th>Фото</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
 
-                <div class="col-6 col-md-2 text-center">
-                    <span class="{% if item.late %}text-danger font-weight-bold{% endif %}">
-                        {{ item.day_start|date:"H:i"|default:"—" }}
-                    </span>
-                </div>
+        <tbody>
+          {% for item in journal %}
+          <tr class="{% if item.no_record %}attendance-table__row--empty{% endif %}">
+            <td>
+              <a href="{% url 'hr:edit_employee' item.employee.id %}"
+                 class="attendance-table__employee">
+                {{ item.employee.user.get_full_name|default:item.employee.user.username }}
+              </a>
+              <div class="attendance-table__department">
+                {{ item.employee.department|default:"Без отдела" }}
+              </div>
+            </td>
 
-                <div class="col-6 col-md-2 text-center">
-                    <span class="{% if item.early_leave %}text-warning{% endif %}">
-                        {{ item.day_end|date:"H:i"|default:"—" }}
-                    </span>
-                </div>
+            <td>
+              <span class="{% if item.late %}attendance-table__late{% endif %}">
+                {{ item.day_start|date:"H:i"|default:"—" }}
+              </span>
+            </td>
 
-                <div class="col-6 col-md-2 text-center">
-                    {% if item.total_hours > 0 %}
-                        <strong>{{ item.total_hours|floatformat:1 }}ч</strong>
-                    {% else %}
-                        <span class="text-muted">—</span>
-                    {% endif %}
-                </div>
+            <td>
+              <span class="{% if item.early_leave %}attendance-table__warning{% endif %}">
+                {{ item.day_end|date:"H:i"|default:"—" }}
+              </span>
+            </td>
 
-                <div class="col-12 col-md-3 text-end">
-                    {% if item.no_record %}
-                        <span class="badge bg-outline-danger">Нет данных</span>
-                    {% elif item.late %}
-                        <span class="badge bg-outline-warning">Опоздание</span>
-                    {% else %}
-                        <span class="badge bg-outline-success">Вовремя</span>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+            <td>
+              {% if item.total_hours > 0 %}
+                <strong>{{ item.total_hours|floatformat:1 }} ч.</strong>
+              {% else %}
+                <span class="attendance-table__empty">—</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if item.photo_url %}
+                <button type="button"
+                        class="attendance-photo-btn"
+                        data-photo-url="{{ item.photo_url }}"
+                        data-photo-name="{{ item.employee.user.get_full_name|default:item.employee.user.username }}">
+                  <i class="bi bi-camera"></i>
+                  Фото
+                </button>
+              {% else %}
+                <span class="attendance-photo-empty">Нет фото</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if item.no_record %}
+                <span class="attendance-status attendance-status--empty">Нет данных</span>
+              {% elif item.late %}
+                <span class="attendance-status attendance-status--late">Опоздание</span>
+              {% elif item.early_leave %}
+                <span class="attendance-status attendance-status--warning">Ранний уход</span>
+              {% else %}
+                <span class="attendance-status attendance-status--success">Вовремя</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="attendance-table__empty-state">
+              <div class="attendance-empty">
+                <i class="bi bi-calendar-x"></i>
+                <strong>Нет записей</strong>
+                <span>За выбранную дату отметки не найдены</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-    {% endfor %}
+  </div>
+
+</div>
+
+<div class="attendance-photo-modal" id="attendancePhotoModal">
+  <div class="attendance-photo-modal__backdrop"></div>
+
+  <div class="attendance-photo-modal__content">
+    <button type="button"
+            class="attendance-photo-modal__close"
+            id="attendancePhotoClose">
+      <i class="bi bi-x-lg"></i>
+    </button>
+
+    <div class="attendance-photo-modal__title" id="attendancePhotoTitle"></div>
+
+    <img src=""
+         alt="Фото отметки"
+         class="attendance-photo-modal__image"
+         id="attendancePhotoImage">
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script>
+(function () {
+  document.addEventListener('DOMContentLoaded', function () {
+    const input = document.querySelector('.js-attendance-datepicker');
+
+    if (input && window.jQuery && jQuery.fn.datepicker) {
+      jQuery(input).datepicker({
+        format: 'yyyy-mm-dd',
+        autoclose: true,
+        todayHighlight: true,
+        orientation: 'bottom auto'
+      });
+    }
+
+    const modal = document.querySelector('#attendancePhotoModal');
+    const modalImage = document.querySelector('#attendancePhotoImage');
+    const modalTitle = document.querySelector('#attendancePhotoTitle');
+    const modalClose = document.querySelector('#attendancePhotoClose');
+
+    function closePhotoModal() {
+      if (!modal || !modalImage) return;
+
+      modal.classList.remove('is-open');
+      modalImage.src = '';
+    }
+
+    document.querySelectorAll('.attendance-photo-btn').forEach(function (button) {
+      button.addEventListener('click', function () {
+        if (!modal || !modalImage || !modalTitle) return;
+
+        modalImage.src = button.dataset.photoUrl || '';
+        modalTitle.textContent = button.dataset.photoName || 'Фото отметки';
+        modal.classList.add('is-open');
+      });
+    });
+
+    if (modalClose) {
+      modalClose.addEventListener('click', closePhotoModal);
+    }
+
+    if (modal) {
+      const backdrop = modal.querySelector('.attendance-photo-modal__backdrop');
+      if (backdrop) {
+        backdrop.addEventListener('click', closePhotoModal);
+      }
+    }
+  });
+})();
+</script>
 {% endblock %}

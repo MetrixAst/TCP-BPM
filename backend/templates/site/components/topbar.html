@@ -79,21 +79,18 @@
       </ul>
     </div>
 
-    <span class="bpm-topbar__globe">
-      <i class="bi bi-globe2"></i>
-    </span>
 
     <div class="bpm-topbar__lang">
       <a href="?lang=ru"
-         class="bpm-topbar__lang-btn {% if LANGUAGE_CODE == 'ru' or not LANGUAGE_CODE %}is-active{% endif %}">
+         class="bpm-topbar__lang-btn {% if request.GET.lang == 'ru' or not request.GET.lang %}is-active{% endif %}">
         Рус
       </a>
       <a href="?lang=kk"
-         class="bpm-topbar__lang-btn {% if LANGUAGE_CODE == 'kk' %}is-active{% endif %}">
+         class="bpm-topbar__lang-btn {% if request.GET.lang == 'kk' %}is-active{% endif %}">
         Қаз
       </a>
       <a href="?lang=en"
-         class="bpm-topbar__lang-btn {% if LANGUAGE_CODE == 'en' %}is-active{% endif %}">
+         class="bpm-topbar__lang-btn {% if request.GET.lang == 'en' %}is-active{% endif %}">
         Eng
       </a>
     </div>

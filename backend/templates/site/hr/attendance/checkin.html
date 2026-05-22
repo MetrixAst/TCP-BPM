@@ -1,0 +1,105 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Фотофиксация — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/attendance.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<div class="attendance-checkin-page" id="attendanceCheckinPage">
+  <div class="attendance-checkin-page__top">
+    <div>
+      <h1 class="attendance-checkin-page__title">Фотофиксация</h1>
+      <p class="attendance-checkin-page__subtitle">Сделайте снимок для отметки посещаемости</p>
+    </div>
+
+    <a href="{% url 'hr:attendance_my' %}" class="attendance-checkin-btn attendance-checkin-btn--ghost">
+      Моя посещаемость
+    </a>
+  </div>
+
+  <div class="attendance-checkin-card">
+    <div class="attendance-checkin-camera">
+      <video class="attendance-checkin-camera__video"
+             id="checkinVideo"
+             autoplay
+             playsinline
+             muted></video>
+
+      <canvas id="checkinCanvas" hidden></canvas>
+
+      <img class="attendance-checkin-camera__preview"
+           id="checkinPreview"
+           alt="Снимок"
+           hidden>
+
+      <div class="attendance-checkin-camera__empty" id="cameraEmpty">
+        <i class="bi bi-camera-video"></i>
+        <strong>Камера не запущена</strong>
+        <span>Разрешите доступ к камере, чтобы сделать снимок</span>
+      </div>
+    </div>
+
+    <div class="attendance-checkin-side">
+      <h2 class="attendance-checkin-side__title">Тип отметки</h2>
+
+      <div class="attendance-checkin-types">
+        <label class="attendance-checkin-type">
+          <input type="radio" name="event_type" value="day_start" checked>
+          <span>Приход</span>
+        </label>
+
+        <label class="attendance-checkin-type">
+          <input type="radio" name="event_type" value="lunch_start">
+          <span>Начало обеда</span>
+        </label>
+
+        <label class="attendance-checkin-type">
+          <input type="radio" name="event_type" value="lunch_end">
+          <span>Конец обеда</span>
+        </label>
+
+        <label class="attendance-checkin-type">
+          <input type="radio" name="event_type" value="day_end">
+          <span>Уход</span>
+        </label>
+      </div>
+
+      <div class="attendance-checkin-alert" id="checkinMessage" hidden></div>
+
+      <div class="attendance-checkin-actions">
+        <button type="button"
+                class="attendance-checkin-btn attendance-checkin-btn--primary"
+                id="captureBtn">
+          Сделать снимок
+        </button>
+
+        <button type="button"
+                class="attendance-checkin-btn attendance-checkin-btn--ghost"
+                id="retakeBtn"
+                hidden>
+          Переснять
+        </button>
+
+        <button type="button"
+                class="attendance-checkin-btn attendance-checkin-btn--success"
+                id="submitBtn"
+                data-post-url="{% url 'hr:attendance_checkin' %}"
+                hidden>
+          Подтвердить
+        </button>
+      </div>
+
+      <p class="attendance-checkin-note">
+        Если браузер не поддерживает WebRTC или доступ к камере запрещён, отметка не будет отправлена.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/attendance-checkin.js' %}?v=1"></script>
+{% endblock %}

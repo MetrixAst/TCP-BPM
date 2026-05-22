@@ -1,0 +1,250 @@
+$attendance-primary: #2f6bed;
+$attendance-primary-hover: #2458c7;
+$attendance-success: #22a85a;
+$attendance-danger: #ff3b30;
+$attendance-field-bg: #f5f3fa;
+$attendance-text: #25233f;
+$attendance-muted: #74728a;
+$attendance-border: #eceaf3;
+
+.attendance-checkin-page {
+  padding: 0;
+}
+
+.attendance-checkin-page__top {
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px 22px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.attendance-checkin-page__title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: $attendance-text;
+}
+
+.attendance-checkin-page__subtitle {
+  margin: 4px 0 0;
+  color: $attendance-muted;
+  font-size: 13px;
+}
+
+.attendance-checkin-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 18px;
+}
+
+.attendance-checkin-camera {
+  position: relative;
+  min-height: 460px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #0f172a;
+}
+
+.attendance-checkin-camera__video,
+.attendance-checkin-camera__preview {
+  width: 100%;
+  height: 100%;
+  min-height: 460px;
+  object-fit: cover;
+  display: block;
+}
+
+.attendance-checkin-camera__empty {
+  position: absolute;
+  inset: 0;
+  color: #c8c7d3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.attendance-checkin-camera__empty i {
+  font-size: 44px;
+}
+
+.attendance-checkin-camera__empty strong {
+  color: #fff;
+  font-size: 15px;
+}
+
+.attendance-checkin-camera__empty span {
+  max-width: 320px;
+  color: #c8c7d3;
+  font-size: 13px;
+}
+
+.attendance-checkin-side {
+  background: #fbfbfd;
+  border: 1px solid $attendance-border;
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.attendance-checkin-side__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: $attendance-text;
+}
+
+.attendance-checkin-types {
+  display: grid;
+  gap: 10px;
+}
+
+.attendance-checkin-type {
+  cursor: pointer;
+}
+
+.attendance-checkin-type input {
+  display: none;
+}
+
+.attendance-checkin-type span {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #fff;
+  color: $attendance-text;
+  border: 1px solid $attendance-border;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.attendance-checkin-type input:checked + span {
+  background: #eef2ff;
+  border-color: $attendance-primary;
+  color: $attendance-primary;
+}
+
+.attendance-checkin-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.attendance-checkin-btn {
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.attendance-checkin-btn--primary,
+.attendance-checkin-btn--success {
+  background: $attendance-primary;
+  color: #fff;
+}
+
+.attendance-checkin-btn--primary:hover,
+.attendance-checkin-btn--success:hover {
+  background: $attendance-primary-hover;
+  color: #fff;
+  text-decoration: none;
+}
+
+.attendance-checkin-btn--ghost {
+  background: $attendance-field-bg;
+  color: $attendance-text;
+}
+
+.attendance-checkin-btn--ghost:hover {
+  background: #ece9f4;
+  color: $attendance-text;
+  text-decoration: none;
+}
+
+.attendance-checkin-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.attendance-checkin-alert {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.attendance-checkin-alert--success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.attendance-checkin-alert--error {
+  background: #feecec;
+  color: $attendance-danger;
+}
+
+.attendance-checkin-alert--info {
+  background: #eef2ff;
+  color: $attendance-primary;
+}
+
+.attendance-checkin-note {
+  margin: auto 0 0;
+  color: $attendance-muted;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 1199px) {
+  .attendance-checkin-card {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-checkin-camera,
+  .attendance-checkin-camera__video,
+  .attendance-checkin-camera__preview {
+    min-height: 380px;
+  }
+}
+
+@media (max-width: 767px) {
+  .attendance-checkin-page__top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .attendance-checkin-card {
+    padding: 14px;
+  }
+
+  .attendance-checkin-actions {
+    flex-direction: column;
+  }
+
+  .attendance-checkin-btn {
+    width: 100%;
+  }
+}
