@@ -1,36 +1,89 @@
 {% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} — metriX BPM{% endblock %}
+{% block body_classes %}hr-registry-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
 {% block content %}
-<div class="container-xxl flex-grow-1 container-p-y">
-  <div class="card">
-    <h5 class="card-header">{{ title }}</h5>
-    <div class="card-body">
-      <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="row">
-          {% for field in form %}
-          <div class="col-md-6 mb-3">
-            <label class="form-label">
-              {{ field.label }}
-              {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
-            </label>
-            {{ field }}
-            {% if field.help_text %}
-              <small class="text-muted">{{ field.help_text }}</small>
-            {% endif %}
-            {% if field.errors %}
-              {% for error in field.errors %}
-                <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
-            {% endif %}
-          </div>
-          {% endfor %}
-        </div>
-        <div class="mt-4 d-flex gap-2">
-          <button type="submit" class="btn btn-primary">Сохранить</button>
-          <a href="{% url 'hr:documents_list' %}" class="btn btn-outline-secondary">Отмена</a>
-        </div>
-      </form>
+<div class="hr-registry-edit-page" id="hrRegistryFormPage">
+  <div class="hr-registry-edit-card">
+
+    <div class="hr-registry-edit-card__header">
+      <h1 class="hr-registry-edit-card__title">{{ title }}</h1>
+      <a href="{% url 'hr:documents_list' %}" class="hr-registry-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
     </div>
+
+    <form method="post" enctype="multipart/form-data" class="hr-registry-edit-form">
+      {% csrf_token %}
+
+      <div class="hr-registry-edit-card__body">
+        <section class="hr-registry-edit-section">
+          <h2 class="hr-registry-edit-section__title">Данные документа</h2>
+
+          <div class="hr-registry-edit-grid">
+            {% for field in form %}
+              <div class="hr-registry-edit-field {% if field.field.widget.input_type == 'file' or field.name == 'notes' or field.name == 'comment' or field.name == 'description' %}hr-registry-edit-field--full{% endif %}">
+                <label class="hr-registry-edit-field__label" for="{{ field.id_for_label }}">
+                  {{ field.label }}{% if field.field.required %}<span>*</span>{% endif %}
+                </label>
+
+                {% if field.field.widget.input_type == "file" %}
+                  <label class="hr-registry-upload" for="{{ field.id_for_label }}">
+                    {{ field }}
+                    <span class="hr-registry-upload__icon">
+                      <i class="bi bi-file-earmark-plus"></i>
+                    </span>
+                    <span class="hr-registry-upload__text">
+                      Перетащите сюда файл или нажмите, чтобы<br>
+                      выбрать вручную
+                    </span>
+                    <span class="hr-registry-upload__name" data-upload-name>
+                      Файл не выбран
+                    </span>
+                  </label>
+                {% else %}
+                  {{ field }}
+                {% endif %}
+
+                {% if field.help_text %}
+                  <small class="hr-registry-edit-field__help">{{ field.help_text }}</small>
+                {% endif %}
+
+                {% if field.errors %}
+                  {% for error in field.errors %}
+                    <div class="hr-registry-edit-field__error">{{ error }}</div>
+                  {% endfor %}
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      </div>
+
+      <div class="hr-registry-edit-card__footer">
+        <a href="{% url 'hr:documents_list' %}" class="hr-registry-edit-btn hr-registry-edit-btn--cancel">
+          Отменить
+        </a>
+        <button type="submit" class="hr-registry-edit-btn hr-registry-edit-btn--save">
+          Сохранить
+        </button>
+      </div>
+    </form>
+
   </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/apps/hr-registries.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock scripts %}

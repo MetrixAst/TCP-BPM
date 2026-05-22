@@ -1,90 +1,216 @@
 {% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Заявка на отпуск #{{ leave.pk }} — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/leaves.css' %}?v=10003">
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4 class="card-title mb-0">Заявка на отпуск #{{ leave.pk }}</h4>
-                    <a href="{% url 'hr:leave_list' %}" class="btn btn-outline-secondary btn-sm">Назад</a>
-                </div>
-                <div class="card-body">
+<div class="leave-detail-page">
 
-                    <dl class="row">
-                        <dt class="col-sm-4">Сотрудник</dt>
-                        <dd class="col-sm-8">{{ leave.employee.user.get_full_name }}</dd>
+  <div class="leave-detail-main">
 
-                        <dt class="col-sm-4">Отдел</dt>
-                        <dd class="col-sm-8">{{ leave.employee.department.name|default:"—" }}</dd>
+    <section class="leave-detail-card">
+      <div class="leave-detail-card__breadcrumb">
+        <a href="{% url 'hr:leave_list' %}" class="leave-detail-card__back">
+          <i class="bi bi-arrow-left"></i>
+        </a>
 
-                        <dt class="col-sm-4">Тип отпуска</dt>
-                        <dd class="col-sm-8">{{ leave.leave_type.name }}</dd>
+        <a href="{% url 'hr:leave_list' %}" class="leave-detail-card__crumb">
+          Календарь отпусков
+        </a>
 
-                        <dt class="col-sm-4">Период</dt>
-                        <dd class="col-sm-8">{{ leave.start_date }} — {{ leave.end_date }}</dd>
+        <span class="leave-detail-card__crumb-sep">/</span>
 
-                        <dt class="col-sm-4">Рабочих дней</dt>
-                        <dd class="col-sm-8">{{ leave.working_days_count }}</dd>
+        <span class="leave-detail-card__crumb leave-detail-card__crumb--current">
+          Заявка #{{ leave.pk }}
+        </span>
+      </div>
 
-                        <dt class="col-sm-4">Статус</dt>
-                        <dd class="col-sm-8">
-                            {% if leave.status == 'approved' %}
-                                <span class="badge bg-success">{{ leave.get_status_display }}</span>
-                            {% elif leave.status == 'rejected' %}
-                                <span class="badge bg-danger">{{ leave.get_status_display }}</span>
-                            {% elif leave.status == 'pending' %}
-                                <span class="badge bg-warning text-dark">{{ leave.get_status_display }}</span>
-                            {% else %}
-                                <span class="badge bg-secondary">{{ leave.get_status_display }}</span>
-                            {% endif %}
-                        </dd>
+      <h1 class="leave-detail-card__title">
+        Заявка на отпуск #{{ leave.pk }}
+      </h1>
 
-                        <dt class="col-sm-4">Кто одобрил</dt>
-                        <dd class="col-sm-8">
-                            {% if leave.approver %}
-                                {{ leave.approver.user.get_full_name }}
-                            {% else %}
-                                —
-                            {% endif %}
-                        </dd>
-
-                        {% if leave.comment %}
-                        <dt class="col-sm-4">Комментарий</dt>
-                        <dd class="col-sm-8">{{ leave.comment }}</dd>
-                        {% endif %}
-                    </dl>
-
-                    {% if is_manager and leave.status == 'pending' %}
-                    <div class="d-flex gap-2 mt-3">
-                        <form method="post" action="{% url 'hr:leave_approve' leave.pk %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-success">Одобрить</button>
-                        </form>
-                        <form method="post" action="{% url 'hr:leave_reject' leave.pk %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-danger">Отклонить</button>
-                        </form>
-                    </div>
-                    {% endif %}
-
-                    {% if is_owner and leave.status in 'draft,pending' %}
-                        {% if leave.status == 'draft' or leave.status == 'pending' %}
-                        <div class="mt-3">
-                            <form method="post" action="{% url 'hr:leave_cancel' leave.pk %}">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-danger"
-                                    onclick="return confirm('Удалить заявку?')">
-                                    Отменить заявку
-                                </button>
-                            </form>
-                        </div>
-                        {% endif %}
-                    {% endif %}
-
-                </div>
-            </div>
+      <div class="leave-detail-card__meta">
+        <div>
+          <div class="leave-detail-card__meta-label">Сотрудник</div>
+          <div class="leave-detail-card__meta-value">
+            {{ leave.employee.user.get_full_name|default:leave.employee.user.username }}
+          </div>
         </div>
-    </div>
+
+        <div>
+          <div class="leave-detail-card__meta-label">Отдел</div>
+          <div class="leave-detail-card__meta-value">
+            {{ leave.employee.department.name|default:"—" }}
+          </div>
+        </div>
+
+        <div>
+          <div class="leave-detail-card__meta-label">Тип отпуска</div>
+          <div class="leave-detail-card__meta-value">
+            {{ leave.leave_type.name }}
+          </div>
+        </div>
+
+        <div>
+          <div class="leave-detail-card__meta-label">Статус</div>
+          <div class="leave-detail-card__meta-value">
+            {% if leave.status == 'approved' %}
+              <span class="leave-status leave-status--approved">{{ leave.get_status_display }}</span>
+            {% elif leave.status == 'rejected' %}
+              <span class="leave-status leave-status--rejected">{{ leave.get_status_display }}</span>
+            {% elif leave.status == 'pending' %}
+              <span class="leave-status leave-status--pending">{{ leave.get_status_display }}</span>
+            {% elif leave.status == 'draft' %}
+              <span class="leave-status leave-status--draft">{{ leave.get_status_display }}</span>
+            {% else %}
+              <span class="leave-status leave-status--default">{{ leave.get_status_display }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="leave-detail-card__meta leave-detail-card__meta--secondary">
+        <div>
+          <div class="leave-detail-card__meta-label">Дата начала</div>
+          <div class="leave-detail-card__meta-value">
+            {{ leave.start_date|date:"d.m.Y" }}
+          </div>
+        </div>
+
+        <div>
+          <div class="leave-detail-card__meta-label">Дата окончания</div>
+          <div class="leave-detail-card__meta-value">
+            {{ leave.end_date|date:"d.m.Y" }}
+          </div>
+        </div>
+
+        <div>
+          <div class="leave-detail-card__meta-label">Рабочих дней</div>
+          <div class="leave-detail-card__meta-value">
+            {{ leave.working_days_count }}
+          </div>
+        </div>
+
+        <div>
+          <div class="leave-detail-card__meta-label">Кто одобрил</div>
+          <div class="leave-detail-card__meta-value">
+            {% if leave.approver %}
+              {{ leave.approver.user.get_full_name|default:leave.approver.user.username }}
+            {% else %}
+              —
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="leave-detail-card__description">
+        <div class="leave-detail-card__meta-label">Комментарий</div>
+
+        {% if leave.comment %}
+          <p>{{ leave.comment }}</p>
+        {% else %}
+          <p class="leave-detail-muted">Комментарий не указан</p>
+        {% endif %}
+      </div>
+
+      <div class="leave-detail-card__workflow">
+
+        {% if is_manager and leave.status == 'pending' %}
+          <form method="post" action="{% url 'hr:leave_approve' leave.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="leave-detail-btn leave-detail-btn--primary">
+              Одобрить
+            </button>
+          </form>
+
+          <form method="post" action="{% url 'hr:leave_reject' leave.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="leave-detail-btn leave-detail-btn--danger">
+              Отклонить
+            </button>
+          </form>
+        {% endif %}
+
+        {% if is_owner and leave.status == 'draft' %}
+          <form method="post" action="{% url 'hr:leave_cancel' leave.pk %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="leave-detail-btn leave-detail-btn--danger"
+                    data-confirm="Удалить заявку?">
+              Отменить заявку
+            </button>
+          </form>
+        {% endif %}
+
+      </div>
+    </section>
+
+  </div>
+
+  <aside class="leave-detail-aside">
+
+    <section class="leave-detail-section">
+      <div class="leave-detail-section__head">
+        <h2 class="leave-detail-section__title">Маршрут</h2>
+      </div>
+
+      <div class="leave-route">
+
+        <div class="leave-route__item">
+          <div class="leave-route__avatar">
+            <i class="bi bi-person-fill"></i>
+          </div>
+
+          <div class="leave-route__content">
+            <div class="leave-route__role">Сотрудник</div>
+            <div class="leave-route__name">
+              {{ leave.employee.user.get_full_name|default:leave.employee.user.username }}
+            </div>
+          </div>
+
+          <div class="leave-route__status leave-route__status--done">
+            <i class="bi bi-check-lg"></i>
+          </div>
+        </div>
+
+        <div class="leave-route__item">
+          <div class="leave-route__avatar">
+            <i class="bi bi-person-fill"></i>
+          </div>
+
+          <div class="leave-route__content">
+            <div class="leave-route__role">Согласующий</div>
+            <div class="leave-route__name">
+              {% if leave.approver %}
+                {{ leave.approver.user.get_full_name|default:leave.approver.user.username }}
+              {% else %}
+                Ожидает согласования
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="leave-route__status {% if leave.approver %}leave-route__status--done{% endif %}">
+            {% if leave.approver %}
+              <i class="bi bi-check-lg"></i>
+            {% else %}
+              <i class="bi bi-clock"></i>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </aside>
+
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/leaves.js' %}?v=10003"></script>
 {% endblock %}

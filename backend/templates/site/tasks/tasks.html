@@ -34,7 +34,10 @@
         <div class="tasks-page__field">
           <label class="tasks-page__label" for="taskStateFilter">Состояние</label>
           <div class="tasks-page__state-control">
-              <select id="taskStateFilter" name="state" class="tasks-page__select">
+                <select id="taskStateFilter"
+                        name="state"
+                        class="tasks-page__select tasks-page__select--select2"
+                        data-placeholder="Все">
                   <option value="" {% if not request.GET.state %}selected{% endif %}>Все</option>
                   <option value="created" {% if request.GET.state == 'created' %}selected{% endif %}>Открыта</option>
                   <option value="accepted" {% if request.GET.state == 'accepted' %}selected{% endif %}>В работе</option>
@@ -43,9 +46,6 @@
                   <option value="rejected" {% if request.GET.state == 'rejected' %}selected{% endif %}>Отклонена</option>
                 </select>
 
-            {% if request.GET.state %}
-              <i class="bi bi-check-circle-fill tasks-page__state-check"></i>
-            {% endif %}
           </div>
         </div>
 

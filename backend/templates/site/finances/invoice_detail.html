@@ -1,119 +1,259 @@
-{% extends 'site/base.html' %}
+{% extends "site/base.html" %}
 {% load static %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe53">
+{% endblock %}
+
 {% block content %}
-<div class="page-title-container">
-  <div class="row">
-    <div class="col-12 col-sm-6">
-      <h1 class="mb-0 pb-0 display-4">Счёт №{{ invoice.number }}</h1>
-      <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
-        <ul class="breadcrumb pt-0">
-          <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-          <li class="breadcrumb-item"><a href="{% url 'finances:invoice_list' %}">Счета</a></li>
-          <li class="breadcrumb-item active">№{{ invoice.number }}</li>
-        </ul>
-      </nav>
+<section class="inv-page">
+
+  <section class="inv-topbar">
+    <div>
+      <h1 class="inv-title">Счёт №{{ invoice.number }}</h1>
     </div>
-    <div class="col-12 col-sm-6 d-flex align-items-center justify-content-end gap-2">
-      <span class="badge bg-{{ color }} fs-6">{{ invoice.get_status_display }}</span>
+
+    <div class="inv-detail-actions">
+
+      <a href="{% url 'finances:invoice_list' %}" class="inv-btn inv-btn--light">
+        <i class="bi bi-arrow-left"></i>
+        Назад
+      </a>
+    </div>
+  </section>
+
+  <section class="inv-lifecycle-card">
+    <div class="inv-lifecycle">
+      <div class="inv-life-step {% if invoice.status == 'created' or invoice.status == 'sent' or invoice.status == 'viewed' or invoice.status == 'paid' %}is-active{% endif %}">
+        <i></i><span>Создан</span>
+      </div>
+      <div class="inv-life-step {% if invoice.status == 'sent' or invoice.status == 'viewed' or invoice.status == 'paid' %}is-active{% endif %}">
+        <i></i><span>Отправлен</span>
+      </div>
+      <div class="inv-life-step {% if invoice.status == 'viewed' or invoice.status == 'paid' %}is-active{% endif %}">
+        <i></i><span>Просмотрен</span>
+      </div>
+      <div class="inv-life-step {% if invoice.status == 'paid' %}is-active{% endif %}">
+        <i></i><span>Оплачен</span>
+      </div>
+      {% if invoice.status == 'cancelled' %}
+        <div class="inv-life-step is-danger is-active">
+          <i></i><span>Отменён</span>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="inv-lifecycle-actions">
       {% if invoice.status == 'created' %}
-        <a href="{% url 'finances:invoice_edit' invoice.pk %}" class="btn btn-outline-primary btn-sm">Редактировать</a>
-        <form action="{% url 'finances:invoice_send' invoice.pk %}" method="post" style="display:inline;">
+        <a href="{% url 'finances:invoice_edit' invoice.pk %}" class="inv-btn inv-btn--light">
+          Редактировать
+        </a>
+
+        <form action="{% url 'finances:invoice_send' invoice.pk %}" method="post" class="inv-send-form">
           {% csrf_token %}
-          <select name="sent_via" class="form-select form-select-sm d-inline w-auto">
+          <select name="sent_via" class="inv-input">
             <option value="email">Email</option>
             <option value="whatsapp">WhatsApp</option>
             <option value="telegram">Telegram</option>
             <option value="manual">Вручную</option>
           </select>
-          <button class="btn btn-info btn-sm">Отправить</button>
+          <button type="submit" class="inv-btn inv-btn--primary">
+            Отправить
+          </button>
         </form>
-        <form action="{% url 'finances:invoice_cancel' invoice.pk %}" method="post"
-              onsubmit="return confirm('Отменить счёт?');" style="display:inline;">
+
+        <form action="{% url 'finances:invoice_cancel' invoice.pk %}" method="post" onsubmit="return confirm('Отменить счёт?');">
           {% csrf_token %}
-          <button class="btn btn-outline-danger btn-sm">Отменить</button>
+          <button type="submit" class="inv-btn inv-btn--danger">Отменить</button>
         </form>
       {% elif invoice.status == 'sent' %}
-        <form action="{% url 'finances:invoice_mark_viewed' invoice.pk %}" method="post" style="display:inline;">
+        <form action="{% url 'finances:invoice_mark_viewed' invoice.pk %}" method="post">
           {% csrf_token %}
-          <button class="btn btn-warning btn-sm">Отметить просмотренным</button>
+          <button type="submit" class="inv-btn inv-btn--warning">Отметить просмотренным</button>
         </form>
-        <form action="{% url 'finances:invoice_mark_paid' invoice.pk %}" method="post" style="display:inline;">
+
+        <form action="{% url 'finances:invoice_mark_paid' invoice.pk %}" method="post">
           {% csrf_token %}
-          <button class="btn btn-success btn-sm">Отметить оплаченным</button>
+          <button type="submit" class="inv-btn inv-btn--success">Отметить оплаченным</button>
         </form>
-        <form action="{% url 'finances:invoice_cancel' invoice.pk %}" method="post"
-              onsubmit="return confirm('Отменить счёт?');" style="display:inline;">
+
+        <form action="{% url 'finances:invoice_cancel' invoice.pk %}" method="post" onsubmit="return confirm('Отменить счёт?');">
           {% csrf_token %}
-          <button class="btn btn-outline-danger btn-sm">Отменить</button>
+          <button type="submit" class="inv-btn inv-btn--danger">Отменить</button>
         </form>
       {% elif invoice.status == 'viewed' %}
-        <form action="{% url 'finances:invoice_mark_paid' invoice.pk %}" method="post" style="display:inline;">
+        <form action="{% url 'finances:invoice_mark_paid' invoice.pk %}" method="post">
           {% csrf_token %}
-          <button class="btn btn-success btn-sm">Отметить оплаченным</button>
+          <button type="submit" class="inv-btn inv-btn--success">Отметить оплаченным</button>
         </form>
-        <form action="{% url 'finances:invoice_cancel' invoice.pk %}" method="post"
-              onsubmit="return confirm('Отменить счёт?');" style="display:inline;">
+
+        <form action="{% url 'finances:invoice_cancel' invoice.pk %}" method="post" onsubmit="return confirm('Отменить счёт?');">
           {% csrf_token %}
-          <button class="btn btn-outline-danger btn-sm">Отменить</button>
+          <button type="submit" class="inv-btn inv-btn--danger">Отменить</button>
         </form>
       {% endif %}
     </div>
-  </div>
-</div>
+  </section>
 
-<div class="row g-3 mb-4">
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-header">Данные счёта</div>
-      <div class="card-body">
-        <table class="table table-sm">
-          <tr><td>Арендатор</td><td>{{ invoice.tenant.name|default:"—" }}</td></tr>
-          <tr><td>Контрагент</td><td>{{ invoice.counterparty.short_name|default:"—" }}</td></tr>
-          <tr><td>Договор</td><td>{{ invoice.contract_number|default:"—" }}</td></tr>
-          <tr><td>Период</td><td>{{ invoice.period|date:"m.Y"|default:"—" }}</td></tr>
-          <tr><td>Отправлен через</td><td>{{ invoice.get_sent_via_display|default:"—" }}</td></tr>
-          <tr><td>Дата отправки</td><td>{{ invoice.sent_at|date:"d.m.Y H:i"|default:"—" }}</td></tr>
-          <tr><td>Комментарий</td><td>{{ invoice.comment|default:"—" }}</td></tr>
-        </table>
+  <div class="inv-detail-grid">
+    <section class="inv-card">
+      <div class="inv-card-head">
+        <div>
+          <div class="inv-card-title">Данные счёта</div>
+        </div>
       </div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-header">Суммы</div>
-      <div class="card-body text-center">
-        <h3>{{ invoice.total_amount|floatformat:0 }} ₸</h3>
-        <p class="text-muted">НДС: {{ invoice.vat_amount|floatformat:0 }} ₸</p>
-      </div>
-    </div>
-  </div>
-</div>
 
-<div class="card">
-  <div class="card-header">Позиции</div>
-  <div class="nested_table first_big">
-    <div class="outer">
-      <div class="tr th">
-        <p>Наименование</p>
-        <p>Кол-во</p>
-        <p>Ед.</p>
-        <p>Цена</p>
-        <p>НДС %</p>
-        <p>Сумма НДС</p>
-        <p>Итого</p>
+      <div class="inv-info-list">
+        <div><span>Арендатор</span><strong>{{ invoice.tenant.name|default:"—" }}</strong></div>
+        <div><span>Контрагент</span><strong>{{ invoice.counterparty.short_name|default:"—" }}</strong></div>
+        <div><span>Договор</span><strong>{{ invoice.contract_number|default:"—" }}</strong></div>
+        <div><span>Период</span><strong>{{ invoice.period|date:"m.Y"|default:"—" }}</strong></div>
+        <div><span>Отправлен через</span><strong>{{ invoice.get_sent_via_display|default:"—" }}</strong></div>
+        <div><span>Дата отправки</span><strong>{{ invoice.sent_at|date:"d.m.Y H:i"|default:"—" }}</strong></div>
+        <div class="is-wide"><span>Комментарий</span><strong>{{ invoice.comment|default:"—" }}</strong></div>
       </div>
-      {% for item in invoice.items.all %}
-      <div class="tr">
-        <p>{{ item.name }}</p>
-        <p>{{ item.quantity }}</p>
-        <p>{{ item.unit|default:"—" }}</p>
-        <p>{{ item.price|floatformat:0 }} ₸</p>
-        <p>{{ item.vat_rate }}%</p>
-        <p>{{ item.vat_amount|floatformat:0 }} ₸</p>
-        <p>{{ item.total|floatformat:0 }} ₸</p>
+    </section>
+
+    <aside class="inv-preview-card">
+      <div class="inv-preview-label">Итого к оплате</div>
+      <div class="inv-preview-title">{{ invoice.total_amount|floatformat:0 }} ₸</div>
+
+      <div class="inv-preview-line">
+        <span>НДС</span>
+        <strong>{{ invoice.vat_amount|floatformat:0 }} ₸</strong>
       </div>
-      {% endfor %}
-    </div>
+
+      <div class="inv-preview-line">
+        <span>Статус</span>
+        <strong>{{ invoice.get_status_display }}</strong>
+      </div>
+
+      <div class="inv-preview-pdf">
+        <i class="bi bi-file-earmark-pdf"></i>
+        <div>
+          <strong>PDF счёта</strong>
+          <span>Готово под подключение BE-5.14</span>
+        </div>
+      </div>
+    </aside>
   </div>
-</div>
+
+  <section class="inv-table-card">
+    <div class="inv-table-head">
+      <div>
+        <div class="inv-table-title">Позиции счёта</div>
+      </div>
+    </div>
+
+    <div class="inv-table-wrap">
+      <table class="inv-table">
+        <thead>
+          <tr>
+            <th>Наименование</th>
+            <th>Кол-во</th>
+            <th>Ед.</th>
+            <th>Цена</th>
+            <th>НДС %</th>
+            <th>Сумма НДС</th>
+            <th>Итого</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for item in invoice.items.all %}
+            <tr>
+              <td><strong>{{ item.name }}</strong></td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ item.unit|default:"—" }}</td>
+              <td>{{ item.price|floatformat:0 }} ₸</td>
+              <td>{{ item.vat_rate }}%</td>
+              <td>{{ item.vat_amount|floatformat:0 }} ₸</td>
+              <td><strong>{{ item.total|floatformat:0 }} ₸</strong></td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="inv-empty">
+                <div class="inv-empty-state">
+                  <i class="bi bi-inbox"></i>
+                  <strong>Позиции не добавлены</strong>
+                  <span>В этом счёте пока нет позиций</span>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.inv-send-form select').forEach(function (select) {
+    select.classList.add('inv-native-select');
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'inv-custom-select';
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'inv-custom-select__button';
+    button.innerHTML = `
+      <span>${select.options[select.selectedIndex]?.text || 'Email'}</span>
+      <i></i>
+    `;
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'inv-custom-select__dropdown';
+
+    Array.from(select.options).forEach(function (option) {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'inv-custom-select__option';
+      item.textContent = option.text;
+
+      if (option.selected) {
+        item.classList.add('is-selected');
+      }
+
+      item.addEventListener('click', function () {
+        select.value = option.value;
+        button.querySelector('span').textContent = option.text;
+
+        dropdown.querySelectorAll('.inv-custom-select__option').forEach(el => {
+          el.classList.remove('is-selected');
+        });
+
+        item.classList.add('is-selected');
+        wrapper.classList.remove('is-open');
+      });
+
+      dropdown.appendChild(item);
+    });
+
+    wrapper.appendChild(button);
+    wrapper.appendChild(dropdown);
+
+    select.parentNode.insertBefore(wrapper, select.nextSibling);
+
+    button.addEventListener('click', function (e) {
+      e.stopPropagation();
+
+      document.querySelectorAll('.inv-custom-select.is-open').forEach(el => {
+        if (el !== wrapper) el.classList.remove('is-open');
+      });
+
+      wrapper.classList.toggle('is-open');
+    });
+  });
+
+  document.addEventListener('click', function () {
+    document.querySelectorAll('.inv-custom-select.is-open').forEach(el => {
+      el.classList.remove('is-open');
+    });
+  });
+});
+</script>
 {% endblock %}

@@ -7,9 +7,13 @@ urlpatterns = [
     path('calendar', views.calendar, name="calendar"),
     path('calendar/action/<slug:action>/', views.calendar_action, name="calendar_action"),
 
-    path('budget/', views.budget_list, name="budget"),
-    path('budget/<int:pk>/', views.budget, name="budget_item"),
-    path('budget/create/', views.budget_create, name="budget_create"),
+    path('budget-plan/', views.budget_list, name='budget_list'),  
+    path('budget-plan/<int:pk>/', views.budget_detail, name='budget_detail'),
+    path('budget-plan/main/', views.budget_list, name='budget'),
+    path('budget-plan/create/', views.budget_create, name='budget_create'), 
+    path('budget-plan/<int:category_pk>/create/', views.budget_item_create, name='budget_item_create'),
+    path('budget-plan/item/<int:pk>/edit/', views.budget_item_edit, name='budget_item_edit'),
+    path('budget-plan/item/<int:pk>/delete/', views.budget_item_delete, name='budget_item_delete'),
     path('bill/', views.bill, name="bill"),
 
     path('payment-calendar/', views.payment_calendar, name='payment_calendar'),
@@ -40,4 +44,5 @@ urlpatterns = [
     path('credit-model/<int:pk>/', views.credit_model_detail, name='credit_model_detail'),
 
     path('invoices/<int:pk>/track/', views.invoice_track_viewed, name='invoice_track_viewed'),
+    
 ]

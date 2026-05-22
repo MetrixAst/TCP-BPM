@@ -1,51 +1,125 @@
 {% extends "site/base.html" %}
+{% load static %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Контрагенты 1С</h2>
-        <a href="{% url 'onec:invoice_create' %}" class="btn btn-primary">Создать счет</a>
-    </div>
+<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}">
 
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="get" action="">
-                <div class="input-group">
-                    <input type="text" name="search" class="form-control" 
-                           placeholder="Поиск по названию или БИН..." 
-                           value="{{ request.GET.search|default:'' }}">
-                    <button class="btn btn-outline-primary" type="submit">Найти</button>
-                    {% if request.GET.search %}
-                        <a href="{% url 'onec:counterparty_list' %}" class="btn btn-outline-secondary">Сбросить</a>
-                    {% endif %}
-                </div>
-            </form>
+<div class="onec-page">
+
+  <section class="onec-filter-card">
+    <h1 class="onec-page-title">Контрагенты</h1>
+
+    <form method="get" class="onec-filter-form">
+      <div class="onec-field">
+        <label class="onec-label">Поиск</label>
+
+        <div class="onec-search">
+          <i class="bi bi-search"></i>
+
+          <input
+            type="text"
+            name="search"
+            value="{{ request.GET.search|default:'' }}"
+            placeholder="Поиск контрагента"
+          >
         </div>
+      </div>
+
+      <button type="submit" class="onec-btn onec-btn--light">
+        Искать
+      </button>
+
+      {% if request.GET.search %}
+        <a href="{% url 'onec:counterparty_list' %}" class="onec-btn onec-btn--light">
+          Сбросить
+        </a>
+      {% endif %}
+    </form>
+  </section>
+
+  <section class="onec-table-card">
+
+    <div class="onec-table-head">
+      <div class="onec-table-title">Таблица</div>
     </div>
 
-    <table class="table table-hover mt-3">
-        <thead class="table-light">
-            <tr>
-                <th>Название</th>
-                <th>БИН</th>
-                <th class="text-end">Действие</th>
-            </tr>
+    <div class="onec-table-wrap">
+
+      <table class="onec-table">
+
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>БИН</th>
+            <th>Email</th>
+            <th>Телефон</th>
+            <th>Тип</th>
+            <th>Адрес</th>
+          </tr>
         </thead>
+
         <tbody>
-            {% for cp in counterparties %}
-            <tr>
-                <td>{{ cp.short_name }}</td>
-                <td>{{ cp.bin_number|default:"---" }}</td>
-                <td class="text-end">
-                    <a href="{% url 'onec:counterparty_detail' cp.pk %}" class="btn btn-sm btn-outline-secondary">Детали</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3" class="text-center text-muted">Контрагенты не найдены</td>
-            </tr>
-            {% endfor %}
+
+          {% for cp in counterparties %}
+
+          <tr class="onec-table-row">
+
+            <td>
+              <a
+                href="{% url 'onec:counterparty_detail' cp.pk %}"
+                class="onec-name"
+              >
+                {{ cp.short_name|default:cp.full_name }}
+              </a>
+            </td>
+
+            <td>
+              {{ cp.bin_number|default:"—" }}
+            </td>
+
+            <td>
+              {{ cp.email|default:"—" }}
+            </td>
+
+            <td>
+              {{ cp.phone|default:"—" }}
+            </td>
+
+            <td>
+              {% if cp.is_supplier and cp.is_customer %}
+                Поставщик / Клиент
+              {% elif cp.is_supplier %}
+                Поставщик
+              {% elif cp.is_customer %}
+                Клиент
+              {% else %}
+                —
+              {% endif %}
+            </td>
+
+            <td>
+              {{ cp.address|default:"—"|truncatechars:40 }}
+            </td>
+
+          </tr>
+
+          {% empty %}
+
+          <tr>
+            <td colspan="6" class="onec-empty">
+              Контрагенты не найдены
+            </td>
+          </tr>
+
+          {% endfor %}
+
         </tbody>
-    </table>
+
+      </table>
+
+    </div>
+
+  </section>
+
 </div>
 {% endblock %}
