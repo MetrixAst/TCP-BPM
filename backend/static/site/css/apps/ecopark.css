@@ -1,0 +1,366 @@
+/* ─── Эксплуатация (ecopark) ─── */
+
+.eco-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 0;
+}
+
+.eco-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #fff 0%, #f4faf8 45%, #e8f5f0 100%);
+  border: 1px solid #dceee6;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(37, 35, 63, 0.06);
+}
+
+.eco-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a7a52;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.eco-hero__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #25233f;
+}
+
+.eco-hero__sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #74728a;
+}
+
+.eco-hero__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.eco-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: #74728a;
+}
+
+.eco-breadcrumb a {
+  color: #2f6bed;
+  text-decoration: none;
+}
+
+.eco-breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.eco-breadcrumb li + li::before {
+  content: "/";
+  margin-right: 6px;
+  color: #c5c3d0;
+}
+
+/* KPI */
+.eco-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .eco-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .eco-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.eco-kpi-card {
+  background: #fff;
+  border: 1px solid #eceaf3;
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 16px rgba(37, 35, 63, 0.04);
+}
+
+.eco-kpi-card__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #74728a;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.eco-kpi-card__value {
+  display: block;
+  margin-top: 6px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #25233f;
+}
+
+.eco-kpi-card--progress .eco-kpi-card__value { color: #b8860b; }
+.eco-kpi-card--done .eco-kpi-card__value { color: #1a7a52; }
+.eco-kpi-card--sum .eco-kpi-card__value { color: #2f6bed; }
+
+/* Status badges */
+.eco-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.eco-badge--done {
+  background: #e6f6ed;
+  color: #1a7a52;
+}
+
+.eco-badge--progress {
+  background: #fff4e0;
+  color: #9a6700;
+}
+
+.eco-badge--pending {
+  background: #eef0f4;
+  color: #5c5a6e;
+}
+
+.eco-badge--overdue {
+  background: #fde8e8;
+  color: #c41e1e;
+}
+
+/* Work row link */
+.eco-work-link {
+  font-weight: 600;
+  color: #25233f;
+  text-decoration: none;
+}
+
+.eco-work-link:hover {
+  color: #2f6bed;
+}
+
+.eco-work-meta {
+  font-size: 12px;
+  color: #74728a;
+  margin-top: 2px;
+}
+
+.eco-object-tag {
+  display: inline-block;
+  font-size: 11px;
+  color: #1a7a52;
+  background: #e8f5f0;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.eco-amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* Detail layout */
+.eco-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .eco-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.eco-info-card {
+  background: #fff;
+  border: 1px solid #eceaf3;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 4px 20px rgba(37, 35, 63, 0.05);
+}
+
+.eco-info-card__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #22a85a 0%, #1a7a52 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  margin: 0 auto 14px;
+}
+
+.eco-info-card__object {
+  text-align: center;
+  font-size: 12px;
+  color: #74728a;
+  margin-bottom: 4px;
+}
+
+.eco-info-card__title {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #25233f;
+  margin: 0 0 12px;
+}
+
+.eco-info-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #f0eef5;
+}
+
+.eco-info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.eco-info-row__label {
+  color: #74728a;
+}
+
+.eco-info-row__value {
+  font-weight: 600;
+  color: #25233f;
+  text-align: right;
+}
+
+/* Tabs */
+.eco-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.eco-tab {
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid #eceaf3;
+  background: #fff;
+  color: #5c5a6e;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.eco-tab:hover {
+  border-color: #c7d7fe;
+  color: #2f6bed;
+}
+
+.eco-tab.is-active {
+  background: #2f6bed;
+  border-color: #2f6bed;
+  color: #fff;
+}
+
+.eco-panel {
+  background: #fff;
+  border: 1px solid #eceaf3;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(37, 35, 63, 0.05);
+}
+
+.eco-panel__pdf {
+  width: 100%;
+  min-height: 70vh;
+  border: 0;
+  display: block;
+  background: #f5f3fa;
+}
+
+/* Form create */
+.eco-form-card {
+  max-width: 720px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #eceaf3;
+  border-radius: 18px;
+  padding: 28px 32px;
+  box-shadow: 0 8px 32px rgba(37, 35, 63, 0.08);
+}
+
+.eco-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .eco-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.eco-form-grid .eco-form-span-2 {
+  grid-column: 1 / -1;
+}
+
+.eco-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: #74728a;
+}
+
+.eco-empty i {
+  font-size: 2.5rem;
+  color: #c5c3d0;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.fin-field--wide {
+  width: 200px;
+  flex: 0 0 200px;
+}
+
+.fin-field--narrow {
+  width: 140px;
+  flex: 0 0 140px;
+}

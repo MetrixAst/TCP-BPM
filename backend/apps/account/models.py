@@ -20,6 +20,7 @@ class UserAccount(AbstractUser):
 
     ROLES = [
         (RoleEnums.ADMINISTRATOR.value, 'Администратор'),
+        (RoleEnums.HR.value, 'HR-менеджер'),
         (RoleEnums.STAFF.value, 'Сотрудник'),
         (RoleEnums.GUEST.value, 'Гость'),
         (RoleEnums.OWNER.value, 'Владелец'),
@@ -57,9 +58,20 @@ class UserAccount(AbstractUser):
 
     @property
     def get_name(self):
-        if self.first_name is not None or self.last_name is not None:
-            return " ".join([self.first_name, self.last_name])
-        return self.username
+        parts = []
+        for attr in ('first_name', 'last_name'):
+            val = getattr(self, attr, None)
+            if val and str(val).strip():
+                parts.append(str(val).strip())
+        if parts:
+            return ' '.join(parts)
+        return self.username or ''
+
+    def __str__(self):
+        name = self.get_name
+        if name and name != self.username:
+            return name
+        return self.username or f'User #{self.pk}'
     
     @staticmethod
     def create_guest():
@@ -182,8 +194,22 @@ class Employee(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+    def get_display_name(self):
+        if self.user_id:
+            name = (self.user.get_name or '').strip()
+            if name and name != self.user.username:
+                return name
+            return self.user.username
+        return '—'
+
+    def get_display_with_position(self):
+        label = self.get_display_name()
+        if self.position_id:
+            return f'{label} — {self.position.title}'
+        return label
+
     def __str__(self):
-        return self.user.username 
+        return self.get_display_with_position()
     
     class Meta:
         verbose_name = "Сотрудник"

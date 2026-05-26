@@ -1,0 +1,453 @@
+/* ─── Rent Analytics (FE-6.3) ─── */
+
+.fin-page--rent {
+  --rent-radius: 18px;
+  --rent-shadow: 0 4px 24px rgba(37, 35, 63, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Hero */
+.fin-rent-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 22px 26px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f7fc 45%, #eef8f2 100%);
+  border: 1px solid #e8e6f2;
+  border-radius: var(--rent-radius);
+  box-shadow: var(--rent-shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.fin-rent-hero::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  top: -60px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(34, 168, 90, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.fin-rent-hero__main {
+  position: relative;
+  z-index: 1;
+}
+
+.fin-rent-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(34, 168, 90, 0.12);
+  color: #22a85a;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fin-rent-hero__title {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #25233f;
+  letter-spacing: -0.02em;
+}
+
+.fin-rent-hero__meta {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #74728a;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.fin-rent-hero__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #eceaf3;
+  font-weight: 600;
+  color: #25233f;
+}
+
+.fin-rent-hero__actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* KPI grid */
+.fin-rent-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.fin-rent-kpi {
+  background: #fff;
+  border: 1px solid #eceaf3;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: var(--rent-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 118px;
+}
+
+.fin-rent-kpi__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.fin-rent-kpi__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.fin-rent-kpi--vacancy .fin-rent-kpi__icon {
+  background: linear-gradient(145deg, #fff7e8, #ffedd5);
+  color: #e67e00;
+}
+
+.fin-rent-kpi--rate .fin-rent-kpi__icon {
+  background: linear-gradient(145deg, #eef2ff, #dbeafe);
+  color: #2f6bed;
+}
+
+.fin-rent-kpi--overdue .fin-rent-kpi__icon {
+  background: linear-gradient(145deg, #feecec, #ffd6d3);
+  color: #ff3b30;
+}
+
+.fin-rent-kpi--revenue .fin-rent-kpi__icon {
+  background: linear-gradient(145deg, #eaf8f0, #d1fae5);
+  color: #22a85a;
+}
+
+.fin-rent-kpi__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #74728a;
+  line-height: 1.3;
+}
+
+.fin-rent-kpi__value {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #25233f;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.fin-rent-kpi__value--success { color: #22a85a; }
+.fin-rent-kpi__value--warning { color: #ff9500; }
+.fin-rent-kpi__value--danger  { color: #ff3b30; }
+
+.fin-rent-kpi__sub {
+  font-size: 11px;
+  color: #9a98aa;
+  margin-top: auto;
+}
+
+.fin-rent-kpi--overdue {
+  background: linear-gradient(135deg, #fff 0%, #fff8f7 100%);
+  border-color: rgba(255, 59, 48, 0.18);
+}
+
+/* Charts */
+.fin-rent-charts {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 14px;
+}
+
+.fin-rent-panel {
+  background: #fff;
+  border: 1px solid #eceaf3;
+  border-radius: var(--rent-radius);
+  padding: 20px 22px 18px;
+  box-shadow: var(--rent-shadow);
+  display: flex;
+  flex-direction: column;
+  min-height: 340px;
+}
+
+.fin-rent-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.fin-rent-panel__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #25233f;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fin-rent-panel__title i {
+  color: #2f6bed;
+}
+
+.fin-rent-panel__title--danger i {
+  color: #ff3b30;
+}
+
+.fin-rent-panel__body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 280px;
+  min-height: 260px;
+}
+
+.fin-rent-panel__badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #74728a;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f5f3fa;
+  border: 1px solid #eceaf3;
+}
+
+.fin-rent-panel__body canvas {
+  max-height: 280px;
+  width: 100% !important;
+}
+
+.fin-rent-panel__empty {
+  text-align: center;
+  color: #9a98aa;
+  font-size: 13px;
+  padding: 24px;
+}
+
+.fin-rent-panel__empty i {
+  display: block;
+  font-size: 32px;
+  margin-bottom: 10px;
+  opacity: 0.45;
+}
+
+/* Tables row */
+.fin-rent-tables {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 14px;
+}
+
+.fin-rent-table-wrap {
+  border: 1px solid #eceaf3;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #faf9fd;
+}
+
+.fin-rent-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.fin-rent-table th {
+  padding: 11px 14px;
+  background: #f5f3fa;
+  color: #66657a;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+  border-bottom: 1px solid #eceaf3;
+}
+
+.fin-rent-table th.fin-rent-table__num,
+.fin-rent-table td.fin-rent-table__num {
+  text-align: right;
+}
+
+.fin-rent-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0eef6;
+  color: #25233f;
+  vertical-align: middle;
+  background: #fff;
+}
+
+.fin-rent-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.fin-rent-table tbody tr:hover td {
+  background: #faf9fd;
+}
+
+.fin-rent-rank {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  background: #f5f3fa;
+  color: #74728a;
+}
+
+.fin-rent-rank--1 {
+  background: linear-gradient(145deg, #fff7e0, #ffe08a);
+  color: #9a6b00;
+}
+
+.fin-rent-rank--2 {
+  background: linear-gradient(145deg, #f0f0f0, #d8d8d8);
+  color: #5c5c5c;
+}
+
+.fin-rent-rank--3 {
+  background: linear-gradient(145deg, #ffe8d6, #e8c4a8);
+  color: #7a4e28;
+}
+
+.fin-rent-tenant-name {
+  font-weight: 700;
+  color: #25233f;
+}
+
+.fin-rent-tenant-meta {
+  display: block;
+  font-size: 11px;
+  color: #9a98aa;
+  margin-top: 2px;
+}
+
+.fin-rent-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: #eceaf3;
+  overflow: hidden;
+  margin-top: 8px;
+  max-width: 180px;
+}
+
+.fin-rent-bar__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2f6bed, #5b8def);
+}
+
+.fin-rent-amount {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fin-rent-amount--danger {
+  color: #ff3b30;
+}
+
+.fin-rent-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.fin-rent-status--danger {
+  background: #feecec;
+  color: #ff3b30;
+}
+
+.fin-rent-status--ok {
+  background: #eaf8f0;
+  color: #22a85a;
+}
+
+.fin-rent-table-empty {
+  padding: 40px 20px !important;
+  text-align: center;
+  color: #9a98aa;
+}
+
+.fin-rent-table-empty i {
+  display: block;
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.fin-rent-panel--debtors {
+  border-color: rgba(255, 59, 48, 0.15);
+}
+
+.fin-rent-panel--debtors .fin-rent-panel__head {
+  padding-bottom: 4px;
+}
+
+@media (max-width: 1200px) {
+  .fin-rent-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fin-rent-charts,
+  .fin-rent-tables {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 576px) {
+  .fin-rent-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fin-rent-hero {
+    padding: 18px;
+  }
+
+  .fin-rent-hero__title {
+    font-size: 1.35rem;
+  }
+
+  .fin-rent-bar {
+    max-width: 100%;
+    margin-left: 0;
+  }
+}

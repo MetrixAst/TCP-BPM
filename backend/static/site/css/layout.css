@@ -23,23 +23,47 @@
   overflow-x: hidden;
   transition: transform 0.25s ease;
 }
+/* Brand logo: metri + BPM — blue, X — green, Poppins */
+.bpm-logo {
+  font-family: "Poppins", "Inter", var(--font-family-base, sans-serif), sans-serif;
+  font-weight: 700;
+  font-size: inherit;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.bpm-logo__metri,
+.bpm-logo__bpm {
+  color: #2563eb;
+}
+.bpm-logo__x {
+  color: #16a34a;
+}
+a.bpm-logo:hover {
+  text-decoration: none;
+}
+a.bpm-logo:hover .bpm-logo__metri,
+a.bpm-logo:hover .bpm-logo__bpm {
+  color: #2563eb;
+}
+a.bpm-logo:hover .bpm-logo__x {
+  color: #16a34a;
+}
+
 .bpm-sidebar__logo {
   height: 64px;
   padding: 0 18px;
   display: flex;
   align-items: center;
-  color: #15213d;
   font-size: 18px;
-  font-weight: 700;
   text-decoration: none;
   border-bottom: 1px solid #e8ebf2;
 }
 .bpm-sidebar__logo:hover {
-  color: #15213d;
   text-decoration: none;
-}
-.bpm-sidebar__logo-x {
-  color: #2f6bed;
 }
 .bpm-sidebar__nav {
   flex: 1;
@@ -168,6 +192,26 @@
   color: #b8bec9;
   line-height: 1;
 }
+.bpm-sidebar__user-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 10px;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  transition: background 0.15s;
+}
+
+.bpm-sidebar__user-link:hover {
+  background: rgba(47, 107, 237, 0.08);
+  text-decoration: none;
+  color: inherit;
+}
+
 .bpm-sidebar__user {
   min-width: 0;
   flex: 1;
@@ -249,16 +293,10 @@
   display: none;
   align-items: center;
   gap: 8px;
-  color: #15213d;
   font-size: 18px;
-  font-weight: 700;
   text-decoration: none;
 }
-.bpm-topbar__brand span span {
-  color: #2f6bed;
-}
 .bpm-topbar__brand:hover {
-  color: #15213d;
   text-decoration: none;
 }
 .bpm-topbar__brand-icon {
@@ -558,6 +596,15 @@ body.sidebar-collapsed .bpm-topbar {
     transform: translateX(0);
   }
 }
+.bpm-sidebar__item--static {
+  cursor: default;
+  pointer-events: none;
+}
+.bpm-sidebar__submenu--open {
+  display: block;
+  padding-bottom: 4px;
+}
+
 @media (max-width: 575px) {
   .bpm-topbar {
     justify-content: space-between;

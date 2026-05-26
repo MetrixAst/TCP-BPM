@@ -1,100 +1,114 @@
-{% extends 'site/base.html' %}
+{% extends "site/base.html" %}
 {% load static %}
 
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
+<link rel="stylesheet" href="{% static 'site/css/apps/ecopark.css' %}?v=eco01">
+{% endblock %}
+
 {% block content %}
-    <div class="d-flex justify-content-center">
-        <div class="col-xl-6 mb-5">
-            <div class="mx-auto">
-                <form method="POST" action="{% url 'documents:list' 'documents' %}">
-                    {% csrf_token %}
-                    <div class="card mb-5">
-                        <div class="card-body">
+<div class="eco-page">
 
-                            <h1 class="mb-3 mt-1 pb-0 display-4">Новая запись</h1>
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label class="d-block form-label">Наименование работ</label>
-                                    <input class="form-control" name="title" />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="d-block form-label">Объект</label>
-                                    <div class="w-100">
-                                        <select class="custom_select" data-search="1">
-                                            <option label="&nbsp;"></option>
-                                            <option value="true">Эскалатор</option>
-                                            <option value="false">1 этаж электроника</option>
-                                            <option value="false">Трубы на 4 этаже</option>
-                                            <option value="false">Сантехника</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label class="d-block form-label">Документ</label>
-                                    <div class="input-group">
-                                        <input type="file" class="form-control" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload" />
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="d-block form-label">Исполнитель</label>
-                                    <div class="w-100">
-                                        <select class="custom_select" data-search="1">
-                                            <option label="&nbsp;"></option>
-                                            <option value="true">ТОО Рога и копыта</option>
-                                            <option value="false">ИП Асылбеков</option>
-                                            <option value="false">ИП Калиева</option>
-                                            <option value="false">ОАО Казахтелеком</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label class="d-block form-label">Направить</label>
-                                    <input id="usersListTags" class="users-list-container" />
-                                </div>
-
-                                <div class="col-md-6">
-                                    <div class="w-100">
-                                        <label class="form-label">Статус</label>
-                                        <select class="custom_select">
-                                            <option label="&nbsp;"></option>
-                                            <option value="true">В процессе</option>
-                                            <option value="false">Выполнен</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-end mt-3">
-                                <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
-                                    <span>Сохранить</span>
-                                    <i data-acorn-icon="chevron-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-        
+  <header class="eco-hero" style="max-width:720px;margin:0 auto 0;">
+    <div>
+      <span class="eco-hero__eyebrow"><i class="bi bi-plus-circle"></i> Новая запись</span>
+      <h1 class="eco-hero__title">Добавить работу</h1>
+      <nav aria-label="breadcrumb" class="mt-2">
+        <ol class="eco-breadcrumb">
+          <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+          <li><a href="{% url 'ecopark:home' %}">Эксплуатация</a></li>
+          <li>Создание</li>
+        </ol>
+      </nav>
     </div>
+  </header>
+
+  <div class="eco-form-card">
+    <form method="post" action="{% url 'ecopark:create' %}">
+      {% csrf_token %}
+
+      <div class="eco-form-grid">
+        <div class="fin-field">
+          <label class="fin-label" for="eco-title">Наименование работ</label>
+          <input type="text" id="eco-title" name="title" class="fin-input" required placeholder="Например: замена расходников">
+        </div>
+
+        <div class="fin-field">
+          <label class="fin-label">Объект</label>
+          <div class="fin-custom-select">
+            <input type="hidden" name="object" value="">
+            <button type="button" class="fin-custom-select__button">
+              <span class="fin-custom-select__value">Выберите объект</span>
+              <span class="fin-custom-select__arrow"></span>
+            </button>
+            <div class="fin-custom-select__dropdown">
+              {% for obj in objects %}
+                <button type="button" class="fin-custom-select__option" data-value="{{ obj }}">{{ obj }}</button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div class="fin-field">
+          <label class="fin-label" for="eco-doc">Документ</label>
+          <input type="file" id="eco-doc" name="document" class="fin-input">
+        </div>
+
+        <div class="fin-field">
+          <label class="fin-label">Исполнитель</label>
+          <div class="fin-custom-select">
+            <input type="hidden" name="executor" value="">
+            <button type="button" class="fin-custom-select__button">
+              <span class="fin-custom-select__value">Выберите исполнителя</span>
+              <span class="fin-custom-select__arrow"></span>
+            </button>
+            <div class="fin-custom-select__dropdown">
+              {% for ex in executors %}
+                <button type="button" class="fin-custom-select__option" data-value="{{ ex }}">{{ ex }}</button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div class="fin-field">
+          <label class="fin-label" for="eco-responsible">Ответственный</label>
+          <input type="text" id="eco-responsible" name="responsible" class="fin-input" placeholder="ФИО сотрудника">
+        </div>
+
+        <div class="fin-field">
+          <label class="fin-label">Статус</label>
+          <div class="fin-custom-select">
+            <input type="hidden" name="status" value="pending">
+            <button type="button" class="fin-custom-select__button">
+              <span class="fin-custom-select__value">Ожидает</span>
+              <span class="fin-custom-select__arrow"></span>
+            </button>
+            <div class="fin-custom-select__dropdown">
+              <button type="button" class="fin-custom-select__option" data-value="pending">Ожидает</button>
+              <button type="button" class="fin-custom-select__option" data-value="progress">В процессе</button>
+              <button type="button" class="fin-custom-select__option" data-value="done">Выполнен</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="fin-field eco-form-span-2">
+          <label class="fin-label" for="eco-amount">Сумма, ₸</label>
+          <input type="number" id="eco-amount" name="amount" class="fin-input" min="0" step="1" placeholder="0">
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap">
+        <a href="{% url 'ecopark:home' %}" class="fin-btn fin-btn--light">Отмена</a>
+        <button type="submit" class="fin-btn fin-btn--primary">
+          <i class="bi bi-check-lg"></i> Сохранить
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
 {% endblock %}
 
 {% block scripts %}
-    <script src="{% static 'site/js/vendor/quill.min.js' %}"></script>
-    <script src="{% static 'site/js/vendor/quill.active.js' %}"></script>
-    <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
-    <script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
-    <script src="{% static 'site/js/vendor/tagify.min.js' %}"></script>
-
-
-    <script src="{% static 'site/js/forms/controls.editor.js' %}"></script>
-    <script src="{% static 'site/js/forms/controls.datepicker.js' %}"></script>
-    <script src="{% static 'site/js/forms/controls.tag.js' %}"></script>
-    <script src="{% static 'site/js/forms/controls.select2.js' %}"></script>
-
-{% endblock scripts %}
+<script src="{% static 'site/js/apps/finance-filters.js' %}?v=fe65"></script>
+{% endblock %}

@@ -4,6 +4,7 @@ import base64
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.shortcuts import redirect, render, get_object_or_404
+from django.urls import reverse
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -11,12 +12,13 @@ from django.db.models import Q, Count
 from django.db import transaction
 from django.utils.dateparse import parse_date
 from datetime import datetime, date, timedelta, time
+from decimal import Decimal, ROUND_HALF_UP
 
 
 from project.utils import get_or_none, get_or_error
 from project.paginator import CustomPaginator
 
-from account.role_permissions import need_permission, PermissionEnums, RolePermissions
+from account.role_permissions import need_permission, PermissionEnums, RolePermissions, RoleEnums
 from account.models import Employee, Department
 from account.forms import EmployeeForm
 
@@ -30,7 +32,7 @@ from .forms import (
 
 from .models import (
     CalendarItem, Company, Position, LeaveRequest, 
-    LeaveType, Vacation, SickLeave, EmploymentContract, AttendanceRecord, CheckInEnum, EmployeeDocument, EmployeeWorkPermit, EmployeeCertification, WorkCategory, CertificationType
+    LeaveType, Vacation, SickLeave, EmploymentContract, AttendanceRecord, CheckInEnum, EmployeeDocument, EmployeeWorkPermit, EmployeeCertification, WorkCategory, WorkCalendar
 )
 from .serializers import CalendarItemSerializer
 
@@ -114,13 +116,139 @@ def create_employee(request):
             if employee.head:
                 employee.set_head()
 
-            return redirect('hr:employees')
+            messages.success(
+                request,
+                'Сотрудник создан. Откройте оргструктуру — он уже отображается в дереве.',
+            )
+            return redirect(f"{reverse('hr:org')}?highlight=emp_{employee.pk}")
 
     context = {
         'form': form,
+        'positions_by_department_url': reverse('hr:positions_by_department'),
     }
 
     return render(request, 'site/hr/create_employee.html', context)
+
+
+def _build_employee_profile_context(request, employee, tab=None):
+    import pytz
+    LOCAL_TZ = pytz.timezone('Asia/Almaty')
+
+    valid_tabs = ('overview', 'documents', 'certifications', 'permits', 'leaves', 'attendance')
+    if tab is None:
+        tab = request.GET.get('tab', 'overview')
+    if tab not in valid_tabs:
+        tab = 'overview'
+
+    user = employee.user
+    curr_employee = getattr(request.user, 'employee_info', None)
+    is_own_profile = curr_employee is not None and curr_employee.pk == employee.pk
+    is_hr, is_head, _ = _get_registry_access(request.user)
+    can_manage = (is_hr or is_head) and not is_own_profile
+
+    documents = employee.documents.all().order_by('-created_at')
+    certifications = employee.certifications.order_by('-issue_date')
+    permits = employee.work_permits.select_related('category').order_by('expiry_date')
+    leaves = employee.leave_requests.select_related('leave_type', 'approver__user').order_by('-start_date')
+
+    today = date.today()
+    month_start = today.replace(day=1)
+    days_range = 30 if tab == 'attendance' else 7
+    attendance_rows = []
+    for offset in range(days_range):
+        d = today - timedelta(days=offset)
+        summary = AttendanceRecord.get_daily_summary(employee, d)
+        events = summary.get('details', {})
+        start_dt = events.get(CheckInEnum.DAY_START)
+        end_dt = events.get(CheckInEnum.DAY_END)
+        if start_dt:
+            start_dt = start_dt.astimezone(LOCAL_TZ)
+        if end_dt:
+            end_dt = end_dt.astimezone(LOCAL_TZ)
+        total_h = summary.get('total_work_time', timedelta(0)).total_seconds() / 3600
+        attendance_rows.append({
+            'date': d,
+            'day_start': start_dt,
+            'day_end': end_dt,
+            'total_hours': total_h,
+            'no_record': len(events) == 0,
+        })
+
+    attendance_month = (
+        AttendanceRecord.objects.filter(
+            employee=employee,
+            event_type=CheckInEnum.DAY_START,
+            timestamp__date__gte=month_start,
+            timestamp__date__lte=today,
+        )
+        .values('timestamp__date')
+        .distinct()
+        .count()
+    )
+
+    subordinates = []
+    if not is_own_profile:
+        subordinates = list(
+            Employee.objects.filter(supervisor=employee)
+            .select_related('user', 'position')
+            .order_by('user__last_name')[:12]
+        )
+
+    profile_base_url = reverse('hr:my_profile') if is_own_profile else reverse('hr:employee_detail', args=[employee.pk])
+
+    return {
+        'employee': employee,
+        'user': user,
+        'tab': tab,
+        'tabs': valid_tabs,
+        'can_manage': can_manage,
+        'is_own_profile': is_own_profile,
+        'profile_base_url': profile_base_url,
+        'documents': documents,
+        'certifications': certifications,
+        'permits': permits,
+        'leaves': leaves,
+        'attendance_rows': attendance_rows,
+        'subordinates': subordinates,
+        'stats': {
+            'documents': documents.count(),
+            'certifications': certifications.count(),
+            'permits': permits.count(),
+            'leaves': leaves.count(),
+            'leaves_pending': leaves.filter(status=LeaveStatusEnum.PENDING).count(),
+            'attendance_month': attendance_month,
+        },
+        'date_today': today,
+    }
+
+
+@need_permission(PermissionEnums.PROFILE)
+def my_profile(request):
+    employee = getattr(request.user, 'employee_info', None)
+    if not employee:
+        return render(request, 'site/hr/my_profile_empty.html')
+
+    employee = (
+        Employee.objects.select_related(
+            'user', 'department', 'department__company', 'position', 'supervisor__user',
+        )
+        .filter(pk=employee.pk)
+        .first()
+    )
+    context = _build_employee_profile_context(request, employee)
+    return render(request, 'site/hr/employee_detail.html', context)
+
+
+@need_permission(PermissionEnums.HR)
+def employee_detail(request, pk):
+    employee = get_object_or_404(
+        Employee.objects.select_related(
+            'user', 'department', 'department__company', 'position', 'supervisor__user',
+        ),
+        pk=pk,
+    )
+    context = _build_employee_profile_context(request, employee)
+    return render(request, 'site/hr/employee_detail.html', context)
 
 
 @need_permission(PermissionEnums.HR)
@@ -137,22 +265,45 @@ def edit_employee(request, pk):
             if employee.head:
                 employee.set_head()
 
-            return redirect('hr:employees')
+            messages.success(request, 'Данные сотрудника сохранены.')
+            return redirect('hr:employee_detail', pk=pk)
 
     context = {
         'form': form,
         'employee': employee,
+        'positions_by_department_url': reverse('hr:positions_by_department'),
     }
 
     return render(request, 'site/hr/edit_employee.html', context)
 
 
 @need_permission(PermissionEnums.HR)
+def delete_employee(request, pk):
+    employee = get_object_or_404(Employee, pk=pk)
+    if request.method == 'POST':
+        name = employee.user.get_name if employee.user else str(employee.pk)
+        user = employee.user
+        employee.delete()
+        if user:
+            user.delete()
+        messages.success(request, f'Сотрудник «{name}» удалён.')
+        return redirect('hr:employees')
+    return redirect('hr:edit_employee', pk=pk)
+
+
+@need_permission(PermissionEnums.HR)
 def calendar(request, category):
+
+    items = (
+        CalendarItem.objects.filter(category=category)
+        .select_related('user')
+        .order_by('-start_date', '-id')
+    )
 
     context = {
         'category': category,
-        'category_title': CalendarItemType.get_title(category)
+        'category_title': CalendarItemType.get_title(category),
+        'items': items,
     }
 
     return render(request, 'site/hr/calendar.html', context)
@@ -167,17 +318,53 @@ def calendar_json(request, category):
 
 
 @need_permission(PermissionEnums.HR)
+def work_calendar_json(request):
+    """Производственный календарь для подсветки дней в HR-календаре."""
+    start_raw = request.GET.get('start')
+    end_raw = request.GET.get('end')
+    today = date.today()
+    if start_raw and end_raw:
+        start = parse_date(start_raw[:10]) or today.replace(day=1)
+        end = parse_date(end_raw[:10]) or today
+    else:
+        start = today.replace(day=1)
+        if start.month == 12:
+            end = date(start.year + 1, 1, 1) - timedelta(days=1)
+        else:
+            end = date(start.year, start.month + 1, 1) - timedelta(days=1)
+
+    days = WorkCalendar.objects.filter(date__gte=start, date__lte=end)
+    payload = {d.date.isoformat(): d.day_type for d in days}
+    return JsonResponse(payload)
+
+
+@need_permission(PermissionEnums.HR)
 def edit_calendar_item(request, pk):
-    current = get_or_none(CalendarItem, id=pk)
-    form = CalendarItemForm(data=request.POST or None, instance=current)
+    current = get_or_none(CalendarItem, id=pk) if pk else None
+    category = request.GET.get('category') or (current.category if current else CalendarItemType.SECONDMENT.value[0])
+    valid_categories = {c[0] for c in CalendarItemType.list()}
+    if category not in valid_categories:
+        category = CalendarItemType.SECONDMENT.value[0]
+
+    form = CalendarItemForm(
+        data=request.POST or None,
+        instance=current,
+        category=category,
+    )
 
     if request.method == 'POST':
         if form.is_valid():
             new = form.save()
+            messages.success(request, 'Командировка сохранена')
             return redirect('hr:calendar', category=new.category)
 
+    is_edit = current is not None
     context = {
         'form': form,
+        'category': category,
+        'category_title': CalendarItemType.get_title(category),
+        'is_edit': is_edit,
+        'back_url': reverse('hr:calendar', args=[category]),
     }
 
     return render(request, 'site/hr/edit_calendar.html', context)
@@ -193,7 +380,7 @@ def delete_calendar_item(request, pk):
     return redirect('hr:calendar', category=category)
 
 
-@need_permission(PermissionEnums.HR)
+@need_permission(PermissionEnums.HR_COMPANIES)
 def companies(request):
     queryset = Company.objects.all().order_by('name')
     for company in queryset:
@@ -204,37 +391,185 @@ def companies(request):
     }
     return render(request, 'site/hr/companies.html', context)
 
-@need_permission(PermissionEnums.HR)
+
+@need_permission(PermissionEnums.HR_COMPANIES)
+def create_company(request):
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        bin_number = request.POST.get('bin_number', '').strip()
+        address = request.POST.get('address', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        email = request.POST.get('email', '').strip()
+
+        if name and bin_number:
+            Company.objects.create(
+                name=name,
+                bin_number=bin_number,
+                address=address or None,
+                phone=phone or None,
+                email=email or None,
+            )
+            messages.success(request, f'Компания «{name}» добавлена.')
+        else:
+            messages.error(request, 'Название и БИН обязательны.')
+
+    return redirect('hr:companies')
+
+
+@need_permission(PermissionEnums.HR_COMPANIES)
+def delete_company(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+
+    if request.method == 'POST':
+        emp_count = company.get_employees_count()
+        if emp_count > 0:
+            messages.error(
+                request,
+                f'Нельзя удалить «{company.name}»: к компании привязано {emp_count} '
+                f'{"сотрудник" if emp_count == 1 else "сотрудников"}.',
+            )
+        else:
+            dept_count = Department.objects.filter(company=company).count()
+            name = company.name
+            company.delete()
+            if dept_count:
+                messages.success(
+                    request,
+                    f'Компания «{name}» и связанные отделы ({dept_count}) удалены.',
+                )
+            else:
+                messages.success(request, f'Компания «{name}» удалена.')
+
+    return redirect('hr:companies')
+
+
+@need_permission(PermissionEnums.HR_COMPANIES)
 def positions(request):
     queryset = Position.objects.all().order_by('department__name', 'title')
     context = {
         'positions': queryset,
+        'departments': Department.objects.all().order_by('name'),
     }
     return render(request, 'site/hr/positions.html', context)
 
 
+@need_permission(PermissionEnums.HR_COMPANIES)
+def create_position(request):
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        department_id = request.POST.get('department')
+        description = request.POST.get('description', '').strip()
+
+        if title and department_id:
+            try:
+                dept = Department.objects.get(pk=department_id)
+                Position.objects.create(
+                    title=title,
+                    department=dept,
+                    description=description or None,
+                )
+                messages.success(request, f'Должность «{title}» добавлена.')
+            except Department.DoesNotExist:
+                messages.error(request, 'Выбранный отдел не найден.')
+        else:
+            messages.error(request, 'Название и отдел обязательны.')
+
+    return redirect('hr:positions')
+
+
+@need_permission(PermissionEnums.HR_COMPANIES)
+def departments(request):
+    queryset = Department.objects.select_related('company', 'parent').order_by('name')
+    context = {
+        'departments': queryset,
+        'companies': Company.objects.all().order_by('name'),
+    }
+    return render(request, 'site/hr/departments.html', context)
+
+
+@need_permission(PermissionEnums.HR_COMPANIES)
+def create_department(request):
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        company_id = request.POST.get('company')
+        parent_id = request.POST.get('parent') or None
+        level_type = request.POST.get('level_type') or 'department'
+
+        if name and company_id:
+            try:
+                company = Company.objects.get(pk=company_id)
+                parent = None
+                if parent_id:
+                    parent = Department.objects.get(pk=parent_id, company=company)
+                Department.objects.create(
+                    name=name,
+                    company=company,
+                    parent=parent,
+                    level_type=level_type,
+                )
+                messages.success(request, f'Отдел «{name}» добавлен.')
+            except (Company.DoesNotExist, Department.DoesNotExist):
+                messages.error(request, 'Компания или родительский отдел не найдены.')
+        else:
+            messages.error(request, 'Название и компания обязательны.')
+
+    return redirect('hr:departments')
+
+
+@need_permission(PermissionEnums.HR)
+def positions_by_department(request):
+    from django.http import JsonResponse
+
+    dept_id = request.GET.get('department')
+    if not dept_id:
+        return JsonResponse({'positions': []})
+
+    positions_qs = Position.objects.filter(department_id=dept_id).order_by('title')
+    return JsonResponse({
+        'positions': [{'id': p.pk, 'title': p.title} for p in positions_qs],
+    })
+
+
 def _is_manager(user):
+    """Согласование отпусков: руководитель отдела, HR-менеджер, администратор, журнал посещаемости."""
     employee = getattr(user, 'employee_info', None)
     if employee and employee.head:
         return True
-        
+
     role = user.role
     if hasattr(role, 'value'):
         role = role.value
-        
-    if RolePermissions.checkPermission(role, PermissionEnums.HR):
+
+    if role in (RoleEnums.HR.value, RoleEnums.ADMINISTRATOR.value):
         return True
-        
+
+    if RolePermissions.checkPermission(role, PermissionEnums.HR_JOURNAL):
+        return True
+
     return False
 
-@login_required
+
+@need_permission(PermissionEnums.HR)
+def leave_timeline_page(request):
+    """HTML-страница Календаря отпусков (данные грузятся через leave_timeline JSON)."""
+    return render(request, 'site/hr/leave_timeline.html', {})
+
+
+@need_permission(PermissionEnums.HR)
 def leave_list(request):
+    is_manager = _is_manager(request.user)
+    employee = getattr(request.user, 'employee_info', None)
+
     queryset = LeaveRequest.objects.all().select_related(
         'employee__user',
         'employee__department',
         'leave_type',
         'approver__user',
     ).order_by('-id')
+
+    # Обычный сотрудник видит только свои заявки
+    if not is_manager and employee:
+        queryset = queryset.filter(employee=employee)
 
     filter_form = LeaveFilterForm(request.GET)
 
@@ -266,12 +601,12 @@ def leave_list(request):
     context = {
         'leaves': queryset,
         'filter_form': filter_form,
-        'is_manager': _is_manager(request.user),
+        'is_manager': is_manager,
     }
 
     return render(request, 'site/hr/leave_list.html', context)
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def leave_create(request):
     employee = getattr(request.user, 'employee_info', None)
 
@@ -297,7 +632,7 @@ def leave_create(request):
 
     return render(request, 'site/hr/leave_create.html', context)
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def leave_detail(request, pk):
     leave = get_object_or_404(
         LeaveRequest.objects.select_related(
@@ -322,33 +657,50 @@ def leave_detail(request, pk):
     return render(request, 'site/hr/leave_detail.html', context)
 
 
-@login_required
-def leave_approve(request, pk):
+@need_permission(PermissionEnums.HR)
+def leave_confirm(request, pk):
+    """Первый шаг согласования: подтверждение перед финальным одобрением."""
     leave = get_object_or_404(LeaveRequest, pk=pk)
-    
+
     if request.method == 'POST':
         if _is_manager(request.user) and leave.status == LeaveStatusEnum.PENDING:
+            leave.status = LeaveStatusEnum.CONFIRMED
+            leave.save()
+            messages.success(request, "Заявка подтверждена. Можно одобрить окончательно.")
+
+    return redirect(request.POST.get('next') or 'hr:leave_list')
+
+
+@need_permission(PermissionEnums.HR)
+def leave_approve(request, pk):
+    leave = get_object_or_404(LeaveRequest, pk=pk)
+
+    if request.method == 'POST':
+        if _is_manager(request.user) and leave.status == LeaveStatusEnum.CONFIRMED:
             leave.status = LeaveStatusEnum.APPROVED
             leave.approver = request.user.employee_info
             leave.save()
             messages.success(request, "Заявка одобрена.")
-    
-    return redirect('hr:leave_list')
+
+    return redirect(request.POST.get('next') or 'hr:leave_list')
 
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def leave_reject(request, pk):
     leave = get_object_or_404(LeaveRequest, pk=pk)
-    
+
     if request.method == 'POST':
-        if _is_manager(request.user) and leave.status == LeaveStatusEnum.PENDING:
+        if _is_manager(request.user) and leave.status in (
+            LeaveStatusEnum.PENDING,
+            LeaveStatusEnum.CONFIRMED,
+        ):
             leave.status = LeaveStatusEnum.REJECTED
             leave.save()
             messages.warning(request, "Заявка отклонена.")
-            
-    return redirect('hr:leave_list')
 
-@login_required
+    return redirect(request.POST.get('next') or 'hr:leave_list')
+
+@need_permission(PermissionEnums.HR)
 def leave_cancel(request, pk):
     leave = get_object_or_404(LeaveRequest, pk=pk, employee__user=request.user)
 
@@ -359,7 +711,7 @@ def leave_cancel(request, pk):
     
     return redirect('hr:leave_list')
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def ajax_calculate_days(request):
     start = request.GET.get('start')
     end = request.GET.get('end')
@@ -392,11 +744,18 @@ def ajax_calculate_days(request):
     except Exception as e:
         return JsonResponse({'days': 0, 'error': str(e)})
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def leave_timeline(request):
+    is_manager = _is_manager(request.user)
+    curr_employee = getattr(request.user, 'employee_info', None)
+
     queryset = LeaveRequest.objects.all().select_related(
         'employee__user', 'employee__department__company', 'leave_type'
     )
+
+    # Обычный сотрудник видит только свои заявки
+    if not is_manager and curr_employee:
+        queryset = queryset.filter(employee=curr_employee)
 
     company_id = request.GET.get('company')
     department_id = request.GET.get('department')
@@ -430,7 +789,7 @@ def leave_timeline(request):
     return JsonResponse(data, safe=False)
 
 
-@login_required
+@need_permission(PermissionEnums.HR_JOURNAL)
 def leave_export_excel(request):
     queryset = LeaveRequest.objects.all().select_related(
         'employee__user', 'employee__department', 'leave_type'
@@ -526,10 +885,80 @@ def contracts(request):
     }
     return render(request, 'site/hr/contracts.html', context)
 
+def _round_geo_coord(value):
+    """Округление координат до 7 знаков после запятой (лимит DecimalField)."""
+    if value is None or value == '':
+        return None
+    try:
+        d = Decimal(str(value))
+        return d.quantize(Decimal('0.0000001'), rounding=ROUND_HALF_UP)
+    except Exception:
+        return None
+
+
 @login_required
 def attendance_checkin(request):
     if request.method == 'GET':
-        return render(request, 'site/hr/attendance/checkin.html')
+        import pytz
+        LOCAL_TZ = pytz.timezone('Asia/Almaty')
+        employee = getattr(request.user, 'employee_info', None)
+        today = date.today()
+
+        today_marks = []
+        completed_types = set()
+        next_event = CheckInEnum.DAY_START
+        all_done = False
+
+        if employee:
+            summary = AttendanceRecord.get_daily_summary(employee, today)
+            events = summary.get('details', {})
+            order = [
+                (CheckInEnum.DAY_START, 'Приход'),
+                (CheckInEnum.LUNCH_START, 'Начало обеда'),
+                (CheckInEnum.LUNCH_END, 'Конец обеда'),
+                (CheckInEnum.DAY_END, 'Уход'),
+            ]
+            for key, label in order:
+                ts = events.get(key)
+                if ts:
+                    completed_types.add(key)
+                    local_ts = ts.astimezone(LOCAL_TZ)
+                    today_marks.append({
+                        'type': key,
+                        'label': label,
+                        'time': local_ts.strftime('%H:%M'),
+                    })
+
+            if CheckInEnum.DAY_START not in completed_types:
+                next_event = CheckInEnum.DAY_START
+            elif CheckInEnum.LUNCH_START not in completed_types:
+                next_event = CheckInEnum.LUNCH_START
+            elif CheckInEnum.LUNCH_END not in completed_types:
+                next_event = CheckInEnum.LUNCH_END
+            elif CheckInEnum.DAY_END not in completed_types:
+                next_event = CheckInEnum.DAY_END
+            else:
+                all_done = True
+                next_event = None
+
+        event_labels = {
+            CheckInEnum.DAY_START: 'Приход',
+            CheckInEnum.LUNCH_START: 'Начало обеда',
+            CheckInEnum.LUNCH_END: 'Конец обеда',
+            CheckInEnum.DAY_END: 'Уход',
+        }
+        preselect = request.GET.get('event') or (next_event if next_event else CheckInEnum.DAY_START)
+        if preselect in completed_types and next_event:
+            preselect = next_event
+
+        return render(request, 'site/hr/attendance/checkin.html', {
+            'today_marks': today_marks,
+            'completed_types': completed_types,
+            'next_event': next_event,
+            'next_event_label': event_labels.get(next_event, '') if next_event else '',
+            'preselect_event': preselect,
+            'all_done_today': all_done,
+        })
 
 
     if request.method != 'POST':
@@ -549,6 +978,9 @@ def attendance_checkin(request):
         if not event_type or not photo_base64:
             return JsonResponse({'error': 'Не переданы обязательные параметры (event_type, photo)'}, status=400)
 
+        latitude  = _round_geo_coord(data.get('latitude'))
+        longitude = _round_geo_coord(data.get('longitude'))
+
         if ';base64,' in photo_base64:
             format_str, imgstr = photo_base64.split(';base64,')
             ext = format_str.split('/')[-1]
@@ -559,11 +991,19 @@ def attendance_checkin(request):
         photo_name = f"checkin_{employee.id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{ext}"
         photo_file = ContentFile(base64.b64decode(imgstr), name=photo_name)
 
+        location_address = ''
+        if latitude is not None and longitude is not None:
+            from .geocoding import reverse_geocode
+            location_address = reverse_geocode(latitude, longitude)
+
         record = AttendanceRecord(
             employee=employee,
             event_type=event_type,
             ip_address=ip_address,
-            photo=photo_file
+            photo=photo_file,
+            latitude=latitude,
+            longitude=longitude,
+            location_address=location_address,
         )
         
         record.full_clean()
@@ -575,6 +1015,24 @@ def attendance_checkin(request):
         return JsonResponse({'error': e.messages[0]}, status=400)
     except Exception as e:
         return JsonResponse({'error': f"Внутренняя ошибка сервера: {str(e)}"}, status=500)
+
+
+@login_required
+def attendance_resolve_address(request):
+    """AJAX: координаты → адрес (для старых отметок без сохранённого адреса)."""
+    lat = request.GET.get('lat')
+    lng = request.GET.get('lng')
+    record_id = request.GET.get('record_id')
+
+    if not lat or not lng:
+        return JsonResponse({'address': ''})
+
+    from .geocoding import reverse_geocode
+    address = reverse_geocode(lat, lng)
+    if address and record_id:
+        AttendanceRecord.objects.filter(pk=record_id).update(location_address=address)
+
+    return JsonResponse({'address': address})
 
 
 @login_required
@@ -603,6 +1061,20 @@ def attendance_journal(request):
     if department_id:
         employees_qs = employees_qs.filter(department_id=department_id)
 
+    # Предзагружаем записи за дату: фото + гео + адрес (из БД)
+    record_map = {}
+    for rec in AttendanceRecord.objects.filter(timestamp__date=target_date).select_related('employee'):
+        try:
+            photo_url = rec.photo.url if (rec.photo and rec.photo.name) else ''
+        except Exception:
+            photo_url = ''
+        record_map.setdefault(rec.employee_id, {})[rec.event_type] = {
+            'photo': photo_url,
+            'lat': str(rec.latitude) if rec.latitude else '',
+            'lng': str(rec.longitude) if rec.longitude else '',
+            'address': rec.location_address or '',
+        }
+
     journal = []
     for emp in employees_qs:
         summary = AttendanceRecord.get_daily_summary(emp, target_date)
@@ -613,6 +1085,8 @@ def attendance_journal(request):
         early_leave = False
         start_dt = None
         end_dt = None
+        lunch_start_dt = None
+        lunch_end_dt   = None
 
         if has_records:
             start_dt = events.get(CheckInEnum.DAY_START)
@@ -629,17 +1103,44 @@ def attendance_journal(request):
                 if local_end.hour < 18:
                     early_leave = True
 
+            ls = events.get(CheckInEnum.LUNCH_START)
+            if ls:
+                lunch_start_dt = ls.astimezone(LOCAL_TZ)
+            le = events.get(CheckInEnum.LUNCH_END)
+            if le:
+                lunch_end_dt = le.astimezone(LOCAL_TZ)
+
         total_work = summary.get('total_work_time', timedelta(0))
         total_hours = total_work.total_seconds() / 3600 if total_work else 0
 
+        emp_recs = record_map.get(emp.id, {})
+
+        def _r(key, field):
+            return emp_recs.get(key, {}).get(field, '')
+
         journal.append({
-            'employee': emp,
-            'day_start': start_dt,
-            'day_end': end_dt,
-            'total_hours': total_hours,
-            'late': late,
-            'early_leave': early_leave,
-            'no_record': not has_records
+            'employee':          emp,
+            'day_start':         start_dt,
+            'day_end':           end_dt,
+            'lunch_start':       lunch_start_dt,
+            'lunch_end':         lunch_end_dt,
+            'total_hours':       total_hours,
+            'late':              late,
+            'early_leave':       early_leave,
+            'no_record':         not has_records,
+            # Приход
+            'arrival_photo':     _r(CheckInEnum.DAY_START,   'photo'),
+            'arrival_lat':       _r(CheckInEnum.DAY_START,   'lat'),
+            'arrival_lng':       _r(CheckInEnum.DAY_START,   'lng'),
+            'arrival_address':   _r(CheckInEnum.DAY_START,   'address'),
+            # Обед
+            'lunch_start_photo': _r(CheckInEnum.LUNCH_START, 'photo'),
+            'lunch_end_photo':   _r(CheckInEnum.LUNCH_END,   'photo'),
+            # Уход
+            'departure_photo':   _r(CheckInEnum.DAY_END,     'photo'),
+            'departure_lat':     _r(CheckInEnum.DAY_END,     'lat'),
+            'departure_lng':     _r(CheckInEnum.DAY_END,     'lng'),
+            'departure_address': _r(CheckInEnum.DAY_END,     'address'),
         })
 
     departments = Department.objects.all() if is_hr else [employee.department]
@@ -684,7 +1185,26 @@ def attendance_my(request):
 
     import calendar as calendar_module
     _, num_days = calendar_module.monthrange(view_year, view_month)
-    
+
+    # Предзагружаем все записи за месяц: фото + гео
+    month_start = date(view_year, view_month, 1)
+    month_end   = date(view_year, view_month, num_days)
+    my_records = {}  # date -> {event_type: {photo, lat, lng, address}}
+    for rec in AttendanceRecord.objects.filter(
+        employee=employee, timestamp__date__range=(month_start, month_end)
+    ):
+        try:
+            photo_url = rec.photo.url if (rec.photo and rec.photo.name) else ''
+        except Exception:
+            photo_url = ''
+        d = rec.timestamp.date()
+        my_records.setdefault(d, {})[rec.event_type] = {
+            'photo': photo_url,
+            'lat': str(rec.latitude) if rec.latitude else '',
+            'lng': str(rec.longitude) if rec.longitude else '',
+            'address': rec.location_address or '',
+        }
+
     attendance_list = []
     for day in range(num_days, 0, -1):
         current_day = date(view_year, view_month, day)
@@ -717,17 +1237,31 @@ def attendance_my(request):
             lunch_end = lunch_end.astimezone(LOCAL_TZ)
 
         total_hours = summary.get('total_work_time', timedelta(0)).total_seconds() / 3600
-        
+        day_recs = my_records.get(current_day, {})
+
+        def _dr(key, field):
+            return day_recs.get(key, {}).get(field, '')
+
         attendance_list.append({
-            'date': current_day,
-            'day_start': start_dt,
-            'day_end': end_dt,
-            'lunch_start': lunch_start,
-            'lunch_end': lunch_end,
-            'total_hours': total_hours,
-            'late': late,
-            'early_leave': early_leave,
-            'no_record': len(events) == 0
+            'date':              current_day,
+            'day_start':         start_dt,
+            'day_end':           end_dt,
+            'lunch_start':       lunch_start,
+            'lunch_end':         lunch_end,
+            'total_hours':       total_hours,
+            'late':              late,
+            'early_leave':       early_leave,
+            'no_record':         len(events) == 0,
+            'arrival_photo':     _dr(CheckInEnum.DAY_START,   'photo'),
+            'arrival_lat':       _dr(CheckInEnum.DAY_START,   'lat'),
+            'arrival_lng':       _dr(CheckInEnum.DAY_START,   'lng'),
+            'arrival_address':   _dr(CheckInEnum.DAY_START,   'address'),
+            'lunch_start_photo': _dr(CheckInEnum.LUNCH_START, 'photo'),
+            'lunch_end_photo':   _dr(CheckInEnum.LUNCH_END,   'photo'),
+            'departure_photo':   _dr(CheckInEnum.DAY_END,     'photo'),
+            'departure_lat':     _dr(CheckInEnum.DAY_END,     'lat'),
+            'departure_lng':     _dr(CheckInEnum.DAY_END,     'lng'),
+            'departure_address': _dr(CheckInEnum.DAY_END,     'address'),
         })
 
     prev_month_date = date(view_year, view_month, 1) - timedelta(days=1)
@@ -745,19 +1279,15 @@ def attendance_my(request):
 
 def _get_registry_access(user):
     employee = getattr(user, 'employee_info', None)
-    is_hr = getattr(user, 'is_superuser', False)
-    
-    if not is_hr and hasattr(user, 'role'):
-        try:
-            from apps.account.role_permissions import RolePermissions
-        except ImportError:
-            is_hr = False
-        else:
-            role = user.role
-            if hasattr(role, 'value'):
-                role = role.value
-            is_hr = RolePermissions.checkPermission(role, "hr_registries")
-            
+    role = user.role
+    if hasattr(role, 'value'):
+        role = role.value
+
+    is_hr = (
+        getattr(user, 'is_superuser', False)
+        or role == RoleEnums.ADMINISTRATOR.value
+        or RolePermissions.checkPermission(role, PermissionEnums.HR_REGISTRIES)
+    )
     is_head = bool(employee and employee.head)
     return is_hr, is_head, employee
 
@@ -771,38 +1301,46 @@ def _filter_by_access(queryset, user, employee_field='employee'):
         return queryset.filter(**{f'{employee_field}__department': employee.department})
     return queryset.filter(**{employee_field: employee})
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def documents_list(request):
-    is_hr, is_head, _ = _get_registry_access(request.user)
-    queryset = EmployeeDocument.objects.select_related('employee__user', 'employee__department').order_by('-created_at')
-    queryset = _filter_by_access(queryset, request.user)
-    filter_form = DocumentFilterForm(request.GET)
-    if filter_form.is_valid():
-        data = filter_form.cleaned_data
-        if data.get('search'):
-            queryset = queryset.filter(
-                Q(employee__user__first_name__icontains=data['search']) |
-                Q(employee__user__last_name__icontains=data['search']) |
-                Q(title__icontains=data['search'])
-            )
-        if data.get('department'):
-            queryset = queryset.filter(employee__department=data['department'])
-        if data.get('doc_type'):
-            queryset = queryset.filter(doc_type=data['doc_type'])
-        if data.get('status'):
-            queryset = queryset.filter(status=data['status'])
-        if data.get('expiring_soon'):
-            queryset = queryset.filter(
-                expires_at__lte=date.today() + timedelta(days=30),
-                expires_at__gte=date.today()
-            )
+    is_hr, is_head, curr_employee = _get_registry_access(request.user)
+
+    employee_id = request.GET.get('employee_id')
+
+    # Режим документов одного сотрудника
+    if employee_id:
+        selected_employee = get_object_or_404(Employee, pk=employee_id)
+        queryset = EmployeeDocument.objects.filter(employee=selected_employee).select_related(
+            'employee__user', 'employee__department'
+        ).order_by('-created_at')
+        return render(request, 'site/hr/documents_list.html', {
+            'documents': queryset,
+            'selected_employee': selected_employee,
+            'is_hr': is_hr or is_head,
+            'employee_mode': True,
+        })
+
+    # Основной режим — список сотрудников с кол-вом документов
+    employees_qs = (
+        Employee.objects
+        .filter(status='active')
+        .select_related('user', 'department')
+        .prefetch_related('documents')
+        .order_by('user__last_name', 'user__first_name')
+    )
+    if not is_hr:
+        if is_head and curr_employee:
+            employees_qs = employees_qs.filter(department=curr_employee.department)
+        elif curr_employee:
+            employees_qs = employees_qs.filter(pk=curr_employee.pk)
+
     return render(request, 'site/hr/documents_list.html', {
-        'documents': queryset,
-        'filter_form': filter_form,
+        'employees': employees_qs,
         'is_hr': is_hr or is_head,
+        'employee_mode': False,
     })
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def permits_list(request):
     is_hr, is_head, _ = _get_registry_access(request.user)
     queryset = EmployeeWorkPermit.objects.select_related('employee__user', 'employee__department', 'category').order_by('expiry_date')
@@ -831,19 +1369,23 @@ def permits_list(request):
         'expiration_threshold': date.today() + timedelta(days=30),
     })
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def documents_create(request):
     is_hr, is_head, _ = _get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
-    form = EmployeeDocumentForm(request.POST or None, request.FILES or None)
+    emp_id = request.GET.get('employee_id')
+    initial = {}
+    if emp_id:
+        initial['employee'] = get_object_or_404(Employee, pk=emp_id)
+    form = EmployeeDocumentForm(request.POST or None, request.FILES or None, initial=initial)
     if request.method == 'POST' and form.is_valid():
-        form.save()
+        doc = form.save()
         messages.success(request, "Документ добавлен.")
-        return redirect('hr:documents_list')
+        return redirect(f"{reverse('hr:employee_detail', args=[doc.employee_id])}?tab=documents")
     return render(request, 'site/hr/documents_form.html', {'form': form, 'title': 'Добавить документ'})
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def documents_edit(request, pk):
     is_hr, is_head, _ = _get_registry_access(request.user)
     if not is_hr and not is_head:
@@ -856,7 +1398,7 @@ def documents_edit(request, pk):
         return redirect('hr:documents_list')
     return render(request, 'site/hr/documents_form.html', {'form': form, 'title': 'Редактировать документ'})
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def documents_delete(request, pk):
     is_hr, is_head, _ = _get_registry_access(request.user)
     if not is_hr and not is_head:
@@ -867,7 +1409,7 @@ def documents_delete(request, pk):
         messages.success(request, "Документ удалён.")
     return redirect('hr:documents_list')
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def documents_export(request):
     queryset = EmployeeDocument.objects.select_related('employee__user', 'employee__department').order_by('-created_at')
     queryset = _filter_by_access(queryset, request.user)
@@ -893,19 +1435,23 @@ def documents_export(request):
     wb.save(response)
     return response
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def permits_create(request):
     is_hr, is_head, _ = _get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
-    form = EmployeeWorkPermitForm(request.POST or None, request.FILES or None)
+    emp_id = request.GET.get('employee_id')
+    initial = {}
+    if emp_id:
+        initial['employee'] = get_object_or_404(Employee, pk=emp_id)
+    form = EmployeeWorkPermitForm(request.POST or None, request.FILES or None, initial=initial)
     if request.method == 'POST' and form.is_valid():
-        form.save()
+        permit = form.save()
         messages.success(request, "Допуск добавлен.")
-        return redirect('hr:permits_list')
+        return redirect(f"{reverse('hr:employee_detail', args=[permit.employee_id])}?tab=permits")
     return render(request, 'site/hr/permits_form.html', {'form': form, 'title': 'Добавить допуск'})
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def permits_edit(request, pk):
     is_hr, is_head, _ = _get_registry_access(request.user)
     if not is_hr and not is_head:
@@ -918,7 +1464,7 @@ def permits_edit(request, pk):
         return redirect('hr:permits_list')
     return render(request, 'site/hr/permits_form.html', {'form': form, 'title': 'Редактировать допуск'})
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def permits_delete(request, pk):
     is_hr, is_head, _ = _get_registry_access(request.user)
     if not is_hr and not is_head:
@@ -929,7 +1475,7 @@ def permits_delete(request, pk):
         messages.success(request, "Допуск удалён.")
     return redirect('hr:permits_list')
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def permits_export(request):
     queryset = EmployeeWorkPermit.objects.select_related('employee__user', 'employee__department', 'category').order_by('expiry_date')
     queryset = _filter_by_access(queryset, request.user)
@@ -954,10 +1500,10 @@ def permits_export(request):
     wb.save(response)
     return response
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def certifications_list(request):
     is_hr, is_head, _ = _get_registry_access(request.user)
-    queryset = EmployeeCertification.objects.select_related('employee__user', 'employee__department', 'cert_type').order_by('expiry_date')
+    queryset = EmployeeCertification.objects.select_related('employee__user', 'employee__department').order_by('expiry_date')
     queryset = _filter_by_access(queryset, request.user)
     filter_form = CertificationFilterForm(request.GET)
     if filter_form.is_valid():
@@ -965,12 +1511,13 @@ def certifications_list(request):
         if data.get('search'):
             queryset = queryset.filter(
                 Q(employee__user__first_name__icontains=data['search']) |
-                Q(employee__user__last_name__icontains=data['search'])
+                Q(employee__user__last_name__icontains=data['search']) |
+                Q(cert_type__icontains=data['search'])
             )
         if data.get('department'):
             queryset = queryset.filter(employee__department=data['department'])
         if data.get('cert_type'):
-            queryset = queryset.filter(cert_type=data['cert_type'])
+            queryset = queryset.filter(cert_type__icontains=data['cert_type'])
         if data.get('status'):
             queryset = queryset.filter(status=data['status'])
         if data.get('expiring_soon'):
@@ -981,19 +1528,23 @@ def certifications_list(request):
         'is_hr': is_hr or is_head,
     })
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def certifications_create(request):
     is_hr, is_head, _ = _get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
-    form = EmployeeCertificationForm(request.POST or None, request.FILES or None)
+    emp_id = request.GET.get('employee_id')
+    initial = {}
+    if emp_id:
+        initial['employee'] = get_object_or_404(Employee, pk=emp_id)
+    form = EmployeeCertificationForm(request.POST or None, request.FILES or None, initial=initial)
     if request.method == 'POST' and form.is_valid():
-        form.save()
+        cert = form.save()
         messages.success(request, "Сертификация добавлена.")
-        return redirect('hr:certifications_list')
+        return redirect(f"{reverse('hr:employee_detail', args=[cert.employee_id])}?tab=certifications")
     return render(request, 'site/hr/certifications_form.html', {'form': form, 'title': 'Добавить сертификацию'})
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def certifications_edit(request, pk):
     is_hr, is_head, _ = _get_registry_access(request.user)
     if not is_hr and not is_head:
@@ -1006,7 +1557,7 @@ def certifications_edit(request, pk):
         return redirect('hr:certifications_list')
     return render(request, 'site/hr/certifications_form.html', {'form': form, 'title': 'Редактировать сертификацию'})
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def certifications_delete(request, pk):
     is_hr, is_head, _ = _get_registry_access(request.user)
     if not is_hr and not is_head:
@@ -1017,9 +1568,9 @@ def certifications_delete(request, pk):
         messages.success(request, "Сертификация удалена.")
     return redirect('hr:certifications_list')
 
-@login_required
+@need_permission(PermissionEnums.HR)
 def certifications_export(request):
-    queryset = EmployeeCertification.objects.select_related('employee__user', 'employee__department', 'cert_type').order_by('expiry_date')
+    queryset = EmployeeCertification.objects.select_related('employee__user', 'employee__department').order_by('expiry_date')
     queryset = _filter_by_access(queryset, request.user)
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -1031,7 +1582,7 @@ def certifications_export(request):
         ws.append([
             name,
             cert.employee.department.name if cert.employee.department else "-",
-            cert.cert_type.name,
+            cert.cert_type,
             cert.certificate_number or "-",
             cert.issue_date.strftime("%d.%m.%Y"),
             cert.expiry_date.strftime("%d.%m.%Y") if cert.expiry_date else "-",

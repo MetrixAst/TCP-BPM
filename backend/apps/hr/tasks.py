@@ -87,7 +87,7 @@ def hr_check_expirations():
     )
 
     # --- EmployeeCertification (computed status, log only) ---
-    all_certs = EmployeeCertification.objects.select_related('employee', 'cert_type').filter(
+    all_certs = EmployeeCertification.objects.select_related('employee').filter(
         is_revoked=False,
         expiry_date__isnull=False,
     )

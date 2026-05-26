@@ -2,36 +2,33 @@
 {% load static %}
 {% load site_tags %}
 
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/docs.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
+
 {% block content %}
 
-    <!-- Title and Top Buttons Start -->
-    <div class="page-title-container">
-        <div class="row">
-            <!-- Title Start -->
-            <div class="col-12 col-md-7">
-                <h1 class="mb-0 pb-0 display-4" id="title">{{document.number}}</h1>
-                <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
-                    <ul class="breadcrumb pt-0">
-                        <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'documents:list' type_config.id %}">{{type_config.title}}</a></li>
-                        <li class="breadcrumb-item">{{document.number}}</li>
-                    </ul>
-                </nav>
-            </div>
-            <!-- Title End -->
-            <!-- Top Buttons Start -->
-            <div class="col-12 col-md-5 d-flex align-items-start justify-content-end">
-                <!-- Contact Button Start -->
-                <a target="_blank" href="{{document.document.url}}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start w-100 w-md-auto" id="mobile_button" data-icon="download">
-                    <i data-acorn-icon="download"></i>
-                    <span>Скачать</span>
-                </a>
-                <!-- Contact Button End -->
-            </div>
-            <!-- Top Buttons End -->
+    <!-- Page Header -->
+    <div class="doc-page-header">
+        <div class="doc-page-header__left">
+            <h1 class="doc-page-title">{{ document.number }}</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="doc-breadcrumb">
+                    <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+                    <li><a href="{% url 'documents:list' type_config.id %}">{{ type_config.title }}</a></li>
+                    <li>{{ document.number }}</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="doc-page-header__right">
+            {% if document.document %}
+            <a target="_blank" href="{{ document.document.url }}" class="doc-btn doc-btn--primary">
+                <i class="bi bi-download"></i>
+                <span>Скачать</span>
+            </a>
+            {% endif %}
         </div>
     </div>
-    <!-- Title and Top Buttons End -->
     <div class="row gx-4 gy-5 indicator_item_opened" data-type="{{document.document_type}}" data-id="{{document.id}}">
         <!-- Left Side Start -->
         <div class="col-12 col-xl-4 col-xxl-3">
@@ -65,9 +62,8 @@
                                                     {% endfor %}
                                                 </select>
                                                 
-                                                <div class="mt-3 filled">
+                                                <div class="mt-3">
                                                     <textarea placeholder="Комментарии" class="form-control" name="text" rows="2"></textarea>
-                                                    <i data-acorn-icon="notebook-1"></i>
                                                 </div>
                                             </div>
                                             <div class="modal-footer">
@@ -225,9 +221,8 @@
                         data-bs-toggle="dropdown"
                         aria-haspopup="true"
                         aria-expanded="false"
-                        data-diplay="static"
                         >
-                    <i data-acorn-icon="more-horizontal"></i>
+                    <i class="bi bi-three-dots-vertical"></i>
                     </a>
                     <ul class="dropdown-menu mt-2 dropdown-menu-end"></ul>
                 </li>
@@ -278,7 +273,7 @@
                                             <div class="d-flex">
                                                 <a href="{% url 'documents:addit_document_frame' addit.id %}" target="_blank" class="btn btn-outline-secondary btn-sm" type="button">Смотреть</a>
                                                 <a href="{{addit.document.url}}" target="_blank" class="btn btn-sm btn-icon btn-icon-only btn-outline-secondary ms-1" type="button">
-                                                    <i data-acorn-icon="download"></i>
+                                                    <i class="bi bi-download"></i>
                                                 </a>
                                             </div>
                                         </div>

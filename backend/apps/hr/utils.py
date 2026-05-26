@@ -1,4 +1,5 @@
 import csv
+from django.urls import reverse
 from account.models import Department, Employee
 
 try:
@@ -97,6 +98,8 @@ class OrgChart:
 
     def _department_row(self, dept, node_id, parent_node_id):
         head_info = dept.get_head_info
+        count = self._active_employees(dept).count()
+        subtitle = f'{dept.name} · {count} чел.' if count else str(dept.name)
         return [
             node_id,
             head_info.get('photo', self.DEFAULT_IMAGE),
@@ -106,7 +109,7 @@ class OrgChart:
             'dept,infinity',
             'false',
             head_info.get('job_title', 'Отдел'),
-            str(dept.name),
+            subtitle,
             parent_node_id,
             '',
         ]
@@ -128,12 +131,13 @@ class OrgChart:
         )
 
         position_title = emp.position.title if emp.position else 'Сотрудник'
+        profile_url = reverse('hr:employee_detail', args=[emp.pk])
 
         return [
             f"emp_{emp.id}",
             image,
             'Сотрудник',
-            '#',
+            profile_url,
             str(dept.name),
             'сотрудник,infinity',
             is_logged,

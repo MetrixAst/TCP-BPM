@@ -1,0 +1,30 @@
+{% if rows %}
+<table class="emp-table">
+  <thead>
+    <tr>
+      <th>Дата</th>
+      <th>Приход</th>
+      <th>Уход</th>
+      <th>Часов</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr class="{% if row.no_record %}emp-table__row--muted{% endif %}">
+      <td><strong>{{ row.date|date:"d.m.Y" }}</strong></td>
+      <td>{{ row.day_start|date:"H:i"|default:"—" }}</td>
+      <td>{{ row.day_end|date:"H:i"|default:"—" }}</td>
+      <td>
+        {% if row.no_record %}
+          <span class="emp-table__sub">Нет данных</span>
+        {% else %}
+          {{ row.total_hours|floatformat:1 }} ч.
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="emp-empty-inline">Нет записей посещаемости</p>
+{% endif %}

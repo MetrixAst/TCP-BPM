@@ -1,24 +1,64 @@
 'use strict';
 
-/* ─── Палитра для Pie ────────────────────────────────────── */
+const RENT_CHART_FONT = '"Inter", system-ui, -apple-system, sans-serif';
 const PIE_COLORS = [
   '#2f6bed', '#22a85a', '#ff9500', '#ff3b30', '#5856d6',
-  '#34aadc', '#4cd964', '#ff2d55', '#8e8e93', '#ffcc00',
+  '#34aadc', '#4cd964', '#ff2d55', '#af52de', '#ffcc00',
 ];
 
-/* ─── Pie chart — доли арендаторов ─────────────────────── */
+function readJsonScript(id) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  try {
+    return JSON.parse(el.textContent);
+  } catch (e) {
+    console.error(`JSON parse error (${id})`, e);
+    return null;
+  }
+}
+
+function rentChartOptions(extra = {}) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          font: { family: RENT_CHART_FONT, size: 12 },
+          color: '#74728a',
+          padding: 14,
+          usePointStyle: true,
+        },
+      },
+      tooltip: {
+        backgroundColor: '#25233f',
+        titleFont: { family: RENT_CHART_FONT, size: 12 },
+        bodyFont: { family: RENT_CHART_FONT, size: 13 },
+        padding: 12,
+        cornerRadius: 10,
+      },
+    },
+    ...extra,
+  };
+}
+
 function renderTenantPie(data) {
   const canvas = document.getElementById('tenantPieChart');
+  const emptyEl = document.getElementById('tenantPieEmpty');
   if (!canvas) return;
 
-  const labels = data.labels || [];
-  const values = data.values || [];
+  const labels = data?.labels || [];
+  const values = data?.values || [];
+  const hasData = labels.length && values.some(v => Number(v) > 0);
 
-  if (!labels.length) {
-    canvas.closest('.fin-chart-card').innerHTML +=
-      '<div class="fin-empty"><i class="bi bi-inbox"></i> Нет данных</div>';
+  if (!hasData) {
+    canvas.hidden = true;
+    if (emptyEl) emptyEl.hidden = false;
     return;
   }
+
+  if (emptyEl) emptyEl.hidden = true;
+  canvas.hidden = false;
 
   new Chart(canvas, {
     type: 'doughnut',
@@ -28,31 +68,39 @@ function renderTenantPie(data) {
         data: values,
         backgroundColor: labels.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]),
         borderColor: '#fff',
-        borderWidth: 2,
+        borderWidth: 3,
+        hoverOffset: 8,
       }],
     },
-    options: {
-      responsive: true,
+    options: rentChartOptions({
+      cutout: '58%',
       plugins: {
-        legend: { position: 'right' },
+        legend: {
+          position: 'right',
+          labels: {
+            font: { family: RENT_CHART_FONT, size: 11 },
+            color: '#25233f',
+            padding: 10,
+            boxWidth: 12,
+          },
+        },
         tooltip: {
           callbacks: {
-            label: ctx => {
-              const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-              const pct   = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
+            label(ctx) {
+              const total = ctx.dataset.data.reduce((a, b) => a + Number(b), 0);
+              const pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
               return ` ${ctx.label}: ${Number(ctx.parsed).toLocaleString('ru-RU')} ₸ (${pct}%)`;
             },
           },
         },
       },
-    },
+    }),
   });
 }
 
-/* ─── Line chart — динамика поступлений ─────────────────── */
 function renderDynamicsChart(dynamics) {
   const canvas = document.getElementById('dynamicsChart');
-  if (!canvas) return;
+  if (!canvas || !dynamics) return;
 
   const labels = dynamics.labels || [];
   const actual = dynamics.actual || [];
@@ -65,44 +113,46 @@ function renderDynamicsChart(dynamics) {
         label: 'Поступления',
         data: actual,
         borderColor: '#2f6bed',
-        backgroundColor: 'rgba(47,107,237,0.12)',
+        borderWidth: 2.5,
+        backgroundColor(ctx) {
+          const { chart } = ctx;
+          const { ctx: c, chartArea } = chart;
+          if (!chartArea) return 'rgba(47, 107, 237, 0.08)';
+          const grad = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          grad.addColorStop(0, 'rgba(47, 107, 237, 0.22)');
+          grad.addColorStop(1, 'rgba(47, 107, 237, 0.02)');
+          return grad;
+        },
         pointBackgroundColor: '#2f6bed',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
         pointRadius: 5,
+        pointHoverRadius: 7,
         fill: true,
-        tension: 0.35,
+        tension: 0.4,
       }],
     },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => `Поступления: ${Number(ctx.parsed.y).toLocaleString('ru-RU')} ₸`,
+    options: rentChartOptions({
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: RENT_CHART_FONT, size: 11 }, color: '#9a98aa' },
+        },
+        y: {
+          grid: { color: 'rgba(236, 234, 243, 0.9)' },
+          ticks: {
+            font: { family: RENT_CHART_FONT, size: 11 },
+            color: '#9a98aa',
+            callback: v => `${Number(v).toLocaleString('ru-RU')} ₸`,
           },
         },
       },
-      scales: {
-        y: {
-          ticks: { callback: v => `${Number(v).toLocaleString('ru-RU')} ₸` },
-        },
-      },
-    },
+    }),
   });
 }
 
-/* ─── Init ───────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  const tenantEl   = document.getElementById('tenantData');
-  const dynamicsEl = document.getElementById('dynamicsData');
-
-  if (tenantEl) {
-    try { renderTenantPie(JSON.parse(tenantEl.textContent)); }
-    catch (e) { console.error('tenantData parse error', e); }
-  }
-
-  if (dynamicsEl) {
-    try { renderDynamicsChart(JSON.parse(dynamicsEl.textContent)); }
-    catch (e) { console.error('dynamicsData parse error', e); }
-  }
+  renderTenantPie(readJsonScript('tenant-chart-data'));
+  renderDynamicsChart(readJsonScript('dynamics-chart-data'));
 });

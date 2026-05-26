@@ -2,130 +2,144 @@
 {% load static %}
 {% load site_tags %}
 
+{% block title %}{{ type_config.add_button }} — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap-datepicker3.standalone.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/docs.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
+
 {% block content %}
-    <div class="d-flex justify-content-center">
-        <div class="col-xl-6 mb-5">
-            <div class="mx-auto">
-                <form method="POST" enctype="multipart/form-data">
-                    {% check_form form %}
-                    {% csrf_token %}
-                    <div class="card mb-5">
-                        <div class="card-body">
+<div class="doc-form-page">
 
-                            <h1 class="mb-3 mt-1 pb-0 display-4">Новый документ</h1>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="top-label">
-                                        {{form.number}}
-                                        <span>№ Документа</span>
-                                    </label>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="top-label">
-                                        {{form.reg_date}}
-                                        <span>ДАТА ЗАПОЛНЕНИЯ</span>
-                                    </label>
-                                </div>
-
-                                <div class="col-md-3">
-                                    <label class="top-label">
-                                        {{form.days}}
-                                        <span>Срок выполнения</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mt-2">
-                                <div class="col">
-                                    <div class="top-label">
-                                        {{form.folder}}
-                                        <span>ПАПКА</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mt-2">
-                                <div class="col">
-                                    <div class="top-label">
-                                        {{form.title}}
-                                        <span>ЗАГОЛОВОК</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {% if document_type == 'documents' %}
-                                <div class="row g-3 mt-2">
-                                    <div class="col">
-                                        <div class="top-label">
-                                            {{form.text}}
-                                            <span>ОПИСАНИЕ</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endif %}
-
-                            <div class="row g-3 mt-2">
-
-                                <div class="col-md-6">
-                                    <div class="w-100">
-                                        <label class="form-label">Документ</label>
-                                        {{form.document}}
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <div class="w-100">
-                                        <label class="form-label">Контрагент</label>
-                                        {{form.supplier}}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <div class="w-100">
-                                        <label class="form-label">Согласующие</label>
-                                        {{form.coordinators}}
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="w-100">
-                                        <label class="form-label">Наблюдатели</label>
-                                        {{form.observers}}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mt-3 position-relative tooltip-label-end form-group">
-                                <div class="form-check">
-                                    <label class="form-check-label">
-                                        {{form.need_all}}
-                                        Все согласующие должны согласовать
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="mt-3 position-relative tooltip-label-end form-group">
-                                <div class="form-check">
-                                    <label class="form-check-label">
-                                        {{form.need_head}}
-                                        Требуется подпись руководителя
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-end mt-3">
-                                <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
-                                    <span>Сохранить</span>
-                                    <i data-acorn-icon="chevron-right"></i>
-                                </button>
-                            </div>
-
-                        </div>
-                    </div>
-                </form>
+    <div class="doc-page-header doc-page-header--form">
+        <div class="doc-page-header__left">
+            <a href="{% url 'documents:list' document_type %}" class="doc-form-back" aria-label="Назад к списку">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="doc-page-title">{{ type_config.add_button }}</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="doc-breadcrumb">
+                        <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+                        <li><a href="{% url 'documents:list' document_type %}">{{ type_config.title }}</a></li>
+                        <li>{{ type_config.add_button }}</li>
+                    </ol>
+                </nav>
             </div>
         </div>
-        
     </div>
+
+    <form method="POST" enctype="multipart/form-data" class="doc-form" id="docEditForm">
+        {% check_form form %}
+        {% csrf_token %}
+
+        <div class="doc-form-card">
+            <section class="doc-form-section">
+                <h2 class="doc-form-section__title">Основные данные</h2>
+                <div class="doc-form-grid">
+                    <div class="doc-form-field">
+                        <label class="doc-form-label" for="{{ form.number.id_for_label }}">№ документа</label>
+                        {{ form.number }}
+                    </div>
+                    <div class="doc-form-field">
+                        <label class="doc-form-label" for="{{ form.reg_date.id_for_label }}">Дата заполнения</label>
+                        {{ form.reg_date }}
+                    </div>
+                    {% if form.days %}
+                    <div class="doc-form-field">
+                        <label class="doc-form-label" for="{{ form.days.id_for_label }}">Срок выполнения (дней)</label>
+                        {{ form.days }}
+                    </div>
+                    {% endif %}
+                    {% if form.folder %}
+                    <div class="doc-form-field doc-form-field--full">
+                        <label class="doc-form-label" for="{{ form.folder.id_for_label }}">Папка</label>
+                        {{ form.folder }}
+                    </div>
+                    {% endif %}
+                    <div class="doc-form-field doc-form-field--full">
+                        <label class="doc-form-label" for="{{ form.title.id_for_label }}">Заголовок</label>
+                        {{ form.title }}
+                    </div>
+                    {% if form.text %}
+                    <div class="doc-form-field doc-form-field--full">
+                        <label class="doc-form-label" for="{{ form.text.id_for_label }}">Описание</label>
+                        {{ form.text }}
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="doc-form-section">
+                <h2 class="doc-form-section__title">Файлы и контрагент</h2>
+                <div class="doc-form-grid">
+                    <div class="doc-form-field {% if not form.supplier %}doc-form-field--full{% endif %}">
+                        <label class="doc-form-label" for="{{ form.document.id_for_label }}">Документ</label>
+                        <label class="doc-form-upload" for="{{ form.document.id_for_label }}">
+                            {{ form.document }}
+                            <span class="doc-form-upload__icon"><i class="bi bi-file-earmark-arrow-up"></i></span>
+                            <span class="doc-form-upload__text">Перетащите файл или нажмите для выбора</span>
+                            <span class="doc-form-upload__name" data-upload-name>Файл не выбран</span>
+                        </label>
+                    </div>
+                    {% if form.supplier %}
+                    <div class="doc-form-field">
+                        <label class="doc-form-label" for="{{ form.supplier.id_for_label }}">Контрагент</label>
+                        {{ form.supplier }}
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="doc-form-section">
+                <h2 class="doc-form-section__title">Согласование</h2>
+                <div class="doc-form-grid">
+                    <div class="doc-form-field">
+                        <label class="doc-form-label" for="{{ form.coordinators.id_for_label }}">Согласующие</label>
+                        {{ form.coordinators }}
+                    </div>
+                    <div class="doc-form-field">
+                        <label class="doc-form-label" for="{{ form.observers.id_for_label }}">Наблюдатели</label>
+                        {{ form.observers }}
+                    </div>
+                </div>
+
+                {% if form.need_all or form.need_head %}
+                <div class="doc-form-checks">
+                    {% if form.need_all %}
+                    <label class="doc-form-check">
+                        {{ form.need_all }}
+                        <span>Все согласующие должны согласовать</span>
+                    </label>
+                    {% endif %}
+                    {% if form.need_head %}
+                    <label class="doc-form-check">
+                        {{ form.need_head }}
+                        <span>Требуется подпись руководителя</span>
+                    </label>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </section>
+
+            <div class="doc-form-footer">
+                <a href="{% url 'documents:list' document_type %}" class="doc-btn doc-btn--ghost">Отмена</a>
+                <button class="doc-btn doc-btn--primary" type="submit">
+                    <i class="bi bi-check-lg"></i>
+                    <span>Сохранить</span>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
+<script src="{% static 'site/js/apps/docs-edit.js' %}?v={{ static_version|default:'1' }}&n=2"></script>
 {% endblock %}

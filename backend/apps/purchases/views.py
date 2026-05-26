@@ -7,6 +7,7 @@ from project.utils import get_or_error, get_or_none
 from project.paginator import CustomPaginator
 
 from .enums import SupplierStatusEnum
+from .services.sync_from_onec import sync_counterparties_to_suppliers
 
 
 @need_permission(PermissionEnums.SUPPLIERS)
@@ -16,6 +17,8 @@ def suppliers(request):
 
 @need_permission(PermissionEnums.SUPPLIERS)
 def suppliers_by_status(request, status = None):
+
+    sync_counterparties_to_suppliers()
 
     queryset = Supplier.objects.all()
     search = request.GET.get('search', '')

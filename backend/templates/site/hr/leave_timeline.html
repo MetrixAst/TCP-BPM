@@ -1,23 +1,36 @@
 {% extends 'site/base.html' %}
 {% load static %}
 
-{% block title %}Timeline отпусков — metriX BPM{% endblock %}
+{% block title %}Календарь отпусков — metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/leaves.css' %}?v=10004">
+<link rel="stylesheet" href="{% static 'site/css/apps/bpm-calendars.css' %}?v=1" />
+<link rel="stylesheet" href="{% static 'site/css/apps/leaves.css' %}?v={{ static_version|default:'1' }}&t=3">
 {% endblock %}
 
 {% block content %}
-<div class="leave-timeline-page" id="leaveTimelinePage" data-source-url="/hr/leaves/timeline/">
+<div class="leave-timeline-page" id="leaveTimelinePage"
+     data-source-url="{% url 'hr:leave_timeline' %}">
 
   <div class="leave-timeline-page__top">
     <div>
-      <h1 class="leave-timeline-page__title">Timeline отпусков</h1>
-      <p class="leave-timeline-page__subtitle">Gantt-представление заявок сотрудников</p>
+      <h1 class="leave-timeline-page__title">Календарь отпусков</h1>
+      <p class="leave-timeline-page__subtitle" id="tlSubtitle">Загрузка…</p>
     </div>
 
     <div class="leave-timeline-page__actions">
+      <button type="button" class="leaves-page__btn leaves-page__btn--outline" id="tlPrevMonth">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <button type="button" class="leaves-page__btn leaves-page__btn--outline" id="tlToday">
+        Сегодня
+      </button>
+      <button type="button" class="leaves-page__btn leaves-page__btn--outline" id="tlNextMonth">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+
       <a href="{% url 'hr:leave_list' %}" class="leaves-page__btn leaves-page__btn--outline">
+        <i class="bi bi-list-ul"></i>
         Список
       </a>
 
@@ -35,20 +48,18 @@
 
   <div class="leave-timeline-panel">
     <div class="leave-timeline-panel__header">
-      <div class="leave-timeline-panel__title">Календарь</div>
-
       <div class="leave-timeline-legend">
+        <span><i class="leave-dot leave-dot--draft"></i> Черновик</span>
         <span><i class="leave-dot leave-dot--pending"></i> На рассмотрении</span>
         <span><i class="leave-dot leave-dot--approved"></i> Одобрено</span>
         <span><i class="leave-dot leave-dot--rejected"></i> Отклонено</span>
       </div>
     </div>
 
-    <div class="leave-timeline" id="leaveTimeline">
+    <div class="leave-timeline-wrap" id="leaveTimeline">
       <div class="leave-timeline__empty">
         <i class="bi bi-calendar-range"></i>
-        <strong>Timeline пока пустой</strong>
-        <span>Данные появятся после подключения backend render/API</span>
+        <strong>Загрузка данных…</strong>
       </div>
     </div>
   </div>
@@ -57,5 +68,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'site/js/apps/leaves.js' %}?v=10004"></script>
+<script src="{% static 'site/js/apps/leaves.js' %}?v={{ static_version|default:'1' }}&t=3"></script>
 {% endblock %}

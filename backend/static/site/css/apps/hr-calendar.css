@@ -1,0 +1,290 @@
+/* HR FullCalendar — командировки */
+
+.hr-calendar-page .hr-card .card-body {
+  padding: 12px !important;
+}
+
+.hr-cal-list--first {
+  margin-bottom: 20px;
+}
+
+.hr-cal-month__title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #25233f;
+}
+
+.hr-cal-month__card .card-body {
+  min-height: 0;
+}
+
+.hr-calendar-page #calendar {
+  min-height: 280px;
+}
+
+.hr-calendar-page .fc {
+  min-height: 260px;
+}
+
+.hr-cal-month__card.is-loading #calendar::before {
+  content: "Загрузка календаря…";
+  display: block;
+  padding: 24px;
+  text-align: center;
+  color: #9a98aa;
+  font-size: 14px;
+}
+
+.hr-cal-day--holiday .fc-daygrid-day-frame {
+  background: #fef2f2;
+}
+
+.hr-cal-day--weekend .fc-daygrid-day-frame {
+  background: #f8fafc;
+}
+
+.hr-cal-day--working .fc-daygrid-day-frame {
+  background: #ffffff;
+}
+
+.hr-cal-event--secondment::before,
+.hr-cal-event--vacation::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.hr-cal-event--secondment {
+  border-left: 3px solid #1d4ed8 !important;
+}
+
+.hr-cal-event--vacation {
+  border-left: 3px solid #15803d !important;
+}
+
+.hr-calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--bpm-text-muted, #6b7280);
+}
+
+.hr-calendar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hr-calendar-legend i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.hr-calendar-legend .leg-work { background: #fff; border: 1px solid #e8ebf2; }
+.hr-calendar-legend .leg-weekend { background: #f8fafc; border: 1px solid #e8ebf2; }
+.hr-calendar-legend .leg-holiday { background: #fef2f2; border: 1px solid #fecaca; }
+.hr-calendar-legend .leg-secondment { background: #2563eb; }
+.hr-calendar-legend .leg-vacation { background: #16a34a; }
+
+/* ── Форма командировки ── */
+body.cal-form-body .bpm-content {
+  background: #f4f6fb;
+}
+
+.cal-form-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 8px 0 40px;
+}
+
+.cal-form-card {
+  background: #fff;
+  border: 1px solid #e8ebf2;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+.cal-form-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 28px 0;
+}
+
+.cal-form-card__eyebrow {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #2f6bed;
+}
+
+.cal-form-card__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #25233f;
+}
+
+.cal-form-card__close {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #74728a;
+  background: #f5f3fa;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.cal-form-card__close:hover {
+  background: #edf2ff;
+  color: #2f6bed;
+}
+
+.cal-form-card__body {
+  padding: 20px 28px 8px;
+}
+
+.cal-form-card__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 28px 24px;
+  border-top: 1px solid #f0eef6;
+}
+
+.cal-form-section {
+  margin-bottom: 24px;
+}
+
+.cal-form-section__title {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #25233f;
+}
+
+.cal-form-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.cal-form-grid--2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 640px) {
+  .cal-form-grid--2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cal-form-field--wide {
+  grid-column: 1 / -1;
+}
+
+.cal-form-field__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5a587a;
+}
+
+.cal-form-field__label span {
+  color: #ef4444;
+}
+
+.cal-form-field__hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #9a98aa;
+}
+
+.cal-form-field__error {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #dc2626;
+}
+
+.cal-form-field.is-invalid .form-control,
+.cal-form-field.is-invalid .select2-container .select2-selection {
+  border-color: #fca5a5 !important;
+}
+
+.cal-form-field .form-control,
+.cal-form-field .select2-container {
+  width: 100% !important;
+}
+
+.cal-form-alert {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+/* ── Список командировок под календарём ── */
+.hr-cal-list {
+  margin-top: 0;
+}
+
+.hr-cal-list__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0eef6;
+}
+
+.hr-cal-list__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #25233f;
+}
+
+.hr-cal-list__count {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2f6bed;
+  background: #edf2ff;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.hr-cal-list__table {
+  margin: 0;
+}
+
+.hr-cal-list .table-responsive {
+  padding: 0 8px 8px;
+}
+
+.emp-empty--compact {
+  padding: 32px 20px;
+}
+
+.emp-empty--compact p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #9a98aa;
+}

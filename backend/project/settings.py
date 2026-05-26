@@ -65,6 +65,7 @@ MIDDLEWARE = [
     'audit.middleware.AuditMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'account.language_middleware.LanguageMiddleware',
 ]
 
 ROOT_URLCONF = 'project.urls'
@@ -215,6 +216,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'sync_counterparties_task',
         'schedule': timedelta(hours=4),
     },
+    'sync_onec_finances_every_4_hours': {
+        'task': 'sync_onec_all_task',
+        'schedule': timedelta(hours=4),
+    },
     'sync-enbek-every-6-hours': {
         'task': 'hr.tasks.sync_enbek_data',
         'schedule': crontab(minute=0, hour='*/6'),
@@ -223,10 +228,11 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'hr.tasks.hr_check_expirations',
         'schedule': crontab(hour=6, minute=0),
     },
-    'fetch-exchange-rates-daily': {
-        'task': 'finances.tasks.fetch_exchange_rates',
-        'schedule': crontab(hour=14, minute=0),
-    },
+    # Курсы НБ РК отключены — в интерфейсе все суммы в ₸
+    # 'fetch-exchange-rates-daily': {
+    #     'task': 'finances.tasks.fetch_exchange_rates',
+    #     'schedule': crontab(hour=14, minute=0),
+    # },
 }
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
@@ -245,6 +251,10 @@ ONE_C_BASIC_AUTH_USER = config('ONE_C_BASIC_AUTH_USER', default='')
 ONE_C_BASIC_AUTH_PASSWORD = config('ONE_C_BASIC_AUTH_PASSWORD', default='')
 ONE_C_API_USER = config('ONE_C_API_USER', default='')
 ONE_C_API_PASSWORD = config('ONE_C_API_PASSWORD', default='')
+ONE_C_SYNC_ENABLED = config('ONE_C_SYNC_ENABLED', default=True, cast=bool)
+ONE_C_SYNC_SINCE_DAYS = config('ONE_C_SYNC_SINCE_DAYS', default=90, cast=int)
+ONE_C_TIMEOUT = config('ONE_C_TIMEOUT', default=30, cast=int)
+ONE_C_VERIFY_SSL = config('ONE_C_VERIFY_SSL', default=True, cast=bool)
 
 ENBEK_BASE_URL = config('ENBEK_BASE_URL', default='http://web:8000/api/enbek')
 ENBEK_USERNAME = config('ENBEK_USERNAME', default='test')

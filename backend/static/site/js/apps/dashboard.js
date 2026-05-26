@@ -56,50 +56,50 @@ async function loadCashflowChart(days) {
           {
             label: 'Поступления',
             data: income,
-            backgroundColor: 'rgba(47,107,237,0.7)',
-            borderColor: '#2f6bed',
-            borderWidth: 1,
+            backgroundColor: 'rgba(47, 107, 237, 0.75)',
+            borderColor: 'rgba(47, 107, 237, 0)',
+            borderWidth: 0,
+            borderRadius: 6,
+            borderSkipped: false,
             order: 2,
           },
           {
             label: 'Выбытия',
             data: expense,
-            backgroundColor: 'rgba(255,59,48,0.55)',
-            borderColor: '#ff3b30',
-            borderWidth: 1,
+            backgroundColor: 'rgba(255, 149, 0, 0.65)',
+            borderColor: 'rgba(255, 149, 0, 0)',
+            borderWidth: 0,
+            borderRadius: 6,
+            borderSkipped: false,
             order: 2,
           },
           {
             label: 'Чистый CF',
             data: net,
             type: 'line',
-            borderColor: '#7b7890',
-            backgroundColor: netColors,
+            borderColor: '#25233f',
+            backgroundColor: 'rgba(37, 35, 63, 0.06)',
             pointBackgroundColor: netColors,
-            pointRadius: 4,
-            fill: false,
-            tension: 0.3,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            fill: true,
+            tension: 0.35,
             order: 1,
           },
         ],
       },
-      options: {
-        responsive: true,
+      options: chartBaseOptions({
         interaction: { mode: 'index', intersect: false },
         plugins: {
           tooltip: {
             callbacks: {
-              label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)} ₸`,
+              label: c => `${c.dataset.label}: ${fmt(c.parsed.y)} ₸`,
             },
           },
-          legend: { position: 'bottom' },
         },
-        scales: {
-          y: {
-            ticks: { callback: v => `${fmt(v)} ₸` },
-          },
-        },
-      },
+      }),
     });
   } catch (e) {
     console.error('cashflow chart error', e);
@@ -131,30 +131,36 @@ async function loadWeeklyChart(weeks) {
             label: 'Чистый CF (нед.)',
             data: netCf,
             borderColor: '#2f6bed',
-            backgroundColor: 'rgba(47,107,237,0.1)',
-            pointBackgroundColor: netCf.map(v => v < 0 ? '#ff3b30' : '#22a85a'),
-            pointRadius: 5,
+            borderWidth: 2.5,
+            backgroundColor: (context) => {
+              const { chart } = context;
+              const { ctx: c, chartArea } = chart;
+              if (!chartArea) return 'rgba(47, 107, 237, 0.08)';
+              const grad = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+              grad.addColorStop(0, 'rgba(47, 107, 237, 0.22)');
+              grad.addColorStop(1, 'rgba(47, 107, 237, 0.02)');
+              return grad;
+            },
+            pointBackgroundColor: netCf.map(v => (v < 0 ? '#ff3b30' : '#22a85a')),
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 6,
+            pointHoverRadius: 8,
             fill: true,
-            tension: 0.35,
+            tension: 0.4,
           },
         ],
       },
-      options: {
-        responsive: true,
+      options: chartBaseOptions({
         plugins: {
+          legend: { display: false },
           tooltip: {
             callbacks: {
-              label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)} ₸`,
+              label: c => `${c.dataset.label}: ${fmt(c.parsed.y)} ₸`,
             },
           },
-          legend: { position: 'bottom' },
         },
-        scales: {
-          y: {
-            ticks: { callback: v => `${fmt(v)} ₸` },
-          },
-        },
-      },
+      }),
     });
   } catch (e) {
     console.error('weekly chart error', e);
@@ -173,6 +179,52 @@ const DRILL_TITLES = {
   cash:         'Остаток ДС',
   budget:       'Бюджет',
 };
+
+const CHART_FONT = '"Inter", system-ui, -apple-system, sans-serif';
+const CHART_GRID = 'rgba(236, 234, 243, 0.9)';
+const CHART_TICK = '#9a98aa';
+
+function chartBaseOptions(extra = {}) {
+  return {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          font: { family: CHART_FONT, size: 12, weight: '500' },
+          color: '#74728a',
+          padding: 16,
+          usePointStyle: true,
+          pointStyleWidth: 8,
+        },
+      },
+      tooltip: {
+        backgroundColor: '#25233f',
+        titleFont: { family: CHART_FONT, size: 12 },
+        bodyFont: { family: CHART_FONT, size: 13 },
+        padding: 12,
+        cornerRadius: 10,
+        displayColors: true,
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { family: CHART_FONT, size: 11 }, color: CHART_TICK, maxRotation: 0 },
+      },
+      y: {
+        grid: { color: CHART_GRID, drawBorder: false },
+        ticks: {
+          font: { family: CHART_FONT, size: 11 },
+          color: CHART_TICK,
+          callback: v => `${fmt(v)} ₸`,
+        },
+      },
+    },
+    ...extra,
+  };
+}
 
 async function openDrillPanel(type, period) {
   const panel = document.getElementById('drillPanel');
@@ -244,7 +296,12 @@ async function refreshKPIs() {
     set('kpi-revenue-mtd',   data.revenue_mtd);
     set('kpi-revenue-ytd',   data.revenue_ytd);
     set('kpi-expenses-mtd',  data.expenses_mtd);
-    set('kpi-net-cf',        data.net_cf);
+    const netEl = document.getElementById('kpi-net-cf');
+    if (netEl && data.net_cf !== undefined) {
+      netEl.textContent = `${fmt(data.net_cf)} ₸`;
+      netEl.classList.toggle('fin-kpi-value--success', data.net_cf >= 0);
+      netEl.classList.toggle('fin-kpi-value--danger', data.net_cf < 0);
+    }
     set('kpi-overdue-amount',data.overdue_amount);
 
     const trendEl = document.getElementById('kpi-revenue-trend');
@@ -263,61 +320,6 @@ async function refreshKPIs() {
   }
 }
 
-/* ─── 5. Multi-currency balances ─────────────────────────── */
-async function loadBalances(currency) {
-  const hintEl = document.getElementById('rateHint');
-  if (!currency) {
-    if (hintEl) hintEl.textContent = '';
-    hintEl && hintEl.classList.remove('is-stale');
-    return;
-  }
-
-  try {
-    const resp = await fetch(`/finances/dashboard/balances/?currency=${currency}`);
-    if (!resp.ok) throw new Error(resp.statusText);
-    const d = await resp.json();
-
-    const cashEl    = document.getElementById('kpi-cash-balance');
-    const cashFxEl  = document.getElementById('kpi-cash-balance-fx');
-    const revEl     = document.getElementById('kpi-revenue-mtd');
-    const revFxEl   = document.getElementById('kpi-revenue-mtd-fx');
-
-    if (cashEl && d.cash_balance_kzt !== undefined)
-      cashEl.textContent = `${fmt(d.cash_balance_kzt)} ₸`;
-    if (cashFxEl && d.cash_balance_foreign !== undefined)
-      cashFxEl.textContent = `≈ ${fmt(d.cash_balance_foreign)} ${d.currency}`;
-
-    if (revEl && d.revenue_mtd_kzt !== undefined)
-      revEl.textContent = `${fmt(d.revenue_mtd_kzt)} ₸`;
-    if (revFxEl && d.revenue_mtd_foreign !== undefined)
-      revFxEl.textContent = `≈ ${fmt(d.revenue_mtd_foreign)} ${d.currency}`;
-
-    if (hintEl) {
-      hintEl.textContent = `Курс: ${d.rate} ₸ / ${d.currency} на ${d.rate_date}`;
-      if (!d.rate_is_fresh) {
-        hintEl.classList.add('is-stale');
-        hintEl.textContent += ' ⚠ устарел';
-      } else {
-        hintEl.classList.remove('is-stale');
-      }
-    }
-
-    /* Stale banner */
-    const banner  = document.getElementById('rateStaleBanner');
-    const bannerT = document.getElementById('rateStaleBannerText');
-    if (banner && bannerT) {
-      if (!d.rate_is_fresh) {
-        bannerT.textContent = `Курс устарел. Последний актуальный: ${d.rate} ₸ / ${d.currency} на ${d.rate_date}`;
-        banner.style.display = 'flex';
-      } else {
-        banner.style.display = 'none';
-      }
-    }
-  } catch (e) {
-    console.error('loadBalances error', e);
-  }
-}
-
 /* ─── Init ───────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   /* charts */
@@ -333,10 +335,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* KPI drill-down on card click */
+  /* KPI drill-down on card click / keyboard */
   document.querySelectorAll('.fin-kpi-card[data-drill-type]').forEach(card => {
-    card.addEventListener('click', () => {
-      openDrillPanel(card.dataset.drillType, card.dataset.drillPeriod || '');
+    const open = () => openDrillPanel(card.dataset.drillType, card.dataset.drillPeriod || '');
+    card.addEventListener('click', open);
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        open();
+      }
     });
   });
 
@@ -347,12 +354,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeDrillPanel();
   });
-
-  /* currency select */
-  const currSelect = document.getElementById('currencySelect');
-  if (currSelect) {
-    currSelect.addEventListener('change', () => loadBalances(currSelect.value));
-  }
 
   /* KPI auto-refresh every 5 min */
   setInterval(refreshKPIs, 5 * 60 * 1000);

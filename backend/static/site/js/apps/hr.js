@@ -55,6 +55,8 @@
     const form = document.getElementById("hrEmployeeForm");
     if (!form) return;
 
+    const positionsUrl = form.dataset.positionsUrl;
+
     if (window.jQuery && jQuery.fn.select2) {
       jQuery("#hrEmployeeForm select").each(function () {
         const $select = jQuery(this);
@@ -65,12 +67,92 @@
         $select.select2({
           width: "100%",
           placeholder: placeholder,
-          allowClear: false,
+          allowClear: Boolean($select.data("allow-clear")),
           dropdownParent: jQuery(".hr-edit-card"),
           minimumResultsForSearch: $select.prop("multiple") ? 0 : Infinity
         });
       });
     }
+
+    const deptSelect = form.querySelector('[name$="department"]');
+    const positionSelect = form.querySelector('[name$="position"]');
+
+    function loadPositions(deptId, keepValue) {
+      if (!positionSelect || !positionsUrl || !deptId) {
+        if (positionSelect) {
+          positionSelect.innerHTML = '<option value="">— Выберите отдел —</option>';
+          if (window.jQuery) jQuery(positionSelect).trigger("change");
+        }
+        return;
+      }
+
+      const saved = keepValue ? positionSelect.value : "";
+      fetch(positionsUrl + "?department=" + encodeURIComponent(deptId), {
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          const list = data.positions || [];
+          positionSelect.innerHTML = '<option value="">— Выберите должность —</option>';
+          list.forEach(function (p) {
+            const opt = document.createElement("option");
+            opt.value = String(p.id);
+            opt.textContent = p.title;
+            positionSelect.appendChild(opt);
+          });
+          if (saved && list.some(function (p) { return String(p.id) === saved; })) {
+            positionSelect.value = saved;
+          }
+          if (window.jQuery) jQuery(positionSelect).trigger("change");
+        })
+        .catch(function () {
+          console.error("Не удалось загрузить должности отдела");
+        });
+    }
+
+    if (deptSelect && positionSelect && positionsUrl) {
+      if (deptSelect.value) {
+        loadPositions(deptSelect.value, true);
+      }
+      deptSelect.addEventListener("change", function () {
+        loadPositions(deptSelect.value, false);
+      });
+      if (window.jQuery) {
+        jQuery(deptSelect).on("select2:select select2:clear", function () {
+          loadPositions(deptSelect.value, false);
+        });
+      }
+    }
+
+    const rolePick = form.querySelector('[name$="role_pick"]');
+    const roleCustomWrap = document.getElementById("hrRoleCustomWrap");
+    const roleCustomInput = form.querySelector('[name$="role_custom"]');
+
+    function syncRoleCustomVisibility() {
+      if (!rolePick || !roleCustomWrap) return;
+      const show = rolePick.value === "__new_role__";
+      roleCustomWrap.style.display = show ? "" : "none";
+      if (roleCustomInput) {
+        roleCustomInput.required = show;
+      }
+    }
+
+    if (rolePick) {
+      syncRoleCustomVisibility();
+      rolePick.addEventListener("change", syncRoleCustomVisibility);
+      if (window.jQuery) {
+        jQuery(rolePick).on("select2:select", syncRoleCustomVisibility);
+      }
+    }
+
+    form.addEventListener("submit", function (event) {
+      const nameField = form.querySelector('[name$="first_name"], [name$="username"]');
+      const employeeName = nameField ? nameField.value.trim() : "сотрудника";
+      const msg = "Сохранить данные сотрудника «" + (employeeName || "…") + "»?";
+      if (!window.confirm(msg)) {
+        event.preventDefault();
+      }
+    });
   }
 
   function parseCsvLine(line) {
@@ -114,42 +196,93 @@
         parentId: row[9] || "",
         name: row[8] || row[0],
         position: row[7] || "",
-        type: row[2] || "", 
-        imageUrl: row[1] || "" // Явно передаем URL для d3-org-chart
+        type: row[2] || "",
+        imageUrl: row[1] || "",
+        profileUrl: row[3] && row[3] !== "#" ? row[3] : "",
       };
     });
   }
 
   function getNodeHtml(d) {
     const data = d.data || d;
-    const name = data.name || "Без названия";
-    const position = data.position || "";
-    const type = (data.type || "").toLowerCase();
-    const imageUrl = data.imageUrl;
-    
-    let typeLabel = "Сотрудник";
-    if (type.includes("компания")) typeLabel = "Компания";
-    if (type.includes("департамент") || type.includes("отдел")) typeLabel = "Отдел";
+    const rawName  = (data.name     || "Без названия").trim();
+    const position = (data.position || "").trim();
+    const type     = (data.type     || "").toLowerCase();
+    const imageUrl = (data.imageUrl || "").trim();
+    const profileUrl = (data.profileUrl || "").trim();
+    const highlighted = data._highlighted ? " org-node--hl" : "";
 
-    const highlightClass = data._highlighted ? " is-highlighted" : "";
+    const isCompany  = type.includes("компания");
+    const isDept     = type.includes("департамент") || type.includes("отдел");
+    const isEmployee = String(data.id || "").startsWith("emp_");
 
-    // Если есть imageUrl, показываем картинку, если нет — первую букву
-    const avatarHtml = imageUrl && imageUrl.length > 5
-      ? `<img class="hr-org-node__avatar-img" src="${imageUrl}" alt="">`
-      : `<div class="hr-org-node__avatar-letter">${name.trim().charAt(0).toUpperCase()}</div>`;
+    /* ── COMPANY ── */
+    if (isCompany) {
+      const initials = rawName.split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+      return `
+        <div class="org-node org-node--company${highlighted}">
+          <div class="org-node__company-logo">${initials}</div>
+          <div class="org-node__company-name">${rawName}</div>
+          <div class="org-node__company-label">Компания</div>
+        </div>`;
+    }
+
+    /* ── DEPT ── */
+    if (isDept) {
+      // name может быть "Финансы · 3 чел." — разобьём
+      const parts    = rawName.split("·");
+      const deptName = parts[0].trim();
+      const count    = parts[1] ? parts[1].trim() : "";
+      const icon     = iconForDept(deptName);
+      return `
+        <div class="org-node org-node--dept${highlighted}">
+          <div class="org-node__dept-icon">${icon}</div>
+          <div class="org-node__dept-body">
+            <div class="org-node__dept-name">${deptName}</div>
+            ${count ? `<div class="org-node__dept-count">${count}</div>` : ""}
+            ${position && position !== "Отдел" ? `<div class="org-node__dept-head">Рук.: ${position}</div>` : ""}
+          </div>
+        </div>`;
+    }
+
+    /* ── EMPLOYEE ── */
+    const clickClass = profileUrl ? " org-node--link" : "";
+    const dataProp   = profileUrl ? ` data-href="${profileUrl}"` : "";
+
+    // Инициалы из имени
+    const words    = rawName.split(/\s+/).filter(Boolean);
+    const initials = words.length >= 2
+      ? words[0][0].toUpperCase() + words[1][0].toUpperCase()
+      : rawName.charAt(0).toUpperCase();
+
+    // Аватар — фото если есть, иначе инициалы
+    // дефолтный аватар из utils.py — profile-1.webp; если это он — показываем инициалы
+    const isDefaultAvatar = !imageUrl || imageUrl.includes("/profile/profile-") || imageUrl.length < 6;
+    const hasPhoto = !isDefaultAvatar;
+    const avatar   = hasPhoto
+      ? `<img class="org-emp__photo" src="${imageUrl}" alt="${rawName}">`
+      : `<div class="org-emp__initials">${initials}</div>`;
 
     return `
-      <div class="hr-org-node${highlightClass}">
-        <div class="hr-org-node__top">
-          <div class="hr-org-node__type">${typeLabel}</div>
-          <div class="hr-org-node__name">${name}</div>
+      <div class="org-node org-node--emp${clickClass}${highlighted}"${dataProp}>
+        <div class="org-emp__avatar">${avatar}</div>
+        <div class="org-emp__info">
+          <div class="org-emp__name">${rawName}</div>
+          ${position ? `<div class="org-emp__pos">${position}</div>` : ""}
         </div>
-        <div class="hr-org-node__bottom">
-          <div class="hr-org-node__avatar">${avatarHtml}</div>
-          <div class="hr-org-node__position">${position || typeLabel}</div>
-        </div>
-      </div>
-    `;
+        ${profileUrl ? `<div class="org-emp__arrow"><i class="bi bi-chevron-right"></i></div>` : ""}
+      </div>`;
+  }
+
+  function iconForDept(name) {
+    const n = name.toLowerCase();
+    if (n.includes("финанс") || n.includes("бухгалт")) return '<i class="bi bi-bar-chart-fill"></i>';
+    if (n.includes("hr") || n.includes("кадр") || n.includes("персон")) return '<i class="bi bi-people-fill"></i>';
+    if (n.includes("эксплуат") || n.includes("безопасн") || n.includes("техн")) return '<i class="bi bi-tools"></i>';
+    if (n.includes("коммерч") || n.includes("аренд") || n.includes("маркет")) return '<i class="bi bi-shop"></i>';
+    if (n.includes("админ") || n.includes("дирекц")) return '<i class="bi bi-building"></i>';
+    if (n.includes("it") || n.includes("ит") || n.includes("цифр")) return '<i class="bi bi-cpu-fill"></i>';
+    return '<i class="bi bi-diagram-3-fill"></i>';
   }
 
   function initOrgChart() {
@@ -181,15 +314,50 @@
           .parentNodeId(d => d.parentId)
           // Если библиотека ругается на отсутствие метода, 
           // мы просто задаем контент через nodeContent (он у нас уже настроен)
-          .nodeWidth(() => 220)
-          .nodeHeight(() => 112)
-          .childrenMargin(() => 52)
-          .compactMarginBetween(() => 30)
-          .siblingsMargin(() => 26)
-          .nodeContent(getNodeHtml) 
+          .nodeWidth(d => {
+            const t = (d.data.type || "").toLowerCase();
+            if (t.includes("компания")) return 220;
+            if (t.includes("департамент") || t.includes("отдел")) return 200;
+            return 240;
+          })
+          .nodeHeight(d => {
+            const t = (d.data.type || "").toLowerCase();
+            if (t.includes("компания")) return 100;
+            if (t.includes("департамент") || t.includes("отдел")) return 80;
+            return 72;
+          })
+          .childrenMargin(() => 48)
+          .compactMarginBetween(() => 16)
+          .siblingsMargin(() => 20)
+          .nodeContent(getNodeHtml)
+          .linkUpdate(function (d) {
+            d3.select(this)
+              .attr("stroke", "#d0d8f0")
+              .attr("stroke-width", 1.5)
+              .attr("stroke-dasharray", "none");
+          })
+          .onNodeClick(function (node) {
+            const data = node && node.data ? node.data : node;
+            const url = data && data.profileUrl;
+            if (url && String(data.id || "").startsWith("emp_")) {
+              window.location.href = url;
+            }
+          })
           .render();
 
-        setTimeout(() => chart.fit(), 200);
+        setTimeout(() => {
+          chart.fit();
+          const highlightId = container.dataset.highlight;
+          if (highlightId) {
+            chartData.forEach(item => {
+              item._highlighted = item.id === highlightId;
+              if (item._highlighted) {
+                item._expanded = true;
+              }
+            });
+            chart.data(chartData).render().fit();
+          }
+        }, 200);
       })
       .catch(error => {
         console.error("Chart Error Details:", error);
@@ -210,6 +378,18 @@
     setupAction("hrOrgZoomIn", "zoomIn");
     setupAction("hrOrgZoomOut", "zoomOut");
     setupAction("hrOrgFit", "fit");
+
+    const expandAll = document.getElementById("hrOrgExpandAll");
+    if (expandAll) {
+      expandAll.addEventListener("click", function () {
+        if (!chart || !chartData.length) return;
+        chartData.forEach(function (item) {
+          item._expanded = true;
+          item._highlighted = false;
+        });
+        chart.data(chartData).render().fit();
+      });
+    }
 
     const search = document.getElementById("hrOrgSearch");
     if (search) {

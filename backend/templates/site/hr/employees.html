@@ -39,7 +39,7 @@
 
         <div class="hr-table__body">
           {% for current in paginator.items %}
-          <a href="{% url 'hr:edit_employee' current.id %}" class="hr-table__row">
+          <a href="{% url 'hr:employee_detail' current.id %}" class="hr-table__row">
             <div class="hr-employee">
               <div class="hr-avatar">
                 {% if current.user.first_name %}

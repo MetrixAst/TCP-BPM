@@ -2,15 +2,124 @@
   padding: 0;
 }
 
+/* ── Page Header ── */
+.onec-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.onec-page-header__left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.onec-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+  color: #74728a;
+}
+
+.onec-breadcrumb li + li::before {
+  content: "/";
+  color: #c8c6d7;
+  margin-right: 6px;
+}
+
+.onec-breadcrumb a {
+  color: #74728a;
+  text-decoration: none;
+}
+
+.onec-breadcrumb a:hover {
+  color: #2f6bed;
+}
+
+/* ── Filter Actions ── */
+.onec-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Table Count Badge ── */
+.onec-table-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 20px;
+  background: #ebeaf1;
+  color: #74728a;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+/* ── Type Badges ── */
+.onec-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #f2f0f9;
+  color: #74728a;
+  white-space: nowrap;
+}
+
+.onec-type-badge--supplier {
+  background: #eff4ff;
+  color: #2f6bed;
+}
+
+.onec-type-badge--customer {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.onec-type-badge--both {
+  background: #fef9ee;
+  color: #d97706;
+}
+
+/* ── Mono text (BIN) ── */
+.onec-mono {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 12px;
+  color: #4b4968;
+  letter-spacing: 0.03em;
+}
+
+/* ── Address cell ── */
+.onec-address {
+  color: #74728a;
+  font-size: 12px;
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .onec-filter-card {
   background: #ffffff;
-  border-radius: 18px;
-  padding: 18px 22px;
-  margin-bottom: 18px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 18px;
+  border: 1px solid #ebeaf1;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(15, 14, 40, 0.06);
 }
 
 .onec-page-title {
@@ -24,7 +133,6 @@
 .onec-filter-form {
   display: flex;
   align-items: flex-end;
-  justify-content: flex-end;
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -124,8 +232,10 @@
 /* LIST TABLE */
 .onec-table-card {
   background: #ffffff;
-  border-radius: 18px;
+  border: 1px solid #ebeaf1;
+  border-radius: 14px;
   padding: 18px;
+  box-shadow: 0 1px 3px rgba(15, 14, 40, 0.06);
 }
 
 .onec-table-head {

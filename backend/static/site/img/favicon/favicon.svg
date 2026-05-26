@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="metriX">
+  <rect width="32" height="32" rx="7" fill="#111a35"/>
+  <text x="5" y="23" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="600" fill="#ffffff">metri</text>
+  <text x="21" y="23" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="700" fill="#16a34a">X</text>
+</svg>

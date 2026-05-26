@@ -20,8 +20,8 @@ class DocumentForm(forms.ModelForm):
 
     document = forms.FileField(widget=forms.FileInput(attrs={'class':'form-control'}))
 
-    coordinators = UserSelect2MultipleField(required=True)
-    observers = UserSelect2MultipleField(required=True)
+    coordinators = UserSelect2MultipleField(required=True, all=True, placeholder='Согласующие')
+    observers = UserSelect2MultipleField(required=True, all=True, placeholder='Наблюдатели')
 
     # folder = Select2FieldDefault(Folder.get_by_root_type('documents'), required=True)
     folder = TreeField(Folder.objects.none(), required=True)
@@ -64,8 +64,8 @@ class PurchaseForm(forms.ModelForm):
 
     document = forms.FileField(widget=forms.FileInput(attrs={'class':'form-control'}))
 
-    coordinators = UserSelect2MultipleField(required=True)
-    observers = UserSelect2MultipleField(required=True)
+    coordinators = UserSelect2MultipleField(required=True, all=True, placeholder='Согласующие')
+    observers = UserSelect2MultipleField(required=True, all=True, placeholder='Наблюдатели')
 
     folder = TreeField(Folder.objects.none(), required=True)
 
@@ -93,8 +93,8 @@ class BudgetForm(forms.ModelForm):
 
     document = forms.FileField(widget=forms.FileInput(attrs={'class':'form-control'}))
 
-    coordinators = UserSelect2MultipleField(required=True)
-    observers = UserSelect2MultipleField(required=True)
+    coordinators = UserSelect2MultipleField(required=True, all=True, placeholder='Согласующие')
+    observers = UserSelect2MultipleField(required=True, all=True, placeholder='Наблюдатели')
 
     class Meta:
         model = Document

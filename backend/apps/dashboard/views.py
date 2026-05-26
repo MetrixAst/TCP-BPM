@@ -9,7 +9,8 @@ def base_redirect(request):
     first_page = MenuItem.first_page(request.user)
     if first_page is not None:
         return redirect(first_page)
-    
+    return redirect('dashboard:dashboard')
+
 
 @need_permission(PermissionEnums.DASHBOARD)
 def dashboard(request):

@@ -14,6 +14,7 @@
   
     let stream = null;
     let capturedPhoto = null;
+    let capturedGeo = null;   // { latitude, longitude } или null
   
     function showMessage(text, type) {
       message.textContent = text;
@@ -102,20 +103,49 @@
   
     function capturePhoto() {
       hideMessage();
-  
+
       if (!video.videoWidth || !video.videoHeight) {
         showMessage('Камера ещё не готова. Подождите пару секунд и попробуйте снова.', 'error');
         return;
       }
-  
-      canvas.width = video.videoWidth;
+
+      canvas.width  = video.videoWidth;
       canvas.height = video.videoHeight;
-  
-      const context = canvas.getContext('2d');
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-  
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
       const photo = canvas.toDataURL('image/jpeg', 0.92);
+
+      // Запрашиваем геопозицию параллельно
+      capturedGeo = null;
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function (pos) {
+            capturedGeo = {
+              latitude:  Math.round(pos.coords.latitude  * 1e7) / 1e7,
+              longitude: Math.round(pos.coords.longitude * 1e7) / 1e7,
+            };
+            updateGeoStatus(capturedGeo);
+          },
+          function () {
+            capturedGeo = null;
+            updateGeoStatus(null);
+          },
+          { timeout: 8000, maximumAge: 30000 }
+        );
+      }
+
       setCapturedMode(photo);
+    }
+
+    function updateGeoStatus(geo) {
+      var el = document.getElementById('checkinGeoStatus');
+      if (!el) return;
+      if (geo) {
+        el.textContent = '📍 ' + geo.latitude.toFixed(5) + ', ' + geo.longitude.toFixed(5);
+        el.className = 'checkin-geo-status checkin-geo-status--ok';
+      } else {
+        el.textContent = '📍 Геопозиция недоступна';
+        el.className = 'checkin-geo-status checkin-geo-status--off';
+      }
     }
   
     async function submitPhoto() {
@@ -140,7 +170,9 @@
           },
           body: JSON.stringify({
             event_type: getEventType(),
-            photo: capturedPhoto
+            photo: capturedPhoto,
+            latitude:  capturedGeo ? capturedGeo.latitude  : null,
+            longitude: capturedGeo ? capturedGeo.longitude : null,
           })
         });
   
@@ -150,13 +182,10 @@
           throw new Error(data.error || 'Не удалось отправить снимок.');
         }
   
-        showMessage('Отметка успешно отправлена.', 'success');
-        retakeBtn.hidden = true;
-        submitBtn.hidden = true;
-        captureBtn.hidden = false;
-        capturedPhoto = null;
-        preview.hidden = true;
-        video.hidden = false;
+        showMessage('Отметка сохранена. Обновляем страницу…', 'success');
+        setTimeout(function () {
+          window.location.href = window.location.pathname;
+        }, 1200);
       } catch (error) {
         showMessage(error.message || 'Ой, что-то пошло не так!', 'error');
       } finally {

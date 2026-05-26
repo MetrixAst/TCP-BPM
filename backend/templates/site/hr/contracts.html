@@ -1,42 +1,53 @@
 {% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Договоры (Enbek) | metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Договоры (Enbek)</h2>
+<div class="hr-page">
+  <div class="hr-list-top">
+    <h1>Договоры (Enbek)</h1>
+  </div>
 
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>ID Enbek</th>
-                <th>Сотрудник</th>
-                <th>Номер</th>
-                <th>Дата</th>
-                <th>Тип</th>
-                <th>Статус</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in contracts %}
-                <tr>
-                    <td>{{ item.enbek_id }}</td>
-                    <td>
-                        {% if item.employee %}
-                            {{ item.employee.user.get_name|default:item.employee.user.username }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-                    <td>{{ item.number|default:"—" }}</td>
-                    <td>{{ item.date|date:"d.m.Y" }}</td>
-                    <td>{{ item.type }}</td>
-                    <td>{{ item.status }}</td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="6">Нет данных</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+  <div class="hr-card">
+    {% if contracts %}
+    <div class="hr-table hr-table--enbek">
+      <div class="hr-table__head">
+        <div>ID Enbek</div>
+        <div>Сотрудник</div>
+        <div>Номер</div>
+        <div>Дата</div>
+        <div>Тип</div>
+        <div>Статус</div>
+      </div>
+      <div class="hr-table__body">
+        {% for item in contracts %}
+        <div class="hr-table__row">
+          <div class="hr-muted">{{ item.enbek_id }}</div>
+          <div class="hr-employee__name">
+            {% if item.employee %}{{ item.employee.user.get_name|default:item.employee.user.username }}{% else %}—{% endif %}
+          </div>
+          <div class="hr-muted">{{ item.number|default:"—" }}</div>
+          <div class="hr-muted">{{ item.date|date:"d.m.Y" }}</div>
+          <div class="hr-muted">{{ item.type }}</div>
+          <div>
+            <span class="hr-badge hr-badge--neutral">{{ item.status }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="hr-empty">
+      <i class="bi bi-file-earmark-x"></i>
+      <h3>Данные отсутствуют</h3>
+      <p>Договоры не найдены.</p>
+    </div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

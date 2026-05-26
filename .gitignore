@@ -47,6 +47,17 @@ htmlcov/
 celerybeat-schedule
 celerybeat.pid
 
-# Local planning docs
+# Local planning docs (не в репозиторий)
 PLAN.md
 TASKS.json
+BRD.md
+PROGRESS.md
+SPRINT_REPORT_05-18.md
+bpm-report-11.05.md
+dop_tasks.json
+sprint-fix-tasks.json
+tasks-new-update.json
+upload_to_linear.py
+docs/
+backend/I18N.md
+ТЗ.md

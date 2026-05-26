@@ -59,21 +59,21 @@ def tasks_list(request, action):
                 "count": base_queryset.count(),
             },
             "author": {
-                "title": "Я автор",
+                "title": "Автор",
                 "count": base_queryset.filter(author=request.user).count(),
             },
             "executor": {
-                "title": "Я исполнитель",
+                "title": "Исполнитель",
                 "count": base_queryset.filter(
                     Q(executor=request.user) | Q(co_executors=request.user)
                 ).distinct().count(),
             },
             "approver": {
-                "title": "Я согласующий",
+                "title": "Проверка",
                 "count": base_queryset.filter(status="completed").count(),
             },
             "observer": {
-                "title": "Я наблюдатель",
+                "title": "Наблюдатель",
                 "count": base_queryset.filter(observers=request.user).count(),
             },
         },

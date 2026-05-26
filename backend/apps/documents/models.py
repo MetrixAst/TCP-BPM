@@ -22,18 +22,23 @@ class Folder(MPTTModel):
 
     @staticmethod
     def get_by_root_type(type, include_self=False):
-        try:
-            root = get_or_none(Folder, root_type=type)
-            if root is not None:
-                res = root.get_descendants(include_self=include_self)
-                if not include_self:
-                    res = res.filter(children__isnull=True)
+        from .folder_structure import ensure_folder_tree
 
-                return res
-            return Folder.objects.all()
-        except:
-            return None
+        try:
+            root = ensure_folder_tree(type)
+            res = root.get_descendants(include_self=include_self)
+            if not include_self:
+                # Папки, в которые можно класть документы (листья дерева).
+                res = res.filter(lft=models.F('rght') - 1)
+            return res
+        except Exception:
+            return Folder.objects.none()
         
+
+    @property
+    def short_name(self):
+        from .folder_structure import folder_display_name
+        return folder_display_name(self.name)
 
     def __str__(self):
         return self.name

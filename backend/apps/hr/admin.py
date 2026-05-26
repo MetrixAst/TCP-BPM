@@ -191,7 +191,7 @@ class EmployeeCertificationAdmin(admin.ModelAdmin):
     list_display = ('employee', 'cert_type', 'certificate_number', 'issue_date', 'expiry_date', 'get_status')
     list_filter = ('cert_type', 'is_revoked', 'employee__department')
     search_fields = ('employee__user__last_name', 'certificate_number')
-    list_select_related = ('employee__user', 'cert_type')
+    list_select_related = ('employee__user',)
 
     def get_status(self, obj):
         from django.utils.html import format_html

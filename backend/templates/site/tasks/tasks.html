@@ -135,8 +135,7 @@
               </td>
 
               <td class="tasks-table__td tasks-table__td--date">
-                {{ current.deadline|date:"d.m.Y" }}
-                {% if current.deadline %} 12:00{% endif %}
+                {{ current.deadline|date:"d.m.Y"|default:"—" }}
               </td>
 
               <td class="tasks-table__td">

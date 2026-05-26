@@ -4,20 +4,58 @@
 {% block title %}Фотофиксация — metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/attendance.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'site/css/apps/attendance.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&t=6">
 {% endblock %}
 
 {% block content %}
 <div class="attendance-checkin-page" id="attendanceCheckinPage">
+
   <div class="attendance-checkin-page__top">
     <div>
       <h1 class="attendance-checkin-page__title">Фотофиксация</h1>
-      <p class="attendance-checkin-page__subtitle">Сделайте снимок для отметки посещаемости</p>
+      <p class="attendance-checkin-page__subtitle">Отметка посещаемости с фото и геопозицией</p>
     </div>
 
     <a href="{% url 'hr:attendance_my' %}" class="attendance-checkin-btn attendance-checkin-btn--ghost">
+      <i class="bi bi-arrow-left"></i>
       Моя посещаемость
     </a>
+  </div>
+
+  {# Статус за сегодня #}
+  <div class="checkin-today-panel">
+    <div class="checkin-today-panel__head">
+      <strong>Сегодня</strong>
+      {% if all_done_today %}
+        <span class="checkin-today-panel__badge checkin-today-panel__badge--done">Все отметки сданы</span>
+      {% elif next_event %}
+        <span class="checkin-today-panel__badge">Следующая: {{ next_event_label }}</span>
+      {% endif %}
+    </div>
+
+    <div class="checkin-today-steps">
+      <div class="checkin-step {% if 'day_start' in completed_types %}checkin-step--done{% endif %}">
+        <i class="bi bi-{% if 'day_start' in completed_types %}check-circle-fill{% else %}circle{% endif %}"></i>
+        <span>Приход</span>
+        {% for m in today_marks %}{% if m.type == 'day_start' %}<em>{{ m.time }}</em>{% endif %}{% endfor %}
+      </div>
+      <div class="checkin-step {% if 'lunch_start' in completed_types %}checkin-step--done{% endif %}">
+        <i class="bi bi-{% if 'lunch_start' in completed_types %}check-circle-fill{% else %}circle{% endif %}"></i>
+        <span>Начало обеда</span>
+        {% for m in today_marks %}{% if m.type == 'lunch_start' %}<em>{{ m.time }}</em>{% endif %}{% endfor %}
+      </div>
+      <div class="checkin-step {% if 'lunch_end' in completed_types %}checkin-step--done{% endif %}">
+        <i class="bi bi-{% if 'lunch_end' in completed_types %}check-circle-fill{% else %}circle{% endif %}"></i>
+        <span>Конец обеда</span>
+        {% for m in today_marks %}{% if m.type == 'lunch_end' %}<em>{{ m.time }}</em>{% endif %}{% endfor %}
+      </div>
+      <div class="checkin-step {% if 'day_end' in completed_types %}checkin-step--done{% endif %}">
+        <i class="bi bi-{% if 'day_end' in completed_types %}check-circle-fill{% else %}circle{% endif %}"></i>
+        <span>Уход</span>
+        {% for m in today_marks %}{% if m.type == 'day_end' %}<em>{{ m.time }}</em>{% endif %}{% endfor %}
+      </div>
+    </div>
   </div>
 
   <div class="attendance-checkin-card">
@@ -38,32 +76,50 @@
       <div class="attendance-checkin-camera__empty" id="cameraEmpty">
         <i class="bi bi-camera-video"></i>
         <strong>Камера не запущена</strong>
-        <span>Разрешите доступ к камере, чтобы сделать снимок</span>
+        <span>Разрешите доступ к камере</span>
       </div>
     </div>
 
     <div class="attendance-checkin-side">
       <h2 class="attendance-checkin-side__title">Тип отметки</h2>
 
-      <div class="attendance-checkin-types">
-        <label class="attendance-checkin-type">
-          <input type="radio" name="event_type" value="day_start" checked>
+      {% if all_done_today %}
+      <div class="attendance-checkin-alert attendance-checkin-alert--success" style="display:block">
+        На сегодня все четыре отметки уже сданы. Новую можно сделать завтра.
+      </div>
+      {% endif %}
+
+      <div class="attendance-checkin-types" id="checkinTypes">
+        <label class="attendance-checkin-type{% if 'day_start' in completed_types %} is-done{% endif %}">
+          <input type="radio" name="event_type" value="day_start"
+                 {% if preselect_event == 'day_start' %}checked{% endif %}
+                 {% if 'day_start' in completed_types %}disabled{% endif %}>
           <span>Приход</span>
+          {% if 'day_start' in completed_types %}<small class="checkin-type-done">✓ сдано</small>{% endif %}
         </label>
 
-        <label class="attendance-checkin-type">
-          <input type="radio" name="event_type" value="lunch_start">
+        <label class="attendance-checkin-type{% if 'lunch_start' in completed_types %} is-done{% endif %}">
+          <input type="radio" name="event_type" value="lunch_start"
+                 {% if preselect_event == 'lunch_start' %}checked{% endif %}
+                 {% if 'lunch_start' in completed_types %}disabled{% endif %}>
           <span>Начало обеда</span>
+          {% if 'lunch_start' in completed_types %}<small class="checkin-type-done">✓ сдано</small>{% endif %}
         </label>
 
-        <label class="attendance-checkin-type">
-          <input type="radio" name="event_type" value="lunch_end">
+        <label class="attendance-checkin-type{% if 'lunch_end' in completed_types %} is-done{% endif %}">
+          <input type="radio" name="event_type" value="lunch_end"
+                 {% if preselect_event == 'lunch_end' %}checked{% endif %}
+                 {% if 'lunch_end' in completed_types %}disabled{% endif %}>
           <span>Конец обеда</span>
+          {% if 'lunch_end' in completed_types %}<small class="checkin-type-done">✓ сдано</small>{% endif %}
         </label>
 
-        <label class="attendance-checkin-type">
-          <input type="radio" name="event_type" value="day_end">
+        <label class="attendance-checkin-type{% if 'day_end' in completed_types %} is-done{% endif %}">
+          <input type="radio" name="event_type" value="day_end"
+                 {% if preselect_event == 'day_end' %}checked{% endif %}
+                 {% if 'day_end' in completed_types %}disabled{% endif %}>
           <span>Уход</span>
+          {% if 'day_end' in completed_types %}<small class="checkin-type-done">✓ сдано</small>{% endif %}
         </label>
       </div>
 
@@ -72,7 +128,8 @@
       <div class="attendance-checkin-actions">
         <button type="button"
                 class="attendance-checkin-btn attendance-checkin-btn--primary"
-                id="captureBtn">
+                id="captureBtn"
+                {% if all_done_today %}disabled{% endif %}>
           Сделать снимок
         </button>
 
@@ -88,12 +145,16 @@
                 id="submitBtn"
                 data-post-url="{% url 'hr:attendance_checkin' %}"
                 hidden>
-          Подтвердить
+          Подтвердить отметку
         </button>
       </div>
 
+      <div id="checkinGeoStatus" class="checkin-geo-status checkin-geo-status--pending">
+        📍 Геопозиция определяется…
+      </div>
+
       <p class="attendance-checkin-note">
-        Если браузер не поддерживает WebRTC или доступ к камере запрещён, отметка не будет отправлена.
+        Каждый тип отметки — отдельный снимок: приход, обед (начало и конец), уход.
       </p>
     </div>
   </div>
@@ -101,5 +162,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'site/js/apps/attendance-checkin.js' %}?v=1"></script>
+<script src="{% static 'site/js/apps/attendance-checkin.js' %}?v={{ static_version|default:'1' }}"></script>
 {% endblock %}

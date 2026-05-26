@@ -640,6 +640,28 @@ body.hr-edit-body {
   }
 }
 
+.hr-btn--danger {
+  background: $hr-danger;
+  color: #fff;
+  border: 1px solid $hr-danger;
+
+  &:hover {
+    background: #dc2626;
+    color: #fff;
+  }
+}
+
+.hr-btn--sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.hr-edit-card__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .hr-filter-card {
   padding: 18px 22px;
 }

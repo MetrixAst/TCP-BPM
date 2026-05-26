@@ -128,15 +128,32 @@
         <strong>{{ invoice.get_status_display }}</strong>
       </div>
 
-      <div class="inv-preview-pdf">
-        <i class="bi bi-file-earmark-pdf"></i>
-        <div>
-          <strong>PDF счёта</strong>
-          <span>Готово под подключение BE-5.14</span>
-        </div>
+      <div class="inv-preview-actions">
+        <a href="{% url 'finances:invoice_pdf' invoice.pk %}?inline=1" target="_blank" rel="noopener" class="inv-btn inv-btn--light inv-btn--sm">
+          <i class="bi bi-box-arrow-up-right"></i> Открыть
+        </a>
+        <a href="{% url 'finances:invoice_pdf' invoice.pk %}" class="inv-btn inv-btn--primary inv-btn--sm" download>
+          <i class="bi bi-download"></i> Скачать PDF
+        </a>
       </div>
     </aside>
   </div>
+
+  <section class="inv-pdf-section">
+    <div class="inv-table-head">
+      <div>
+        <div class="inv-table-title">PDF счёта</div>
+        <div class="inv-table-subtitle">Предпросмотр перед отправкой</div>
+      </div>
+    </div>
+    <div class="inv-pdf-viewer">
+      <iframe
+        src="{% url 'finances:invoice_pdf' invoice.pk %}?inline=1"
+        title="Предпросмотр счёта №{{ invoice.number }}"
+        class="inv-pdf-frame"
+      ></iframe>
+    </div>
+  </section>
 
   <section class="inv-table-card">
     <div class="inv-table-head">

@@ -1092,6 +1092,35 @@ class InvoiceViewsTest(TestCase):
         r = self.client.get(reverse('finances:invoice_detail', args=[self.invoice.pk]))
         self.assertEqual(r.status_code, 200)
 
+    def test_detail_has_pdf_preview_iframe(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_detail', args=[self.invoice.pk]))
+        self.assertContains(r, 'inv-pdf-frame')
+        self.assertContains(r, reverse('finances:invoice_pdf', args=[self.invoice.pk]))
+
+    def test_invoice_pdf_inline(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(
+            reverse('finances:invoice_pdf', args=[self.invoice.pk]),
+            {'inline': '1'},
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'application/pdf')
+        self.assertIn('inline', r.get('Content-Disposition', '').lower())
+        self.assertTrue(r.content.startswith(b'%PDF'))
+        # Встроенный TTF — иначе кириллица отображается квадратиками (WinAnsi / Helvetica)
+        self.assertIn(b'TrueType', r.content)
+
+    def test_invoice_pdf_download(self):
+        self.client.login(username='inv_user', password='pass')
+        r = self.client.get(reverse('finances:invoice_pdf', args=[self.invoice.pk]))
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('attachment', r['Content-Disposition'])
+
+    def test_invoice_pdf_requires_login(self):
+        r = self.client.get(reverse('finances:invoice_pdf', args=[self.invoice.pk]))
+        self.assertEqual(r.status_code, 302)
+
     def test_delete_invoice(self):
         self.client.login(username='inv_user', password='pass')
         inv = GeneratedInvoice.objects.create(
@@ -1154,6 +1183,109 @@ class InvoiceViewsTest(TestCase):
         self.client.post(reverse('finances:invoice_mark_paid', args=[self.invoice.pk]))
         self.invoice.refresh_from_db()
         self.assertEqual(self.invoice.status, 'paid')
+
+    def test_mark_paid_syncs_payment_registry(self):
+        self.invoice.status = GeneratedInvoice.Status.SENT
+        self.invoice.period = date(2026, 5, 1)
+        self.invoice.contract_number = 'ДОГ-100'
+        self.invoice.save()
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_mark_paid', args=[self.invoice.pk]))
+
+        entry = TenantPaymentRegistry.objects.get(
+            tenant=self.tenant,
+            contract_number='ДОГ-100',
+            period=date(2026, 5, 1),
+        )
+        self.assertEqual(entry.paid, Decimal('100000.00'))
+        self.assertEqual(entry.status, TenantPaymentRegistry.Status.PAID)
+        self.assertEqual(entry.balance, Decimal('0'))
+        self.assertIsNotNone(entry.actual_date)
+
+    def test_mark_paid_syncs_calendar_and_cashflow(self):
+        from finances.models import PaymentCalendarEntry, CashFlowRecord
+
+        self.invoice.status = GeneratedInvoice.Status.SENT
+        self.invoice.save()
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_mark_paid', args=[self.invoice.pk]))
+
+        today = date.today()
+        cal = PaymentCalendarEntry.objects.filter(
+            tenant=self.tenant,
+            actual_date=today,
+        )
+        self.assertTrue(cal.exists())
+        self.assertEqual(cal.first().status, PaymentCalendarEntry.Status.FACT)
+
+        cf = CashFlowRecord.objects.filter(document_number=f'INV-{self.invoice.pk}')
+        self.assertTrue(cf.exists())
+        self.assertEqual(cf.first().direction, CashFlowRecord.Direction.INFLOW)
+
+    def test_mark_paid_without_tenant_skips_registry(self):
+        inv = GeneratedInvoice.objects.create(
+            number='СЧ-NO-TENANT',
+            total_amount=Decimal('50000.00'),
+            status=GeneratedInvoice.Status.SENT,
+        )
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_mark_paid', args=[inv.pk]))
+        self.assertEqual(TenantPaymentRegistry.objects.count(), 0)
+
+    def test_mark_paid_adds_to_existing_registry(self):
+        TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-200',
+            period=date(2026, 6, 1),
+            charged=Decimal('200000.00'),
+            paid=Decimal('50000.00'),
+            balance=Decimal('150000.00'),
+            status=TenantPaymentRegistry.Status.PARTIAL,
+        )
+        inv = GeneratedInvoice.objects.create(
+            tenant=self.tenant,
+            number='СЧ-ЧАСТЬ',
+            contract_number='ДОГ-200',
+            period=date(2026, 6, 15),
+            total_amount=Decimal('150000.00'),
+            status=GeneratedInvoice.Status.SENT,
+        )
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_mark_paid', args=[inv.pk]))
+
+        entry = TenantPaymentRegistry.objects.get(
+            tenant=self.tenant, contract_number='ДОГ-200', period=date(2026, 6, 1),
+        )
+        self.assertEqual(entry.paid, Decimal('200000.00'))
+        self.assertEqual(entry.status, TenantPaymentRegistry.Status.PAID)
+        self.assertEqual(entry.balance, Decimal('0'))
+
+    def test_mark_paid_does_not_double_count_fully_paid_registry(self):
+        """Если в реестре уже 100k оплачено, счёт на 100k не даёт 200k в выручке."""
+        TenantPaymentRegistry.objects.create(
+            tenant=self.tenant,
+            contract_number='ДОГ-100',
+            period=date(2026, 5, 1),
+            charged=Decimal('100000.00'),
+            paid=Decimal('100000.00'),
+            balance=Decimal('0'),
+            status=TenantPaymentRegistry.Status.PAID,
+        )
+        inv = GeneratedInvoice.objects.create(
+            tenant=self.tenant,
+            number='СЧ-ДУБЛЬ',
+            contract_number='ДОГ-100',
+            period=date(2026, 5, 15),
+            total_amount=Decimal('100000.00'),
+            status=GeneratedInvoice.Status.SENT,
+        )
+        self.client.login(username='inv_user', password='pass')
+        self.client.post(reverse('finances:invoice_mark_paid', args=[inv.pk]))
+
+        entry = TenantPaymentRegistry.objects.get(
+            tenant=self.tenant, contract_number='ДОГ-100', period=date(2026, 5, 1),
+        )
+        self.assertEqual(entry.paid, Decimal('100000.00'))
 
     def test_mark_paid_from_viewed(self):
         self.invoice.status = GeneratedInvoice.Status.VIEWED
@@ -2479,6 +2611,31 @@ class DashboardViewTest(TestCase):
         response = self.client.get('/finances/dashboard/')
         self.assertEqual(response.context['revenue_mtd'], Decimal('300000.00'))
 
+    def test_dashboard_respects_tenant_filter_in_session(self):
+        other = make_tenant('ДругойАрендатор')
+        TenantPaymentRegistry.objects.create(
+            tenant=other,
+            contract_number='ДОГ-OTHER',
+            period=date(self.today.year, self.today.month, 1),
+            charged=Decimal('999999.00'),
+            paid=Decimal('999999.00'),
+            status=TenantPaymentRegistry.Status.PAID,
+        )
+        self._login(self.cfo_user)
+        session = self.client.session
+        session['finance_filters'] = {
+            'company': '',
+            'tenant': str(self.tenant.pk),
+            'category': '',
+            'period_from': '',
+            'period_to': '',
+        }
+        session.save()
+
+        response = self.client.get('/finances/dashboard/')
+        self.assertEqual(response.context['revenue_mtd'], Decimal('300000.00'))
+        self.assertEqual(response.context['overdue_count'], 1)
+
     def test_dashboard_403_unauthenticated(self):
         response = self.client.get('/finances/dashboard/')
         self.assertIn(response.status_code, (302, 403))
@@ -3016,15 +3173,11 @@ class ScenariosListViewTest(TestCase):
     def _login(self):
         self.client.force_login(self.cfo)
 
-    def test_scenarios_list_200(self):
-        self._login()
-        self.assertEqual(self.client.get('/finances/scenarios/').status_code, 200)
-
-    def test_scenarios_list_context(self):
+    def test_scenarios_list_redirects_to_credit_model(self):
         self._login()
         response = self.client.get('/finances/scenarios/')
-        self.assertIn('models', response.context)
-        self.assertEqual(len(response.context['models']), 1)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('finances:credit_model_list'))
 
     def test_scenarios_list_403_unauthenticated(self):
         self.assertIn(self.client.get('/finances/scenarios/').status_code, (302, 403))

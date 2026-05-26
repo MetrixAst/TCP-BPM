@@ -52,14 +52,12 @@
               {% endif %}
             </div>
 
-            <div class="task-edit-field">
+            <div class="task-edit-field {% if form.task_type.errors %}is-invalid{% endif %}">
               <label class="task-edit-field__label">Тип задачи<span>*</span></label>
-              <select class="task-edit-select" name="task_type">
-                <option value="">Тип задачи</option>
-                <option value="assignment">Поручение</option>
-                <option value="approval">Согласование</option>
-                <option value="document">Документ</option>
-              </select>
+              {{ form.task_type }}
+              {% if form.task_type.errors %}
+                <div class="task-edit-field__error">{{ form.task_type.errors.0 }}</div>
+              {% endif %}
             </div>
 
             <div class="task-edit-field {% if form.priority.errors %}is-invalid{% endif %}">
@@ -108,6 +106,38 @@
               {% endif %}
             </div>
           </div>
+        </section>
+
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Файлы</h2>
+
+          <div class="task-edit-field">
+            <label class="task-edit-field__label">Вложения</label>
+            <label class="task-edit-upload" for="taskAttachments">
+              <input type="file"
+                     id="taskAttachments"
+                     name="attachments"
+                     multiple
+                     class="task-edit-upload__input">
+              <span class="task-edit-upload__icon"><i class="bi bi-file-earmark-arrow-up"></i></span>
+              <span class="task-edit-upload__text">Выберите файлы или перетащите сюда</span>
+              <span class="task-edit-upload__name" id="taskAttachmentNames">Файлы не выбраны</span>
+            </label>
+          </div>
+
+          {% if task and task.files.exists %}
+            <div class="task-edit-files">
+              <p class="task-edit-files__label">Уже прикреплены:</p>
+              {% for f in task.files.all %}
+                <div class="task-edit-files__item">
+                  <i class="bi bi-paperclip"></i>
+                  <a href="{{ f.file.url }}" target="_blank" class="task-edit-files__link">
+                    {{ f.filename }}
+                  </a>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
         </section>
 
       </div>

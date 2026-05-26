@@ -10,8 +10,8 @@
     <i class="bi bi-layout-sidebar-inset"></i>
   </button>
 
-  <a href="/" class="bpm-topbar__brand">
-    <span>metri<span>X</span> BPM</span>
+  <a href="/" class="bpm-topbar__brand bpm-logo" aria-label="metriX BPM">
+    {% include "site/components/logo_brand.html" %}
   </a>
 
   <div class="bpm-topbar__search">
@@ -27,73 +27,6 @@
   <div class="bpm-topbar__spacer"></div>
 
   <div class="bpm-topbar__right">
-
-    <div class="dropdown bpm-topbar__object">
-      <button class="bpm-topbar__pill bpm-topbar__pill--object"
-              type="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false">
-        <span>{{ current_object.name|default:"Ритц-Палас" }}</span>
-        <i class="bi bi-chevron-down"></i>
-      </button>
-
-      <ul class="dropdown-menu dropdown-menu-end">
-        {% for obj in user_objects %}
-          <li>
-            <a class="dropdown-item {% if current_object and obj.pk == current_object.pk %}active{% endif %}"
-               href="{% url 'account:switch_object' obj.pk %}">
-              {{ obj.name }}
-            </a>
-          </li>
-        {% empty %}
-          <li><span class="dropdown-item disabled">Ритц-Палас</span></li>
-        {% endfor %}
-      </ul>
-    </div>
-
-    <div class="dropdown bpm-topbar__tz">
-      <button class="bpm-topbar__pill bpm-topbar__pill--tz"
-              type="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false">
-    
-        <span>{{ current_tz|default:"Алматы GMT +5" }}</span>
-    
-        <i class="bi bi-chevron-down"></i>
-      </button>
-    
-      <ul class="dropdown-menu dropdown-menu-end">
-        {% if available_tz %}
-          {% for tz in available_tz %}
-            <li>
-              <a class="dropdown-item {% if tz.label == current_tz %}active{% endif %}"
-                 href="?tz={{ tz.value }}">
-                {{ tz.label }}
-              </a>
-            </li>
-          {% endfor %}
-        {% else %}
-          <li><span class="dropdown-item">Алматы GMT +5</span></li>
-          <li><span class="dropdown-item">Астана GMT +5</span></li>
-        {% endif %}
-      </ul>
-    </div>
-
-
-    <div class="bpm-topbar__lang">
-      <a href="?lang=ru"
-         class="bpm-topbar__lang-btn {% if request.GET.lang == 'ru' or not request.GET.lang %}is-active{% endif %}">
-        Рус
-      </a>
-      <a href="?lang=kk"
-         class="bpm-topbar__lang-btn {% if request.GET.lang == 'kk' %}is-active{% endif %}">
-        Қаз
-      </a>
-      <a href="?lang=en"
-         class="bpm-topbar__lang-btn {% if request.GET.lang == 'en' %}is-active{% endif %}">
-        Eng
-      </a>
-    </div>
 
     <div class="dropdown">
       <button class="bpm-topbar__icon-btn"

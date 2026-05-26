@@ -1,0 +1,80 @@
+{# Универсальное модальное окно посещаемости #}
+<div class="att-modal" id="{{ modal_id }}" data-resolve-url="{% url 'hr:attendance_resolve_address' %}">
+  <div class="att-modal__backdrop"></div>
+
+  <div class="att-modal__panel">
+
+    {# Шапка #}
+    <div class="att-modal__header">
+      <div class="att-modal__header-info">
+        <div class="att-modal__avatar" id="{{ modal_id }}Avatar">А</div>
+        <div>
+          <div class="att-modal__name"  id="{{ modal_id }}Name">—</div>
+          <div class="att-modal__dept"  id="{{ modal_id }}Dept">—</div>
+        </div>
+      </div>
+      <button type="button" class="att-modal__close" id="{{ modal_id }}Close">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    {# Статус-полоса #}
+    <div class="att-modal__status-bar" id="{{ modal_id }}Status"></div>
+
+    {# Тело #}
+    <div class="att-modal__body">
+
+      {# Четыре события #}
+      <div class="att-modal__events">
+
+        <div class="att-modal__event att-modal__event--arrival">
+          <div class="att-modal__event-header">
+            <div class="att-modal__event-icon"><i class="bi bi-box-arrow-in-right"></i></div>
+            <div class="att-modal__event-info">
+              <div class="att-modal__event-label">Приход</div>
+              <div class="att-modal__event-time" id="{{ modal_id }}Arrival">—</div>
+            </div>
+          </div>
+          <div class="att-modal__event-media" id="{{ modal_id }}ArrivalMedia"></div>
+        </div>
+
+        <div class="att-modal__event att-modal__event--lunch">
+          <div class="att-modal__event-header">
+            <div class="att-modal__event-icon"><i class="bi bi-cup-hot"></i></div>
+            <div class="att-modal__event-info">
+              <div class="att-modal__event-label">Обед</div>
+              <div class="att-modal__event-time" id="{{ modal_id }}Lunch">—</div>
+            </div>
+          </div>
+          <div class="att-modal__event-media" id="{{ modal_id }}LunchMedia"></div>
+        </div>
+
+        <div class="att-modal__event att-modal__event--departure">
+          <div class="att-modal__event-header">
+            <div class="att-modal__event-icon"><i class="bi bi-box-arrow-right"></i></div>
+            <div class="att-modal__event-info">
+              <div class="att-modal__event-label">Уход</div>
+              <div class="att-modal__event-time" id="{{ modal_id }}Departure">—</div>
+            </div>
+          </div>
+          <div class="att-modal__event-media" id="{{ modal_id }}DepartureMedia"></div>
+        </div>
+
+      </div>
+
+      {# Итого #}
+      <div class="att-modal__total" id="{{ modal_id }}Total" style="display:none">
+        <i class="bi bi-clock"></i>
+        <span id="{{ modal_id }}TotalText">—</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{# Лайтбокс для увеличения фото #}
+<div class="att-lightbox" id="{{ modal_id }}Lightbox">
+  <div class="att-lightbox__backdrop" id="{{ modal_id }}LightboxBd"></div>
+  <img class="att-lightbox__img" id="{{ modal_id }}LightboxImg" src="" alt="">
+  <button class="att-lightbox__close" id="{{ modal_id }}LightboxClose"><i class="bi bi-x-lg"></i></button>
+</div>

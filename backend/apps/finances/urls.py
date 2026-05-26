@@ -1,7 +1,9 @@
 from django.urls import path, include
+from django.views.generic import RedirectView
 from . import views
 
 urlpatterns = [
+    path('', RedirectView.as_view(pattern_name='finances:dashboard', permanent=False)),
     path('registers/', views.payment_reg, name="reg"),
     
     path('calendar', views.calendar, name="calendar"),
@@ -23,6 +25,7 @@ urlpatterns = [
     path('invoices/', views.invoice_list, name='invoice_list'),
     path('invoices/create/', views.invoice_create, name='invoice_create'),
     path('invoices/<int:pk>/', views.invoice_detail, name='invoice_detail'),
+    path('invoices/<int:pk>/pdf/', views.invoice_pdf, name='invoice_pdf'),
     path('invoices/<int:pk>/edit/', views.invoice_edit, name='invoice_edit'),
     path('invoices/<int:pk>/delete/', views.invoice_delete, name='invoice_delete'),
     path('invoices/<int:pk>/send/', views.invoice_send, name='invoice_send'),

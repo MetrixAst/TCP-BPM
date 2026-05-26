@@ -128,6 +128,26 @@
         </div>
       {% endif %}
 
+      {% if task.files.exists %}
+        <div class="task-card__files">
+          <div class="task-card__files-title">
+            <i class="bi bi-paperclip"></i>
+            Вложения
+            <span class="task-card__files-count">{{ task.files.count }}</span>
+          </div>
+          <div class="task-card__files-list">
+            {% for f in task.files.all %}
+              <a href="{{ f.file.url }}"
+                 target="_blank"
+                 class="task-card__file-item">
+                <i class="bi bi-file-earmark"></i>
+                <span>{{ f.filename }}</span>
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
       {% if actions %}
         <div class="task-card__workflow" id="taskWorkflow">
           {% for current in actions %}
@@ -150,7 +170,6 @@
 
       <div class="task-history__list" id="taskHistoryList">
         {% for current in task.history.all %}
-        {% load_comments 'task' task.id %}
           <div class="task-history__item">
             <div class="task-history__avatar">
               {% if current.user.get_avatar_url %}
@@ -178,6 +197,8 @@
             <div class="tasks-empty__title">История пуста</div>
           </div>
         {% endfor %}
+
+        {% load_comments 'task' task.id %}
       </div>
 
       <form method="post"

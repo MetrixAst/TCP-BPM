@@ -55,6 +55,13 @@ class Select2MultipleField(forms.ModelMultipleChoiceField):
         )
 
 
+def _user_choice_label(user):
+    name = user.get_name
+    if name and str(name).strip() and name != user.username:
+        return str(name).strip()
+    return user.username
+
+
 class UserSelect2Field(Select2Field):
     def __init__(self, required=False, all=False, placeholder=""):
         selection = 'all' if all else 'self'
@@ -64,6 +71,9 @@ class UserSelect2Field(Select2Field):
             required=required,
             placeholder=placeholder
         )
+
+    def label_from_instance(self, obj):
+        return _user_choice_label(obj)
 
 
 class UserSelect2MultipleField(Select2MultipleField):
@@ -75,6 +85,9 @@ class UserSelect2MultipleField(Select2MultipleField):
             required=required,
             placeholder=placeholder
         )
+
+    def label_from_instance(self, obj):
+        return _user_choice_label(obj)
 
 
 

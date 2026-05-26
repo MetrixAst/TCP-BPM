@@ -196,13 +196,29 @@
 
       </div>
 
+      {% if invoice %}
+      <div class="invoice-pdf-preview invoice-pdf-preview--active">
+        <i class="bi bi-file-earmark-pdf"></i>
+        <div>
+          <strong>PDF счёта</strong>
+          <span>Доступен после сохранения позиций</span>
+        </div>
+        <a href="{% url 'finances:invoice_pdf' invoice.pk %}?inline=1" target="_blank" rel="noopener" class="invoice-edit-btn invoice-edit-btn--ghost">
+          <i class="bi bi-eye"></i> Просмотр
+        </a>
+        <a href="{% url 'finances:invoice_pdf' invoice.pk %}" class="invoice-edit-btn invoice-edit-btn--save" download>
+          <i class="bi bi-download"></i> PDF
+        </a>
+      </div>
+      {% else %}
       <div class="invoice-pdf-preview">
         <i class="bi bi-file-earmark-pdf"></i>
         <div>
           <strong>PDF preview</strong>
-          <span>Будет подключено после BE-5.14</span>
+          <span>Появится после создания счёта</span>
         </div>
       </div>
+      {% endif %}
 
       <div class="invoice-edit-card__footer">
         <a href="{% url 'finances:invoice_list' %}" class="invoice-edit-btn invoice-edit-btn--cancel">

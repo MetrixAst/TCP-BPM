@@ -62,6 +62,8 @@
               <span class="leave-status leave-status--approved">{{ leave.get_status_display }}</span>
             {% elif leave.status == 'rejected' %}
               <span class="leave-status leave-status--rejected">{{ leave.get_status_display }}</span>
+            {% elif leave.status == 'confirmed' %}
+              <span class="leave-status leave-status--confirmed">{{ leave.get_status_display }}</span>
             {% elif leave.status == 'pending' %}
               <span class="leave-status leave-status--pending">{{ leave.get_status_display }}</span>
             {% elif leave.status == 'draft' %}
@@ -120,16 +122,40 @@
       <div class="leave-detail-card__workflow">
 
         {% if is_manager and leave.status == 'pending' %}
+          <form method="post" action="{% url 'hr:leave_confirm' leave.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="leave-detail-btn leave-detail-btn--primary"
+                    data-confirm="Подтвердить заявку перед окончательным одобрением?">
+              Подтвердить
+            </button>
+          </form>
+
+          <form method="post" action="{% url 'hr:leave_reject' leave.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="leave-detail-btn leave-detail-btn--danger"
+                    data-confirm="Отклонить заявку?">
+              Отклонить
+            </button>
+          </form>
+        {% endif %}
+
+        {% if is_manager and leave.status == 'confirmed' %}
           <form method="post" action="{% url 'hr:leave_approve' leave.pk %}">
             {% csrf_token %}
-            <button type="submit" class="leave-detail-btn leave-detail-btn--primary">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="leave-detail-btn leave-detail-btn--primary"
+                    data-confirm="Окончательно одобрить заявку на отпуск?">
               Одобрить
             </button>
           </form>
 
           <form method="post" action="{% url 'hr:leave_reject' leave.pk %}">
             {% csrf_token %}
-            <button type="submit" class="leave-detail-btn leave-detail-btn--danger">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="leave-detail-btn leave-detail-btn--danger"
+                    data-confirm="Отклонить заявку?">
               Отклонить
             </button>
           </form>

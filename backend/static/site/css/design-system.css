@@ -1,0 +1,70 @@
+/**
+ * metriX BPM — общая дизайн-система (18.05.2026)
+ * Переменные и базовые классы для fin / onec / hr модулей.
+ */
+:root {
+  --bpm-primary: #2563eb;
+  --bpm-primary-hover: #1d4ed8;
+  --bpm-accent: #16a34a;
+  --bpm-danger: #dc2626;
+  --bpm-warning: #d97706;
+  --bpm-surface: #ffffff;
+  --bpm-surface-muted: #f4f6fb;
+  --bpm-border: #e8ebf2;
+  --bpm-text: #111a35;
+  --bpm-text-muted: #6b7280;
+  --bpm-radius: 12px;
+  --bpm-radius-sm: 8px;
+  --bpm-shadow: 0 1px 3px rgba(17, 26, 53, 0.08);
+  --bpm-font: "Inter", system-ui, sans-serif;
+}
+
+.bpm-page-title,
+.fin-page-title,
+.onec-page-title,
+.hr-page h1,
+.hr-list-top h1 {
+  font-family: var(--bpm-font);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--bpm-text);
+  margin: 0;
+}
+
+.bpm-filter-card,
+.fin-filter-card,
+.onec-filter-card,
+.hr-filter-card {
+  background: var(--bpm-surface);
+  border: 1px solid var(--bpm-border);
+  border-radius: var(--bpm-radius);
+  box-shadow: var(--bpm-shadow);
+}
+
+.bpm-btn,
+.fin-btn,
+.onec-btn,
+.hr-btn {
+  font-family: var(--bpm-font);
+  border-radius: var(--bpm-radius-sm);
+  font-weight: 500;
+}
+
+.bpm-btn--primary,
+.fin-btn--primary,
+.onec-btn--primary,
+.hr-btn--primary {
+  background: var(--bpm-primary);
+  border-color: var(--bpm-primary);
+  color: #fff;
+}
+
+.bpm-table-card,
+.fin-table-card,
+.onec-table-card,
+.hr-card {
+  background: var(--bpm-surface);
+  border: 1px solid var(--bpm-border);
+  border-radius: var(--bpm-radius);
+  box-shadow: var(--bpm-shadow);
+}

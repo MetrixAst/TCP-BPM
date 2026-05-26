@@ -16,7 +16,7 @@
         <a href="{% url 'hr:certifications_list' %}" class="hr-registry-detail-card__back">
           <i class="bi bi-arrow-left"></i>
         </a>
-        <h1>{{ certification.cert_type.name|default:"Сертификация" }}</h1>
+        <h1>{{ certification.cert_type|default:"Сертификация" }}</h1>
         <p>{{ certification.issuing_body|default:"Кем выдано не указано" }}</p>
       </div>
 
@@ -50,7 +50,7 @@
 
       <div class="hr-registry-detail-item">
         <span>Тип</span>
-        <strong>{{ certification.cert_type.name|default:"—" }}</strong>
+        <strong>{{ certification.cert_type|default:"—" }}</strong>
       </div>
 
       <div class="hr-registry-detail-item">

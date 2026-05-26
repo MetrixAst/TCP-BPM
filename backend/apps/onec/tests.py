@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.db.utils import IntegrityError
 from .models import Counterparty, Invoice, InvoiceItem
 from django.utils import timezone
@@ -285,18 +285,25 @@ MOCK_COUNTERPARTIES = [
 ]
  
  
+@override_settings(
+    ONE_C_BASE_URL='https://1c.example/api/v1',
+    ONE_C_API_USER='u',
+    ONE_C_API_PASSWORD='p',
+    ONE_C_BASIC_AUTH_USER='b',
+    ONE_C_BASIC_AUTH_PASSWORD='b',
+)
 class SyncCounterpartiesTaskTest(TestCase):
     def _patch_client(self, return_value=None, side_effect=None):
-        patcher = patch("onec.client_1c.client.Client1C")
-        mock_cls = patcher.start()
+        patcher = patch('onec.services.sync_counterparties.get_onec_client')
+        mock_get = patcher.start()
         mock_instance = MagicMock()
-        mock_cls.return_value = mock_instance
- 
+        mock_get.return_value = mock_instance
+
         if side_effect:
             mock_instance.get_counterparties.side_effect = side_effect
         else:
             mock_instance.get_counterparties.return_value = return_value or []
- 
+
         self.addCleanup(patcher.stop)
         return mock_instance
  
@@ -403,12 +410,9 @@ class SyncCounterpartiesTaskTest(TestCase):
     def test_sync_logs_error_on_failure(self):
         self._patch_client(side_effect=Exception("Ошибка подключения"))
  
-        with self.assertLogs("onec.tasks", level="ERROR") as log_ctx:
-            sync_counterparties()
- 
-        self.assertTrue(
-            any("Сбой синхронизации" in msg for msg in log_ctx.output)
-        )
+        result = sync_counterparties()
+        self.assertIn('Сбой синхронизации', result)
+        self.assertIn('Ошибка подключения', result)
  
  
     def test_sync_skips_items_without_id_1c(self):
@@ -434,13 +438,9 @@ class SyncCounterpartiesTaskTest(TestCase):
  
     def test_sync_logs_warning_when_no_data(self):
         self._patch_client(return_value=[])
- 
-        with self.assertLogs("onec.tasks", level="WARNING") as log_ctx:
-            sync_counterparties()
- 
-        self.assertTrue(
-            any("не получены" in msg for msg in log_ctx.output)
-        )
+
+        result = sync_counterparties()
+        self.assertEqual(result, 'No data received')
 
 
 # ─── COLLAB-2: 1С integration smoke-test ──────────────────────────────────────
@@ -459,7 +459,15 @@ _COLLAB_ONEC_TEMPLATES[0]['OPTIONS']['context_processors'] = [
 ]
 
 
-@override_settings(ALLOWED_HOSTS=['testserver'], TEMPLATES=_COLLAB_ONEC_TEMPLATES)
+@override_settings(
+    ALLOWED_HOSTS=['testserver'],
+    TEMPLATES=_COLLAB_ONEC_TEMPLATES,
+    ONE_C_BASE_URL='https://1c.example/api/v1',
+    ONE_C_API_USER='u',
+    ONE_C_API_PASSWORD='p',
+    ONE_C_BASIC_AUTH_USER='b',
+    ONE_C_BASIC_AUTH_PASSWORD='b',
+)
 class OneCCollabSmokeTest(TestCase):
     """Smoke-test 1С UI, Select2 API и устойчивость sync (COLLAB-2)."""
 
@@ -518,8 +526,8 @@ class OneCCollabSmokeTest(TestCase):
         self.assertEqual(invoice.items.count(), 2)
 
     def test_sync_survives_onec_unavailable(self):
-        with patch('onec.client_1c.client.Client1C') as mock_cls:
-            mock_cls.return_value.get_counterparties.side_effect = ConnectionError('1С недоступна')
+        with patch('onec.services.sync_counterparties.get_onec_client') as mock_get:
+            mock_get.return_value.get_counterparties.side_effect = ConnectionError('1С недоступна')
             result = sync_counterparties()
         self.assertIn('Сбой синхронизации', result)
         self.assertEqual(Counterparty.objects.filter(id_1c='COLLAB-CP-01').count(), 1)

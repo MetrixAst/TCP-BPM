@@ -155,3 +155,9 @@ class PriorityEnum(CustomEnum):
     MEDIUM = ("medium", "Средний")
     HIGH = ("high", "Высокий")
     CRITICAL = ("critical", "Критический")
+
+
+class TaskTypeEnum(CustomEnum):
+    ASSIGNMENT = ("assignment", "Поручение")
+    APPROVAL = ("approval", "Согласование")
+    DOCUMENT = ("document", "Документ")

@@ -5,6 +5,46 @@ $bp-sm: 576px;
 $transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
 // =============================================================================
+// BRAND LOGO (metriX BPM)
+// =============================================================================
+$bpm-logo-blue: #2563eb;
+$bpm-logo-green: #16a34a;
+
+.bpm-logo {
+  font-family: "Poppins", "Inter", var(--font-family-base), sans-serif;
+  font-weight: 700;
+  font-size: inherit;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.bpm-logo__metri,
+.bpm-logo__bpm {
+  color: $bpm-logo-blue;
+}
+
+.bpm-logo__x {
+  color: $bpm-logo-green;
+}
+
+a.bpm-logo:hover {
+  text-decoration: none;
+
+  .bpm-logo__metri,
+  .bpm-logo__bpm {
+    color: $bpm-logo-blue;
+  }
+
+  .bpm-logo__x {
+    color: $bpm-logo-green;
+  }
+}
+
+// =============================================================================
 // BODY
 // =============================================================================
 .bpm-body {
@@ -36,20 +76,13 @@ $transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     padding: 0 18px;
     display: flex;
     align-items: center;
-    color: #15213d;
     font-size: 18px;
-    font-weight: 700;
     text-decoration: none;
     border-bottom: 1px solid #e8ebf2;
 
     &:hover {
-      color: #15213d;
       text-decoration: none;
     }
-  }
-
-  &__logo-x {
-    color: #2f6bed;
   }
 
   &__nav {
@@ -105,6 +138,22 @@ $transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       font-size: 15px;
       font-weight: 500;
     }
+
+    &--static {
+      cursor: default;
+      pointer-events: none;
+    }
+  }
+
+  &__group--expanded {
+    .bpm-sidebar__submenu--open {
+      display: block;
+    }
+  }
+
+  &__submenu--open {
+    display: block;
+    padding-bottom: 4px;
   }
 
   &__label {

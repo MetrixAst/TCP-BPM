@@ -6,6 +6,7 @@
 {% endblock %}
 
 {% block content %}
+<section class="fin-page fin-page--registry">
 <section class="fin-filter-card">
   <div class="fin-filter-card__header">
     <h1 class="fin-page-title">Реестр оплат</h1>
@@ -112,8 +113,6 @@
   </form>
 </section>
 
-{% include 'site/components/finance_filters.html' %}
-
 <section class="fin-table-card">
   <div class="fin-table-head">
     <div>
@@ -187,10 +186,10 @@
     </table>
   </div>
 </section>
+</section>
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'site/js/apps/finance-filters.js' %}?v=fe65"></script>
 <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
 
 <script>

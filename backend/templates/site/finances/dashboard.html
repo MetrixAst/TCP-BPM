@@ -2,133 +2,177 @@
 {% load static %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe61">
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe70">
+<link rel="stylesheet" href="{% static 'site/css/apps/fin-dashboard.css' %}?v=fd01">
 {% endblock %}
 
 {% block content %}
-<div class="fin-page">
+<div class="fin-page fin-page--dashboard">
 
-  {# ── Заголовок страницы ── #}
-  <div class="fin-filter-card" style="margin-bottom:16px;">
-    <div class="fin-filter-card__header">
-      <h1 class="fin-page-title">Финансовый дашборд</h1>
-      <span style="margin-left:12px;font-size:13px;color:var(--fin-muted,#74728a);">{{ today }}</span>
+  <header class="fin-dash-hero">
+    <div class="fin-dash-hero__main">
+      <span class="fin-dash-hero__eyebrow"><i class="bi bi-pie-chart-fill"></i> Финансы</span>
+      <h1 class="fin-dash-hero__title">Финансовый дашборд</h1>
+      <p class="fin-dash-hero__meta">
+        <span class="fin-dash-hero__date"><i class="bi bi-calendar3"></i> {{ today }}</span>
+        <span>Ключевые показатели и денежный поток</span>
+      </p>
     </div>
 
-    {# Мультивалютный тоггл #}
-    <div class="fin-currency-toggle">
-      <span class="fin-currency-label">Валюта:</span>
-      <select id="currencySelect" class="fin-input" style="width:auto;min-width:90px;">
-        <option value="">KZT</option>
-        <option value="USD">USD</option>
-        <option value="EUR">EUR</option>
-        <option value="RUB">RUB</option>
-      </select>
-      <span id="rateHint" class="fin-currency-rate"></span>
+    <div class="fin-dash-hero__actions">
+      <a href="?export=xlsx" class="fin-btn fin-btn--light" title="Экспорт в Excel">
+        <i class="bi bi-download"></i> Экспорт
+      </a>
+
+      {% if can_manage %}
+      <a href="{% url 'finances:credit_model_list' %}" class="fin-btn fin-btn--primary">
+        <i class="bi bi-bank"></i> Кредитная модель
+      </a>
+      {% endif %}
     </div>
-
-    {# Excel-экспорт #}
-    <a href="?export=xlsx" class="fin-btn fin-btn--light" style="white-space:nowrap;">
-      <i class="bi bi-download"></i> Экспорт
-    </a>
-
-    {# CFO/Owner: ссылки на управление #}
-    {% if can_manage %}
-    <a href="{% url 'finances:scenarios_list' %}" class="fin-btn fin-btn--light" style="white-space:nowrap;">
-      <i class="bi bi-diagram-3"></i> Сценарии
-    </a>
-    {% endif %}
-  </div>
-
-  {# Стейл-баннер курса (FE-6.2) — показывается при rate_is_fresh=false #}
-  <div id="rateStaleBanner" class="fin-overrun-alert" style="display:none;">
-    <i class="bi bi-exclamation-triangle-fill"></i>
-    <span id="rateStaleBannerText">Курс устарел</span>
-  </div>
+  </header>
 
   {% include 'site/components/finance_filters.html' %}
 
-  {# ── KPI-плитки ── #}
-  <div class="fin-kpi-grid">
-    <div class="fin-kpi-card" data-drill-type="cash" data-drill-period="{{ today|date:'Y-m' }}">
-      <span class="fin-kpi-label"><i class="bi bi-wallet2"></i> Остаток ДС</span>
-      <span class="fin-kpi-value" id="kpi-cash-balance">{{ cash_balance|floatformat:0 }} ₸</span>
-      <span class="fin-kpi-sub" id="kpi-cash-balance-fx"></span>
-      <span class="fin-kpi-sub">за 90 дней</span>
+  <section class="fin-dash-section" aria-labelledby="fin-kpi-heading">
+    <div class="fin-dash-section__head">
+      <h2 id="fin-kpi-heading" class="fin-dash-section__title">Ключевые показатели</h2>
+      <span class="fin-dash-section__hint">Нажмите на карточку для детализации</span>
     </div>
 
-    <div class="fin-kpi-card" data-drill-type="revenue" data-drill-period="{{ today|date:'Y-m' }}">
-      <span class="fin-kpi-label"><i class="bi bi-graph-up-arrow"></i> Выручка (месяц)</span>
-      <span class="fin-kpi-value" id="kpi-revenue-mtd">{{ revenue_mtd|floatformat:0 }} ₸</span>
-      <span class="fin-kpi-sub" id="kpi-revenue-mtd-fx"></span>
-      <span class="fin-kpi-trend {% if revenue_mtd_change >= 0 %}is-up{% else %}is-down{% endif %}" id="kpi-revenue-trend">
-        {% if revenue_mtd_change >= 0 %}<i class="bi bi-arrow-up-short"></i>{% else %}<i class="bi bi-arrow-down-short"></i>{% endif %}
-        {{ revenue_mtd_change|floatformat:1 }}%
-      </span>
-    </div>
-
-    <div class="fin-kpi-card" data-drill-type="revenue_ytd" data-drill-period="{{ today|date:'Y' }}">
-      <span class="fin-kpi-label"><i class="bi bi-calendar-check"></i> Выручка (год)</span>
-      <span class="fin-kpi-value" id="kpi-revenue-ytd">{{ revenue_ytd|floatformat:0 }} ₸</span>
-      <span class="fin-kpi-sub">с начала года</span>
-    </div>
-
-    <div class="fin-kpi-card" data-drill-type="expenses" data-drill-period="{{ today|date:'Y-m' }}">
-      <span class="fin-kpi-label"><i class="bi bi-arrow-down-circle"></i> Расходы (месяц)</span>
-      <span class="fin-kpi-value" id="kpi-expenses-mtd">{{ expenses_mtd|floatformat:0 }} ₸</span>
-      <span class="fin-kpi-sub">текущий месяц</span>
-    </div>
-
-    <div class="fin-kpi-card" data-drill-type="net_cf" data-drill-period="{{ today|date:'Y-m' }}">
-      <span class="fin-kpi-label"><i class="bi bi-activity"></i> Чистый CF (месяц)</span>
-      <span class="fin-kpi-value {% if net_cf >= 0 %}fin-kpi-value--success{% else %}fin-kpi-value--danger{% endif %}" id="kpi-net-cf">
-        {{ net_cf|floatformat:0 }} ₸
-      </span>
-      <span class="fin-kpi-sub {% if budget_deviation_pct >= 0 %}fin-kpi-sub--success{% else %}fin-kpi-sub--danger{% endif %}">
-        Откл. бюджета: {% if budget_deviation_pct >= 0 %}+{% endif %}{{ budget_deviation_pct|floatformat:1 }}%
-      </span>
-    </div>
-
-    <div class="fin-kpi-card fin-kpi-card--alert" data-drill-type="overdue" data-drill-period="{{ today|date:'Y-m' }}">
-      <span class="fin-kpi-label"><i class="bi bi-exclamation-triangle"></i> Просрочка</span>
-      <span class="fin-kpi-value fin-kpi-value--danger" id="kpi-overdue-amount">{{ overdue_amount|floatformat:0 }} ₸</span>
-      <span class="fin-kpi-sub fin-kpi-sub--danger">
-        <i class="bi bi-receipt"></i> {{ overdue_count }} позиций
-      </span>
-    </div>
-  </div>
-
-  {# ── Графики ── #}
-  <div class="fin-chart-grid">
-    <div class="fin-chart-card">
-      <div class="fin-chart-header">
-        <span class="fin-chart-title">Поступления vs Выбытия</span>
-        <div class="fin-chart-toggle">
-          <button class="fin-chart-btn is-active" data-days="30">30д</button>
-          <button class="fin-chart-btn" data-days="60">60д</button>
-          <button class="fin-chart-btn" data-days="90">90д</button>
+    <div class="fin-kpi-grid">
+      <div class="fin-kpi-card fin-kpi-card--cash" data-drill-type="cash" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Остаток денежных средств">
+        <div class="fin-kpi-card__top">
+          <span class="fin-kpi-label">Остаток ДС</span>
+          <span class="fin-kpi-icon"><i class="bi bi-wallet2"></i></span>
+        </div>
+        <span class="fin-kpi-value" id="kpi-cash-balance">{{ cash_balance|floatformat:0 }} ₸</span>
+        <div class="fin-kpi-card__footer">
+          <span class="fin-kpi-sub">за 90 дней</span>
+          <span class="fin-kpi-drill-hint"><i class="bi bi-chevron-right"></i></span>
         </div>
       </div>
-      <div id="cashflowSpinner" class="fin-chart-spinner"><span class="fin-spinner"></span></div>
-      <canvas id="cashflowChart" height="200" style="display:none;"></canvas>
-    </div>
 
-    <div class="fin-chart-card">
-      <div class="fin-chart-header">
-        <span class="fin-chart-title">Недельный CF</span>
+      <div class="fin-kpi-card fin-kpi-card--revenue" data-drill-type="revenue" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Выручка за месяц">
+        <div class="fin-kpi-card__top">
+          <span class="fin-kpi-label">Выручка (месяц)</span>
+          <span class="fin-kpi-icon"><i class="bi bi-graph-up-arrow"></i></span>
+        </div>
+        <span class="fin-kpi-value" id="kpi-revenue-mtd">{{ revenue_mtd|floatformat:0 }} ₸</span>
+        <span class="fin-kpi-trend {% if revenue_mtd_change >= 0 %}is-up{% else %}is-down{% endif %}" id="kpi-revenue-trend">
+          {% if revenue_mtd_change >= 0 %}<i class="bi bi-arrow-up-short"></i>{% else %}<i class="bi bi-arrow-down-short"></i>{% endif %}
+          {{ revenue_mtd_change|floatformat:1 }}%
+        </span>
       </div>
-      <div id="weeklySpinner" class="fin-chart-spinner"><span class="fin-spinner"></span></div>
-      <canvas id="weeklyChart" height="200" style="display:none;"></canvas>
-    </div>
-  </div>
 
-  {# ── Drill-down боковая панель ── #}
+      <div class="fin-kpi-card fin-kpi-card--revenue-ytd" data-drill-type="revenue_ytd" data-drill-period="{{ today|date:'Y' }}" tabindex="0" role="button" aria-label="Выручка с начала года">
+        <div class="fin-kpi-card__top">
+          <span class="fin-kpi-label">Выручка (год)</span>
+          <span class="fin-kpi-icon"><i class="bi bi-calendar-check"></i></span>
+        </div>
+        <span class="fin-kpi-value" id="kpi-revenue-ytd">{{ revenue_ytd|floatformat:0 }} ₸</span>
+        <div class="fin-kpi-card__footer">
+          <span class="fin-kpi-sub">с начала года</span>
+          <span class="fin-kpi-drill-hint"><i class="bi bi-chevron-right"></i></span>
+        </div>
+      </div>
+
+      <div class="fin-kpi-card fin-kpi-card--expenses" data-drill-type="expenses" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Расходы за месяц">
+        <div class="fin-kpi-card__top">
+          <span class="fin-kpi-label">Расходы (месяц)</span>
+          <span class="fin-kpi-icon"><i class="bi bi-arrow-down-circle"></i></span>
+        </div>
+        <span class="fin-kpi-value" id="kpi-expenses-mtd">{{ expenses_mtd|floatformat:0 }} ₸</span>
+        <div class="fin-kpi-card__footer">
+          <span class="fin-kpi-sub">текущий месяц</span>
+          <span class="fin-kpi-drill-hint"><i class="bi bi-chevron-right"></i></span>
+        </div>
+      </div>
+
+      <div class="fin-kpi-card fin-kpi-card--net" data-drill-type="net_cf" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Чистый денежный поток">
+        <div class="fin-kpi-card__top">
+          <span class="fin-kpi-label">Чистый CF (месяц)</span>
+          <span class="fin-kpi-icon"><i class="bi bi-activity"></i></span>
+        </div>
+        <span class="fin-kpi-value {% if net_cf >= 0 %}fin-kpi-value--success{% else %}fin-kpi-value--danger{% endif %}" id="kpi-net-cf">
+          {{ net_cf|floatformat:0 }} ₸
+        </span>
+        <span class="fin-kpi-sub {% if budget_deviation_pct >= 0 %}fin-kpi-sub--success{% else %}fin-kpi-sub--danger{% endif %}">
+          Откл. бюджета: {% if budget_deviation_pct >= 0 %}+{% endif %}{{ budget_deviation_pct|floatformat:1 }}%
+        </span>
+      </div>
+
+      <div class="fin-kpi-card fin-kpi-card--alert" data-drill-type="overdue" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Просроченные платежи">
+        <div class="fin-kpi-card__top">
+          <span class="fin-kpi-label">Просрочка</span>
+          <span class="fin-kpi-icon"><i class="bi bi-exclamation-triangle"></i></span>
+        </div>
+        <span class="fin-kpi-value fin-kpi-value--danger" id="kpi-overdue-amount">{{ overdue_amount|floatformat:0 }} ₸</span>
+        <div class="fin-kpi-card__footer">
+          <span class="fin-kpi-sub fin-kpi-sub--danger">
+            <i class="bi bi-receipt"></i> <span id="kpi-overdue-count">{{ overdue_count }}</span> позиций
+          </span>
+          <span class="fin-kpi-drill-hint"><i class="bi bi-chevron-right"></i></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="fin-dash-section" aria-labelledby="fin-charts-heading">
+    <div class="fin-dash-section__head">
+      <h2 id="fin-charts-heading" class="fin-dash-section__title">Динамика</h2>
+    </div>
+
+    <div class="fin-chart-grid">
+      <div class="fin-chart-card">
+        <div class="fin-chart-header">
+          <span class="fin-chart-title"><i class="bi bi-bar-chart-line"></i> Поступления vs Выбытия</span>
+          <div class="fin-chart-toggle" role="group" aria-label="Период графика">
+            <button type="button" class="fin-chart-btn is-active" data-days="30">30д</button>
+            <button type="button" class="fin-chart-btn" data-days="60">60д</button>
+            <button type="button" class="fin-chart-btn" data-days="90">90д</button>
+          </div>
+        </div>
+        <div id="cashflowSpinner" class="fin-chart-spinner"><span class="fin-spinner"></span></div>
+        <canvas id="cashflowChart" height="200" style="display:none;"></canvas>
+      </div>
+
+      <div class="fin-chart-card">
+        <div class="fin-chart-header">
+          <span class="fin-chart-title"><i class="bi bi-graph-up"></i> Недельный CF</span>
+        </div>
+        <div id="weeklySpinner" class="fin-chart-spinner"><span class="fin-spinner"></span></div>
+        <canvas id="weeklyChart" height="200" style="display:none;"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section class="fin-dash-section" aria-labelledby="fin-forecast-heading">
+    <div class="fin-chart-card fin-chart-card--wide">
+      <div class="fin-chart-header">
+        <span id="fin-forecast-heading" class="fin-chart-title"><i class="bi bi-lightning-charge"></i> Прогноз CF</span>
+        <div class="fin-chart-toggle" role="group" aria-label="Горизонт прогноза">
+          <button type="button" class="fin-chart-btn" data-forecast-days="30">30д</button>
+          <button type="button" class="fin-chart-btn" data-forecast-days="60">60д</button>
+          <button type="button" class="fin-chart-btn is-active" data-forecast-days="90">90д</button>
+        </div>
+      </div>
+
+      <div id="forecastAlertBox">
+        <div id="gapAlert" class="fin-overrun-alert" style="display:none;"></div>
+      </div>
+
+      <div id="forecastSpinner" class="fin-chart-spinner"><span class="fin-spinner"></span></div>
+      <canvas id="forecastChart" height="120" style="display:none;"></canvas>
+    </div>
+  </section>
+
   <aside class="fin-drill-panel" id="drillPanel" aria-hidden="true">
     <div class="fin-drill-panel__overlay" data-close-drill></div>
     <div class="fin-drill-panel__content">
       <div class="fin-drill-panel__header">
         <h2 id="drillTitle">—</h2>
-        <button data-close-drill class="fin-day-panel__close" aria-label="Закрыть">
+        <button type="button" data-close-drill class="fin-day-panel__close" aria-label="Закрыть">
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
@@ -138,31 +182,12 @@
     </div>
   </aside>
 
-  {# ── Прогноз денежного потока ── #}
-  <div class="fin-chart-card" style="margin-top:20px;">
-    <div class="fin-chart-header">
-      <span class="fin-chart-title">Прогноз CF</span>
-      <div class="fin-chart-toggle">
-        <button class="fin-chart-btn" data-forecast-days="30">30д</button>
-        <button class="fin-chart-btn" data-forecast-days="60">60д</button>
-        <button class="fin-chart-btn is-active" data-forecast-days="90">90д</button>
-      </div>
-    </div>
-
-    <div id="forecastAlertBox" style="margin-bottom:12px;">
-      <div id="gapAlert" class="fin-overrun-alert" style="display:none;"></div>
-    </div>
-
-    <div id="forecastSpinner" class="fin-chart-spinner"><span class="fin-spinner"></span></div>
-    <canvas id="forecastChart" height="120" style="display:none;"></canvas>
-  </div>
-
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script src="{% static 'site/js/apps/finance-filters.js' %}?v=fe65"></script>
-<script src="{% static 'site/js/apps/dashboard.js' %}?v=fe61"></script>
+<script src="{% static 'site/js/apps/dashboard.js' %}?v=fe62"></script>
 <script src="{% static 'site/js/apps/forecast.js' %}?v=fe64"></script>
 {% endblock %}

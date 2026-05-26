@@ -4,11 +4,12 @@
 {% block title %}Бюджет | metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe54-budget">
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
+<link rel="stylesheet" href="{% static 'site/css/apps/fin-pages.css' %}?v=fp01">
 {% endblock %}
 
 {% block content %}
-<section class="fin-page">
+<section class="fin-page fin-page--budget">
 
   {% if has_overrun %}
   <div class="fin-overrun-alert">
@@ -17,11 +18,14 @@
   </div>
   {% endif %}
 
-  <div class="fin-filter-card">
-    <div class="fin-filter-card__header">
-      <h1 class="fin-page-title">Бюджет — {{ year }} / {{ month }} мес.</h1>
+  <header class="fin-page-hero">
+    <div>
+      <h1 class="fin-page-hero__title">Бюджетирование</h1>
+      <p class="fin-page-hero__sub">{{ year }} · {{ month }} мес. · план / факт / прогноз</p>
     </div>
+  </header>
 
+  <div class="fin-filter-card">
     <form method="GET" class="fin-filter-form">
       <div class="fin-field">
         <label class="fin-label">Период</label>

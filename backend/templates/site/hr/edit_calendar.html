@@ -1,68 +1,114 @@
 {% extends 'site/base.html' %}
 {% load static %}
-{% load site_tags %}
+
+{% block title %}{% if is_edit %}Редактирование{% else %}Новая{% endif %} командировка — metriX BPM{% endblock %}
+
+{% block body_classes %}cal-form-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap-datepicker3.standalone.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/hr-calendar.css' %}?v=3" />
+{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-center">
-        <div class="col-12 col-xl-8 mb-5">
-            <div class="mx-auto">
-                <form class="uppercase_label" method="POST">
-                    {% check_form form %}
-                    {% csrf_token %}
-                    <div class="card mb-5">
-                        <div class="card-body">
+<div class="cal-form-page">
+  <div class="cal-form-card">
 
-                            <h1 class="mb-3 mt-1 pb-0 display-4">Запись в календарь</h1>
-                            
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label class="top-label w-100">
-                                        {{form.category}}
-                                        <span>Тип</span>
-                                    </label>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="top-label w-100">
-                                        {{form.user}}
-                                        <span>Сотрудник</span>
-                                    </label>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="top-label">
-                                        {{form.start_date}}
-                                        <span>Дата начала</span>
-                                    </label>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="top-label w-100">
-                                        {{form.end_date}}
-                                        <span>Дата завершения</span>
-                                    </label>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="top-label w-100">
-                                        {{form.title}}
-                                        <span>Заметка</span>
-                                    </label>
-                                </div>
-                                
-                            </div>
-
-                            <div class="d-flex justify-content-end mt-3">
-                                <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
-                                    <span>Сохранить</span>
-                                    <i data-acorn-icon="chevron-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-        
+    <div class="cal-form-card__header">
+      <div>
+        <p class="cal-form-card__eyebrow">{{ category_title }}</p>
+        <h1 class="cal-form-card__title">
+          {% if is_edit %}Редактирование командировки{% else %}Новая командировка{% endif %}
+        </h1>
+      </div>
+      <a href="{{ back_url }}" class="cal-form-card__close" aria-label="Назад к календарю">
+        <i class="bi bi-x-lg"></i>
+      </a>
     </div>
+
+    <form method="post" class="cal-form" id="calendarItemForm">
+      {% csrf_token %}
+      {{ form.category }}
+
+      <div class="cal-form-card__body">
+        <section class="cal-form-section">
+          <h2 class="cal-form-section__title">Сотрудник и период</h2>
+
+          <div class="cal-form-grid cal-form-grid--2">
+            <div class="cal-form-field cal-form-field--wide {% if form.user.errors %}is-invalid{% endif %}">
+              <label class="cal-form-field__label" for="{{ form.user.id_for_label }}">Сотрудник<span>*</span></label>
+              {{ form.user }}
+              {% if form.user.errors %}
+                <div class="cal-form-field__error">{{ form.user.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="cal-form-field {% if form.start_date.errors %}is-invalid{% endif %}">
+              <label class="cal-form-field__label" for="{{ form.start_date.id_for_label }}">Дата начала<span>*</span></label>
+              {{ form.start_date }}
+              {% if form.start_date.errors %}
+                <div class="cal-form-field__error">{{ form.start_date.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="cal-form-field {% if form.end_date.errors %}is-invalid{% endif %}">
+              <label class="cal-form-field__label" for="{{ form.end_date.id_for_label }}">Дата окончания<span>*</span></label>
+              {{ form.end_date }}
+              {% if form.end_date.errors %}
+                <div class="cal-form-field__error">{{ form.end_date.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </section>
+
+        <section class="cal-form-section">
+          <h2 class="cal-form-section__title">Дополнительно</h2>
+          <div class="cal-form-field {% if form.title.errors %}is-invalid{% endif %}">
+            <label class="cal-form-field__label" for="{{ form.title.id_for_label }}">Описание</label>
+            {{ form.title }}
+            <p class="cal-form-field__hint">Например: город, проект или цель поездки</p>
+            {% if form.title.errors %}
+              <div class="cal-form-field__error">{{ form.title.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </section>
+
+        {% if form.non_field_errors %}
+        <div class="cal-form-alert">
+          {% for err in form.non_field_errors %}{{ err }}{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="cal-form-card__footer">
+        <a href="{{ back_url }}" class="hr-btn hr-btn--light">Отмена</a>
+        <button type="submit" class="hr-btn hr-btn--primary">
+          <i class="bi bi-check-lg"></i>
+          Сохранить
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
+<script src="{% static 'site/js/apps/calendar-form.js' %}?v=1"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (typeof $ !== 'undefined' && $.fn.select2) {
+    $('#calendarItemForm select.select2').select2({
+      width: '100%',
+      placeholder: 'Выберите сотрудника',
+      allowClear: false,
+    });
+  }
+});
+</script>
 {% endblock %}

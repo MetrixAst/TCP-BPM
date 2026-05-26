@@ -1,0 +1,357 @@
+/* ─── Finances: ДДС, бюджет, счёт компании, кредитная форма ─── */
+
+.fin-page--cashflow,
+.fin-page--budget,
+.fin-page--bill {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Hero / notice */
+.fin-page-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #fff 0%, #f8f7fc 55%, #eef2ff 100%);
+  border: 1px solid #eceaf3;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(37, 35, 63, 0.06);
+}
+
+.fin-page-hero__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #25233f;
+}
+
+.fin-page-hero__sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #74728a;
+}
+
+.fin-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #eff4ff;
+  border: 1px solid #c7d7fe;
+  border-radius: 14px;
+  font-size: 13px;
+  color: #1e3a5f;
+}
+
+.fin-notice i {
+  font-size: 20px;
+  color: #2f6bed;
+  flex-shrink: 0;
+}
+
+.fin-notice strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Summary KPI row */
+.fin-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .fin-summary-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fin-summary-card {
+  background: #fff;
+  border: 1px solid #eceaf3;
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 4px 20px rgba(37, 35, 63, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fin-summary-card__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #74728a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fin-summary-card__value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #25233f;
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-summary-card--success {
+  background: linear-gradient(135deg, #fff 0%, #f0fdf6 100%);
+  border-color: rgba(34, 168, 90, 0.2);
+}
+
+.fin-summary-card--success .fin-summary-card__value {
+  color: #22a85a;
+}
+
+.fin-summary-card--danger {
+  background: linear-gradient(135deg, #fff 0%, #fff5f5 100%);
+  border-color: rgba(255, 59, 48, 0.18);
+}
+
+.fin-summary-card--danger .fin-summary-card__value {
+  color: #ff3b30;
+}
+
+.fin-summary-card--net {
+  background: linear-gradient(135deg, #fff 0%, #f5f3fa 100%);
+}
+
+/* Budget */
+.fin-overrun-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #fff5f5;
+  border: 1px solid rgba(255, 59, 48, 0.2);
+  color: #c41e12;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fin-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 120px;
+}
+
+.fin-progress {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: #eceaf3;
+  overflow: hidden;
+}
+
+.fin-progress__bar {
+  height: 100%;
+  border-radius: inherit;
+  max-width: 100%;
+  transition: width 0.3s ease;
+}
+
+.fin-progress__bar--success {
+  background: linear-gradient(90deg, #22a85a, #4cd964);
+}
+
+.fin-progress__bar--warning {
+  background: linear-gradient(90deg, #ff9500, #ffb340);
+}
+
+.fin-progress__bar--danger {
+  background: linear-gradient(90deg, #ff3b30, #ff6b5e);
+}
+
+.fin-progress-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #74728a;
+  min-width: 36px;
+  text-align: right;
+}
+
+.fin-total-row td {
+  background: #f8f7fc !important;
+  font-weight: 700;
+  border-top: 2px solid #eceaf3;
+}
+
+.fin-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.fin-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #eceaf3;
+  background: #fff;
+  color: #74728a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.fin-action-btn:hover {
+  background: #f5f3fa;
+  color: #2f6bed;
+  border-color: #d8d4e8;
+}
+
+.fin-action-btn--primary {
+  background: #eef2ff;
+  color: #2f6bed;
+  border-color: #c7d7fe;
+}
+
+/* Credit model form */
+.fin-form-card {
+  padding: 24px 26px 22px;
+}
+
+.fin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+}
+
+@media (max-width: 768px) {
+  .fin-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fin-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fin-form-field--wide {
+  grid-column: 1 / -1;
+}
+
+.fin-form-field--error .fin-input,
+.fin-form-field--error .fin-textarea {
+  border-color: #ff3b30;
+}
+
+.fin-field-error {
+  font-size: 12px;
+  color: #ff3b30;
+}
+
+.fin-textarea {
+  min-height: 88px;
+  resize: vertical;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+}
+
+.fin-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #eceaf3;
+}
+
+.fin-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #74728a;
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+
+.fin-back-link:hover {
+  color: #2f6bed;
+}
+
+.fin-badge {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.fin-badge--neutral {
+  background: #f5f3fa;
+  color: #66657a;
+}
+
+/* Bill empty */
+.fin-bill-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 280px;
+  padding: 48px 24px;
+  background: #fff;
+  border: 1px dashed #eceaf3;
+  border-radius: 18px;
+  text-align: center;
+  color: #74728a;
+}
+
+.fin-bill-empty i {
+  font-size: 40px;
+  opacity: 0.35;
+}
+
+.fin-bill-empty strong {
+  color: #25233f;
+  font-size: 16px;
+}
+
+/* Calendar day */
+.fin-day-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.fin-day-stat {
+  background: #fff;
+  border: 1px solid #eceaf3;
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fin-day-stat span {
+  font-size: 12px;
+  color: #74728a;
+  font-weight: 600;
+}
+
+.fin-day-stat strong {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #25233f;
+}
+
+.fin-day-stat.is-success strong {
+  color: #22a85a;
+}
+
+.fin-day-stat.is-danger strong {
+  color: #ff3b30;
+}

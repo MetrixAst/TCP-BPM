@@ -18,9 +18,13 @@ class HRMenuAndAccessTest(TestCase):
         self.guest_user = UserAccount.objects.create_user(
             username='guest_user', password='password123', role=RoleEnums.GUEST.value
         )
+        self.hr_user = UserAccount.objects.create_user(
+            username='hr_user', password='password123', role=RoleEnums.HR.value
+        )
 
         Employee.objects.create(user=self.admin_user, department=self.dept)
         Employee.objects.create(user=self.staff_user, department=self.dept)
+        Employee.objects.create(user=self.hr_user, department=self.dept)
 
         self.client = Client()
 
@@ -53,6 +57,26 @@ class HRMenuAndAccessTest(TestCase):
 
         response = self.client.get(reverse('hr:org'))
         self.assertEqual(response.status_code, 200)
+
+    def test_hr_role_full_hr_menu(self):
+        menu = MenuItem.generate_menu(self.hr_user)
+        hr_menu = next((item for item in menu if item.id == 'hr'), None)
+        self.assertIsNotNone(hr_menu)
+
+        submenu_titles = [sub.title for sub in hr_menu.submenu]
+        for title in ('Компании', 'Должности', 'Журнал посещаемости', 'Кадровые документы'):
+            self.assertIn(title, submenu_titles)
+
+        self.client.login(username='hr_user', password='password123')
+        self.assertEqual(self.client.get(reverse('hr:companies')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('hr:attendance_journal')).status_code, 200)
+        self.client.logout()
+
+    def test_staff_companies_forbidden(self):
+        self.client.login(username='staff_user', password='password123')
+        response = self.client.get(reverse('hr:companies'))
+        self.assertEqual(response.status_code, 403)
+        self.client.logout()
 
     def test_guest_hr_denied(self):
         self.client.login(username='guest_user', password='password123')

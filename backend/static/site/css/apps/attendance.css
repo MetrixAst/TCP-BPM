@@ -235,4 +235,105 @@
   }
 }
 
+/* Today status on check-in page */
+.checkin-today-panel {
+  background: #fff;
+  border: 1px solid #e8ebf2;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.checkin-today-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.checkin-today-panel__head strong {
+  font-size: 14px;
+  color: #25233f;
+}
+
+.checkin-today-panel__badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #edf2ff;
+  color: #2f6bed;
+}
+
+.checkin-today-panel__badge--done {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.checkin-today-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 700px) {
+  .checkin-today-steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.checkin-step {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #faf9fc;
+  border: 1px solid #f0eef6;
+  font-size: 12px;
+  color: #74728a;
+}
+
+.checkin-step i {
+  font-size: 18px;
+  color: #c5cde8;
+}
+
+.checkin-step--done {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+.checkin-step--done i {
+  color: #22a85a;
+}
+
+.checkin-step em {
+  font-style: normal;
+  font-weight: 700;
+  font-size: 13px;
+  color: #25233f;
+}
+
+.checkin-step--done em {
+  color: #15803d;
+}
+
+.attendance-checkin-type.is-done {
+  opacity: .55;
+  pointer-events: none;
+}
+
+.checkin-type-done {
+  display: block;
+  font-size: 10px;
+  color: #15803d;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
 /*# sourceMappingURL=attendance.css.map */

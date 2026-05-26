@@ -420,17 +420,12 @@ h6 { font-size: var(--font-size-h6); font-weight: var(--font-weight-medium);  }
 // MODAL
 // =============================================================================
 
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  z-index: 1040;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Bootstrap использует .modal.fade — не переопределяем */
+.modal-backdrop.fade {
+  display: block;
 }
 
-.modal {
+.modal:not(.fade) {
   background-color: var(--color-surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-modal);

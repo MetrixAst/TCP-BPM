@@ -1,10 +1,12 @@
 {% extends "site/base.html" %}
 {% load static %}
 
-{% block content %}
-<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}">
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
 
-<div class="onec-detail-page" data-counterparty-id="{{ counterparty.id }}">
+{% block content %}
+<div class="onec-page onec-detail-page" data-counterparty-id="{{ counterparty.id }}">
 
   <main class="onec-detail-main">
 
@@ -16,6 +18,9 @@
           </a>
           <span>Контрагенты / {{ counterparty.short_name|default:counterparty.full_name }}</span>
         </div>
+        <a href="{% url 'onec:counterparty_edit' counterparty.pk %}" class="onec-btn onec-btn--light" style="margin-left:auto;">
+          <i class="bi bi-pencil"></i> Редактировать
+        </a>
       </div>
 
       <h1 class="onec-detail-title">

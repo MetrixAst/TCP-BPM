@@ -39,8 +39,11 @@
                             <div class="h5 mb-2">{{supplier.name}}</div>
                             <span class="badge bg-{{supplier.status_color}}">{{supplier.get_status_display}}</span>
                         </div>
-                        <div class="d-flex flex-row justify-content-between w-100 w-sm-50 w-xl-100">
+                        <div class="d-flex flex-row justify-content-between w-100 w-sm-50 w-xl-100 gap-2">
                             <a href="{% url 'purchases:edit_supplier' supplier.id %}" type="button" class="btn btn-primary w-100 me-2 mobile_link" attr-title="{{supplier.name}}">Редактировать</a>
+                            {% if supplier.onec_counterparty_pk %}
+                            <a href="{% url 'onec:counterparty_detail' supplier.onec_counterparty_pk %}" type="button" class="btn btn-outline-secondary w-100">Карточка 1С</a>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="mb-5">

@@ -13,6 +13,10 @@ urlpatterns = [
     path('api/', include(router.urls)),
 
     path('counterparties/', views.CounterpartyListView.as_view(), name='counterparty_list'),
+    path('counterparties/create/', views.counterparty_create, name='counterparty_create'),
+    path('counterparties/<int:pk>/edit/', views.counterparty_edit, name='counterparty_edit'),
+    path('counterparties/sync/', views.counterparty_sync, name='counterparty_sync'),
+    path('counterparties/seed-demo/', views.counterparty_seed_demo, name='counterparty_seed_demo'),
     path('counterparties/<int:pk>/', views.CounterpartyDetailView.as_view(), name='counterparty_detail'),
     path('api/cp-search/', views.counterparty_search_api, name='counterparty_search_api'),
     path('invoice/create/', views.InvoiceCreateView.as_view(), name='invoice_create'),

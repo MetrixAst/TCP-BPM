@@ -1,8 +1,38 @@
 from django import template
+
 from addits.models import Comment
 from account.role_permissions import RolePermissions
+from account.i18n import translate, build_lang_url, DEFAULT_LANG
 
 register = template.Library()
+
+
+@register.simple_tag(takes_context=True)
+def t(context, key, default=''):
+    request = context.get('request')
+    lang = getattr(request, 'current_lang', DEFAULT_LANG) if request else DEFAULT_LANG
+    return translate(lang, key, default=default or key)
+
+
+@register.simple_tag(takes_context=True)
+def lang_url(context, lang):
+    request = context.get('request')
+    if not request:
+        return f'?lang={lang}'
+    return build_lang_url(request, lang)
+
+
+@register.simple_tag(takes_context=True)
+def role_label(context, role):
+    request = context.get('request')
+    lang = getattr(request, 'current_lang', DEFAULT_LANG) if request else DEFAULT_LANG
+    if hasattr(role, 'value'):
+        role = role.value
+    key = f'sidebar.role_{role}'
+    translated = translate(lang, key, default=None)
+    if translated != key:
+        return translated
+    return translate(lang, 'sidebar.role_administrator', default=str(role))
 
 
 @register.filter(name='has_permission')

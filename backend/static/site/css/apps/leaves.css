@@ -214,6 +214,9 @@
 .leave-status--pending {
   color: #f59e0b;
 }
+.leave-status--confirmed {
+  color: #0d9488;
+}
 .leave-status--draft {
   color: #2563eb;
 }
@@ -1229,6 +1232,16 @@ body.leave-create-body .bpm-content {
   background: #ff3b30;
 }
 
+/* ── новый timeline wrapper ── */
+.leave-timeline-wrap {
+  border: 1px solid #ebeaf1;
+  border-radius: 12px;
+  overflow-x: auto;
+  min-height: 280px;
+  background: #fff;
+}
+
+/* ── старый враппер (обратная совместимость) ── */
 .leave-timeline {
   border: 1px solid #ebeaf1;
   border-radius: 12px;
@@ -1328,5 +1341,127 @@ body.leave-create-body .bpm-content {
   color: #25233f;
   font-size: 14px;
 }
+
+/* ════════════════════════════════
+   NEW CALENDAR GRID (tl-grid)
+   ════════════════════════════════ */
+.tl-grid {
+  min-width: 900px;
+  font-family: inherit;
+}
+
+.tl-grid__row {
+  display: grid;
+  border-bottom: 1px solid #f0eef6;
+}
+
+.tl-grid__row--head {
+  background: #f8f7fc;
+  border-bottom: 2px solid #e4e2f0;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.tl-grid__cell {
+  border-right: 1px solid #f0eef6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #74728a;
+  min-width: 32px;
+  height: 48px;
+  padding: 0 2px;
+  box-sizing: border-box;
+}
+
+.tl-grid__cell--name {
+  justify-content: center;
+  align-items: flex-start;
+  padding: 8px 14px;
+  font-size: 12px;
+  height: 48px;
+  background: #f8f7fc;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  border-right: 2px solid #e4e2f0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tl-grid__row--head .tl-grid__cell--name {
+  font-weight: 700;
+  font-size: 12px;
+  color: #25233f;
+}
+
+.tl-grid__cell--day { height: 48px; }
+.tl-day-num { font-size: 12px; font-weight: 700; color: #25233f; line-height: 1; }
+.tl-day-name { font-size: 9px; font-weight: 500; color: #9a98aa; text-transform: uppercase; letter-spacing: .04em; }
+
+.tl-grid__cell--today { background: #edf2ff; }
+.tl-grid__cell--today .tl-day-num { color: #2f6bed; }
+.tl-grid__cell--weekend { background: #faf9fc; }
+.tl-grid__cell--weekend .tl-day-num { color: #b3b0c8; }
+
+/* Employee row name area */
+.tl-emp-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #25233f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 148px;
+}
+.tl-dept-name {
+  font-size: 10px;
+  color: #9a98aa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 148px;
+}
+
+/* Slot cells */
+.tl-grid__cell--slot {
+  height: 48px;
+  position: relative;
+}
+
+.tl-grid__cell--filled { cursor: default; }
+
+.tl-grid__cell--draft    { background: #f3f4f6; }
+.tl-grid__cell--pending  { background: #fff7ed; }
+.tl-grid__cell--approved { background: #dcfce7; }
+.tl-grid__cell--rejected { background: #fee2e2; }
+
+.tl-cell-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .6;
+}
+
+.tl-grid__cell--draft    .tl-cell-dot { color: #6b7280; }
+.tl-grid__cell--pending  .tl-cell-dot { color: #f59e0b; }
+.tl-grid__cell--approved .tl-cell-dot { color: #15803d; }
+.tl-grid__cell--rejected .tl-cell-dot { color: #dc2626; }
+
+.leave-timeline__loading {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9a98aa;
+  font-size: 13px;
+}
+
+/* dot for legend */
+.leave-dot--draft { background: #9ca3af; }
 
 /*# sourceMappingURL=leaves.css.map */

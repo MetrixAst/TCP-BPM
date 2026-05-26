@@ -95,12 +95,12 @@
           {% for cert in certifications %}
             <tr>
               <td>
-                <strong>{{ cert.employee }}</strong>
+                <strong>{{ cert.employee.get_display_name }}</strong>
                 <span>{{ cert.employee.department|default:"—" }}</span>
               </td>
 
               <td>
-                <strong>{{ cert.cert_type.name }}</strong>
+                <strong>{{ cert.cert_type }}</strong>
                 <span>{{ cert.issuing_body|default:"—" }}</span>
               </td>
 

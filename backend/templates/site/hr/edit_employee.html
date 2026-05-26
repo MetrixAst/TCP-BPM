@@ -23,12 +23,27 @@
         {% if employee.user.get_name %}{{ employee.user.get_name }}{% else %}{{ employee.user.username }}{% endif %}
       </h1>
 
-      <a href="{% url 'hr:employees' %}" class="hr-edit-card__close" aria-label="Закрыть">
-        <i class="bi bi-x"></i>
-      </a>
+      <div class="hr-edit-card__header-actions">
+        <form method="post" action="{% url 'hr:delete_employee' employee.pk %}" class="d-inline"
+              onsubmit="return confirm('Удалить сотрудника без возможности восстановления?');">
+          {% csrf_token %}
+          <button type="submit" class="hr-btn hr-btn--danger hr-btn--sm" title="Удалить сотрудника">
+            <i class="bi bi-trash"></i>
+            Удалить
+          </button>
+        </form>
+        <a href="{% url 'hr:employee_detail' employee.pk %}" class="hr-btn hr-btn--light hr-btn--sm">
+          <i class="bi bi-arrow-left"></i>
+          Профиль
+        </a>
+        <a href="{% url 'hr:employees' %}" class="hr-edit-card__close" aria-label="Закрыть">
+          <i class="bi bi-x"></i>
+        </a>
+      </div>
     </div>
 
-    <form method="POST" class="hr-edit-form" id="hrEmployeeForm">
+    <form method="POST" class="hr-edit-form" id="hrEmployeeForm"
+          data-positions-url="{{ positions_by_department_url }}">
       {% csrf_token %}
       {% check_form form %}
 
@@ -124,7 +139,7 @@
       </div>
 
       <div class="hr-edit-card__footer">
-        <a href="{% url 'hr:employees' %}" class="hr-edit-btn hr-edit-btn--cancel">
+        <a href="{% url 'hr:employee_detail' employee.pk %}" class="hr-edit-btn hr-edit-btn--cancel">
           Отменить
         </a>
 
@@ -143,7 +158,6 @@
 
 {% block scripts %}
 <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
-<script src="{% static 'site/js/apps/hr.js' %}?v=10005"></script>
 <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
 <script src="{% static 'site/js/apps/hr.js' %}?v={{ static_version|default:'1' }}"></script>
 {% endblock scripts %}

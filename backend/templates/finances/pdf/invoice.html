@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Счёт №{{ invoice.number }}</title>
+  <style>
+    @font-face {
+      font-family: "{{ pdf_font_family }}";
+      src: url("{{ pdf_font_file }}");
+    }
+    @page {
+      size: A4;
+      margin: 1.4cm 1.6cm;
+    }
+    body {
+      font-family: "{{ pdf_font_family }}", sans-serif;
+      font-size: 11pt;
+      color: #25233f;
+      line-height: 1.4;
+    }
+    h1 {
+      margin: 0 0 4px;
+      font-size: 20pt;
+      color: #2f6bed;
+    }
+    .muted { color: #74728a; font-size: 9pt; }
+    .header {
+      border-bottom: 2px solid #2f6bed;
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+    }
+    .grid {
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .grid td {
+      vertical-align: top;
+      padding: 4px 8px 4px 0;
+      width: 50%;
+    }
+    .label {
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.4pt;
+      color: #74728a;
+      display: block;
+      margin-bottom: 2px;
+    }
+    table.items {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 16px;
+      font-size: 10pt;
+    }
+    table.items th {
+      background: #f5f3fa;
+      text-align: left;
+      padding: 8px 6px;
+      font-size: 8pt;
+      text-transform: uppercase;
+      color: #66657a;
+      border-bottom: 1px solid #eceaf3;
+    }
+    table.items td {
+      padding: 8px 6px;
+      border-bottom: 1px solid #f0eef6;
+    }
+    .num { text-align: right; white-space: nowrap; }
+    .totals {
+      width: 100%;
+      margin-top: 8px;
+    }
+    .totals td {
+      padding: 4px 0;
+      font-size: 10pt;
+    }
+    .totals .grand {
+      font-size: 13pt;
+      font-weight: bold;
+      color: #2f6bed;
+      border-top: 2px solid #2f6bed;
+      padding-top: 8px;
+    }
+    .comment {
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: #f8f7fb;
+      border-radius: 6px;
+      font-size: 9pt;
+    }
+    .footer {
+      margin-top: 24px;
+      font-size: 8pt;
+      color: #9a98aa;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Счёт на оплату №{{ invoice.number }}</h1>
+    <div class="muted">
+      {% if invoice.period %}Период: {{ invoice.period|date:"m.Y" }}{% endif %}
+      {% if invoice.contract_number %} · Договор №{{ invoice.contract_number }}{% endif %}
+      · Дата: {{ invoice.created_at|date:"d.m.Y" }}
+    </div>
+  </div>
+
+  <table class="grid">
+    <tr>
+      <td>
+        <span class="label">Поставщик</span>
+        <strong>{{ issuer_name }}</strong><br>
+        {% if issuer_bin %}БИН {{ issuer_bin }}<br>{% endif %}
+        {{ issuer_address }}
+      </td>
+      <td>
+        <span class="label">Получатель</span>
+        <strong>
+          {% if invoice.tenant %}{{ invoice.tenant.name }}
+          {% elif invoice.counterparty %}{{ invoice.counterparty.short_name|default:invoice.counterparty }}
+          {% else %}—{% endif %}
+        </strong>
+      </td>
+    </tr>
+  </table>
+
+  {% if items %}
+  <table class="items">
+    <thead>
+      <tr>
+        <th style="width:4%">#</th>
+        <th>Наименование</th>
+        <th class="num">Кол-во</th>
+        <th class="num">Ед.</th>
+        <th class="num">Цена, ₸</th>
+        <th class="num">НДС %</th>
+        <th class="num">Сумма, ₸</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ item.name }}</td>
+        <td class="num">{{ item.quantity }}</td>
+        <td class="num">{{ item.unit|default:"—" }}</td>
+        <td class="num">{{ item.price|floatformat:2 }}</td>
+        <td class="num">{{ item.vat_rate|floatformat:0 }}</td>
+        <td class="num">{{ item.total|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <table class="totals">
+    <tr>
+      <td style="width:70%"></td>
+      <td class="num">НДС:</td>
+      <td class="num" style="width:22%">{{ invoice.vat_amount|floatformat:2 }} ₸</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td class="num grand">Итого к оплате:</td>
+      <td class="num grand">{{ invoice.total_amount|floatformat:2 }} ₸</td>
+    </tr>
+  </table>
+
+  {% if invoice.comment %}
+  <div class="comment">
+    <strong>Примечание:</strong> {{ invoice.comment }}
+  </div>
+  {% endif %}
+
+  <div class="footer">
+    Документ сформирован в metriX BPM · {{ invoice.get_status_display }}
+  </div>
+
+</body>
+</html>

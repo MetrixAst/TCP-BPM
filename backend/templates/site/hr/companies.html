@@ -2,81 +2,163 @@
 {% load static %}
 {% load site_tags %}
 
-{% block title %}Компании | metriX BPM{% endblock %}
+{% block title %}Компании — metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&co=2">
 {% endblock styles %}
 
 {% block content %}
 <div class="hr-page hr-companies-page">
-  <div class="hr-list-top">
-    <h1>Компании</h1>
 
-    <div class="hr-list-top__actions">
+  <div class="hr-companies-top">
+    <div>
+      <h1 class="hr-companies-top__title">Компании</h1>
+      <p class="hr-companies-top__subtitle">
+        Юридические лица группы · {{ companies|length }}
+        {% if companies|length == 1 %}компания{% elif companies|length < 5 %}компании{% else %}компаний{% endif %}
+      </p>
+    </div>
+
+    <div class="hr-companies-top__actions">
       {% if request.user|has_permission:"hr_companies" %}
-      <a href="{% url 'hr:create_company' %}" class="hr-btn hr-btn--primary">
+      <button type="button" class="hr-btn hr-btn--primary" data-bs-toggle="modal" data-bs-target="#createCompanyModal">
         <i class="bi bi-plus-lg"></i>
         <span>Новая компания</span>
-      </a>
+      </button>
       {% endif %}
     </div>
   </div>
 
-  <div class="hr-card">
-    {% if companies %}
-      <div class="hr-table hr-table--companies">
-        <div class="hr-table__head">
-          <div>Название</div>
-          <div>БИН</div>
-          <div>Адрес</div>
-          <div>Телефон</div>
-          <div>Email</div>
-          <div>Сотрудников</div>
+  {% if companies %}
+  <div class="hr-companies-grid">
+    {% for company in companies %}
+    <article class="hr-company-card">
+      <div class="hr-company-card__header">
+        <div class="hr-company-card__avatar" aria-hidden="true">
+          {{ company.name|slice:":1"|upper }}
         </div>
+        <div class="hr-company-card__title-wrap">
+          <h2 class="hr-company-card__name">{{ company.name }}</h2>
+          {% if company.bin_number %}
+          <span class="hr-company-card__bin">БИН {{ company.bin_number }}</span>
+          {% endif %}
+        </div>
+        {% if request.user|has_permission:"hr_companies" %}
+        <form method="post" action="{% url 'hr:delete_company' company.pk %}" class="hr-company-card__delete"
+              onsubmit="return confirm('Удалить компанию «{{ company.name|escapejs }}»?{% if company.employee_count %} Сначала переведите или удалите сотрудников ({{ company.employee_count }}).{% endif %}');">
+          {% csrf_token %}
+          <button type="submit" class="hr-company-card__delete-btn"
+                  title="{% if company.employee_count %}Нельзя удалить: {{ company.employee_count }} сотрудников{% else %}Удалить компанию{% endif %}"
+                  {% if company.employee_count %}disabled{% endif %}>
+            <i class="bi bi-trash"></i>
+          </button>
+        </form>
+        {% endif %}
+      </div>
 
-        <div class="hr-table__body">
-          {% for company in companies %}
-          <div class="hr-table__row">
-            <div class="hr-employee">
-              <div class="hr-avatar hr-avatar--company">
-                {{ company.name|slice:":1" }}
-              </div>
-              <div>
-                <div class="hr-employee__name">{{ company.name }}</div>
-              </div>
+      <ul class="hr-company-card__meta">
+        {% if company.address %}
+        <li>
+          <i class="bi bi-geo-alt"></i>
+          <span>{{ company.address }}</span>
+        </li>
+        {% endif %}
+        {% if company.phone %}
+        <li>
+          <i class="bi bi-telephone"></i>
+          <a href="tel:{{ company.phone }}">{{ company.phone }}</a>
+        </li>
+        {% endif %}
+        {% if company.email %}
+        <li>
+          <i class="bi bi-envelope"></i>
+          <a href="mailto:{{ company.email }}">{{ company.email }}</a>
+        </li>
+        {% endif %}
+        {% if not company.address and not company.phone and not company.email %}
+        <li class="hr-company-card__meta--empty">
+          <i class="bi bi-info-circle"></i>
+          <span>Контакты не заполнены</span>
+        </li>
+        {% endif %}
+      </ul>
+
+      <div class="hr-company-card__footer">
+        <div class="hr-company-card__stat">
+          <span class="hr-company-card__stat-value">{{ company.employee_count }}</span>
+          <span class="hr-company-card__stat-label">сотрудников</span>
+        </div>
+        <span class="hr-company-card__date">
+          с {{ company.created_at|date:"d.m.Y" }}
+        </span>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="hr-companies-empty">
+    <div class="hr-companies-empty__icon">
+      <i class="bi bi-buildings"></i>
+    </div>
+    <h3>Компаний пока нет</h3>
+    <p>Добавьте первую организацию — она появится в оргструктуре и привязке сотрудников.</p>
+    {% if request.user|has_permission:"hr_companies" %}
+    <button type="button" class="hr-btn hr-btn--primary" data-bs-toggle="modal" data-bs-target="#createCompanyModal">
+      <i class="bi bi-plus-lg"></i>
+      Добавить компанию
+    </button>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+
+<div class="modal fade" id="createCompanyModal" tabindex="-1" aria-labelledby="createCompanyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content hr-company-modal">
+      <form method="post" action="{% url 'hr:create_company' %}">
+        {% csrf_token %}
+        <div class="modal-header hr-company-modal__header">
+          <div>
+            <p class="hr-company-modal__eyebrow">Новая запись</p>
+            <h5 class="modal-title" id="createCompanyModalLabel">Компания</h5>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body hr-company-modal__body">
+          <div class="hr-form-field">
+            <label class="hr-form-label">Название <span class="hr-form-req">*</span></label>
+            <input type="text" name="name" class="hr-form-input" placeholder="ТОО «Ромашка»" required>
+          </div>
+          <div class="hr-form-field">
+            <label class="hr-form-label">БИН <span class="hr-form-req">*</span></label>
+            <input type="text" name="bin_number" class="hr-form-input" placeholder="000000000000" maxlength="12" required>
+          </div>
+          <div class="hr-form-field">
+            <label class="hr-form-label">Адрес</label>
+            <input type="text" name="address" class="hr-form-input" placeholder="г. Алматы, ул. Примерная 1">
+          </div>
+          <div class="hr-company-modal__row">
+            <div class="hr-form-field">
+              <label class="hr-form-label">Телефон</label>
+              <input type="text" name="phone" class="hr-form-input" placeholder="+7 700 000 00 00">
             </div>
-
-            <div class="hr-muted">
-              {% if company.bin_number %}{{ company.bin_number }}{% else %}—{% endif %}
-            </div>
-
-            <div class="hr-muted">
-              {% if company.address %}{{ company.address }}{% else %}—{% endif %}
-            </div>
-
-            <div class="hr-muted">
-              {% if company.phone %}{{ company.phone }}{% else %}—{% endif %}
-            </div>
-
-            <div class="hr-muted">
-              {% if company.email %}{{ company.email }}{% else %}—{% endif %}
-            </div>
-
-            <div>
-              <span class="hr-badge hr-badge--neutral">{{ company.employee_count }}</span>
+            <div class="hr-form-field">
+              <label class="hr-form-label">Email</label>
+              <input type="email" name="email" class="hr-form-input" placeholder="info@company.kz">
             </div>
           </div>
-          {% endfor %}
         </div>
-      </div>
-    {% else %}
-      <div class="hr-empty">
-        <i class="bi bi-building"></i>
-        <h3>Компании не найдены</h3>
-        <p>Добавьте первую компанию в систему.</p>
-      </div>
-    {% endif %}
+        <div class="modal-footer hr-company-modal__footer">
+          <button type="button" class="hr-btn hr-btn--light" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="hr-btn hr-btn--primary">
+            <i class="bi bi-check-lg"></i>
+            Создать
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

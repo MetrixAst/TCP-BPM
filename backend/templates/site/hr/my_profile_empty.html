@@ -1,0 +1,23 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Личный профиль — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
+
+{% block content %}
+<div class="hr-page">
+  <div class="emp-empty" style="max-width:480px;margin:60px auto;">
+    <i class="bi bi-person-badge"></i>
+    <strong>Кадровый профиль не привязан</strong>
+    <p style="margin-top:8px;color:#74728a;">
+      Ваш аккаунт не связан с записью сотрудника. Обратитесь в HR или администратору.
+    </p>
+    <a href="{% url 'account:profile' %}" class="hr-btn hr-btn--light" style="margin-top:16px;">
+      Настройки аккаунта
+    </a>
+  </div>
+</div>
+{% endblock %}

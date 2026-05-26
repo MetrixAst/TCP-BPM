@@ -1,6 +1,6 @@
 from django.shortcuts import redirect, render, get_object_or_404
 from account.role_permissions import need_permission, PermissionEnums, login_required as _login_required
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponse
 from django.contrib import messages
 from decimal import Decimal
 from django import forms as django_forms
@@ -21,13 +21,19 @@ from django.utils import timezone
 from account.role_permissions import RoleEnums
 
 
+def _finance_filter_context(extra=None):
+    """Арендаторы для глобального фильтра на фин. страницах."""
+    from tenants.models import Tenant
+
+    ctx = {'finance_filter_tenants': Tenant.objects.order_by('name')}
+    if extra:
+        ctx.update(extra)
+    return ctx
+
+
 @need_permission(PermissionEnums.FINANCES)
 def calendar(request):
-    context = {
-
-    }
-
-    return render(request, 'site/finances/calendar.html', context)
+    return redirect('finances:payment_calendar')
 
 
 @need_permission(PermissionEnums.FINANCES)
@@ -75,12 +81,12 @@ def budget_create(request):
     return redirect('finances:budget_list')
 
 
+@need_permission(PermissionEnums.FINANCES)
 def bill(request):
-    context = {
-
-    }
-
-    return render(request, 'site/finances/bill.html', context)
+    """Счета компании (банковские) — данные из 1С пока не подключены."""
+    return render(request, 'site/finances/bill.html', {
+        'has_data': False,
+    })
 
 
 @need_permission(PermissionEnums.FINANCE_REGISTERS)
@@ -134,18 +140,17 @@ def payment_reg(request):
     tenants  = Tenant.objects.order_by('name')
     statuses = TenantPaymentRegistry.Status.choices
 
-    context = {
+    context = _finance_filter_context({
         'entries': entries,
         'tenants': tenants,
         'statuses': statuses,
         'today': date.today(),
-
         'f_search': search,
         'f_status': status,
         'f_tenant': tenant_id,
         'f_period_from': period_from,
         'f_period_to': period_to,
-    }
+    })
 
     if request.GET.get('export') == 'xlsx':
         from .services.excel import export_payment_registry
@@ -183,6 +188,8 @@ def payment_calendar(request):
         qs = qs.filter(status=status)
 
     days_in_month = monthrange(year, month)[1]
+    month_start = date(year, month, 1)
+    calendar_leading_blanks = month_start.weekday()
     calendar_days = []
 
     for day in range(1, days_in_month + 1):
@@ -215,6 +222,7 @@ def payment_calendar(request):
 
     context = {
         'calendar_days': calendar_days,
+        'calendar_leading_blanks': range(calendar_leading_blanks),
         'tenants':       Tenant.objects.order_by('name'),
         'statuses':      PaymentCalendarEntry.Status.choices,
         'year':          year,
@@ -243,9 +251,13 @@ def payment_calendar_day(request, year, month, day):
         from django.http import Http404
         raise Http404
 
+    from django.db.models import Q
+
     entries = PaymentCalendarEntry.objects.select_related(
         'tenant', 'tenant__room'
-    ).filter(expected_date=day_date).order_by('tenant__name')
+    ).filter(
+        Q(expected_date=day_date) | Q(actual_date=day_date)
+    ).order_by('tenant__name')
 
     STATUS_COLORS = {
         PaymentCalendarEntry.Status.PLAN:    'info',
@@ -391,6 +403,34 @@ def invoice_detail(request, pk):
 
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
+def invoice_pdf(request, pk):
+    """PDF счёта: ?inline=1 — preview в браузере, иначе скачивание."""
+    invoice = get_object_or_404(
+        GeneratedInvoice.objects.select_related('tenant', 'counterparty').prefetch_related('items'),
+        pk=pk,
+    )
+    from .services.invoice_pdf import build_invoice_pdf
+
+    try:
+        pdf_bytes = build_invoice_pdf(invoice)
+    except Exception:
+        return HttpResponse('Ошибка генерации PDF', status=500, content_type='text/plain; charset=utf-8')
+
+    safe_number = ''.join(
+        c if c.isascii() and (c.isalnum() or c in '-_') else '_'
+        for c in str(invoice.number)
+    ).strip('_') or str(invoice.pk)
+    filename = f'invoice_{safe_number}.pdf'
+    inline = request.GET.get('inline') in ('1', 'true', 'yes')
+    disposition = 'inline' if inline else 'attachment'
+
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
+    response['Cache-Control'] = 'private, max-age=300'
+    return response
+
+
+@need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_delete(request, pk):
     invoice = get_object_or_404(GeneratedInvoice, pk=pk)
 
@@ -419,6 +459,11 @@ def invoice_send(request, pk):
             ok = send_invoice_via_email(invoice)
             if ok:
                 messages.success(request, f'Счёт №{invoice.number} отправлен по email.')
+                try:
+                    from onec.services.sync_invoices import notify_onec_invoice_sent
+                    notify_onec_invoice_sent(invoice)
+                except Exception:
+                    pass
             else:
                 # email не ушёл (нет получателя / ошибка), но статус всё равно обновляем вручную
                 invoice.status   = GeneratedInvoice.Status.SENT
@@ -436,6 +481,13 @@ def invoice_send(request, pk):
             invoice.sent_at  = timezone.now()
             invoice.save()
             messages.success(request, f'Счёт №{invoice.number} отмечен как отправленный вручную.')
+
+        try:
+            from onec.services.sync_invoices import notify_onec_invoice_sent
+            if invoice.status == GeneratedInvoice.Status.SENT:
+                notify_onec_invoice_sent(invoice)
+        except Exception:
+            pass
 
     return redirect('finances:invoice_detail', pk=pk)
 
@@ -457,9 +509,26 @@ def invoice_mark_paid(request, pk):
         GeneratedInvoice.Status.SENT,
         GeneratedInvoice.Status.VIEWED,
     ]:
+        from .services.invoice_registry import apply_invoice_payment_to_registry
+
         invoice.status = GeneratedInvoice.Status.PAID
-        invoice.save()
-        messages.success(request, f'Счёт №{invoice.number} оплачен.')
+        invoice.save(update_fields=['status', 'updated_at'])
+
+        registry = apply_invoice_payment_to_registry(invoice)
+        if registry:
+            messages.success(
+                request,
+                f'Счёт №{invoice.number} оплачен. Реестр обновлён '
+                f'({registry.tenant}, {registry.period.strftime("%m.%Y")}).',
+            )
+        elif not invoice.tenant_id:
+            messages.warning(
+                request,
+                f'Счёт №{invoice.number} оплачен, но арендатор не указан — '
+                'реестр платежей не обновлён.',
+            )
+        else:
+            messages.success(request, f'Счёт №{invoice.number} оплачен.')
     return redirect('finances:invoice_detail', pk=pk)
 
 
@@ -848,7 +917,7 @@ def cashflow_register(request):
     from onec.models import Counterparty
     counterparties = Counterparty.objects.order_by('short_name')[:200]
 
-    context = {
+    context = _finance_filter_context({
         'records':        records,
         'date_from':      date_from,
         'date_to':        date_to,
@@ -861,7 +930,7 @@ def cashflow_register(request):
         'total_inflow':   total_inflow,
         'total_outflow':  total_outflow,
         'net_flow':       total_inflow - total_outflow,
-    }
+    })
     return render(request, 'site/finances/cashflow.html', context)
 
 
@@ -872,57 +941,91 @@ def _can_manage_credit(user):
 
 # ── BE-6.1: Executive Dashboard ───────────────────────────────────────────────
 
-def _compute_dashboard_kpis():
+def _compute_dashboard_kpis(request=None):
+    import calendar
     from datetime import timedelta
     from django.db.models import Sum
 
+    from .services.session_filters import (
+        cash_balance_date_bounds,
+        filter_calendar,
+        filter_cashflow,
+        filter_registry,
+        get_filters,
+        has_active_filters,
+        parse_filter_date,
+    )
+
+    filters = get_filters(request)
     today = date.today()
     first_day_this_month = today.replace(day=1)
+    period_from = parse_filter_date(filters.get('period_from'))
+    period_to = parse_filter_date(filters.get('period_to'))
+    custom_period = bool(period_from or period_to)
 
     if today.month == 1:
         first_day_prev_month = date(today.year - 1, 12, 1)
         last_day_prev_month  = date(today.year - 1, 12, 31)
     else:
         first_day_prev_month = today.replace(month=today.month - 1, day=1)
-        import calendar
         last_day_prev_month = today.replace(
             month=today.month - 1,
-            day=calendar.monthrange(today.year, today.month - 1)[1]
+            day=calendar.monthrange(today.year, today.month - 1)[1],
         )
 
-    ninety_days_ago = today - timedelta(days=90)
+    cash_start, cash_end = cash_balance_date_bounds(filters, today)
+    cash_qs = filter_calendar(
+        PaymentCalendarEntry.objects.filter(
+            status=PaymentCalendarEntry.Status.FACT,
+            actual_date__gte=cash_start,
+            actual_date__lte=cash_end,
+        ),
+        filters,
+    )
+    cash_balance = cash_qs.aggregate(total=Sum('actual_amount'))['total'] or Decimal('0')
 
-    cash_balance = PaymentCalendarEntry.objects.filter(
-        status=PaymentCalendarEntry.Status.FACT,
-        actual_date__gte=ninety_days_ago,
-        actual_date__lte=today,
-    ).aggregate(total=Sum('actual_amount'))['total'] or Decimal('0')
+    registry_qs = filter_registry(TenantPaymentRegistry.objects.all(), filters)
 
-    revenue_mtd = TenantPaymentRegistry.objects.filter(
-        period__year=today.year,
-        period__month=today.month,
-    ).aggregate(total=Sum('paid'))['total'] or Decimal('0')
-
-    revenue_prev = TenantPaymentRegistry.objects.filter(
-        period__year=first_day_prev_month.year,
-        period__month=first_day_prev_month.month,
-    ).aggregate(total=Sum('paid'))['total'] or Decimal('0')
-
-    if revenue_prev and revenue_prev != 0:
-        revenue_mtd_change = float(
-            (revenue_mtd - revenue_prev) / revenue_prev * 100
-        )
-    else:
+    if custom_period:
+        revenue_mtd = registry_qs.aggregate(total=Sum('paid'))['total'] or Decimal('0')
         revenue_mtd_change = 0.0
+        revenue_ytd = revenue_mtd
+    else:
+        revenue_mtd = registry_qs.filter(
+            period__year=today.year,
+            period__month=today.month,
+        ).aggregate(total=Sum('paid'))['total'] or Decimal('0')
 
-    revenue_ytd = TenantPaymentRegistry.objects.filter(
-        period__year=today.year,
-    ).aggregate(total=Sum('paid'))['total'] or Decimal('0')
+        revenue_prev = filter_registry(
+            TenantPaymentRegistry.objects.all(), filters,
+        ).filter(
+            period__year=first_day_prev_month.year,
+            period__month=first_day_prev_month.month,
+        ).aggregate(total=Sum('paid'))['total'] or Decimal('0')
 
-    expenses_mtd = CashFlowRecord.objects.filter(
-        direction=CashFlowRecord.Direction.OUTFLOW,
-        transaction_date__gte=first_day_this_month,
-        transaction_date__lte=today,
+        if revenue_prev and revenue_prev != 0:
+            revenue_mtd_change = float(
+                (revenue_mtd - revenue_prev) / revenue_prev * 100
+            )
+        else:
+            revenue_mtd_change = 0.0
+
+        revenue_ytd = registry_qs.filter(
+            period__year=today.year,
+        ).aggregate(total=Sum('paid'))['total'] or Decimal('0')
+
+    if custom_period:
+        exp_start, exp_end = period_from or cash_start, period_to or today
+    else:
+        exp_start, exp_end = first_day_this_month, today
+
+    expenses_mtd = filter_cashflow(
+        CashFlowRecord.objects.filter(
+            direction=CashFlowRecord.Direction.OUTFLOW,
+            transaction_date__gte=exp_start,
+            transaction_date__lte=exp_end,
+        ),
+        filters,
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
 
     net_cf = revenue_mtd - expenses_mtd
@@ -940,8 +1043,9 @@ def _compute_dashboard_kpis():
     else:
         budget_deviation_pct = 0.0
 
-    overdue_qs = TenantPaymentRegistry.objects.filter(
-        status=TenantPaymentRegistry.Status.OVERDUE
+    overdue_qs = filter_registry(
+        TenantPaymentRegistry.objects.filter(status=TenantPaymentRegistry.Status.OVERDUE),
+        filters,
     )
     overdue_count  = overdue_qs.count()
     overdue_amount = overdue_qs.aggregate(
@@ -959,19 +1063,20 @@ def _compute_dashboard_kpis():
         'overdue_count': overdue_count,
         'overdue_amount': overdue_amount,
         'today': today,
+        'finance_filters_active': has_active_filters(filters),
     }
 
 
 @need_permission(PermissionEnums.FINANCE_DASHBOARD)
 def dashboard(request):
-    context = _compute_dashboard_kpis()
+    context = _finance_filter_context(_compute_dashboard_kpis(request))
     context['can_manage'] = _can_manage_credit(request.user)
     return render(request, 'site/finances/dashboard.html', context)
 
 
 @need_permission(PermissionEnums.FINANCE_DASHBOARD)
 def dashboard_kpi(request):
-    kpis = _compute_dashboard_kpis()
+    kpis = _compute_dashboard_kpis(request)
     return JsonResponse({
         'cash_balance': float(kpis['cash_balance']),
         'revenue_mtd': float(kpis['revenue_mtd']),
@@ -989,6 +1094,14 @@ def dashboard_kpi(request):
 def dashboard_drilldown(request):
     from django.db.models import Sum
 
+    from .services.session_filters import (
+        filter_calendar,
+        filter_cashflow,
+        filter_registry,
+        get_filters,
+    )
+
+    filters = get_filters(request)
     drill_type = request.GET.get('type', '')
     period_str = request.GET.get('period', '')
 
@@ -1006,11 +1119,14 @@ def dashboard_drilldown(request):
 
     data = []
 
-    if drill_type == 'revenue':
-        qs = TenantPaymentRegistry.objects.select_related('tenant').filter(
-            period__year=drill_year,
+    if drill_type in ('revenue', 'revenue_ytd'):
+        qs = filter_registry(
+            TenantPaymentRegistry.objects.select_related('tenant').filter(
+                period__year=drill_year,
+            ),
+            filters,
         )
-        if drill_month:
+        if drill_type == 'revenue' and drill_month:
             qs = qs.filter(period__month=drill_month)
         data = [
             {
@@ -1025,10 +1141,67 @@ def dashboard_drilldown(request):
             for r in qs
         ]
 
+    elif drill_type == 'cash':
+        qs = filter_calendar(
+            PaymentCalendarEntry.objects.select_related('tenant').filter(
+                status=PaymentCalendarEntry.Status.FACT,
+                actual_date__year=drill_year,
+            ),
+            filters,
+        )
+        if drill_month:
+            qs = qs.filter(actual_date__month=drill_month)
+        data = [
+            {
+                'id': e.id,
+                'tenant': str(e.tenant),
+                'date': str(e.actual_date),
+                'amount': float(e.actual_amount),
+                'contract': e.contract_number,
+            }
+            for e in qs if e.actual_date
+        ]
+
+    elif drill_type == 'net_cf':
+        inflows = filter_registry(
+            TenantPaymentRegistry.objects.select_related('tenant').filter(
+                period__year=drill_year,
+            ),
+            filters,
+        )
+        if drill_month:
+            inflows = inflows.filter(period__month=drill_month)
+        for r in inflows:
+            data.append({
+                'type': 'поступление',
+                'tenant': str(r.tenant),
+                'period': str(r.period),
+                'amount': float(r.paid),
+            })
+        outflows = filter_cashflow(
+            CashFlowRecord.objects.filter(
+                direction=CashFlowRecord.Direction.OUTFLOW,
+                transaction_date__year=drill_year,
+            ),
+            filters,
+        )
+        if drill_month:
+            outflows = outflows.filter(transaction_date__month=drill_month)
+        for r in outflows:
+            data.append({
+                'type': 'расход',
+                'date': str(r.transaction_date),
+                'description': r.description or '',
+                'amount': -float(r.amount),
+            })
+
     elif drill_type == 'expenses':
-        qs = CashFlowRecord.objects.filter(
-            direction=CashFlowRecord.Direction.OUTFLOW,
-            transaction_date__year=drill_year,
+        qs = filter_cashflow(
+            CashFlowRecord.objects.filter(
+                direction=CashFlowRecord.Direction.OUTFLOW,
+                transaction_date__year=drill_year,
+            ),
+            filters,
         )
         if drill_month:
             qs = qs.filter(transaction_date__month=drill_month)
@@ -1044,8 +1217,11 @@ def dashboard_drilldown(request):
         ]
 
     elif drill_type == 'overdue':
-        qs = TenantPaymentRegistry.objects.select_related('tenant').filter(
-            status=TenantPaymentRegistry.Status.OVERDUE
+        qs = filter_registry(
+            TenantPaymentRegistry.objects.select_related('tenant').filter(
+                status=TenantPaymentRegistry.Status.OVERDUE,
+            ),
+            filters,
         )
         data = [
             {
@@ -1104,15 +1280,12 @@ def credit_model_create(request):
     class CreditModelForm(django_forms.ModelForm):
         projected_income_json   = django_forms.CharField(
             label='Прогноз доходов (JSON)', required=False,
-            widget=django_forms.Textarea(attrs={'rows': 3, 'placeholder': '{"2026-01": "1000000"}'}),
         )
         projected_expenses_json = django_forms.CharField(
             label='Прогноз расходов (JSON)', required=False,
-            widget=django_forms.Textarea(attrs={'rows': 3}),
         )
         projected_cashflow_json = django_forms.CharField(
             label='Прогноз ДДС (JSON)', required=False,
-            widget=django_forms.Textarea(attrs={'rows': 3}),
         )
 
         class Meta:
@@ -1122,8 +1295,36 @@ def credit_model_create(request):
                 'loan_amount', 'loan_rate',
             ]
             widgets = {
-                'period_start': django_forms.DateInput(attrs={'type': 'date'}),
-                'period_end':   django_forms.DateInput(attrs={'type': 'date'}),
+                'name': django_forms.TextInput(attrs={
+                    'class': 'fin-input',
+                    'placeholder': 'Например: Базовый сценарий Q2',
+                }),
+                'scenario': django_forms.Select(attrs={'class': 'fin-input'}),
+                'period_start': django_forms.DateInput(attrs={
+                    'type': 'date', 'class': 'fin-input',
+                }),
+                'period_end': django_forms.DateInput(attrs={
+                    'type': 'date', 'class': 'fin-input',
+                }),
+                'loan_amount': django_forms.NumberInput(attrs={
+                    'class': 'fin-input', 'step': '0.01', 'min': '0',
+                }),
+                'loan_rate': django_forms.NumberInput(attrs={
+                    'class': 'fin-input', 'step': '0.01', 'min': '0',
+                }),
+                'projected_income_json': django_forms.Textarea(attrs={
+                    'class': 'fin-input fin-textarea',
+                    'rows': 4,
+                    'placeholder': '{"2026-05": 15000000}',
+                }),
+                'projected_expenses_json': django_forms.Textarea(attrs={
+                    'class': 'fin-input fin-textarea',
+                    'rows': 4,
+                }),
+                'projected_cashflow_json': django_forms.Textarea(attrs={
+                    'class': 'fin-input fin-textarea',
+                    'rows': 4,
+                }),
             }
 
         def _parse_json_field(self, raw, field_name):
@@ -1247,15 +1448,37 @@ def rent_analytics(request):
         'actual': [float(row['total_paid'] or 0) for row in last_6],
     }
 
+    max_paid = max((float(row['total_paid'] or 0) for row in top_tenants), default=0)
+    top_tenants_rows = []
+    for row in top_tenants:
+        paid = float(row['total_paid'] or 0)
+        share = round(paid / max_paid * 100, 1) if max_paid > 0 else 0
+        top_tenants_rows.append({
+            'tenant': row['tenant'],
+            'total_paid': row['total_paid'],
+            'share_pct': share,
+        })
+
+    tenant_chart = {
+        'labels': [
+            (row['tenant'].name if row['tenant'] else '—')
+            for row in top_tenants
+        ],
+        'values': [float(row['total_paid'] or 0) for row in top_tenants],
+    }
+
     context = {
-        'top_tenants': top_tenants,
+        'top_tenants': top_tenants_rows,
         'vacancy_rate': vacancy_rate,
         'avg_rate_per_sqm': avg_rate_per_sqm,
         'top_debtors': top_debtors,
         'rent_dynamics': rent_dynamics,
+        'tenant_chart': tenant_chart,
         'total_revenue_ytd': total_revenue_ytd,
         'total_overdue': total_overdue,
         'today': today,
+        'tenants_count': all_tenants.count(),
+        'occupied_count': len(occupied_tenant_ids),
     }
     return render(request, 'site/finances/rent_analytics.html', context)
 
@@ -1310,6 +1533,9 @@ def cashflow_daily(request):
     from datetime import timedelta
     from django.db.models import Sum
 
+    from .services.session_filters import filter_calendar, filter_cashflow, get_filters
+
+    filters = get_filters(request)
     days = max(1, min(int(request.GET.get('days', 30)), 365))
     today = date.today()
     start = today - timedelta(days=days - 1)
@@ -1317,8 +1543,13 @@ def cashflow_daily(request):
     date_range = [start + timedelta(days=i) for i in range(days)]
 
     cf_rows = (
-        CashFlowRecord.objects
-        .filter(transaction_date__gte=start, transaction_date__lte=today)
+        filter_cashflow(
+            CashFlowRecord.objects.filter(
+                transaction_date__gte=start,
+                transaction_date__lte=today,
+            ),
+            filters,
+        )
         .values('transaction_date', 'direction')
         .annotate(total=Sum('amount'))
     )
@@ -1333,11 +1564,13 @@ def cashflow_daily(request):
             outflow_map[d] = float(row['total'] or 0)
 
     calendar_rows = (
-        PaymentCalendarEntry.objects
-        .filter(
-            status=PaymentCalendarEntry.Status.FACT,
-            actual_date__gte=start,
-            actual_date__lte=today,
+        filter_calendar(
+            PaymentCalendarEntry.objects.filter(
+                status=PaymentCalendarEntry.Status.FACT,
+                actual_date__gte=start,
+                actual_date__lte=today,
+            ),
+            filters,
         )
         .values('actual_date')
         .annotate(total=Sum('actual_amount'))
@@ -1359,6 +1592,9 @@ def cashflow_weekly(request):
     from datetime import timedelta
     from django.db.models import Sum
 
+    from .services.session_filters import filter_calendar, filter_cashflow, get_filters
+
+    filters = get_filters(request)
     weeks = max(1, min(int(request.GET.get('weeks', 12)), 52))
     today = date.today()
     monday = today - timedelta(days=today.weekday())
@@ -1367,8 +1603,13 @@ def cashflow_weekly(request):
     week_starts = [start + timedelta(weeks=i) for i in range(weeks)]
 
     cf_rows = (
-        CashFlowRecord.objects
-        .filter(transaction_date__gte=start, transaction_date__lte=today)
+        filter_cashflow(
+            CashFlowRecord.objects.filter(
+                transaction_date__gte=start,
+                transaction_date__lte=today,
+            ),
+            filters,
+        )
         .values('transaction_date', 'direction')
         .annotate(total=Sum('amount'))
     )
@@ -1383,11 +1624,13 @@ def cashflow_weekly(request):
             outflow_by_date[d] = float(row['total'] or 0)
 
     calendar_rows = (
-        PaymentCalendarEntry.objects
-        .filter(
-            status=PaymentCalendarEntry.Status.FACT,
-            actual_date__gte=start,
-            actual_date__lte=today,
+        filter_calendar(
+            PaymentCalendarEntry.objects.filter(
+                status=PaymentCalendarEntry.Status.FACT,
+                actual_date__gte=start,
+                actual_date__lte=today,
+            ),
+            filters,
         )
         .values('actual_date')
         .annotate(total=Sum('actual_amount'))
@@ -1456,16 +1699,11 @@ def cashflow_forecast(request):
     return JsonResponse(data)
 
 
-# ── BE-6.6: Сценарии ──────────────────────────────────────────────────────────
+# ── BE-6.6: Сценарии (редирект на кредитную модель) ───────────────────────────
 
 @need_permission(PermissionEnums.FINANCE_SCENARIOS)
 def scenarios_list(request):
-    models_qs = CreditModel.objects.all().order_by('-created_at')
-    can_manage = _can_manage_credit(request.user)
-    return render(request, 'site/finances/scenarios.html', {
-        'models': models_qs,
-        'can_manage': can_manage,
-    })
+    return redirect('finances:credit_model_list')
 
 
 @need_permission(PermissionEnums.FINANCE_SCENARIOS)

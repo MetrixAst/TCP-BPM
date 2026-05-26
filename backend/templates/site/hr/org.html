@@ -4,7 +4,7 @@
 {% block title %}Оргструктура | metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&org=2">
 {% endblock styles %}
 
 {% block content %}
@@ -21,18 +21,26 @@
         <input type="search" id="hrOrgSearch" placeholder="Поиск сотрудника">
       </div>
 
-      <button class="hr-org-action" type="button" id="hrOrgZoomOut" title="Уменьшить">
-        <i class="bi bi-dash-lg"></i>
-      </button>
+      <div class="hr-org-toolbar">
+        <div class="hr-org-zoom" aria-label="Масштаб">
+          <button class="hr-org-zoom__btn" type="button" id="hrOrgZoomOut" title="Уменьшить">
+            <i class="bi bi-dash-lg"></i>
+          </button>
+          <button class="hr-org-zoom__btn" type="button" id="hrOrgZoomIn" title="Увеличить">
+            <i class="bi bi-plus-lg"></i>
+          </button>
+        </div>
 
-      <button class="hr-org-action" type="button" id="hrOrgZoomIn" title="Увеличить">
-        <i class="bi bi-plus-lg"></i>
-      </button>
+        <button class="hr-org-expand" type="button" id="hrOrgExpandAll" title="Раскрыть всё дерево">
+          <i class="bi bi-arrows-expand"></i>
+          <span>Раскрыть всё</span>
+        </button>
 
-      <button class="hr-org-fit" type="button" id="hrOrgFit">
-        <i class="bi bi-arrows-fullscreen"></i>
-        <span>Подогнать</span>
-      </button>
+        <button class="hr-org-fit" type="button" id="hrOrgFit" title="Подогнать под экран">
+          <i class="bi bi-arrows-fullscreen"></i>
+          <span>Подогнать</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -40,13 +48,19 @@
     <div class="hr-org-panel__head">
       <div>
         <h2>Структура компании</h2>
-        <p>Компания → отделы → сотрудники</p>
+        <p>Нажмите на сотрудника чтобы открыть карточку</p>
       </div>
 
       <div class="hr-org-legend">
-        <span><i class="hr-dot hr-dot--blue"></i>Компания</span>
-        <span><i class="hr-dot hr-dot--green"></i>Отдел</span>
-        <span><i class="hr-dot hr-dot--gray"></i>Сотрудник</span>
+        <span class="hr-org-legend__item hr-org-legend__item--company">
+          <span class="hr-org-legend__dot"></span>Компания
+        </span>
+        <span class="hr-org-legend__item hr-org-legend__item--dept">
+          <span class="hr-org-legend__dot"></span>Отдел
+        </span>
+        <span class="hr-org-legend__item hr-org-legend__item--emp">
+          <span class="hr-org-legend__dot"></span>Сотрудник
+        </span>
       </div>
     </div>
 
@@ -54,7 +68,8 @@
       <div
         class="hr-org-chart"
         id="hrOrgChart"
-        data-url="/account/structure/all">
+        data-url="/account/structure/all"
+        data-highlight="{{ request.GET.highlight|default:'' }}">
       </div>
     </div>
   </div>

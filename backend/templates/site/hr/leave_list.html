@@ -14,7 +14,7 @@
 
     <div class="leaves-page__top">
         <div class="leaves-page__header">
-          <h1 class="leaves-page__title">Календарь отпусков</h1>
+          <h1 class="leaves-page__title">Заявки на отпуск</h1>
       
           <a href="{% url 'hr:leave_create' %}"
              class="leaves-page__btn leaves-page__btn--primary">
@@ -58,10 +58,10 @@
           Excel
         </a>
 
-        <a href="/hr/leaves/timeline-page/"
+        <a href="{% url 'hr:leave_timeline_page' %}"
             class="leaves-page__btn leaves-page__btn--outline">
             <i class="bi bi-calendar-range"></i>
-            Timeline
+            Календарь
         </a>
       
       </form>
@@ -123,6 +123,11 @@
                   {{ leave.get_status_display }}
                 </span>
 
+              {% elif leave.status == 'confirmed' %}
+                <span class="leave-status leave-status--confirmed">
+                  {{ leave.get_status_display }}
+                </span>
+
               {% elif leave.status == 'pending' %}
                 <span class="leave-status leave-status--pending">
                   {{ leave.get_status_display }}
@@ -160,24 +165,39 @@
                   </a>
               
                   {% if is_manager and leave.status == 'pending' %}
-                    <form method="post"
-                          action="{% url 'hr:leave_approve' leave.id %}">
+                    <form method="post" action="{% url 'hr:leave_confirm' leave.id %}">
                       {% csrf_token %}
-                      <button type="submit"
-                              class="leave-action leave-action--success">
-                        Одобрить
+                      <button type="submit" class="leave-action leave-action--success"
+                              data-confirm="Подтвердить заявку?">
+                        Подтвердить
                       </button>
                     </form>
-              
-                    <form method="post"
-                          action="{% url 'hr:leave_reject' leave.id %}">
+
+                    <form method="post" action="{% url 'hr:leave_reject' leave.id %}">
                       {% csrf_token %}
-                      <button type="submit"
-                              class="leave-action leave-action--danger">
+                      <button type="submit" class="leave-action leave-action--danger"
+                              data-confirm="Отклонить заявку?">
                         Отклонить
                       </button>
                     </form>
-              
+
+                  {% elif is_manager and leave.status == 'confirmed' %}
+                    <form method="post" action="{% url 'hr:leave_approve' leave.id %}">
+                      {% csrf_token %}
+                      <button type="submit" class="leave-action leave-action--success"
+                              data-confirm="Окончательно одобрить заявку?">
+                        Одобрить
+                      </button>
+                    </form>
+
+                    <form method="post" action="{% url 'hr:leave_reject' leave.id %}">
+                      {% csrf_token %}
+                      <button type="submit" class="leave-action leave-action--danger"
+                              data-confirm="Отклонить заявку?">
+                        Отклонить
+                      </button>
+                    </form>
+
                   {% elif leave.employee.user == request.user and leave.status == 'draft' %}
                     <form method="post"
                           action="{% url 'hr:leave_cancel' leave.id %}">

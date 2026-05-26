@@ -92,6 +92,25 @@
      animation: fadeInUp 0.6s ease both;
    }
    
+   /* metriX BPM logo — Poppins, blue metri/BPM, green X */
+   .bpm-logo {
+     font-family: "Poppins", "Inter", sans-serif;
+     font-weight: 700;
+     font-size: inherit;
+     line-height: 1.1;
+     letter-spacing: -0.02em;
+     display: inline-flex;
+     align-items: baseline;
+     white-space: nowrap;
+   }
+   .bpm-logo__metri,
+   .bpm-logo__bpm {
+     color: #2563eb;
+   }
+   .bpm-logo__x {
+     color: #16a34a;
+   }
+
    .auth-page__logo {
      display: inline-flex;
      align-items: center;
@@ -104,7 +123,6 @@
    }
    .auth-page__logo:hover { color: #fff; text-decoration: none; }
    .auth-page__logo-icon { display: flex; }
-   .auth-page__logo-x { color: #fff; }
    
    .auth-page__heading {
      font-size: 44px;
@@ -169,7 +187,6 @@
    }
    .auth-form__logo:hover { color: var(--color-text-primary, #111827); text-decoration: none; }
    .auth-form__logo-icon { color: var(--color-primary, #2563EB); display: flex; }
-   .auth-form__logo-x    { color: var(--color-primary, #2563EB); }
    
    .auth-form__title {
      font-size: 28px;
@@ -379,7 +396,6 @@
    }
    .error-page__logo:hover { color: var(--color-text-primary, #111827); text-decoration: none; }
    .error-page__logo-icon { color: var(--color-primary, #2563EB); display: flex; }
-   .error-page__logo-x    { color: var(--color-primary, #2563EB); }
    
    .error-page {
      flex: 1;

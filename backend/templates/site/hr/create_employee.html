@@ -26,7 +26,8 @@
       </a>
     </div>
 
-    <form method="POST" class="hr-edit-form" id="hrEmployeeForm">
+    <form method="POST" class="hr-edit-form" id="hrEmployeeForm"
+          data-positions-url="{{ positions_by_department_url }}">
       {% csrf_token %}
       {% check_form form %}
 
@@ -69,11 +70,20 @@
               {% endif %}
             </div>
 
-            <div class="hr-edit-field hr-edit-field--full">
+            <div class="hr-edit-field">
               <label class="hr-edit-field__label">Роль</label>
-              {{ form.user.role }}
-              {% if form.user.role.errors %}
-                <div class="hr-edit-field__error">{{ form.user.role.errors.0 }}</div>
+              {{ form.user.role_pick }}
+              {% if form.user.role_pick.errors %}
+                <div class="hr-edit-field__error">{{ form.user.role_pick.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="hr-edit-field" id="hrRoleCustomWrap" style="display:none">
+              <label class="hr-edit-field__label">Код новой роли</label>
+              {{ form.user.role_custom }}
+              <p class="hr-edit-field__hint">Латиница, как в системе (staff, hr, administrator…)</p>
+              {% if form.user.role_custom.errors %}
+                <div class="hr-edit-field__error">{{ form.user.role_custom.errors.0 }}</div>
               {% endif %}
             </div>
 

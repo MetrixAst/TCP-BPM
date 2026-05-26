@@ -803,8 +803,9 @@
 .fin-calendar-weekdays,
 .fin-calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(120px, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
+  align-items: stretch;
 }
 
 .fin-calendar-weekdays {
@@ -2088,6 +2089,63 @@ body.invoice-edit-body .bpm-content {
 .inv-custom-select__option.is-selected {
   background: #2f6bed;
   color: #fff;
+}
+
+/* Invoice PDF preview */
+.inv-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #eceaf3;
+}
+
+.inv-btn--sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.inv-pdf-section {
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.inv-pdf-viewer {
+  border: 1px solid #eceaf3;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #f8f7fb;
+  min-height: 520px;
+}
+
+.inv-pdf-frame {
+  display: block;
+  width: 100%;
+  min-height: 520px;
+  height: 72vh;
+  border: 0;
+  background: #fff;
+}
+
+.invoice-pdf-preview--active {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.invoice-pdf-preview--active .invoice-edit-btn {
+  margin-left: auto;
+}
+
+@media (max-width: 767px) {
+  .inv-pdf-frame {
+    min-height: 360px;
+    height: 50vh;
+  }
 }
 
 /*# sourceMappingURL=finances.css.map */

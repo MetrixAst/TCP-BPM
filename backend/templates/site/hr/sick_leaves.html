@@ -1,40 +1,49 @@
 {% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Больничные (Enbek) | metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Больничные (Enbek)</h2>
+<div class="hr-page">
+  <div class="hr-list-top">
+    <h1>Больничные (Enbek)</h1>
+  </div>
 
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>ID Enbek</th>
-                <th>Сотрудник</th>
-                <th>Дата начала</th>
-                <th>Дата окончания</th>
-                <th>Номер документа</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in sick_leaves %}
-                <tr>
-                    <td>{{ item.enbek_id }}</td>
-                    <td>
-                        {% if item.employee %}
-                            {{ item.employee.user.get_name|default:item.employee.user.username }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-                    <td>{{ item.start_date|date:"d.m.Y" }}</td>
-                    <td>{{ item.end_date|date:"d.m.Y" }}</td>
-                    <td>{{ item.document_number|default:"—" }}</td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="5">Нет данных</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+  <div class="hr-card">
+    {% if sick_leaves %}
+    <div class="hr-table hr-table--enbek hr-table--5col">
+      <div class="hr-table__head">
+        <div>ID Enbek</div>
+        <div>Сотрудник</div>
+        <div>Дата начала</div>
+        <div>Дата окончания</div>
+        <div>Номер документа</div>
+      </div>
+      <div class="hr-table__body">
+        {% for item in sick_leaves %}
+        <div class="hr-table__row">
+          <div class="hr-muted">{{ item.enbek_id }}</div>
+          <div class="hr-employee__name">
+            {% if item.employee %}{{ item.employee.user.get_name|default:item.employee.user.username }}{% else %}—{% endif %}
+          </div>
+          <div class="hr-muted">{{ item.start_date|date:"d.m.Y" }}</div>
+          <div class="hr-muted">{{ item.end_date|date:"d.m.Y" }}</div>
+          <div class="hr-muted">{{ item.document_number|default:"—" }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="hr-empty">
+      <i class="bi bi-clipboard-x"></i>
+      <h3>Данные отсутствуют</h3>
+      <p>Записи о больничных не найдены.</p>
+    </div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

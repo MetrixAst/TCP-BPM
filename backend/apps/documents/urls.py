@@ -1,7 +1,9 @@
 from django.urls import path, include
+from django.views.generic import RedirectView
 from . import views
 
 urlpatterns = [
+    path('', RedirectView.as_view(url='/doc/documents/', permanent=False)),
     path('<slug:document_type>/', views.documents, name="list"),
     path('<slug:document_type>/folder/<int:folder>/', views.documents_folder_list, name="by_folder"),
     path('<slug:document_type>/status/<slug:status>/', views.documents_status_list, name="by_status"),

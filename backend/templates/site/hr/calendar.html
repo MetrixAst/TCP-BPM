@@ -1,146 +1,154 @@
 {% extends 'site/base.html' %}
 {% load static %}
 
+{% block title %}{{ category_title }} — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/fullcalendar.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/bpm-calendars.css' %}?v=1" />
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/hr-calendar.css' %}?v=3" />
+{% endblock styles %}
+
 {% block content %}
+<div class="hr-page hr-calendar-page">
 
-    <!-- Title and Top Buttons Start -->
-    <div class="page-title-container show_in_mobile">
-        <div class="row g-0">
-          <div class="col-auto mb-2 mb-md-0 me-auto">
-            <div class="w-auto sw-md-30">
-              <h1 class="mb-0 pb-0 display-4" id="title">HR календарь</h1>
-              <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
-                <ul class="breadcrumb pt-0">
-                    <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная страница</a></li>
-                    <li class="breadcrumb-item">{{category_title}}</li>
-                </ul>
-              </nav>
-            </div>
-          </div>
-          <div class="w-100 d-md-none"></div>
-          <div class="col-auto d-flex align-items-start justify-content-end">
-            <button type="button" class="btn btn-outline-primary btn-icon btn-icon-only ms-1" id="goPrev">
-              <i data-acorn-icon="chevron-left"></i>
-            </button>
-            <button type="button" class="btn btn-outline-primary btn-icon btn-icon-only ms-1" id="goNext">
-              <i data-acorn-icon="chevron-right"></i>
-            </button>
-          </div>
-          <div class="col col-md-auto d-flex align-items-start justify-content-end">
-            <a href="{% url 'hr:edit_calendar' 0 %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1 w-100 w-md-auto">
-              <i data-acorn-icon="plus"></i>
-              <span>Добавить</span>
-            </a>
-          </div>
-        </div>
-      </div>
-      <!-- Title and Top Buttons End -->
+  <div class="hr-list-top">
+    <div>
+      <h1>{{ category_title }}</h1>
+      <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
+        <ul class="breadcrumb pt-0 mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+          <li class="breadcrumb-item active">{{ category_title }}</li>
+        </ul>
+      </nav>
+    </div>
+    <div class="hr-list-top__actions">
+      <button type="button" class="hr-btn hr-btn--light" id="goPrev" title="Предыдущий месяц">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <button type="button" class="hr-btn hr-btn--light" id="goNext" title="Следующий месяц">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+      <a href="{% url 'hr:edit_calendar' 0 %}?category={{ category }}" class="hr-btn hr-btn--primary">
+        <i class="bi bi-plus-lg"></i>
+        <span>Добавить</span>
+      </a>
+    </div>
+  </div>
 
+  <div class="hr-calendar-legend">
+    <span><i class="leg-work"></i> Рабочий</span>
+    <span><i class="leg-weekend"></i> Выходной</span>
+    <span><i class="leg-holiday"></i> Праздник</span>
+    <span><i class="leg-secondment"></i> Командировка</span>
+  </div>
 
-    <!-- Calendar Title Start -->
-    <div class="d-flex justify-content-between">
-        <h2 class="small-title" id="calendarTitle">Title</h2>
-        {% comment %} <button
-          class="btn btn-sm btn-icon btn-icon-only btn-foreground shadow align-top mt-n2"
-          type="button"
-          data-bs-toggle="dropdown"
-          aria-expanded="false"
-          aria-haspopup="true"
-        >
-          <i data-acorn-icon="more-horizontal" data-acorn-size="15"></i>
-        </button>
-        <div class="dropdown-menu dropdown-menu-sm dropdown-menu-end shadow">
-          <a class="dropdown-item" href="#" id="monthView">Месяц</a>
-          <a class="dropdown-item" href="#" id="weekView">Неделя</a>
-          <a class="dropdown-item" href="#" id="dayView">День</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="#" id="goToday">Сегодня</a>
-        </div> {% endcomment %}
-      </div>
-      <!-- Calendar Title End -->
-
-      <!-- Calendar Content Start -->
-      <div class="card">
-        <div class="card-body">
-          <div id="calendar" data-csrf="{{csrf_token}}"></div>
-        </div>
-      </div>
-      <!-- Calendar Content End -->
-
-      
-      <!-- New Task Start -->
-      <div class="modal modal-right fade" id="newEventModal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="modalTitle">Запись</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body d-flex flex-column">
-                <div class="mb-5" id="event_content">
-                    
-                </div>
-            </div>
-            <div class="modal-footer border-0">
-              <a href="#" class="btn btn-icon btn-icon-only btn-outline-primary" type="button" title="Удалить" id="delete_button">
-                <i data-acorn-icon="bin"></i>
+  <section class="hr-card hr-cal-list hr-cal-list--first">
+    <div class="hr-cal-list__head">
+      <h2 class="hr-cal-list__title">Список командировок</h2>
+      <span class="hr-cal-list__count">{{ items|length }}</span>
+    </div>
+    {% if items %}
+    <div class="table-responsive">
+      <table class="emp-table hr-cal-list__table">
+        <thead>
+          <tr>
+            <th>Сотрудник</th>
+            <th>Период</th>
+            <th>Описание</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td>
+              <strong>{{ item.user.get_name|default:item.user.username }}</strong>
+            </td>
+            <td>{{ item.start_date|date:"d.m.Y" }} — {{ item.end_date|date:"d.m.Y" }}</td>
+            <td>{{ item.title|default:"—" }}</td>
+            <td class="emp-table__actions">
+              <a href="{% url 'hr:edit_calendar' item.pk %}" class="emp-icon-btn" title="Изменить">
+                <i class="bi bi-pencil"></i>
               </a>
-              <a href="#" class="btn btn-icon btn-icon-end btn-primary" type="button" id="edit_button">
-                <i data-acorn-icon="edit"></i>
-                <span>Редактировать</span>
-              </a>
-            </div>
-          </div>
-        </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="emp-empty emp-empty--compact">
+      <i class="bi bi-airplane"></i>
+      <strong>Командировок пока нет</strong>
+      <p>Добавьте первую запись — она появится в календаре и в этом списке</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <div class="hr-cal-month">
+    <h2 class="hr-cal-month__title" id="calendarTitle">Календарь</h2>
+    <div class="hr-card hr-cal-month__card" id="hrCalMonthCard">
+      <div class="card-body p-3">
+        <div id="calendar" data-csrf="{{ csrf_token }}"></div>
       </div>
-      <!-- New Task End -->
+    </div>
+  </div>
 
-    {% verbatim %}
-        <script id="event_template" type="x-tmpl-mustache">
-            <div class="d-flex align-items-center flex-column mb-4">
-                <div class="d-flex align-items-center flex-column">
-                    <div class="h5 mb-0">{{extendedProps.user}}</div>
-                    <div class="text-muted">{{extendedProps.category}}</div>
-                </div>
-            </div>
+</div>
 
-            <p class="text-small text-muted mb-2">ИНФОРМАЦИЯ</p>
+<div class="modal modal-right fade" id="newEventModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalTitle">Запись</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body d-flex flex-column">
+        <div class="mb-5" id="event_content"></div>
+      </div>
+      <div class="modal-footer border-0">
+        <a href="#" class="btn btn-outline-danger" type="button" title="Удалить" id="delete_button">
+          <i class="bi bi-trash"></i>
+        </a>
+        <a href="#" class="btn btn-primary" type="button" id="edit_button">
+          <i class="bi bi-pencil"></i>
+          <span>Редактировать</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
 
-            <div class="row g-0 mb-2">
-                <div class="col">
-                    <div class="sh-2 d-flex align-items-center lh-1-25 text-alternate">Начало</div>
-                </div>
-                <div class="col-auto">
-                    <div class="sh-2 d-flex align-items-center justify-content-end text-muted">{{start}}</div>
-                </div>
-            </div>
-
-            <div class="row g-0 mb-2">
-                <div class="col">
-                    <div class="sh-2 d-flex align-items-center lh-1-25 text-alternate">Завершение</div>
-                </div>
-                <div class="col-auto">
-                    <div class="sh-2 d-flex align-items-center justify-content-end text-muted">{{end}}</div>
-                </div>
-            </div>
-        </script>
-    {% endverbatim %}
+{% verbatim %}
+<script id="event_template" type="x-tmpl-mustache">
+  <div class="d-flex align-items-center flex-column mb-4">
+      <div class="d-flex align-items-center flex-column">
+      <div class="h5 mb-0">{{extendedProps.user}}</div>
+      {% if title %}<div class="text-muted mt-1">{{title}}</div>{% endif %}
+    </div>
+  </div>
+  <p class="text-small text-muted mb-2">ИНФОРМАЦИЯ</p>
+  <div class="row g-0 mb-2">
+    <div class="col"><div class="sh-2 text-alternate">Начало</div></div>
+    <div class="col-auto"><div class="sh-2 text-muted">{{start}}</div></div>
+  </div>
+  <div class="row g-0 mb-2">
+    <div class="col"><div class="sh-2 text-alternate">Завершение</div></div>
+    <div class="col-auto"><div class="sh-2 text-muted">{{end}}</div></div>
+  </div>
+</script>
+{% endverbatim %}
 
 {% endblock %}
 
-
-{% block styles %}
-    <link rel="stylesheet" href="{% static 'site/css/vendor/fullcalendar.min.css' %}" />
-    <link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap-datepicker3.standalone.min.css' %}" />
-{% endblock styles %}
-
 {% block scripts %}
-    <script>
-        const calendar_category = "{{category}}";
-    </script>
-    <script src="{% static 'site/js/vendor/fullcalendar/main.min.js' %}"></script>
-    <script src="{% static 'site/js/vendor/moment-with-locales.min.js' %}"></script>
-    <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
-    <script src="{% static 'site/js/vendor/timepicker.js' %}"></script>
-    <script src="{% static 'site/js/apps/hr_calendar.js' %}"></script>
+<script>const calendar_category = "{{ category }}";</script>
+<script src="{% static 'site/js/base/helpers.js' %}"></script>
+<script src="{% static 'site/js/mustache.min.js' %}"></script>
+<script src="{% static 'site/js/main.js' %}?v={{ static_version|default:'1' }}"></script>
+<script src="{% static 'site/js/vendor/fullcalendar/main.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/moment-with-locales.min.js' %}"></script>
+<script src="{% static 'site/js/apps/hr_calendar.js' %}?v=3"></script>
 {% endblock scripts %}

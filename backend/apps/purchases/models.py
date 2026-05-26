@@ -81,6 +81,7 @@ class Supplier(models.Model):
     size = models.CharField("Размер предприятия", max_length=100, null=True, blank=True)
 
     lawyer = models.CharField("Юрист", max_length=100, null=True, blank=True)
+    onec_id = models.CharField("ID 1С", max_length=50, unique=True, null=True, blank=True, db_index=True)
 
     def __str__(self):
         return self.name
@@ -99,3 +100,14 @@ class Supplier(models.Model):
     def categories_list(self):
         categories = list(self.category.all().values_list('title', flat=True))
         return ", ".join(categories)
+
+    @property
+    def onec_counterparty_pk(self):
+        if not self.onec_id:
+            return None
+        try:
+            from onec.models import Counterparty
+        except ImportError:
+            return None
+        cp = Counterparty.objects.filter(id_1c=self.onec_id).values_list('pk', flat=True).first()
+        return cp

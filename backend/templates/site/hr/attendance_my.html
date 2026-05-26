@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v=10001">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&t=5">
 {% endblock %}
 
 {% block content %}
@@ -11,31 +11,38 @@
   <div class="attendance-page__top">
     <div>
       <h1 class="attendance-page__title">Моя посещаемость</h1>
-      <p class="attendance-page__subtitle">История отметок за последние 30 дней</p>
+      <p class="attendance-page__subtitle">
+        {% if employee %}{{ employee.user.get_full_name|default:employee.user.username }} · {% endif %}
+        {{ view_date|date:"F Y" }}
+      </p>
     </div>
 
-    <div class="attendance-page__months">
-      <a href="?month={{ prev_month.month }}&year={{ prev_month.year }}"
-         class="attendance-page__month-btn">
-        <i class="bi bi-chevron-left"></i>
-        {{ prev_month|date:"F" }}
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <a href="{% url 'hr:attendance_checkin' %}"
+         class="attendance-page__btn attendance-page__btn--primary">
+        <i class="bi bi-camera-fill"></i>
+        Отметиться
       </a>
 
-      {% if next_month %}
-      <a href="?month={{ next_month.month }}&year={{ next_month.year }}"
-         class="attendance-page__month-btn">
-        {{ next_month|date:"F" }}
-        <i class="bi bi-chevron-right"></i>
-      </a>
-      {% endif %}
+      <div class="attendance-page__months">
+        <a href="?month={{ prev_month.month }}&year={{ prev_month.year }}"
+           class="attendance-page__month-btn">
+          <i class="bi bi-chevron-left"></i>
+          {{ prev_month|date:"F" }}
+        </a>
+
+        {% if next_month %}
+        <a href="?month={{ next_month.month }}&year={{ next_month.year }}"
+           class="attendance-page__month-btn">
+          {{ next_month|date:"F" }}
+          <i class="bi bi-chevron-right"></i>
+        </a>
+        {% endif %}
+      </div>
     </div>
   </div>
 
   <div class="attendance-page__panel">
-    <div class="attendance-page__panel-head">
-      <h2 class="attendance-page__month-title">{{ view_date|date:"F Y" }}</h2>
-    </div>
-
     <div class="attendance-page__table-wrap">
       <table class="attendance-table">
         <thead>
@@ -44,15 +51,38 @@
             <th>Приход</th>
             <th>Обед</th>
             <th>Уход</th>
-            <th>Рабочее время</th>
+            <th>Отработано</th>
+            <th style="width:32px;"></th>
           </tr>
         </thead>
 
         <tbody>
           {% for item in attendance_list %}
-          <tr class="{% if item.no_record %}attendance-table__row--empty{% endif %}">
+          <tr class="attendance-table__row attendance-table__row--clickable{% if item.no_record %} attendance-table__row--empty{% endif %}"
+              data-date="{{ item.date|date:'d.m.Y' }}"
+              data-arrival="{{ item.day_start|date:'H:i'|default:'' }}"
+              data-departure="{{ item.day_end|date:'H:i'|default:'' }}"
+              data-lunch-start="{{ item.lunch_start|date:'H:i'|default:'' }}"
+              data-lunch-end="{{ item.lunch_end|date:'H:i'|default:'' }}"
+              data-hours="{% if item.total_hours > 0 %}{{ item.total_hours|floatformat:1 }}{% endif %}"
+              data-late="{{ item.late|yesno:'1,0' }}"
+              data-early="{{ item.early_leave|yesno:'1,0' }}"
+              data-no-record="{{ item.no_record|yesno:'1,0' }}"
+              data-arrival-photo="{{ item.arrival_photo }}"
+              data-arrival-lat="{{ item.arrival_lat }}"
+              data-arrival-lng="{{ item.arrival_lng }}"
+              data-arrival-address="{{ item.arrival_address }}"
+              data-lunch-start-photo="{{ item.lunch_start_photo }}"
+              data-lunch-end-photo="{{ item.lunch_end_photo }}"
+              data-departure-photo="{{ item.departure_photo }}"
+              data-departure-lat="{{ item.departure_lat }}"
+              data-departure-lng="{{ item.departure_lng }}"
+              data-departure-address="{{ item.departure_address }}"
+              style="cursor:pointer;">
+
             <td>
               <strong>{{ item.date|date:"d.m.Y" }}</strong>
+              <div class="attendance-table__department">{{ item.date|date:"l" }}</div>
             </td>
 
             <td>
@@ -62,9 +92,11 @@
             </td>
 
             <td>
-              {{ item.lunch_start|date:"H:i"|default:"—" }}
-              /
-              {{ item.lunch_end|date:"H:i"|default:"—" }}
+              {% if item.lunch_start or item.lunch_end %}
+                {{ item.lunch_start|date:"H:i"|default:"—" }} / {{ item.lunch_end|date:"H:i"|default:"—" }}
+              {% else %}
+                <span class="attendance-table__empty">—</span>
+              {% endif %}
             </td>
 
             <td>
@@ -79,9 +111,22 @@
               {% else %}
                 <strong>{{ item.total_hours|floatformat:1 }} ч.</strong>
                 {% if item.late %}
-                  <span class="attendance-table__late-text">Опоздание</span>
+                  <span class="attendance-table__late-text"> · Опоздание</span>
                 {% endif %}
               {% endif %}
+            </td>
+
+            <td class="attendance-table__chevron">
+              <i class="bi bi-chevron-right"></i>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6">
+              <div class="attendance-empty">
+                <i class="bi bi-calendar-x"></i>
+                <strong>Нет данных за выбранный месяц</strong>
+              </div>
             </td>
           </tr>
           {% endfor %}
@@ -89,6 +134,12 @@
       </table>
     </div>
   </div>
-
 </div>
+
+{% include 'site/hr/_attendance_modal.html' with modal_id="attModal" %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/attendance-modal.js' %}?v={{ static_version|default:'1' }}&t=7"></script>
 {% endblock %}

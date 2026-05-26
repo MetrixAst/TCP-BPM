@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from django.contrib.auth.views import LoginView, LogoutView
 
-from .role_permissions import need_permission, PermissionEnums
+from .role_permissions import need_permission, PermissionEnums, login_required
 
 from .forms import CustomAuthenticationForm, EditProfileForm, CustomPasswordChangeForm
 from .utils import get_structure_data
@@ -69,6 +69,8 @@ def profile_view(request):
     return render(request, 'site/account/profile.html', context)
 
 
+@login_required
+@need_permission(PermissionEnums.HR)
 def structure_csv(request, get):
     response = HttpResponse(content_type='text/csv')
 
@@ -88,7 +90,9 @@ def users_ajax(request, selection):
     query = request.GET.get('term', '')
     if query != '':
         queryset = queryset.filter(
-            Q(first_name__icontains=query) | Q(username__icontains=query)
+            Q(first_name__icontains=query)
+            | Q(last_name__icontains=query)
+            | Q(username__icontains=query)
         )
 
     page_number = request.GET.get('page', 1)
@@ -102,9 +106,7 @@ def users_ajax(request, selection):
         except Exception:
             addit = ''
 
-        text = current.get_name
-        if not text or not str(text).strip():
-            text = current.username
+        text = (current.get_name or '').strip() or current.username
 
         results.append({
             'id': current.id,

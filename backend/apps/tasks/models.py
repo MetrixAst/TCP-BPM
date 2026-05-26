@@ -5,12 +5,13 @@ from django.core.exceptions import PermissionDenied
 
 from account.models import UserAccount, Notification
 from project.utils import get_or_error, get_or_none
-from .enums import TaskStatusEnum, PriorityEnum
+from .enums import TaskStatusEnum, PriorityEnum, TaskTypeEnum
 
 
 class Task(models.Model):
     STATUSES = TaskStatusEnum.list()
     PRIORITIES = PriorityEnum.list()
+    TASK_TYPES = TaskTypeEnum.list()
 
     author = models.ForeignKey(
         UserAccount,
@@ -52,6 +53,7 @@ class Task(models.Model):
     text = models.TextField("Текст", max_length=2000, null=True, blank=True)
 
     priority = models.SlugField("Приоритет", choices=PRIORITIES, default='medium')
+    task_type = models.SlugField("Тип задачи", choices=TASK_TYPES, default='assignment')
     views = models.IntegerField("Просмотры", default=0)
 
     TRANSITIONS = {
@@ -261,6 +263,11 @@ class TaskFile(models.Model):
         verbose_name = "Файл задачи"
         verbose_name_plural = "Файлы задач"
         ordering = ["-id"]
+
+    @property
+    def filename(self):
+        import os
+        return os.path.basename(self.file.name)
 
     def __str__(self):
         return self.file.name

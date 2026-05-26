@@ -1,244 +1,122 @@
-{% extends 'site/base.html' %}
+{% extends "site/base.html" %}
 {% load static %}
 
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
+<link rel="stylesheet" href="{% static 'site/css/apps/ecopark.css' %}?v=eco01">
+{% endblock %}
+
 {% block content %}
+<div class="eco-page">
 
-    <!-- Title and Top Buttons Start -->
-    <div class="page-title-container">
-        <div class="row">
-            <!-- Title Start -->
-            <div class="col-12 col-md-7">
-                <h1 class="mb-0 pb-0 display-4" id="title">Замена расходников эскалатора</h1>
-
-                <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
-                    <ul class="breadcrumb pt-0">
-                        <li class="breadcrumb-item">
-                            <a href="{% url 'dashboard:dashboard' %}">Главная</a>
-                        </li>
-                        <li class="breadcrumb-item">
-                            <a href="{% url 'ecopark:home' %}">Эксплуатация</a>
-                        </li>
-                        <li class="breadcrumb-item">Эскалатор</li>
-                    </ul>
-                </nav>
-            </div>
-            <!-- Title End -->
-            <!-- Top Buttons Start -->
-            <div class="col-12 col-md-5 d-flex align-items-start justify-content-end">
-                <!-- Contact Button Start -->
-                <button type="button" class="btn btn-outline-primary btn-icon btn-icon-start w-100 w-md-auto">
-                <i data-acorn-icon="download"></i>
-                <span>Скачать</span>
-                </button>
-                <!-- Contact Button End -->
-            </div>
-            <!-- Top Buttons End -->
-        </div>
+  <header class="eco-hero">
+    <div>
+      <span class="eco-hero__eyebrow"><i class="bi bi-wrench-adjustable"></i> Карточка работы</span>
+      <h1 class="eco-hero__title">{{ work.title }}</h1>
+      <nav aria-label="breadcrumb" class="mt-2">
+        <ol class="eco-breadcrumb">
+          <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+          <li><a href="{% url 'ecopark:home' %}">Эксплуатация</a></li>
+          <li>{{ work.object }}</li>
+        </ol>
+      </nav>
     </div>
-    <!-- Title and Top Buttons End -->
-    <div class="row gx-4 gy-5">
-        <!-- Left Side Start -->
-        <div class="col-12 col-xl-4 col-xxl-3">
-            <!-- Biography Start -->
-            <h2 class="small-title">Информация</h2>
-            <div class="card">
-                <div class="card-body mb-n5">
-                    <div class="d-flex align-items-center flex-column text-center">
-                        <div class="mb-5 d-flex align-items-center flex-column">
-                            <div class="text-muted">Эскалатор</div>
-                            <div class="h5 mb-2">Замена расходников эскалатора</div>
-                            <span class="badge bg-success">ВЫПОЛНЕН</span>
-                        </div>
-                    </div>
-                    <div class="mb-5">
-
-                        <div class="row g-0 align-items-center">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Дата</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center">18.07.2022 11:19</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-
-
-                        <div class="row g-0 align-items-center">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Сумма</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center">32 560</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row g-0 align-items-center">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Исполнитель</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center">ОАО Казахтелеком</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row g-0 align-items-center">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Выполнил заявку</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center">Тахиров Алихан</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row g-0 align-items-center">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Проверил</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center">Ташенова Марьям</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-
-                    </div>
-
-
-                </div>
-            </div>
-            <!-- Biography End -->
-        </div>
-        <!-- Left Side End -->
-        <!-- Right Side Start -->
-        <div class="col-12 col-xl-8 col-xxl-9">
-            <!-- Title Tabs Start -->
-            <ul class="nav nav-tabs nav-tabs-title nav-tabs-line-title responsive-tabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link active" data-bs-toggle="tab" href="#projectsTab" role="tab" aria-selected="true">Документ</a>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link" data-bs-toggle="tab" href="#friendsTab" role="tab" aria-selected="false">История обслуживания</a>
-                </li>
-                <li class="nav-item dropdown ms-auto d-none responsive-tab-dropdown">
-                    <a
-                        class="btn btn-icon btn-icon-only btn-background pt-0"
-                        href="#"
-                        role="button"
-                        data-bs-toggle="dropdown"
-                        aria-haspopup="true"
-                        aria-expanded="false"
-                        data-diplay="static"
-                        >
-                    <i data-acorn-icon="more-horizontal"></i>
-                    </a>
-                    <ul class="dropdown-menu mt-2 dropdown-menu-end"></ul>
-                </li>
-            </ul>
-            <!-- Title Tabs End -->
-            <div class="tab-content">
-                <!-- Projects Tab Start -->
-                <div class="tab-pane fade active show" id="projectsTab" role="tabpanel">
-                    
-                    
-                    <iframe width="100%" style="height: 100vh" src="{% static 'sample.pdf' %} " frameborder="0"></iframe>
-
-
-                </div>
-                <!-- Projects Tab End -->
-                
-                <!-- Friends Tab Start -->
-                <div class="tab-pane fade" id="friendsTab" role="tabpanel">
-                    
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Наименование работ</th>
-                                <th scope="col">Дата</th>
-                                <th scope="col">Исполнитель</th>
-                                <th scope="col">Ответственный</th>
-                                <th scope="col">Сумма</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Замена расходников эскалатора</td>
-                                <th>15.07.2022 11:51</th>
-                                <td>ОАО Казахтелеком</td>
-                                <td>Ташенова Марьям</td>
-                                <td>32 560</td>
-                            </tr>
-                            <tr>
-                                <td>Замена расходников эскалатора</td>
-                                <th>15.07.2022 11:51</th>
-                                <td>ОАО Казахтелеком</td>
-                                <td>Ташенова Марьям</td>
-                                <td>32 560</td>
-                            </tr>
-                            <tr>
-                                <td>Замена расходников эскалатора</td>
-                                <th>15.07.2022 11:51</th>
-                                <td>ОАО Казахтелеком</td>
-                                <td>Ташенова Марьям</td>
-                                <td>32 560</td>
-                            </tr>
-                            <tr>
-                                <td>Замена расходников эскалатора</td>
-                                <th>15.07.2022 11:51</th>
-                                <td>ОАО Казахтелеком</td>
-                                <td>Ташенова Марьям</td>
-                                <td>32 560</td>
-                            </tr>
-                            <tr>
-                                <td>Замена расходников эскалатора</td>
-                                <th>15.07.2022 11:51</th>
-                                <td>ОАО Казахтелеком</td>
-                                <td>Ташенова Марьям</td>
-                                <td>32 560</td>
-                            </tr>
-                            <tr>
-                                <td>Замена расходников эскалатора</td>
-                                <th>15.07.2022 11:51</th>
-                                <td>ОАО Казахтелеком</td>
-                                <td>Ташенова Марьям</td>
-                                <td>32 560</td>
-                            </tr>
-                            <tr>
-                                <td>Замена расходников эскалатора</td>
-                                <th>15.07.2022 11:51</th>
-                                <td>ОАО Казахтелеком</td>
-                                <td>Ташенова Марьям</td>
-                                <td>32 560</td>
-                            </tr>
-                            
-
-
-                        </tbody>
-                    </table>
-
-                </div>
-                <!-- Friends Tab End -->
-            </div>
-        </div>
-        <!-- Right Side End -->
+    <div class="eco-hero__actions">
+      <a href="{% static 'sample.pdf' %}" download class="fin-btn fin-btn--light">
+        <i class="bi bi-download"></i> Скачать
+      </a>
+      <a href="{% url 'ecopark:home' %}" class="fin-btn fin-btn--light">
+        <i class="bi bi-arrow-left"></i> К списку
+      </a>
     </div>
+  </header>
 
+  <div class="eco-detail-grid">
+    <aside class="eco-info-card">
+      <div class="eco-info-card__icon"><i class="bi bi-building-gear"></i></div>
+      <div class="eco-info-card__object">{{ work.object }}</div>
+      <h2 class="eco-info-card__title">{{ work.title }}</h2>
+      <span class="eco-badge eco-badge--{{ work.status }}">{{ work.status_label }}</span>
+
+      <div class="eco-info-rows">
+        <div class="eco-info-row">
+          <span class="eco-info-row__label">Дата</span>
+          <span class="eco-info-row__value">{{ work.date }}</span>
+        </div>
+        <div class="eco-info-row">
+          <span class="eco-info-row__label">Сумма</span>
+          <span class="eco-info-row__value">{{ work.amount_fmt }} ₸</span>
+        </div>
+        <div class="eco-info-row">
+          <span class="eco-info-row__label">Исполнитель</span>
+          <span class="eco-info-row__value">{{ work.executor }}</span>
+        </div>
+        <div class="eco-info-row">
+          <span class="eco-info-row__label">Ответственный</span>
+          <span class="eco-info-row__value">{{ work.responsible }}</span>
+        </div>
+      </div>
+    </aside>
+
+    <div>
+      <div class="eco-tabs" role="tablist">
+        <a class="eco-tab is-active" href="#tab-doc" data-eco-tab="doc">Документ</a>
+        <a class="eco-tab" href="#tab-history" data-eco-tab="history">История обслуживания</a>
+      </div>
+
+      <div class="eco-panel" id="tab-doc" data-eco-panel="doc">
+        <iframe class="eco-panel__pdf" src="{% static 'sample.pdf' %}" title="Документ работы"></iframe>
+      </div>
+
+      <div class="eco-panel d-none" id="tab-history" data-eco-panel="history">
+        <div class="fin-table-wrap" style="border-radius:18px;">
+          <table class="fin-table">
+            <thead>
+              <tr>
+                <th>Наименование</th>
+                <th>Дата</th>
+                <th>Исполнитель</th>
+                <th>Ответственный</th>
+                <th>Сумма</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in history %}
+                <tr>
+                  <td>{{ row.title }}</td>
+                  <td>{{ row.date }}</td>
+                  <td>{{ row.executor }}</td>
+                  <td>{{ row.responsible }}</td>
+                  <td class="eco-amount">{{ row.amount_fmt|default:work.amount_fmt }} ₸</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var tabs = document.querySelectorAll('[data-eco-tab]');
+  var panels = document.querySelectorAll('[data-eco-panel]');
+  if (!tabs.length) return;
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function (e) {
+      e.preventDefault();
+      var id = tab.getAttribute('data-eco-tab');
+      tabs.forEach(function (t) { t.classList.toggle('is-active', t === tab); });
+      panels.forEach(function (p) {
+        var show = p.getAttribute('data-eco-panel') === id;
+        p.classList.toggle('d-none', !show);
+      });
+    });
+  });
+})();
+</script>
 {% endblock %}

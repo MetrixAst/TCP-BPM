@@ -4,7 +4,8 @@
 {% block title %}{% if show_form %}Новый сценарий{% else %}Кредитная модель{% endif %} | metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe55-credit">
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
+<link rel="stylesheet" href="{% static 'site/css/apps/fin-pages.css' %}?v=fp01">
 {% endblock %}
 
 {% block content %}
@@ -33,11 +34,17 @@
 
   {% if show_form %}
   <div class="fin-table-card fin-form-card">
+    <div class="fin-table-head" style="margin-bottom:16px;">
+      <div>
+        <div class="fin-table-title">Параметры сценария</div>
+        <div class="fin-table-subtitle">После сохранения рассчитаются DSCR и свободный денежный поток</div>
+      </div>
+    </div>
     <form method="POST">
       {% csrf_token %}
       <div class="fin-form-grid">
         {% for field in form %}
-        <div class="fin-form-field {% if field.errors %}fin-form-field--error{% endif %}">
+        <div class="fin-form-field {% if field.errors %}fin-form-field--error{% endif %} {% if 'json' in field.name %}fin-form-field--wide{% endif %}">
           <label class="fin-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
           {{ field }}
           {% for err in field.errors %}

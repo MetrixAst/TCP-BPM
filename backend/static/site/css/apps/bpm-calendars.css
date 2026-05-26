@@ -1,0 +1,134 @@
+/**
+ * Общие правки сеток календарей (FullCalendar, финансы, отпуска)
+ */
+
+/* ── FullCalendar ── */
+.fc {
+  --fc-border-color: #e8ebf2;
+  --fc-page-bg-color: #fff;
+  font-family: var(--bpm-font, Inter, system-ui, sans-serif);
+}
+
+.fc .fc-scrollgrid {
+  border: 1px solid var(--fc-border-color) !important;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.fc .fc-scrollgrid-section > td,
+.fc .fc-scrollgrid-section > th {
+  border-color: var(--fc-border-color);
+}
+
+.fc .fc-col-header-cell-cushion {
+  padding: 10px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #74728a;
+  text-decoration: none;
+}
+
+.fc .fc-daygrid-day {
+  min-height: 96px;
+}
+
+.fc .fc-daygrid-day-frame {
+  min-height: 96px;
+  padding: 4px;
+}
+
+.fc .fc-daygrid-day-top {
+  flex-direction: row;
+  justify-content: flex-end;
+  padding: 4px 6px 2px;
+}
+
+.fc .fc-daygrid-day-number {
+  font-size: 13px;
+  font-weight: 600;
+  color: #25233f;
+  padding: 2px 6px;
+  line-height: 1.2;
+}
+
+.fc .fc-daygrid-day-events {
+  margin: 0 4px 4px;
+  min-height: 1.5em;
+}
+
+.fc .fc-daygrid-event {
+  margin: 2px 0;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+}
+
+.fc .fc-daygrid-event-harness {
+  margin: 0;
+}
+
+.fc .fc-daygrid-more-link {
+  font-size: 11px;
+  font-weight: 600;
+  color: #2f6bed;
+  margin: 2px 4px;
+}
+
+.fc .fc-day-today {
+  background: rgba(47, 107, 237, 0.04) !important;
+}
+
+.fc .fc-day-today .fc-daygrid-day-number {
+  background: #2f6bed;
+  color: #fff;
+  border-radius: 8px;
+}
+
+.fc table {
+  width: 100%;
+}
+
+.fc td,
+.fc th {
+  vertical-align: top;
+}
+
+/* ── Календарь платежей ── */
+.fin-calendar-weekdays,
+.fin-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  align-items: stretch;
+}
+
+.fin-calendar-spacer {
+  min-height: 118px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.fin-calendar-weekdays div {
+  box-sizing: border-box;
+}
+
+.fin-calendar-day {
+  box-sizing: border-box;
+  min-height: 118px;
+}
+
+/* ── Календарь отпусков (timeline) ── */
+.leave-timeline__head,
+.leave-timeline__row {
+  align-items: stretch;
+}
+
+.leave-timeline__cell {
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.leave-timeline__employee {
+  box-sizing: border-box;
+}

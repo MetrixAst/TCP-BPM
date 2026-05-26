@@ -1,7 +1,7 @@
 {% load static %}
 {% load site_tags %}
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ html_lang|default:'ru' }}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -13,13 +13,20 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap.min.css' %}" />
   <link rel="stylesheet" href="{% static 'site/css/main.css' %}" />
   <link rel="stylesheet" href="{% static 'site/css/auth.css' %}?v={{ static_version|default:'1' }}" />
+  <style>
+    .goog-te-banner-frame, .skiptranslate { display: none !important; }
+    body { top: 0 !important; }
+    .goog-text-highlight { background: none !important; box-shadow: none !important; }
+  </style>
 </head>
 <body class="auth-body">
+
+  <div id="bpm-gt-root" style="display:none"></div>
 
   <div class="auth-page">
 
@@ -38,7 +45,7 @@
               <rect x="6.5" y="3" width="13" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
             </svg>
           </span>
-          <span>metri<span class="auth-page__logo-x">X</span> BPM</span>
+          <span class="bpm-logo">{% include "site/components/logo_brand.html" %}</span>
         </a>
 
         <h1 class="auth-page__heading">
@@ -67,7 +74,7 @@
               <rect x="6.5" y="3" width="13" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
             </svg>
           </span>
-          <span>metri<span class="auth-form__logo-x">X</span> BPM</span>
+          <span class="bpm-logo">{% include "site/components/logo_brand.html" %}</span>
         </a>
 
         <h2 class="auth-form__title">Вход в систему</h2>
@@ -90,12 +97,10 @@
           {% csrf_token %}
 
           <div class="auth-form__field {% if form.username.errors %}is-invalid{% endif %}">
-            <label for="{{ form.username.id_for_label }}" class="auth-form__label">
-              {{ form.username.label|default:"Логин" }}
-            </label>
+            <label for="{{ form.username.id_for_label }}" class="auth-form__label">Логин</label>
             <div class="auth-form__input-wrap">
               <i class="bi bi-person auth-form__input-icon"></i>
-              {{ form.username|addclass:"auth-form__input"|placeholder:"Введите логин" }}
+              {{ form.username|addclass:"auth-form__input" }}
             </div>
             {% if form.username.errors %}
               <div class="auth-form__error">
@@ -105,12 +110,10 @@
           </div>
 
           <div class="auth-form__field {% if form.password.errors %}is-invalid{% endif %}">
-            <label for="{{ form.password.id_for_label }}" class="auth-form__label">
-              {{ form.password.label|default:"Пароль" }}
-            </label>
+            <label for="{{ form.password.id_for_label }}" class="auth-form__label">Пароль</label>
             <div class="auth-form__input-wrap">
               <i class="bi bi-lock auth-form__input-icon"></i>
-              {{ form.password|addclass:"auth-form__input"|placeholder:"Введите пароль" }}
+              {{ form.password|addclass:"auth-form__input" }}
               <button type="button" class="auth-form__toggle-pwd" aria-label="Показать/скрыть пароль">
                 <i class="bi bi-eye"></i>
               </button>
@@ -158,12 +161,10 @@
           const icon = toggle.querySelector('i');
           if (input.type === 'password') {
             input.type = 'text';
-            icon.classList.remove('bi-eye');
-            icon.classList.add('bi-eye-slash');
+            icon.classList.replace('bi-eye', 'bi-eye-slash');
           } else {
             input.type = 'password';
-            icon.classList.remove('bi-eye-slash');
-            icon.classList.add('bi-eye');
+            icon.classList.replace('bi-eye-slash', 'bi-eye');
           }
         });
       }

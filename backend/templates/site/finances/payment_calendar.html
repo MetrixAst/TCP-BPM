@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/bpm-calendars.css' %}?v=1" />
 <link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=10020">
 {% endblock %}
 
@@ -115,25 +116,11 @@
     </div>
 
     <div class="fin-calendar-grid">
-      {% for day in calendar_days %}
-        {% if forloop.first %}
-          {% with first_weekday=day.date|date:"w" %}
-            {% if first_weekday == "2" %}
-              <span class="fin-calendar-spacer"></span>
-            {% elif first_weekday == "3" %}
-              <span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span>
-            {% elif first_weekday == "4" %}
-              <span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span>
-            {% elif first_weekday == "5" %}
-              <span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span>
-            {% elif first_weekday == "6" %}
-              <span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span>
-            {% elif first_weekday == "0" %}
-              <span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span><span class="fin-calendar-spacer"></span>
-            {% endif %}
-          {% endwith %}
-        {% endif %}
+      {% for _ in calendar_leading_blanks %}
+        <span class="fin-calendar-spacer" aria-hidden="true"></span>
+      {% endfor %}
 
+      {% for day in calendar_days %}
         <a href="{% url 'finances:payment_calendar_day' day.date.year day.date.month day.date.day %}"
            class="fin-calendar-day {% if day.is_today %}is-today{% endif %} {% if day.has_overdue %}is-danger{% endif %}">
           <span class="fin-calendar-day__number">{{ day.date.day }}</span>

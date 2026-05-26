@@ -14,11 +14,15 @@
     <h1>Должности</h1>
 
     <div class="hr-list-top__actions">
-      {% if request.user|has_permission:"hr_positions" %}
-      <a href="{% url 'hr:create_position' %}" class="hr-btn hr-btn--primary">
+      {% if request.user|has_permission:"hr_companies" %}
+      <a href="{% url 'hr:departments' %}" class="hr-btn hr-btn--light">
+        <i class="bi bi-diagram-3"></i>
+        <span>Отделы</span>
+      </a>
+      <button type="button" class="hr-btn hr-btn--primary" data-bs-toggle="modal" data-bs-target="#createPositionModal">
         <i class="bi bi-plus-lg"></i>
         <span>Новая должность</span>
-      </a>
+      </button>
       {% endif %}
     </div>
   </div>
@@ -64,6 +68,43 @@
         <p>Добавьте должности в систему.</p>
       </div>
     {% endif %}
+  </div>
+</div>
+
+<div class="modal fade" id="createPositionModal" tabindex="-1" aria-labelledby="createPositionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:14px;border:1px solid var(--bpm-border,#e8ebf2);">
+      <form method="post" action="{% url 'hr:create_position' %}">
+        {% csrf_token %}
+        <div class="modal-header" style="border-bottom:1px solid var(--bpm-border,#e8ebf2);padding:18px 20px;">
+          <h5 class="modal-title" style="font-size:15px;font-weight:600;" id="createPositionModalLabel">Новая должность</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+          <div class="hr-form-field">
+            <label class="hr-form-label">Название <span style="color:#dc2626">*</span></label>
+            <input type="text" name="title" class="hr-form-input" placeholder="Менеджер по продажам" required>
+          </div>
+          <div class="hr-form-field">
+            <label class="hr-form-label">Отдел <span style="color:#dc2626">*</span></label>
+            <select name="department" class="hr-form-input" required>
+              <option value="">— Выберите отдел —</option>
+              {% for dept in departments %}
+                <option value="{{ dept.pk }}">{{ dept.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="hr-form-field">
+            <label class="hr-form-label">Описание</label>
+            <textarea name="description" class="hr-form-input" rows="3" placeholder="Описание обязанностей..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer" style="border-top:1px solid var(--bpm-border,#e8ebf2);padding:14px 20px;gap:8px;">
+          <button type="button" class="hr-btn hr-btn--light" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="hr-btn hr-btn--primary">Создать</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

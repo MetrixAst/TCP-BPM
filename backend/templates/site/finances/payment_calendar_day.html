@@ -2,7 +2,8 @@
 {% load static %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=10001">
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
+<link rel="stylesheet" href="{% static 'site/css/apps/fin-pages.css' %}?v=fp01">
 {% endblock %}
 
 {% block content %}
@@ -33,7 +34,7 @@
       <strong>{{ total_actual|floatformat:0 }} ₸</strong>
     </div>
 
-    <div class="fin-day-stat {% if diff < 0 %}is-danger{% else %}is-success{% endif %}">
+    <div class="fin-day-stat {% if diff < 0 %}is-danger{% elif diff > 0 %}is-success{% endif %}">
       <span>Отклонение</span>
       <strong>{{ diff|floatformat:0 }} ₸</strong>
     </div>

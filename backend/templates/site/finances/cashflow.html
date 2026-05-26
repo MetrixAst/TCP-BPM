@@ -4,18 +4,21 @@
 {% block title %}Реестр ДДС | metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe55-cashflow">
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
+<link rel="stylesheet" href="{% static 'site/css/apps/fin-pages.css' %}?v=fp01">
 {% endblock %}
 
 {% block content %}
-<section class="fin-page">
+<section class="fin-page fin-page--cashflow">
+
+  <header class="fin-page-hero">
+    <div>
+      <h1 class="fin-page-hero__title">Реестр ДДС</h1>
+      <p class="fin-page-hero__sub">Движение денежных средств по операционной, инвестиционной и финансовой деятельности</p>
+    </div>
+  </header>
 
   <div class="fin-filter-card">
-    <div class="fin-filter-card__header">
-      <h1 class="fin-page-title">Реестр ДДС</h1>
-      <p class="fin-page-subtitle">Движение денежных средств</p>
-    </div>
-
     <form method="GET" class="fin-filter-form">
       <div class="fin-field fin-date">
         <label class="fin-label">С</label>
@@ -56,13 +59,11 @@
       </div>
       <button type="submit" class="fin-btn fin-btn--primary">Найти</button>
       <a href="{% url 'finances:cashflow' %}" class="fin-btn fin-btn--light">Сбросить</a>
-      <a href="{{ request.get_full_path }}&export=xlsx" class="fin-btn fin-btn--light" style="white-space:nowrap;">
+      <a href="{{ request.get_full_path }}{% if '?' in request.get_full_path %}&{% else %}?{% endif %}export=xlsx" class="fin-btn fin-btn--light" style="white-space:nowrap;">
         <i class="bi bi-download"></i> Excel
       </a>
     </form>
   </div>
-
-  {% include 'site/components/finance_filters.html' %}
 
   <div class="fin-summary-cards">
     <div class="fin-summary-card fin-summary-card--success">
@@ -73,10 +74,10 @@
       <span class="fin-summary-card__label">Списания</span>
       <span class="fin-summary-card__value">−{{ total_outflow|floatformat:0 }} ₸</span>
     </div>
-    <div class="fin-summary-card">
+    <div class="fin-summary-card fin-summary-card--net">
       <span class="fin-summary-card__label">Чистый поток</span>
       <span class="fin-summary-card__value {% if net_flow >= 0 %}fin-success{% else %}fin-danger{% endif %}">
-        {{ net_flow|floatformat:0 }} ₸
+        {% if net_flow >= 0 %}+{% endif %}{{ net_flow|floatformat:0 }} ₸
       </span>
     </div>
   </div>
@@ -98,11 +99,11 @@
         <thead>
           <tr>
             <th>Дата</th>
-            <th>Контрагент</th>
+            <th>Контрагент / назначение</th>
             <th class="text-right">Сумма</th>
             <th>Тип</th>
             <th>Статья</th>
-            <th>ID 1С</th>
+            <th>Документ</th>
           </tr>
         </thead>
         <tbody>
@@ -115,13 +116,13 @@
                   {% if rec.counterparty %}{{ rec.counterparty.short_name }}{% else %}—{% endif %}
                 </strong>
                 {% if rec.description %}
-                <span class="fin-tenant__sub">{{ rec.description|truncatechars:50 }}</span>
+                <span class="fin-tenant__sub">{{ rec.description|truncatechars:60 }}</span>
                 {% endif %}
               </div>
             </td>
             <td class="text-right">
               <strong class="{% if rec.direction == 'inflow' %}fin-success{% else %}fin-danger{% endif %}">
-                {% if rec.direction == 'inflow' %}+{% else %}−{% endif %}{{ rec.amount|floatformat:0 }} {{ rec.currency }}
+                {% if rec.direction == 'inflow' %}+{% else %}−{% endif %}{{ rec.amount|floatformat:0 }} ₸
               </strong>
             </td>
             <td>
@@ -132,14 +133,16 @@
             <td class="fin-muted">
               {% if rec.budget_category %}{{ rec.budget_category.name }}{% else %}—{% endif %}
             </td>
-            <td class="fin-muted">{{ rec.onec_id|default:"—" }}</td>
+            <td class="fin-muted">{{ rec.document_number|default:"—" }}</td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6" class="fin-empty-state">
-              <i class="bi bi-cash-stack"></i>
-              <strong>Операций не найдено</strong>
-              <span>Измените фильтры или синхронизируйте данные из 1С</span>
+            <td colspan="6">
+              <div class="fin-empty-state">
+                <i class="bi bi-cash-stack"></i>
+                <strong>Операций не найдено</strong>
+                <span>Измените фильтры или отметьте счёт арендатора как оплаченный</span>
+              </div>
             </td>
           </tr>
           {% endfor %}
@@ -149,8 +152,4 @@
   </div>
 
 </section>
-{% endblock %}
-
-{% block scripts %}
-<script src="{% static 'site/js/apps/finance-filters.js' %}?v=fe65"></script>
 {% endblock %}

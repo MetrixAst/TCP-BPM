@@ -267,6 +267,11 @@ class AttendanceRecord(models.Model):
     )
     ip_address = models.GenericIPAddressField("IP адрес", null=True, blank=True)
     workstation = models.CharField("Рабочая станция", max_length=255, null=True, blank=True)
+    latitude = models.DecimalField("Широта", max_digits=10, decimal_places=7, null=True, blank=True)
+    longitude = models.DecimalField("Долгота", max_digits=10, decimal_places=7, null=True, blank=True)
+    location_address = models.CharField(
+        "Адрес отметки", max_length=512, blank=True, default=''
+    )
 
     class Meta:
         verbose_name = "Запись посещаемости"
@@ -469,12 +474,7 @@ class EmployeeCertification(models.Model):
         related_name='certifications',
         verbose_name="Сотрудник"
     )
-    cert_type = models.ForeignKey(
-        CertificationType,
-        on_delete=models.PROTECT,
-        related_name='certifications',
-        verbose_name="Тип сертификации"
-    )
+    cert_type = models.CharField("Тип сертификации", max_length=255)
     certificate_number = models.CharField("Номер сертификата", max_length=100, blank=True)
     issue_date = models.DateField("Дата выдачи")
     expiry_date = models.DateField("Дата истечения", null=True, blank=True)
@@ -489,7 +489,7 @@ class EmployeeCertification(models.Model):
         ordering = ['-issue_date']
 
     def __str__(self):
-        return f"{self.employee} | {self.cert_type.name}"
+        return f"{self.employee} | {self.cert_type}"
 
     @property
     def days_until_expiry(self):

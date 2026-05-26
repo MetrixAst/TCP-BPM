@@ -1,6 +1,7 @@
 from django import forms
 from addits.forms import UserSelect2Field, UserSelect2MultipleField, Select2ChoiceField
 from .models import Task
+from .enums import TaskTypeEnum
 
 
 class TaskForm(forms.ModelForm):
@@ -42,6 +43,12 @@ class TaskForm(forms.ModelForm):
         placeholder="Приоритет"
     )
 
+    task_type = Select2ChoiceField(
+        choices=[("", "Тип задачи")] + TaskTypeEnum.list(),
+        required=True,
+        placeholder="Тип задачи"
+    )
+
     class Meta:
         model = Task
         fields = (
@@ -52,6 +59,7 @@ class TaskForm(forms.ModelForm):
             "title",
             "text",
             "priority",
+            "task_type",
         )
 
     def __init__(self, *args, **kwargs):
@@ -62,6 +70,7 @@ class TaskForm(forms.ModelForm):
             "co_executors": "Соисполнители",
             "observers": "Наблюдатели",
             "priority": "Приоритет",
+            "task_type": "Тип задачи",
         }
 
         for name, placeholder in placeholders.items():

@@ -31,6 +31,7 @@ class DayTypeEnum(models.TextChoices):
 class LeaveStatusEnum(models.TextChoices):
     DRAFT = 'draft', 'Черновик'
     PENDING = 'pending', 'На рассмотрении'
+    CONFIRMED = 'confirmed', 'Подтверждено'
     APPROVED = 'approved', 'Одобрено'
     REJECTED = 'rejected', 'Отклонено'
     COMPLETED = 'completed', 'Завершено'

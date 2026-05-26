@@ -90,7 +90,7 @@
           {% for permit in permits %}
             <tr>
               <td>
-                <strong>{{ permit.employee }}</strong>
+                <strong>{{ permit.employee.get_display_name }}</strong>
                 <span>{{ permit.employee.department|default:"—" }}</span>
               </td>
 

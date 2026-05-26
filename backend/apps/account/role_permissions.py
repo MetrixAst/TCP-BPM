@@ -4,8 +4,10 @@ from django.shortcuts import redirect
 from django.urls import reverse
 
 
+
 class RoleEnums(Enum):
     ADMINISTRATOR = "administrator"
+    HR = "hr"
     STAFF = "staff"
     GUEST = "guest"
     OWNER = "owner"
@@ -14,7 +16,11 @@ class RoleEnums(Enum):
 
     @staticmethod
     def tenant_roles():
-        return [RoleEnums.ADMINISTRATOR.value, RoleEnums.STAFF.value]
+        return [
+            RoleEnums.ADMINISTRATOR.value,
+            RoleEnums.HR.value,
+            RoleEnums.STAFF.value,
+        ]
 
 
 class PermissionEnums(Enum):
@@ -108,6 +114,17 @@ class RolePermissions:
             PermissionEnums.FINANCE_REGISTERS,
             PermissionEnums.FINANCE_BUDGET,
         ],
+        RoleEnums.HR.value: [
+            PermissionEnums.PROFILE,
+            PermissionEnums.DASHBOARD,
+            PermissionEnums.HR,
+            PermissionEnums.HR_COMPANIES,
+            PermissionEnums.HR_POSITIONS,
+            PermissionEnums.HR_REGISTRIES,
+            PermissionEnums.HR_JOURNAL,
+            PermissionEnums.USERS_LIST,
+            PermissionEnums.COMMENT,
+        ],
         RoleEnums.STAFF.value: [
             PermissionEnums.PROFILE,
             PermissionEnums.DASHBOARD,
@@ -126,8 +143,18 @@ class RolePermissions:
     }
 
     @staticmethod
-    def checkPermission(role, permission):
-        return permission in RolePermissions.permissions.get(role, [])
+    def _permission_key(permission):
+        if hasattr(permission, 'value'):
+            return permission.value
+        return str(permission)
+
+    @classmethod
+    def checkPermission(cls, role, permission):
+        key = cls._permission_key(permission)
+        for item in cls.permissions.get(role, []):
+            if cls._permission_key(item) == key:
+                return True
+        return False
 
 
 def login_required(function):
@@ -166,11 +193,22 @@ def need_permission(permission):
 
 
 class MenuItem:
-    def __init__(self, id, url, icon, title, submenu=None, url_param=None, indicator_alias=None):
+    def __init__(
+        self,
+        id,
+        url,
+        icon,
+        title,
+        submenu=None,
+        url_param=None,
+        indicator_alias=None,
+        always_expanded=False,
+    ):
         self.id = id
         self.title = title
         self.icon = icon
         self.submenu = submenu
+        self.always_expanded = always_expanded
         self.indicator_alias = indicator_alias or self.id
         self.url = url
         if url != '#' and not url.startswith("#"):
@@ -183,6 +221,7 @@ class MenuItem:
     def first_page(user):
         items = {
             RoleEnums.ADMINISTRATOR.value: 'dashboard:dashboard',
+            RoleEnums.HR.value: 'hr:employees',
             RoleEnums.STAFF.value: 'dashboard:dashboard',
             RoleEnums.OWNER.value: 'dashboard:dashboard',
             RoleEnums.CFO.value: 'dashboard:dashboard',
@@ -198,10 +237,10 @@ class MenuItem:
             return reverse(route)
         return None
 
-    @staticmethod
+    @staticmethod 
     def generate_menu(user):
         finance_common_submenu = [
-            MenuItem('fin_dash', 'dashboard:dashboard', '', 'Финансовый дашборд'),
+            MenuItem('fin_dash', 'finances:dashboard', '', 'Финансовый дашборд'),
             MenuItem('fin_reports', 'reports:home', '', 'Финансовые отчеты'),
             MenuItem('fin_reg', 'finances:reg', '', 'Реестр оплат'),
             MenuItem('fin_calendar', 'finances:payment_calendar', '', 'Календарь платежей'),
@@ -217,6 +256,7 @@ class MenuItem:
         ]
 
         finance_readonly_submenu = [
+            MenuItem('fin_dash', 'finances:dashboard', '', 'Финансовый дашборд'),
             MenuItem('fin_reports', 'reports:home', '', 'Финансовые отчеты'),
             MenuItem('fin_opiu', 'finances:opiu', '', 'ОПиУ'),
             MenuItem('fin_cashflow', 'finances:cashflow', '', 'ДДС'),
@@ -229,6 +269,7 @@ class MenuItem:
 
         items = {
             RoleEnums.ADMINISTRATOR.value: [
+                MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
                 MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
                 MenuItem('documents', 'documents:list', 'file-earmark-text', 'Документооборот', url_param=['documents']),
                 MenuItem('tenants', '#tenants', 'building', 'Компании', submenu=[
@@ -239,18 +280,24 @@ class MenuItem:
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu + [
                     MenuItem('bill', 'finances:bill', '', 'Счет компании'),
                 ]),
-                MenuItem('hr', '#hr', 'people', 'HR', submenu=[
+                MenuItem('hr', '#hr', 'people', 'HR', always_expanded=True, submenu=[
+                    MenuItem('my_profile', 'hr:my_profile', '', 'Личный профиль'),
                     MenuItem('org', 'hr:org', '', 'Орг. структура'),
                     MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
                     MenuItem('companies_hr', 'hr:companies', '', 'Компании'),
+                    MenuItem('departments_hr', 'hr:departments', '', 'Отделы'),
                     MenuItem('positions_hr', 'hr:positions', '', 'Должности'),
+                    MenuItem('leaves', 'hr:leave_list', '', 'Заявки на отпуск'),
+                    MenuItem('leave_timeline_page', 'hr:leave_timeline_page', '', 'Календарь отпусков'),
                     MenuItem('secondment', 'hr:calendar', '', 'Командировки', url_param=['secondment']),
-                    MenuItem('vacation', 'hr:calendar', '', 'Отпуски', url_param=['vacation']),
-                    MenuItem('enbek_vacations', 'hr:vacations', '', 'Отпуска (Enbek)'),
-                    MenuItem('enbek_sick_leaves', 'hr:sick_leaves', '', 'Больничные (Enbek)'),
-                    MenuItem('enbek_contracts', 'hr:contracts', '', 'Договоры (Enbek)'),
+                    MenuItem('hr_documents', 'hr:documents_list', '', 'Кадровые документы'),
+                    MenuItem('hr_permits', 'hr:permits_list', '', 'Допуски'),
+                    MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                     MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
+                ]),
+                MenuItem('onec', '#onec', 'box-arrow-in-down', '1С', submenu=[
+                    MenuItem('onec_counterparties', 'onec:counterparty_list', '', 'Контрагенты'),
                 ]),
                 MenuItem('ecopark', 'ecopark:home', 'water', 'Эксплуатация'),
                 MenuItem('requistions', 'requistions:home', 'notebook-1', 'Заявки от арендаторов'),
@@ -258,26 +305,47 @@ class MenuItem:
             ],
 
             RoleEnums.OWNER.value: [
+                MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
             RoleEnums.CFO.value: [
+                MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
             RoleEnums.CHIEF_ACCOUNTANT.value: [
+                MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_readonly_submenu),
             ],
 
-            RoleEnums.STAFF.value: [
-                MenuItem('hr', '#hr', 'user', 'HR', submenu=[
+            RoleEnums.HR.value: [
+                MenuItem('hr', '#hr', 'people', 'HR', always_expanded=True, submenu=[
+                    MenuItem('my_profile', 'hr:my_profile', '', 'Личный профиль'),
                     MenuItem('org', 'hr:org', '', 'Орг. структура'),
                     MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
-                    MenuItem('enbek_vacations', 'hr:vacations', '', 'Отпуска (Enbek)'),
-                    MenuItem('enbek_sick_leaves', 'hr:sick_leaves', '', 'Больничные (Enbek)'),
-                    MenuItem('enbek_contracts', 'hr:contracts', '', 'Договоры (Enbek)'),
+                    MenuItem('companies_hr', 'hr:companies', '', 'Компании'),
+                    MenuItem('departments_hr', 'hr:departments', '', 'Отделы'),
+                    MenuItem('positions_hr', 'hr:positions', '', 'Должности'),
+                    MenuItem('leaves', 'hr:leave_list', '', 'Заявки на отпуск'),
+                    MenuItem('leave_timeline_page', 'hr:leave_timeline_page', '', 'Календарь отпусков'),
+                    MenuItem('secondment', 'hr:calendar', '', 'Командировки', url_param=['secondment']),
+                    MenuItem('hr_documents', 'hr:documents_list', '', 'Кадровые документы'),
+                    MenuItem('hr_permits', 'hr:permits_list', '', 'Допуски'),
+                    MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
+                    MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
+                    MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
+                ]),
+            ],
+
+            RoleEnums.STAFF.value: [
+                MenuItem('hr', '#hr', 'user', 'HR', always_expanded=True, submenu=[
+                    MenuItem('my_profile', 'hr:my_profile', '', 'Личный профиль'),
+                    MenuItem('org', 'hr:org', '', 'Орг. структура'),
+                    MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
+                    MenuItem('leaves', 'hr:leave_list', '', 'Мои отпуска'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
                 ]),
             ],

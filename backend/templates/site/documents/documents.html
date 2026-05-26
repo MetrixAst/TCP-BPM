@@ -3,136 +3,154 @@
 {% load mptt_tags %}
 {% load site_tags %}
 
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/docs.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
+
 {% block content %}
 
-    <!-- Title and Top Buttons Start -->
-    <div class="page-title-container">
-        <div class="row g-0">
-            <div class="col-auto mb-2 mb-md-0 me-auto">
-                <div class="w-auto sw-md-25">
-                    <h1 class="mb-0 pb-0 display-4" id="title">{{type_config.title}}</h1>
-                    <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
-                        <ul class="breadcrumb pt-0">
-                            <li class="breadcrumb-item">
-                                <a href="{% url 'dashboard:dashboard' %}">Главная</a>
-                            </li>
-                            <li class="breadcrumb-item">
-                                <a>{{type_config.title}}</a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
-            </div>
-            <div class="col-12 col-md d-flex align-items-start justify-content-end justify-content-lg-end">
-                <a href="{% url 'documents:edit' document_type 0 %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start ms-1" id="mobile_button" data-icon="plus">
-                    <i data-acorn-icon="plus"></i>
-                    <span>{{type_config.add_button}}</span>
-                </a>
-            </div>
+    <!-- Page Header Start -->
+    <div class="doc-page-header">
+        <div class="doc-page-header__left">
+            <h1 class="doc-page-title">{{ type_config.title }}</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="doc-breadcrumb">
+                    <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+                    <li><a href="{% url 'documents:list' document_type %}">{{ type_config.title }}</a></li>
+                    {% if current_folder %}
+                        <li>{{ current_folder.short_name }}</li>
+                    {% endif %}
+                </ol>
+            </nav>
+        </div>
+        <div class="doc-page-header__right">
+            <a href="{% url 'documents:edit' document_type 0 %}" class="doc-btn doc-btn--primary" id="mobile_button">
+                <i class="bi bi-plus-lg"></i>
+                <span>{{ type_config.add_button }}</span>
+            </a>
         </div>
     </div>
-    <!-- Title and Top Buttons End -->
+    <!-- Page Header End -->
 
-    {% include 'site/layouts/filter_form.html' with form=form %}
+    {% if form %}
+    <div class="doc-filter-card">
+        <form method="POST" class="doc-filter-form" id="filter_form">
+            {% csrf_token %}
+            {% for field in form %}
+                {% if field.field.widget.input_type == "hidden" %}
+                    {{ field }}
+                {% else %}
+                    <div class="doc-filter-field">
+                        {% if field.label %}<label class="doc-filter-label">{{ field.label }}</label>{% endif %}
+                        {{ field }}
+                    </div>
+                {% endif %}
+            {% endfor %}
+            <button class="doc-btn doc-btn--primary" type="submit">
+                <i class="bi bi-search"></i>
+                <span>Найти</span>
+            </button>
+        </form>
+    </div>
+    {% endif %}
 
-    <div class="row g-0">
+    <div class="doc-layout">
 
         {% if not type_config.hide_left %}
-            <div class="col-auto d-none d-lg-flex side_menu_items">
-                <div class="nav flex-column sw-25 mt-n2">
-                    <div class="menu-items">
-                        <a class="nav-link px-0 task-menu-item {% if status == 'all' %}active{% endif %}" href="{% url 'documents:by_status' document_type 'all' %}">
-                            <span class="d-inline-block mt-1 align-middle">Все</span>
-                        </a>
-                        
-                        {% if type_config.statuses %}
+            <aside class="doc-sidebar d-none d-lg-flex">
+                <nav class="doc-nav">
+                    <a class="doc-nav__link {% if status == 'all' %}doc-nav__link--active{% endif %}"
+                       href="{% url 'documents:by_status' document_type 'all' %}">
+                        <i class="bi bi-collection"></i>
+                        <span>Все</span>
+                    </a>
 
-                            {% for key, current in statuses.items %}
-                                <a class="nav-link px-0 task-menu-item {% if status == key %}active{% endif %}" href="{% url 'documents:by_status' document_type key %}">
-                                    <span class="d-inline-block mt-1 align-middle">{{current.title}}</span>
-                                </a>
-                            {% endfor %}
-                        {% endif %}
-                        {% if type_config.tree %}
-                            {% recursetree tree %}
-                                    
-                                {% if node.is_leaf_node %}
-                                    <a class="nav-link px-0 task-menu-item {% if node.id == folder %}active{% endif %}" href="{% url 'documents:by_folder' document_type node.id %}">
-                                        {% if node.level > 1 %}
-                                            <i class="align-middle me-2 sw-2 d-inline-block"></i>
-                                        {% endif %}
-                                        <span class="d-inline-block mt-1 align-middle">{{ node.name }}</span>
-                                    </a>
-                                {% else %}
-                                    <a class="nav-link px-0 dropdown-toggle" href="#node{{node.id}}" data-bs-toggle="collapse"
-                                        aria-expanded="true">
-                                        <span class="d-inline-block align-middle">{{ node.name }}</span>
-                                    </a>
-                                    <div class="collapse show" id="node{{node.id}}">
-                                        {{ children }}
-                                    </div>
-                                {% endif %}
-
-                            {% endrecursetree %}
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-
-        <div class="col">
-
-            <div class="row">
-                <div class="col-12 mb-5">
-                    
-                    {% if paginator.items %}
-                        <div class="card mb-2 bg-transparent no-shadow d-none d-md-block">
-                            <div class="row g-0 sh-3">
-                                <div class="col">
-                                    <div class="card-body pt-0 pb-0 h-100">
-                                        <div class="row g-0 h-100 align-content-center">
-                                            <div class="col-6 col-md-7 d-flex align-items-center text-alternate text-medium text-muted text-small">ФАЙЛ</div>
-                                            <div class="col-6 col-md-3 d-flex align-items-center text-alternate text-medium text-muted text-small">ДАТА ДОБАВЛЕНИЯ</div>
-                                            <div class="col-6 col-md-2 d-flex align-items-center justify-content-md-end text-alternate text-medium text-muted text-small">
-                                                СТАТУС
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    {% if type_config.statuses %}
+                        {% for key, current in statuses.items %}
+                            <a class="doc-nav__link {% if status == key %}doc-nav__link--active{% endif %}"
+                               href="{% url 'documents:by_status' document_type key %}">
+                                <i class="bi bi-circle-fill doc-nav__dot"></i>
+                                <span>{{ current.title }}</span>
+                            </a>
+                        {% endfor %}
                     {% endif %}
 
-                    <div class="mb-5">
-
-                        {% for current in paginator.items %}
-
-                            <div class="card mb-2 sh-11 sh-md-8 indicator_item" data-type="{{current.document_type}}" data-id="{{current.id}}">
-                                <div class="card-body pt-0 pb-0 h-100">
-                                    <div class="row g-0 h-100 align-content-center">
-
-                                        <div class="col-11 col-md-7 d-flex flex-column mb-1 mb-md-0 order-1 order-md-1 position-static">
-                                            <a class="mobile_link" href="{% url 'documents:document' current.id %}">{{current.number}}</a>
-                                            <div class="text-small text-muted text-truncate">{{current.title}}</div>
-                                        </div>
-                                        <div class="col-12 col-md-3 d-flex align-items-center text-muted order-3 order-md-2">{{current.date}}</div>
-                                        <div class="col-1 col-md-2 d-flex align-items-center text-muted text-medium justify-content-end order-2 order-md-3">
-                                            {{current.status_info.title}}
-                                        </div>
-                                    </div>
+                    {% if type_config.tree %}
+                        <div class="doc-nav__divider"></div>
+                        <span class="doc-nav__section-label">Папки</span>
+                        <a class="doc-nav__link {% if folder == 'all' or not folder %}doc-nav__link--active{% endif %}"
+                           href="{% url 'documents:list' document_type %}">
+                            <i class="bi bi-folder2-open"></i>
+                            <span>Все документы</span>
+                        </a>
+                        {% recursetree tree %}
+                            <a class="doc-nav__link {% if node.id in active_folder_ids %}doc-nav__link--active{% endif %} {% if node.level > 1 %}doc-nav__link--sub{% endif %}"
+                               href="{% url 'documents:by_folder' document_type node.id %}"
+                               title="{{ node.name }}">
+                                <i class="bi bi-{% if node.is_leaf_node %}folder2{% else %}folder2-open{% endif %}"></i>
+                                <span>{{ node.short_name }}</span>
+                            </a>
+                            {% if not node.is_leaf_node %}
+                                <div class="doc-nav__children">
+                                    {{ children }}
                                 </div>
+                            {% endif %}
+                        {% endrecursetree %}
+                    {% endif %}
+                </nav>
+            </aside>
+        {% endif %}
+
+        <div class="doc-content">
+
+            <div class="doc-table-card">
+
+                {% if paginator.items %}
+                <div class="doc-list-header d-none d-md-flex">
+                    <span class="doc-list-col doc-list-col--name">Документ</span>
+                    <span class="doc-list-col doc-list-col--date">Дата</span>
+                    <span class="doc-list-col doc-list-col--status">Статус</span>
+                </div>
+                {% endif %}
+
+                <div class="doc-list">
+                    {% for current in paginator.items %}
+                        <a href="{% url 'documents:document' current.id %}"
+                           class="doc-list-item indicator_item"
+                           data-type="{{ current.document_type }}"
+                           data-id="{{ current.id }}">
+
+                            <div class="doc-list-col doc-list-col--name">
+                                <span class="doc-list-number">{{ current.number }}</span>
+                                <span class="doc-list-title">{{ current.title }}</span>
                             </div>
 
-                        {% endfor %}
+                            <div class="doc-list-col doc-list-col--date">
+                                <span class="d-flex align-items-center gap-1">
+                                    <i class="bi bi-calendar3"></i>
+                                    {{ current.date }}
+                                </span>
+                            </div>
 
-                        
-                    </div>
+                            <div class="doc-list-col doc-list-col--status">
+                                <span class="doc-status-badge">{{ current.status_info.title }}</span>
+                            </div>
 
-
-                    {% show_paginator paginator True %}
+                        </a>
+                    {% empty %}
+                        <div class="doc-empty">
+                            <i class="bi bi-inbox"></i>
+                            <div class="doc-empty__title">Список пуст</div>
+                            <div class="doc-empty__text">В этом списке пока ничего нет</div>
+                        </div>
+                    {% endfor %}
                 </div>
-            </div>
 
+                {% if paginator.count > 0 %}
+                    {% show_paginator paginator True %}
+                {% endif %}
+
+            </div>
         </div>
     </div>
 

@@ -3,8 +3,11 @@ from django.contrib.auth.forms import AuthenticationForm, UserCreationForm, Pass
 from django.core.exceptions import ValidationError 
 
 from addits.forms import CustomModelForm
+import re
+
 from hr.models import Position
 from .models import UserAccount, Employee
+ROLE_PICK_NEW = '__new_role__'
 
 
 def validate_iin_logic(iin):
@@ -28,19 +31,90 @@ class CustomPasswordChangeForm(PasswordChangeForm):
     new_password2 = forms.CharField(widget=forms.PasswordInput(attrs={"class": 'form-control'}), label="Повторите новый пароль")
 
 
+class EmployeeChoiceField(forms.ModelChoiceField):
+    """Руководитель и др.: ФИО и должность, не логин."""
+
+    def label_from_instance(self, obj):
+        return obj.get_display_with_position()
+
+
 class UserAccountForm(UserCreationForm):
-    def __init__(self, *args, **kwargs):
-        super(UserAccountForm, self).__init__(*args, **kwargs)
-        for visible in self.visible_fields():
-            if visible.field.widget.input_type == 'select':
-                visible.field.empty_label = ""
-                visible.field.widget.attrs['class'] = 'select2'
-            elif visible.field.widget.attrs.get('class') is None:
-                visible.field.widget.attrs['class'] = 'form-control'
+    role_pick = forms.ChoiceField(
+        label='Роль',
+        choices=[],
+        widget=forms.Select(attrs={'class': 'select2', 'id': 'id_role_pick'}),
+    )
+    role_custom = forms.CharField(
+        label='Код новой роли',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'например warehouse_manager',
+            'id': 'id_role_custom',
+        }),
+        help_text='Латиница и подчёркивания. Роль должна быть настроена в системе прав.',
+    )
 
     class Meta:
         model = UserAccount
-        fields = ("username", "password1", "password2", "role", "first_name")
+        fields = ("username", "password1", "password2", "first_name")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        role_choices = list(UserAccount.ROLES) + [(ROLE_PICK_NEW, '— Ввести новую роль —')]
+        self.fields['role_pick'].choices = role_choices
+
+        initial_role = None
+        if self.instance and self.instance.pk:
+            initial_role = self.instance.role
+        elif self.is_bound:
+            initial_role = self.data.get('role') or self.data.get('role_pick')
+        if initial_role and initial_role != ROLE_PICK_NEW:
+            known = {c[0] for c in UserAccount.ROLES}
+            if initial_role in known:
+                self.fields['role_pick'].initial = initial_role
+            else:
+                self.fields['role_pick'].initial = ROLE_PICK_NEW
+                self.fields['role_custom'].initial = initial_role
+
+        for visible in self.visible_fields():
+            if visible.field.widget.input_type == 'select':
+                visible.field.empty_label = ""
+                if 'class' not in visible.field.widget.attrs:
+                    visible.field.widget.attrs['class'] = 'select2'
+            elif visible.field.widget.attrs.get('class') is None:
+                visible.field.widget.attrs['class'] = 'form-control'
+
+    def clean(self):
+        cleaned = super().clean()
+        pick = cleaned.get('role_pick')
+        custom = (cleaned.get('role_custom') or '').strip().lower()
+
+        if pick == ROLE_PICK_NEW:
+            if not custom:
+                self.add_error('role_custom', 'Укажите код новой роли.')
+                return cleaned
+            if not re.match(r'^[a-z][a-z0-9_]*$', custom):
+                self.add_error(
+                    'role_custom',
+                    'Код роли: латинские буквы, цифры и подчёркивания (начинается с буквы).',
+                )
+                return cleaned
+            known = {c[0] for c in UserAccount.ROLES}
+            if custom not in known:
+                self.add_error(
+                    'role_custom',
+                    f'Роль «{custom}» не найдена. Доступные: {", ".join(sorted(known))}.',
+                )
+                return cleaned
+            cleaned['role'] = custom
+        elif pick:
+            cleaned['role'] = pick
+        return cleaned
+
+    def save(self, commit=True):
+        self.instance.role = self.cleaned_data['role']
+        return super().save(commit=commit)
 
 
 class EditProfileForm(CustomModelForm):
@@ -52,6 +126,16 @@ class EditProfileForm(CustomModelForm):
 
 
 class EmployeeForm(CustomModelForm):
+    position = forms.ModelChoiceField(
+        queryset=Position.objects.none(),
+        required=False,
+        widget=forms.Select(attrs={'class': 'select2', 'data-placeholder': 'Выберите должность'}),
+    )
+    supervisor = EmployeeChoiceField(
+        queryset=Employee.objects.none(),
+        required=False,
+        widget=forms.Select(attrs={'class': 'select2', 'data-placeholder': 'Выберите руководителя'}),
+    )
     iin = forms.CharField(
         label="ИИН",
         min_length=12, 
@@ -89,22 +173,53 @@ class EmployeeForm(CustomModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
+        dept_id = None
+        if self.is_bound:
+            dept_id = self.data.get('department')
+        elif self.instance and self.instance.pk and self.instance.department_id:
+            dept_id = self.instance.department_id
+
+        if dept_id:
+            self.fields['position'].queryset = Position.objects.filter(
+                department_id=dept_id,
+            ).order_by('title')
+        else:
+            self.fields['position'].queryset = Position.objects.none()
+
+        supervisor_qs = Employee.objects.filter(
+            status=EmployeeStatusEnum.ACTIVE,
+        ).select_related('user', 'position', 'department').order_by(
+            'user__last_name', 'user__first_name', 'user__username',
+        )
+        if self.instance and self.instance.pk:
+            supervisor_qs = supervisor_qs.exclude(pk=self.instance.pk)
+        self.fields['supervisor'].queryset = supervisor_qs
+
         select_configs = {
             'department': 'Выберите отдел',
-            'position': 'Выберите должность',
-            'supervisor': 'Выберите руководителя',
             'status': 'Выберите статус',
         }
-        
+
         for field_name, placeholder in select_configs.items():
             if field_name in self.fields:
                 self.fields[field_name].widget.attrs.update({
                     'class': 'select2',
                     'data-placeholder': placeholder,
-                    'data-allow-clear': 'true' 
+                    'data-allow-clear': 'true',
                 })
-        
+
+        if 'position' in self.fields:
+            self.fields['position'].widget.attrs.update({
+                'class': 'select2',
+                'data-placeholder': 'Выберите должность',
+                'data-allow-clear': 'true',
+            })
+        if 'supervisor' in self.fields:
+            self.fields['supervisor'].widget.attrs.update({
+                'data-allow-clear': 'true',
+            })
+
         if 'head' in self.fields:
             self.fields['head'].widget.attrs.update({'class': 'form-check-input'})
 

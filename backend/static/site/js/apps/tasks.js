@@ -288,6 +288,19 @@
         orientation: 'bottom auto'
       });
     }
+
+    const fileInput = document.getElementById('taskAttachments');
+    const fileNames = document.getElementById('taskAttachmentNames');
+    if (fileInput && fileNames) {
+      fileInput.addEventListener('change', function () {
+        if (this.files && this.files.length > 0) {
+          const names = Array.from(this.files).map(function (f) { return f.name; });
+          fileNames.textContent = names.join(', ');
+        } else {
+          fileNames.textContent = 'Файлы не выбраны';
+        }
+      });
+    }
   }
 
   function init() {

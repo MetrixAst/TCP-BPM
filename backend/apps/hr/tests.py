@@ -209,13 +209,19 @@ class LeaveListViewExtendedTest(TestCase):
         self.dept = Department.objects.create(name="Dev", company=self.company)
         self.dept2 = Department.objects.create(name="QA", company=self.company)
 
-        self.u_emp = UserAccount.objects.create_user(username='emp_list', password='123')
+        self.u_emp = UserAccount.objects.create_user(
+            username='emp_list', password='123', role=RoleEnums.STAFF.value,
+        )
         self.employee = Employee.objects.create(user=self.u_emp, department=self.dept)
 
-        self.u_emp2 = UserAccount.objects.create_user(username='emp_list2', password='123')
+        self.u_emp2 = UserAccount.objects.create_user(
+            username='emp_list2', password='123', role=RoleEnums.STAFF.value,
+        )
         self.employee2 = Employee.objects.create(user=self.u_emp2, department=self.dept2)
 
-        self.u_boss = UserAccount.objects.create_user(username='boss_list', password='123')
+        self.u_boss = UserAccount.objects.create_user(
+            username='boss_list', password='123', role=RoleEnums.STAFF.value,
+        )
         self.boss = Employee.objects.create(user=self.u_boss, department=self.dept, head=True)
 
         self.type1 = LeaveType.objects.create(name="Ежегодный_л", max_days_per_year=24)
@@ -542,7 +548,7 @@ class LeaveApproveViewTest(TestCase):
         self.leave = LeaveRequest.objects.create(
             employee=self.employee, leave_type=self.leave_type,
             start_date=date(2026, 8, 3), end_date=date(2026, 8, 7),
-            status=LeaveStatusEnum.PENDING,
+            status=LeaveStatusEnum.CONFIRMED,
         )
 
     def get_url(self):
@@ -555,6 +561,14 @@ class LeaveApproveViewTest(TestCase):
     def test_get_request_does_not_approve(self):
         self.client.login(username='boss_approve', password='123')
         self.client.get(self.get_url())
+        self.leave.refresh_from_db()
+        self.assertEqual(self.leave.status, LeaveStatusEnum.CONFIRMED)
+
+    def test_cannot_approve_from_pending_without_confirm(self):
+        self.leave.status = LeaveStatusEnum.PENDING
+        self.leave.save()
+        self.client.login(username='boss_approve', password='123')
+        self.client.post(self.get_url())
         self.leave.refresh_from_db()
         self.assertEqual(self.leave.status, LeaveStatusEnum.PENDING)
 
@@ -575,7 +589,7 @@ class LeaveApproveViewTest(TestCase):
         self.client.login(username='emp_approve2', password='123')
         self.client.post(self.get_url())
         self.leave.refresh_from_db()
-        self.assertEqual(self.leave.status, LeaveStatusEnum.PENDING)
+        self.assertEqual(self.leave.status, LeaveStatusEnum.CONFIRMED)
 
     def test_cannot_approve_already_approved(self):
         self.leave.status = LeaveStatusEnum.APPROVED
@@ -850,10 +864,14 @@ class LeaveTimelineAndExportTest(TestCase):
         self.dept1 = Department.objects.create(name="Analytics", company=self.company)
         self.dept2 = Department.objects.create(name="Support", company=self.company)
 
-        self.u_emp1 = UserAccount.objects.create_user(username='emp_export1', password='123')
+        self.u_emp1 = UserAccount.objects.create_user(
+            username='emp_export1', password='123', role=RoleEnums.HR.value,
+        )
         self.employee1 = Employee.objects.create(user=self.u_emp1, department=self.dept1)
 
-        self.u_emp2 = UserAccount.objects.create_user(username='emp_export2', password='123')
+        self.u_emp2 = UserAccount.objects.create_user(
+            username='emp_export2', password='123', role=RoleEnums.STAFF.value,
+        )
         self.employee2 = Employee.objects.create(user=self.u_emp2, department=self.dept2)
 
         self.leave_type = LeaveType.objects.create(name="Ежегодный_exp", max_days_per_year=24)
@@ -2374,25 +2392,23 @@ class EmployeeCertificationTest(TestCase):
         self.dept = Department.objects.create(name='IT')
         self.user = User.objects.create_user(username='cert_worker', password='pass', role=RoleEnums.STAFF.value)
         self.emp = Employee.objects.create(user=self.user, department=self.dept, status='active')
-        self.ct = CertificationType.objects.create(
-            code='FIRST_AID_TEST', name='Первая помощь', validity_months=24
-        )
+        self.cert_type_name = 'Первая помощь'
 
     def test_create_certification(self):
         cert = EmployeeCertification.objects.create(
             employee=self.emp,
-            cert_type=self.ct,
+            cert_type=self.cert_type_name,
             issue_date=date.today(),
             expiry_date=date.today() + timedelta(days=365),
         )
         self.assertEqual(cert.employee, self.emp)
-        self.assertEqual(cert.cert_type, self.ct)
+        self.assertEqual(cert.cert_type, self.cert_type_name)
         self.assertFalse(cert.is_revoked)
 
     def test_status_active(self):
         cert = EmployeeCertification.objects.create(
             employee=self.emp,
-            cert_type=self.ct,
+            cert_type=self.cert_type_name,
             issue_date=date.today(),
             expiry_date=date.today() + timedelta(days=60),
         )
@@ -2402,7 +2418,7 @@ class EmployeeCertificationTest(TestCase):
     def test_status_expiring(self):
         cert = EmployeeCertification.objects.create(
             employee=self.emp,
-            cert_type=self.ct,
+            cert_type=self.cert_type_name,
             issue_date=date.today(),
             expiry_date=date.today() + timedelta(days=15),
         )
@@ -2412,7 +2428,7 @@ class EmployeeCertificationTest(TestCase):
     def test_status_expired(self):
         cert = EmployeeCertification.objects.create(
             employee=self.emp,
-            cert_type=self.ct,
+            cert_type=self.cert_type_name,
             issue_date=date.today() - timedelta(days=400),
             expiry_date=date.today() - timedelta(days=1),
         )
@@ -2422,7 +2438,7 @@ class EmployeeCertificationTest(TestCase):
     def test_status_revoked(self):
         cert = EmployeeCertification.objects.create(
             employee=self.emp,
-            cert_type=self.ct,
+            cert_type=self.cert_type_name,
             issue_date=date.today(),
             expiry_date=date.today() + timedelta(days=365),
             is_revoked=True,
@@ -2433,7 +2449,7 @@ class EmployeeCertificationTest(TestCase):
     def test_days_until_expiry(self):
         cert = EmployeeCertification.objects.create(
             employee=self.emp,
-            cert_type=self.ct,
+            cert_type=self.cert_type_name,
             issue_date=date.today(),
             expiry_date=date.today() + timedelta(days=100),
         )
@@ -2442,7 +2458,7 @@ class EmployeeCertificationTest(TestCase):
     def test_days_until_expiry_none_when_no_expiry(self):
         cert = EmployeeCertification.objects.create(
             employee=self.emp,
-            cert_type=self.ct,
+            cert_type=self.cert_type_name,
             issue_date=date.today(),
         )
         self.assertIsNone(cert.days_until_expiry)
@@ -2450,7 +2466,7 @@ class EmployeeCertificationTest(TestCase):
     def test_status_active_when_no_expiry(self):
         cert = EmployeeCertification.objects.create(
             employee=self.emp,
-            cert_type=self.ct,
+            cert_type=self.cert_type_name,
             issue_date=date.today(),
         )
         from hr.enums import CertificationStatusEnum
@@ -2459,7 +2475,7 @@ class EmployeeCertificationTest(TestCase):
     def test_str(self):
         cert = EmployeeCertification.objects.create(
             employee=self.emp,
-            cert_type=self.ct,
+            cert_type=self.cert_type_name,
             issue_date=date.today(),
         )
         self.assertIn('Первая помощь', str(cert))
@@ -2467,7 +2483,7 @@ class EmployeeCertificationTest(TestCase):
     def test_cascade_delete(self):
         cert = EmployeeCertification.objects.create(
             employee=self.emp,
-            cert_type=self.ct,
+            cert_type=self.cert_type_name,
             issue_date=date.today(),
         )
         cert_id = cert.id
@@ -2597,22 +2613,23 @@ class CertificationsRegistryTest(TestCase):
         self.dept = Department.objects.create(name='Safety')
         self.hr_user, _ = make_user('hr_c', RoleEnums.ADMINISTRATOR.value, self.dept, is_superuser=True)
         self.staff_user, self.staff_emp = make_user('cert_user', RoleEnums.STAFF.value, self.dept)
-        self.ct = CertificationType.objects.create(name='Fire Safety', code='FS')
+        self.cert_type_name = 'Fire Safety'
 
     def test_certification_edit(self):
         cert = EmployeeCertification.objects.create(
-            employee=self.staff_emp, cert_type=self.ct, issue_date=date.today()
+            employee=self.staff_emp, cert_type=self.cert_type_name, issue_date=date.today()
         )
         self.client.login(username='hr_c', password='pass')
         url = reverse('hr:certifications_edit', args=[cert.pk])
         r = self.client.post(url, {
             'employee': self.staff_emp.pk,
-            'cert_type': self.ct.pk,
+            'cert_type': 'Fire Safety Updated',
             'certificate_number': 'CERT-UPDATED',
             'issue_date': date.today().strftime('%d.%m.%Y')
         })
         cert.refresh_from_db()
         self.assertEqual(cert.certificate_number, 'CERT-UPDATED')
+        self.assertEqual(cert.cert_type, 'Fire Safety Updated')
 
 
 class UtilityRegistryTest(TestCase):
@@ -2649,7 +2666,7 @@ class HrCheckExpirationsTaskTest(TestCase):
         self.work_category = WorkCategory.objects.create(
             name='Heights', code='HGT', category_group='Safety', risk_level='high'
         )
-        self.cert_type = CertificationType.objects.create(name='Safety Cert', code='SC')
+        self.cert_type_name = 'Safety Cert'
 
     # ── EmployeeDocument ────────────────────────────────────────────────────
 
@@ -2762,7 +2779,7 @@ class HrCheckExpirationsTaskTest(TestCase):
     def test_task_counts_expired_certifications(self):
         EmployeeCertification.objects.create(
             employee=self.emp,
-            cert_type=self.cert_type,
+            cert_type=self.cert_type_name,
             issue_date=date.today() - timedelta(days=200),
             expiry_date=date.today() - timedelta(days=5),
         )
@@ -2773,7 +2790,7 @@ class HrCheckExpirationsTaskTest(TestCase):
     def test_task_counts_expiring_certifications(self):
         EmployeeCertification.objects.create(
             employee=self.emp,
-            cert_type=self.cert_type,
+            cert_type=self.cert_type_name,
             issue_date=date.today() - timedelta(days=200),
             expiry_date=date.today() + timedelta(days=20),
         )
@@ -2863,12 +2880,12 @@ class HRCollabSmokeTest(TestCase):
             with self.subTest(screen=name):
                 self.assertEqual(code, 200, f'Admin: {name} returned {code}')
 
-    def test_staff_companies_and_positions_access(self):
-        """Staff имеет HR, но без HR_COMPANIES/HR_POSITIONS в меню — экраны по @need_permission(HR)."""
+    def test_staff_companies_and_positions_forbidden(self):
+        """Staff: нет HR_COMPANIES — компании и должности недоступны."""
         self.client.login(username=self.staff.username, password='pass')
         for name in ('hr:companies', 'hr:positions'):
             with self.subTest(screen=name):
-                self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+                self.assertEqual(self.client.get(reverse(name)).status_code, 403)
         self.client.logout()
 
     def test_staff_core_hr_screens_200(self):
@@ -2896,10 +2913,6 @@ class HRCollabSmokeTest(TestCase):
         """Цепочка: документ → допуск → сертификация → отпуск."""
         self.client.login(username=self.admin.username, password='pass')
         cat = WorkCategory.objects.create(name='Высота', code='COLLAB-H1')
-        cert_type = CertificationType.objects.create(
-            name='Первая помощь', code='COLLAB-FA', is_mandatory=True,
-        )
-
         doc_data = {
             'employee': self.staff_emp.pk,
             'doc_type': DocumentTypeEnum.NDA,
@@ -2925,7 +2938,7 @@ class HRCollabSmokeTest(TestCase):
 
         cert_data = {
             'employee': self.staff_emp.pk,
-            'cert_type': cert_type.pk,
+            'cert_type': 'Первая помощь',
             'issue_date': date.today().strftime('%d.%m.%Y'),
             'expiry_date': (date.today() + timedelta(days=180)).strftime('%d.%m.%Y'),
             'certificate_number': 'COLLAB-CERT-1',

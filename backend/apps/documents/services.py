@@ -8,6 +8,7 @@ from project.paginator import CustomPaginator
 from .enums import DocumentTypeEnum, DocumentStatusEnum
 from .models import Folder, Document
 from .forms import DocumentForm, PurchaseForm, BudgetForm, DocumentsForm, InnerDocumentForm
+from .folder_structure import ensure_folder_tree, folder_display_name
 
 from account.role_permissions import PermissionEnums, RolePermissions
 
@@ -15,19 +16,28 @@ from datetime import timedelta
 from django.utils import timezone
 
 
-def documents_list(request, document_type, folder = None, status = None):
+def documents_list(request, document_type, folder=None, status=None):
 
-    root = get_or_error(Folder, root_type=document_type)
+    root = ensure_folder_tree(document_type)
     folders = root.get_descendants(include_self=True)
 
     queryset = Document.get_available_queryset(request)
     queryset = queryset.filter(folder__in=folders)
-    
-    page = 1
 
-    if folder is not None:
-        if folder != 'all':
-            queryset = queryset.filter(folder_id=folder)
+    page = 1
+    current_folder = None
+    active_folder_ids = []
+
+    if folder is not None and folder != 'all':
+        try:
+            current_folder = Folder.objects.get(pk=folder, tree_id=root.tree_id)
+            active_folder_ids = list(
+                current_folder.get_ancestors(include_self=True).values_list('pk', flat=True)
+            )
+            folder_ids = current_folder.get_descendants(include_self=True).values_list('pk', flat=True)
+            queryset = queryset.filter(folder_id__in=folder_ids)
+        except Folder.DoesNotExist:
+            folder = 'all'
     
     if status is not None:
         if status != 'all':
@@ -73,6 +83,8 @@ def documents_list(request, document_type, folder = None, status = None):
         'statuses': DocumentStatusEnum.get_full(document_type),
         'tree': root.get_descendants(include_self=False),
         'folder': folder,
+        'current_folder': current_folder,
+        'active_folder_ids': active_folder_ids,
         'status': status,
         'paginator': paginator,
         'can_create': RolePermissions.checkPermission(request.user.role, PermissionEnums.EDIT_DOCUMENT),
@@ -117,13 +129,10 @@ def edit_document_by_type(request, pk, document_type):
     if current is not None and current.author != request.user:
         raise Http404
     
-    template = 'site/documents/edit_document.html'
-
     if document_type == DocumentTypeEnum.PURCHASES.value[0]:
         form_class = PurchaseForm
     elif document_type == DocumentTypeEnum.BUDGET.value[0]:
         form_class = BudgetForm
-        template = 'site/documents/edit_budget.html'
     else:
         form_class = DocumentForm
 
@@ -150,9 +159,10 @@ def edit_document_by_type(request, pk, document_type):
     context = {
         'document_type': document_type,
         'form': form,
+        'type_config': DocumentTypeEnum.get_config(document_type),
     }
 
-    return render(request, template, context)
+    return render(request, 'site/documents/edit_document.html', context)
 
 
 

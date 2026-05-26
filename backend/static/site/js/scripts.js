@@ -249,8 +249,11 @@ class Scripts {
 
   // Pages initialization
   _initPages() {
-    // dashboard.default.js initialization
-    if (typeof DashboardDefault !== 'undefined') {
+    // dashboard.default.js — только главная (не страница «Показатели» с демо-графиками)
+    if (
+      typeof DashboardDefault !== 'undefined'
+      && !document.body.classList.contains('reports-indicators-page')
+    ) {
       let dashboardDefault = new DashboardDefault();
     }
     // dashboard.analytic.js initialization

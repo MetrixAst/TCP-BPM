@@ -404,6 +404,9 @@ class FinancialStatement(models.Model):
     )
 
     note       = models.TextField('Примечание', null=True, blank=True)
+    onec_id    = models.CharField('ID в 1С', max_length=100, unique=True, null=True, blank=True)
+    onec_synced_at = models.DateTimeField('Синхронизация с 1С', null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

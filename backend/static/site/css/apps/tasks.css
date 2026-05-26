@@ -1559,4 +1559,142 @@ body.task-edit-body .bpm-content {
   color: #fff !important;
 }
 
+/* ── Task files (card view) ── */
+.task-card__files {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  background: #f8f9fc;
+  border: 1px solid #e8ebf2;
+  border-radius: 10px;
+}
+
+.task-card__files-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #25233f;
+  margin-bottom: 10px;
+}
+
+.task-card__files-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: #e0e7ff;
+  color: #3664dc;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.task-card__files-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.task-card__file-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #fff;
+  border: 1px solid #d5daee;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #3664dc;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  max-width: 220px;
+}
+
+.task-card__file-item span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.task-card__file-item:hover {
+  background: #eff2ff;
+  border-color: #3664dc;
+}
+
+/* ── Upload in edit form ── */
+.task-edit-upload {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 16px;
+  border: 1px dashed #c8cfe8;
+  border-radius: 10px;
+  background: #f8f9fc;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.task-edit-upload:hover {
+  border-color: #3664dc;
+  background: #eff2ff;
+}
+
+.task-edit-upload__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.task-edit-upload__icon {
+  font-size: 22px;
+  color: #3664dc;
+}
+
+.task-edit-upload__text {
+  font-size: 13px;
+  color: #74728a;
+}
+
+.task-edit-upload__name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #25233f;
+}
+
+/* ── Existing files in edit form ── */
+.task-edit-files {
+  margin-top: 12px;
+}
+
+.task-edit-files__label {
+  font-size: 12px;
+  color: #74728a;
+  margin-bottom: 6px;
+}
+
+.task-edit-files__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #74728a;
+  margin-bottom: 4px;
+}
+
+.task-edit-files__link {
+  color: #3664dc;
+  text-decoration: none;
+}
+
+.task-edit-files__link:hover {
+  text-decoration: underline;
+}
+
 /*# sourceMappingURL=tasks.css.map */
