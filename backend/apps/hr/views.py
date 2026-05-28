@@ -202,6 +202,7 @@ def _build_employee_profile_context(request, employee, tab=None):
         'tab': tab,
         'tabs': valid_tabs,
         'can_manage': can_manage,
+        'is_hr': is_hr, 
         'is_own_profile': is_own_profile,
         'profile_base_url': profile_base_url,
         'documents': documents,
@@ -1307,9 +1308,20 @@ def documents_list(request):
 
     employee_id = request.GET.get('employee_id')
 
-    # Режим документов одного сотрудника
+    if not is_hr and not is_head and curr_employee and not employee_id:
+        return redirect(f"{reverse('hr:documents_list')}?employee_id={curr_employee.pk}")
+
+
     if employee_id:
         selected_employee = get_object_or_404(Employee, pk=employee_id)
+    
+        if not is_hr and not is_head:
+            if curr_employee is None or curr_employee.pk != selected_employee.pk:
+                return HttpResponseForbidden()
+        elif is_head and not is_hr:
+            if curr_employee and selected_employee.department != curr_employee.department:
+                return HttpResponseForbidden()
+    
         queryset = EmployeeDocument.objects.filter(employee=selected_employee).select_related(
             'employee__user', 'employee__department'
         ).order_by('-created_at')
@@ -1320,7 +1332,6 @@ def documents_list(request):
             'employee_mode': True,
         })
 
-    # Основной режим — список сотрудников с кол-вом документов
     employees_qs = (
         Employee.objects
         .filter(status='active')
@@ -1333,6 +1344,8 @@ def documents_list(request):
             employees_qs = employees_qs.filter(department=curr_employee.department)
         elif curr_employee:
             employees_qs = employees_qs.filter(pk=curr_employee.pk)
+        else:
+            employees_qs = employees_qs.none()
 
     return render(request, 'site/hr/documents_list.html', {
         'employees': employees_qs,
@@ -1411,6 +1424,9 @@ def documents_delete(request, pk):
 
 @need_permission(PermissionEnums.HR)
 def documents_export(request):
+    is_hr, is_head, _ = _get_registry_access(request.user)
+    if not is_hr and not is_head:
+        return HttpResponseForbidden()
     queryset = EmployeeDocument.objects.select_related('employee__user', 'employee__department').order_by('-created_at')
     queryset = _filter_by_access(queryset, request.user)
     wb = openpyxl.Workbook()

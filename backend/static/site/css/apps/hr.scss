@@ -2904,3 +2904,569 @@ body.hr-registry-edit-body {
   color: #25233f;
   font-size: 13px;
 }
+
+
+
+// ── Обёртка страницы ──────────────────────────────────────────────────────
+.emp-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+// ── Hero ─────────────────────────────────────────────────────────────────
+.emp-profile__hero {
+  background: #fff;
+  border-radius: 18px;
+  padding: 22px;
+}
+
+.emp-profile__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 18px;
+  color: $hr-muted;
+  font-size: 13px;
+  text-decoration: none;
+
+  &:hover {
+    color: $hr-primary;
+    text-decoration: none;
+  }
+}
+
+.emp-profile__hero-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.emp-profile__avatar-wrap { flex-shrink: 0; }
+
+.emp-profile__avatar-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.emp-profile__avatar-letter {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #edf4ff;
+  color: $hr-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.emp-profile__hero-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.emp-profile__eyebrow {
+  margin: 0 0 4px;
+  color: $hr-muted;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.emp-profile__name {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 700;
+  color: $hr-text;
+}
+
+.emp-profile__role {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: $hr-muted;
+}
+
+.emp-profile__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.emp-profile__badge {
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: $hr-field-bg;
+  color: $hr-muted;
+  display: inline-flex;
+  align-items: center;
+
+  &--head {
+    background: #eef2ff;
+    color: $hr-primary;
+  }
+}
+
+.emp-profile__hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+// ── Stats ────────────────────────────────────────────────────────────────
+.emp-profile__stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.emp-stat-card {
+  padding: 14px 16px;
+  background: #fff;
+  border-radius: 14px;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: box-shadow .15s;
+
+  &:hover {
+    box-shadow: 0 4px 16px rgba(47, 107, 237, .08);
+    text-decoration: none;
+  }
+
+  &__value {
+    font-size: 22px;
+    font-weight: 700;
+    color: $hr-text;
+  }
+
+  &__label {
+    font-size: 12px;
+    color: $hr-muted;
+  }
+
+  &__hint {
+    font-size: 11px;
+    color: #d97706;
+    font-weight: 600;
+  }
+}
+
+// ── Tabs nav ─────────────────────────────────────────────────────────────
+.emp-profile__tabs {
+  display: flex;
+  gap: 4px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.emp-profile__tab {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: $hr-muted;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background .15s, color .15s;
+
+  &:hover {
+    background: $hr-field-bg;
+    color: $hr-text;
+    text-decoration: none;
+  }
+
+  &.is-active {
+    background: $hr-primary;
+    color: #fff;
+  }
+}
+
+// ── Panel ─────────────────────────────────────────────────────────────────
+.emp-profile__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.emp-profile__grid {
+  display: grid;
+  gap: 16px;
+
+  &--2 { grid-template-columns: 1fr 1fr; }
+}
+
+// ── Card ─────────────────────────────────────────────────────────────────
+.emp-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 20px;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: $hr-text;
+  }
+
+  &__link {
+    font-size: 13px;
+    color: $hr-primary;
+    text-decoration: none;
+
+    &:hover { text-decoration: underline; }
+  }
+}
+
+// ── DL ───────────────────────────────────────────────────────────────────
+.emp-dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  dt {
+    font-size: 11px;
+    color: $hr-muted;
+    font-weight: 500;
+  }
+
+  dd {
+    font-size: 13px;
+    font-weight: 600;
+    color: $hr-text;
+    margin: 0;
+
+    a {
+      color: $hr-primary;
+      text-decoration: none;
+    }
+  }
+}
+
+// ── Mini list (подчинённые) ───────────────────────────────────────────────
+.emp-mini-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  li a {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: $hr-field-bg;
+    text-decoration: none;
+
+    &:hover {
+      background: #ece9f4;
+      text-decoration: none;
+    }
+  }
+
+  &__name {
+    font-size: 13px;
+    font-weight: 600;
+    color: $hr-text;
+  }
+
+  &__meta {
+    font-size: 11px;
+    color: $hr-muted;
+  }
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────
+.emp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  thead th {
+    height: 40px;
+    padding: 0 14px;
+    background: #fbfbfd;
+    color: #66657a;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    border-bottom: 1px solid #ebeaf1;
+    white-space: nowrap;
+  }
+
+  tbody td {
+    height: 48px;
+    padding: 0 14px;
+    color: $hr-text;
+    border-bottom: 1px solid #f0eef6;
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: #faf9fd; }
+
+  &__sub {
+    font-size: 11px;
+    color: $hr-muted;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+  }
+}
+
+// ── Icon button ───────────────────────────────────────────────────────────
+.emp-icon-btn {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: $hr-field-bg;
+  color: $hr-text;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 13px;
+
+  &:hover {
+    background: #ece9f4;
+    color: $hr-text;
+    text-decoration: none;
+  }
+
+  &--danger {
+    color: $hr-danger;
+
+    &:hover {
+      background: #feecec;
+      color: $hr-danger;
+    }
+  }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────
+.emp-empty {
+  padding: 40px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+
+  i {
+    font-size: 36px;
+    color: #c8c7d3;
+  }
+
+  strong {
+    font-size: 14px;
+    font-weight: 700;
+    color: $hr-text;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    color: #9a98aa;
+  }
+}
+
+// ── Quick actions (свой профиль) ──────────────────────────────────────────
+.emp-profile__quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.emp-profile__quick-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: $hr-field-bg;
+  text-decoration: none;
+  color: $hr-text;
+  font-size: 13px;
+  font-weight: 600;
+
+  &:hover {
+    background: #ece9f4;
+    color: $hr-text;
+    text-decoration: none;
+  }
+
+  i {
+    color: $hr-primary;
+    font-size: 16px;
+  }
+}
+
+// ── Статусы отпусков ──────────────────────────────────────────────────────
+.leave-status {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+
+  &--draft     { background: $hr-field-bg;  color: $hr-muted; }
+  &--pending   { background: #fff5d6;        color: #d97706; }
+  &--confirmed { background: #eef2ff;        color: $hr-primary; }
+  &--approved  { background: #e8f8ee;        color: #16a34a; }
+  &--rejected  { background: #feecec;        color: $hr-danger; }
+  &--cancelled { background: $hr-field-bg;  color: #9a98aa; }
+}
+
+// ── Карточки сотрудников в documents_list ─────────────────────────────────
+.hr-docs-employee-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.hr-docs-emp-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid $hr-border;
+  border-radius: 16px;
+  text-decoration: none;
+  transition: box-shadow .15s ease, border-color .15s ease;
+
+  &:hover {
+    border-color: #c7d4f7;
+    box-shadow: 0 4px 16px rgba(47, 107, 237, .08);
+    text-decoration: none;
+  }
+
+  &__avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #edf4ff;
+    color: $hr-primary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 14px;
+    font-weight: 700;
+    color: $hr-text;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__dept {
+    font-size: 12px;
+    color: $hr-muted;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__count {
+    margin-top: 6px;
+    font-size: 12px;
+    color: $hr-primary;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    &--empty {
+      color: #9a98aa;
+      font-weight: 400;
+    }
+  }
+
+  &__chevron {
+    color: #aaa7b9;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+}
+
+// ── Responsive ───────────────────────────────────────────────────────────
+@media (max-width: 1100px) {
+  .emp-profile__stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .emp-profile__grid--2 {
+    grid-template-columns: 1fr;
+  }
+
+  .emp-profile__hero-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .emp-profile__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .emp-profile__hero-main {
+    flex-direction: column;
+  }
+
+  .emp-dl {
+    grid-template-columns: 1fr;
+  }
+}

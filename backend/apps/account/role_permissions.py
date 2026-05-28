@@ -295,6 +295,9 @@ class MenuItem:
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                     MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
+                    MenuItem('hr_vacations', 'hr:vacations', '', 'Отпуска (Enbek)'),
+                    MenuItem('hr_sick_leaves', 'hr:sick_leaves', '', 'Больничные (Enbek)'),
+                    MenuItem('hr_contracts', 'hr:contracts', '', 'Договоры (Enbek)'),
                 ]),
                 MenuItem('onec', '#onec', 'box-arrow-in-down', '1С', submenu=[
                     MenuItem('onec_counterparties', 'onec:counterparty_list', '', 'Контрагенты'),
@@ -347,6 +350,7 @@ class MenuItem:
                     MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
                     MenuItem('leaves', 'hr:leave_list', '', 'Мои отпуска'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
+                    MenuItem('hr_documents', 'hr:documents_list', '', 'Мои документы'),
                 ]),
             ],
 
