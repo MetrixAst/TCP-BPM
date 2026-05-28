@@ -337,49 +337,11 @@ def invoice_list(request):
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_create(request):
-    form     = GeneratedInvoiceForm(request.POST or None)
-    formset  = GeneratedInvoiceItemFormSet(request.POST or None)
-
-    if request.method == 'POST' and form.is_valid() and formset.is_valid():
-        invoice = form.save(commit=False)
-        invoice.status = GeneratedInvoice.Status.CREATED
-        invoice.save()
-        formset.instance = invoice
-        formset.save()
-        items = invoice.items.all()
-        invoice.total_amount = sum(i.total for i in items)
-        invoice.vat_amount   = sum(i.vat_amount for i in items)
-        invoice.save()
-        messages.success(request, f'Счёт №{invoice.number} создан.')
-        return redirect('finances:invoice_list')
-
-    context = {'form': form, 'formset': formset, 'title': 'Создать счёт'}
-    return render(request, 'site/finances/invoice_form.html', context)
-
+    return HttpResponseForbidden("Локальное создание счётов отключено. Используйте 1С.")
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_edit(request, pk):
-    invoice = get_object_or_404(GeneratedInvoice, pk=pk)
-
-    if invoice.status == GeneratedInvoice.Status.PAID:
-        messages.error(request, 'Оплаченный счёт нельзя редактировать.')
-        return redirect('finances:invoice_list')
-
-    form    = GeneratedInvoiceForm(request.POST or None, instance=invoice)
-    formset = GeneratedInvoiceItemFormSet(request.POST or None, instance=invoice)
-
-    if request.method == 'POST' and form.is_valid() and formset.is_valid():
-        invoice = form.save()
-        formset.save()
-        items = invoice.items.all()
-        invoice.total_amount = sum(i.total for i in items)
-        invoice.vat_amount   = sum(i.vat_amount for i in items)
-        invoice.save()
-        messages.success(request, f'Счёт №{invoice.number} обновлён.')
-        return redirect('finances:invoice_list')
-
-    context = {'form': form, 'formset': formset, 'title': 'Редактировать счёт', 'invoice': invoice}
-    return render(request, 'site/finances/invoice_form.html', context)
+    return HttpResponseForbidden("Редактирование локальных счётов отключено. Используйте 1С.")
 
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
