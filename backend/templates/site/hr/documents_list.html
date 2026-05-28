@@ -4,24 +4,24 @@
 {% block title %}Реестр документов — metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&t=4">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&t=5">
 {% endblock styles %}
 
 {% block content %}
 <div class="hr-registry-page" id="hrRegistryPage">
 
   {% if employee_mode %}
-  {# ─── ДОКУМЕНТЫ ОДНОГО СОТРУДНИКА ─── #}
+  {# ── Документы одного сотрудника ── #}
 
   <div class="hr-registry-top">
-    <div style="display:flex;align-items:center;gap:12px;">
+    <div style="display:flex; align-items:center; gap:12px;">
       <a href="{% url 'hr:documents_list' %}" class="hr-registry-btn hr-registry-btn--light">
-        <i class="bi bi-chevron-left"></i>
-        Назад
+        <i class="bi bi-chevron-left"></i> Назад
       </a>
       <div>
         <h1>
-          <a href="{% url 'hr:employee_detail' selected_employee.pk %}">
+          <a href="{% url 'hr:employee_detail' selected_employee.pk %}"
+             style="color:inherit; text-decoration:none;">
             {{ selected_employee.user.get_full_name|default:selected_employee.user.username }}
           </a>
         </h1>
@@ -30,16 +30,14 @@
     </div>
 
     <div class="hr-registry-top__actions">
-      <a href="{% url 'hr:documents_export' %}?employee_id={{ selected_employee.pk }}"
-         class="hr-registry-btn hr-registry-btn--light">
-        <i class="bi bi-file-earmark-excel"></i>
-        Excel
-      </a>
       {% if is_hr %}
+        <a href="{% url 'hr:documents_export' %}?employee_id={{ selected_employee.pk }}"
+           class="hr-registry-btn hr-registry-btn--light">
+          <i class="bi bi-file-earmark-excel"></i> Excel
+        </a>
         <a href="{% url 'hr:documents_create' %}?employee_id={{ selected_employee.pk }}"
            class="hr-registry-btn hr-registry-btn--primary">
-          <i class="bi bi-plus-lg"></i>
-          Добавить документ
+          <i class="bi bi-plus-lg"></i> Добавить документ
         </a>
       {% endif %}
     </div>
@@ -73,18 +71,22 @@
             <td>
               <div class="hr-registry-actions">
                 {% if doc.file %}
-                  <a href="{{ doc.file.url }}" target="_blank" class="hr-registry-icon" title="Файл">
+                  <a href="{{ doc.file.url }}" target="_blank"
+                     class="hr-registry-icon" title="Скачать файл">
                     <i class="bi bi-file-earmark-text"></i>
                   </a>
                 {% endif %}
                 {% if is_hr %}
-                  <a href="{% url 'hr:documents_edit' doc.pk %}" class="hr-registry-icon" title="Редактировать">
+                  <a href="{% url 'hr:documents_edit' doc.pk %}"
+                     class="hr-registry-icon" title="Редактировать">
                     <i class="bi bi-pencil"></i>
                   </a>
                   <form action="{% url 'hr:documents_delete' doc.pk %}" method="post"
                         onsubmit="return confirm('Удалить документ?');">
                     {% csrf_token %}
-                    <button type="submit" class="hr-registry-icon hr-registry-icon--danger" title="Удалить">
+                    <button type="submit"
+                            class="hr-registry-icon hr-registry-icon--danger"
+                            title="Удалить">
                       <i class="bi bi-trash"></i>
                     </button>
                   </form>
@@ -98,7 +100,13 @@
               <div class="hr-registry-empty">
                 <i class="bi bi-folder2-open"></i>
                 <strong>Документов нет</strong>
-                <span>{% if is_hr %}Добавьте первый документ с помощью кнопки выше.{% else %}Документы ещё не загружены.{% endif %}</span>
+                <span>
+                  {% if is_hr %}
+                    Добавьте первый документ с помощью кнопки выше.
+                  {% else %}
+                    Кадровые документы ещё не загружены.
+                  {% endif %}
+                </span>
               </div>
             </td>
           </tr>
@@ -109,61 +117,64 @@
   </div>
 
   {% else %}
-  {# ─── СПИСОК СОТРУДНИКОВ ─── #}
+  {# ── Список сотрудников ── #}
 
   <div class="hr-registry-top">
     <div>
       <h1>Реестр документов</h1>
-      <p>Выберите сотрудника чтобы просмотреть его документы</p>
     </div>
-
     {% if is_hr %}
     <div class="hr-registry-top__actions">
-      <a href="{% url 'hr:documents_export' %}" class="hr-registry-btn hr-registry-btn--light">
-        <i class="bi bi-file-earmark-excel"></i>
-        Экспорт всех
+      <a href="{% url 'hr:documents_export' %}"
+         class="hr-registry-btn hr-registry-btn--light">
+        <i class="bi bi-file-earmark-excel"></i> Экспорт всех
       </a>
-      <a href="{% url 'hr:documents_create' %}" class="hr-registry-btn hr-registry-btn--primary">
-        <i class="bi bi-plus-lg"></i>
-        Добавить документ
+      <a href="{% url 'hr:documents_create' %}"
+         class="hr-registry-btn hr-registry-btn--primary">
+        <i class="bi bi-plus-lg"></i> Добавить документ
       </a>
     </div>
     {% endif %}
   </div>
 
-  <div class="hr-docs-employee-grid">
-    {% for emp in employees %}
-    <a href="{% url 'hr:documents_list' %}?employee_id={{ emp.pk }}"
-       class="hr-docs-emp-card">
-      <div class="hr-docs-emp-card__avatar">
-        {{ emp.user.get_full_name|default:emp.user.username|slice:":1"|upper }}
-      </div>
-      <div class="hr-docs-emp-card__info">
-        <div class="hr-docs-emp-card__name">
-          {{ emp.user.get_full_name|default:emp.user.username }}
-        </div>
-        <div class="hr-docs-emp-card__dept">
-          {{ emp.department|default:"Без отдела" }}
-        </div>
-        {% with cnt=emp.documents.count %}
-        <div class="hr-docs-emp-card__count">
-          {% if cnt %}
-            <i class="bi bi-file-text"></i> {{ cnt }} докум.
-          {% else %}
-            <span class="hr-docs-emp-card__count--empty">Нет документов</span>
-          {% endif %}
-        </div>
-        {% endwith %}
-      </div>
-      <i class="bi bi-chevron-right hr-docs-emp-card__chevron"></i>
-    </a>
-    {% empty %}
-    <div class="hr-registry-empty" style="grid-column:1/-1;">
-      <i class="bi bi-people"></i>
-      <strong>Сотрудники не найдены</strong>
+  {% if employees %}
+    <div class="hr-docs-employee-grid">
+      {% for emp in employees %}
+        <a href="{% url 'hr:documents_list' %}?employee_id={{ emp.pk }}"
+           class="hr-docs-emp-card">
+          <div class="hr-docs-emp-card__avatar">
+            {{ emp.user.get_full_name|default:emp.user.username|slice:":1"|upper }}
+          </div>
+          <div class="hr-docs-emp-card__info">
+            <div class="hr-docs-emp-card__name">
+              {{ emp.user.get_full_name|default:emp.user.username }}
+            </div>
+            <div class="hr-docs-emp-card__dept">
+              {{ emp.department|default:"Без отдела" }}
+            </div>
+            {% with cnt=emp.documents.count %}
+            <div class="hr-docs-emp-card__count">
+              {% if cnt %}
+                <i class="bi bi-file-text"></i> {{ cnt }} докум.
+              {% else %}
+                <span class="hr-docs-emp-card__count--empty">Нет документов</span>
+              {% endif %}
+            </div>
+            {% endwith %}
+          </div>
+          <i class="bi bi-chevron-right hr-docs-emp-card__chevron"></i>
+        </a>
+      {% endfor %}
     </div>
-    {% endfor %}
-  </div>
+  {% else %}
+    <div class="hr-registry-panel">
+      <div class="hr-registry-empty">
+        <i class="bi bi-people"></i>
+        <strong>Сотрудники не найдены</strong>
+        <span>Нет активных сотрудников в вашем отделе или системе</span>
+      </div>
+    </div>
+  {% endif %}
 
   {% endif %}
 

@@ -202,6 +202,7 @@ def _build_employee_profile_context(request, employee, tab=None):
         'tab': tab,
         'tabs': valid_tabs,
         'can_manage': can_manage,
+        'is_hr': is_hr, 
         'is_own_profile': is_own_profile,
         'profile_base_url': profile_base_url,
         'documents': documents,

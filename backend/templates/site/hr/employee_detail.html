@@ -1,24 +1,27 @@
 {% extends 'site/base.html' %}
 {% load static %}
 
-{% block title %}{% if is_own_profile %}Мой профиль{% else %}{{ user.get_name|default:user.username }}{% endif %} — metriX BPM{% endblock %}
+{% block title %}
+  {% if is_own_profile %}Мой профиль{% else %}{{ user.get_name|default:user.username }}{% endif %} — metriX BPM
+{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&emp=1">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&emp=2">
 {% endblock %}
 
 {% block content %}
 <div class="emp-profile" id="empProfile">
 
+  {# ── HERO ── #}
   <div class="emp-profile__hero">
     {% if is_own_profile %}
-    <a href="{% url 'dashboard:dashboard' %}" class="emp-profile__back">
-      <i class="bi bi-arrow-left"></i> Главная
-    </a>
+      <a href="{% url 'dashboard:dashboard' %}" class="emp-profile__back">
+        <i class="bi bi-arrow-left"></i> Главная
+      </a>
     {% else %}
-    <a href="{% url 'hr:employees' %}" class="emp-profile__back">
-      <i class="bi bi-arrow-left"></i> Сотрудники
-    </a>
+      <a href="{% url 'hr:employees' %}" class="emp-profile__back">
+        <i class="bi bi-arrow-left"></i> Сотрудники
+      </a>
     {% endif %}
 
     <div class="emp-profile__hero-main">
@@ -34,7 +37,7 @@
 
       <div class="emp-profile__hero-info">
         {% if is_own_profile %}
-        <p class="emp-profile__eyebrow">Личный профиль</p>
+          <p class="emp-profile__eyebrow">Личный профиль</p>
         {% endif %}
         <h1 class="emp-profile__name">{{ user.get_name|default:user.username }}</h1>
         <p class="emp-profile__role">
@@ -42,33 +45,41 @@
           {% if employee.department %} · {{ employee.department.name }}{% endif %}
         </p>
         <div class="emp-profile__badges">
-          <span class="hr-status hr-status--{{ employee.status }}">{{ employee.get_status_display }}</span>
-          {% if employee.head %}<span class="emp-profile__badge emp-profile__badge--head">Руководитель отдела</span>{% endif %}
-          {% if employee.department.company %}<span class="emp-profile__badge">{{ employee.department.company.name }}</span>{% endif %}
+          <span class="hr-status hr-status--{{ employee.status }}">
+            {{ employee.get_status_display }}
+          </span>
+          {% if employee.head %}
+            <span class="emp-profile__badge emp-profile__badge--head">Руководитель отдела</span>
+          {% endif %}
+          {% if employee.department.company %}
+            <span class="emp-profile__badge">{{ employee.department.company.name }}</span>
+          {% endif %}
         </div>
       </div>
 
       <div class="emp-profile__hero-actions">
         {% if can_manage %}
-        <a href="{% url 'hr:edit_employee' employee.pk %}" class="hr-btn hr-btn--primary">
-          <i class="bi bi-pencil"></i> Редактировать
-        </a>
+          <a href="{% url 'hr:edit_employee' employee.pk %}" class="hr-btn hr-btn--primary">
+            <i class="bi bi-pencil"></i> Редактировать
+          </a>
         {% endif %}
         {% if is_own_profile %}
-        <a href="{% url 'account:profile' %}" class="hr-btn hr-btn--light">
-          <i class="bi bi-gear"></i> Настройки аккаунта
-        </a>
-        <a href="{% url 'hr:attendance_checkin' %}" class="hr-btn hr-btn--light">
-          <i class="bi bi-geo-alt"></i> Отметиться
-        </a>
+          <a href="{% url 'account:profile' %}" class="hr-btn hr-btn--light">
+            <i class="bi bi-gear"></i> Настройки аккаунта
+          </a>
+          <a href="{% url 'hr:attendance_checkin' %}" class="hr-btn hr-btn--light">
+            <i class="bi bi-geo-alt"></i> Отметиться
+          </a>
         {% endif %}
-        <a href="{% url 'hr:attendance_my' %}{% if not is_own_profile %}?employee_id={{ employee.pk }}{% endif %}" class="hr-btn hr-btn--light">
+        <a href="{% url 'hr:attendance_my' %}{% if not is_own_profile %}?employee_id={{ employee.pk }}{% endif %}"
+           class="hr-btn hr-btn--light">
           <i class="bi bi-clock-history"></i> Посещаемость
         </a>
       </div>
     </div>
   </div>
 
+  {# ── STATS ── #}
   <div class="emp-profile__stats">
     <a href="{{ profile_base_url }}?tab=documents" class="emp-stat-card">
       <span class="emp-stat-card__value">{{ stats.documents }}</span>
@@ -84,8 +95,12 @@
     </a>
     <a href="{{ profile_base_url }}?tab=leaves" class="emp-stat-card">
       <span class="emp-stat-card__value">{{ stats.leaves }}</span>
-      <span class="emp-stat-card__label">{% if is_own_profile %}Мои отпуска{% else %}Заявки на отпуск{% endif %}</span>
-      {% if stats.leaves_pending %}<span class="emp-stat-card__hint">{{ stats.leaves_pending }} на рассмотрении</span>{% endif %}
+      <span class="emp-stat-card__label">
+        {% if is_own_profile %}Мои отпуска{% else %}Заявки на отпуск{% endif %}
+      </span>
+      {% if stats.leaves_pending %}
+        <span class="emp-stat-card__hint">{{ stats.leaves_pending }} на рассмотрении</span>
+      {% endif %}
     </a>
     <a href="{{ profile_base_url }}?tab=attendance" class="emp-stat-card">
       <span class="emp-stat-card__value">{{ stats.attendance_month }}</span>
@@ -93,19 +108,42 @@
     </a>
   </div>
 
+  {# ── TABS NAV ── #}
   <nav class="emp-profile__tabs">
-    <a href="{{ profile_base_url }}?tab=overview" class="emp-profile__tab{% if tab == 'overview' %} is-active{% endif %}">Обзор</a>
-    <a href="{{ profile_base_url }}?tab=documents" class="emp-profile__tab{% if tab == 'documents' %} is-active{% endif %}">Документы</a>
-    <a href="{{ profile_base_url }}?tab=certifications" class="emp-profile__tab{% if tab == 'certifications' %} is-active{% endif %}">Сертификации</a>
-    <a href="{{ profile_base_url }}?tab=permits" class="emp-profile__tab{% if tab == 'permits' %} is-active{% endif %}">Допуски</a>
-    <a href="{{ profile_base_url }}?tab=leaves" class="emp-profile__tab{% if tab == 'leaves' %} is-active{% endif %}">Отпуска</a>
-    <a href="{{ profile_base_url }}?tab=attendance" class="emp-profile__tab{% if tab == 'attendance' %} is-active{% endif %}">Посещаемость</a>
+    <a href="{{ profile_base_url }}?tab=overview"
+       class="emp-profile__tab{% if tab == 'overview' %} is-active{% endif %}">
+      Обзор
+    </a>
+    <a href="{{ profile_base_url }}?tab=documents"
+       class="emp-profile__tab{% if tab == 'documents' %} is-active{% endif %}">
+      Документы
+    </a>
+    <a href="{{ profile_base_url }}?tab=certifications"
+       class="emp-profile__tab{% if tab == 'certifications' %} is-active{% endif %}">
+      Сертификации
+    </a>
+    <a href="{{ profile_base_url }}?tab=permits"
+       class="emp-profile__tab{% if tab == 'permits' %} is-active{% endif %}">
+      Допуски
+    </a>
+    <a href="{{ profile_base_url }}?tab=leaves"
+       class="emp-profile__tab{% if tab == 'leaves' %} is-active{% endif %}">
+      Отпуска
+    </a>
+    <a href="{{ profile_base_url }}?tab=attendance"
+       class="emp-profile__tab{% if tab == 'attendance' %} is-active{% endif %}">
+      Посещаемость
+    </a>
   </nav>
 
+  {# ── PANEL ── #}
   <div class="emp-profile__panel">
 
+    {# ════ TAB: OVERVIEW ════ #}
     {% if tab == 'overview' %}
+
     <div class="emp-profile__grid emp-profile__grid--2">
+
       <section class="emp-card">
         <h2 class="emp-card__title">Контакты и данные</h2>
         <dl class="emp-dl">
@@ -115,8 +153,11 @@
           <div><dt>Телефон</dt><dd>{{ employee.phone|default:"—" }}</dd></div>
           <div><dt>ИИН</dt><dd>{{ employee.iin|default:"—" }}</dd></div>
           <div><dt>Дата приёма</dt><dd>{{ employee.hire_date|date:"d.m.Y"|default:"—" }}</dd></div>
-          {% if user.birthday %}<div><dt>День рождения</dt><dd>{{ user.birthday|date:"d.m.Y" }}</dd></div>{% endif %}
-          <div><dt>Руководитель</dt>
+          {% if user.birthday %}
+            <div><dt>День рождения</dt><dd>{{ user.birthday|date:"d.m.Y" }}</dd></div>
+          {% endif %}
+          <div>
+            <dt>Руководитель</dt>
             <dd>
               {% if employee.supervisor %}
                 {% if is_own_profile %}
@@ -133,43 +174,51 @@
       </section>
 
       {% if not is_own_profile and subordinates %}
-      <section class="emp-card">
-        <h2 class="emp-card__title">Подчинённые</h2>
-        <ul class="emp-mini-list">
-          {% for sub in subordinates %}
-          <li>
-            <a href="{% url 'hr:employee_detail' sub.pk %}">
-              <span class="emp-mini-list__name">{{ sub.user.get_name|default:sub.user.username }}</span>
-              <span class="emp-mini-list__meta">{{ sub.position.title|default:"—" }}</span>
-            </a>
-          </li>
-          {% endfor %}
-        </ul>
-      </section>
+        <section class="emp-card">
+          <h2 class="emp-card__title">Подчинённые</h2>
+          <ul class="emp-mini-list">
+            {% for sub in subordinates %}
+              <li>
+                <a href="{% url 'hr:employee_detail' sub.pk %}">
+                  <span class="emp-mini-list__name">
+                    {{ sub.user.get_name|default:sub.user.username }}
+                  </span>
+                  <span class="emp-mini-list__meta">{{ sub.position.title|default:"—" }}</span>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+
       {% elif is_own_profile %}
-      <section class="emp-card">
-        <h2 class="emp-card__title">Быстрые действия</h2>
-        <div class="emp-profile__quick-actions">
-          <a href="{% url 'hr:leave_create' %}" class="emp-profile__quick-btn">
-            <i class="bi bi-calendar-plus"></i>
-            <span>Подать заявку на отпуск</span>
-          </a>
-          <a href="{% url 'hr:attendance_checkin' %}" class="emp-profile__quick-btn">
-            <i class="bi bi-geo-alt"></i>
-            <span>Отметить посещаемость</span>
-          </a>
-          <a href="{% url 'hr:leave_list' %}" class="emp-profile__quick-btn">
-            <i class="bi bi-list-check"></i>
-            <span>Мои заявки</span>
-          </a>
-        </div>
-      </section>
+        <section class="emp-card">
+          <h2 class="emp-card__title">Быстрые действия</h2>
+          <div class="emp-profile__quick-actions">
+            <a href="{% url 'hr:leave_create' %}" class="emp-profile__quick-btn">
+              <i class="bi bi-calendar-plus"></i>
+              <span>Подать заявку на отпуск</span>
+            </a>
+            <a href="{% url 'hr:attendance_checkin' %}" class="emp-profile__quick-btn">
+              <i class="bi bi-geo-alt"></i>
+              <span>Отметить посещаемость</span>
+            </a>
+            <a href="{% url 'hr:leave_list' %}" class="emp-profile__quick-btn">
+              <i class="bi bi-list-check"></i>
+              <span>Мои заявки</span>
+            </a>
+          </div>
+        </section>
+
       {% else %}
-      <section class="emp-card">
-        <h2 class="emp-card__title">Подчинённые</h2>
-        <p class="emp-empty-inline">Нет подчинённых</p>
-      </section>
+        <section class="emp-card">
+          <h2 class="emp-card__title">Подчинённые</h2>
+          <div class="emp-empty">
+            <i class="bi bi-people"></i>
+            <p>Нет подчинённых</p>
+          </div>
+        </section>
       {% endif %}
+
     </div>
 
     <section class="emp-card">
@@ -180,154 +229,297 @@
       {% include 'site/hr/_employee_attendance_table.html' with rows=attendance_rows %}
     </section>
 
+    {# ════ TAB: DOCUMENTS ════ #}
     {% elif tab == 'documents' %}
+
     <section class="emp-card">
       <div class="emp-card__head">
         <h2 class="emp-card__title">Кадровые документы</h2>
         {% if can_manage %}
-        <a href="{% url 'hr:documents_create' %}?employee_id={{ employee.pk }}" class="hr-btn hr-btn--primary hr-btn--sm">
-          <i class="bi bi-plus-lg"></i> Добавить
-        </a>
+          <a href="{% url 'hr:documents_create' %}?employee_id={{ employee.pk }}"
+             class="hr-btn hr-btn--primary hr-btn--sm">
+            <i class="bi bi-plus-lg"></i> Добавить
+          </a>
         {% endif %}
       </div>
+
       {% if documents %}
-      <table class="emp-table">
-        <thead><tr><th>Документ</th><th>Тип</th><th>Статус</th><th>Истекает</th><th></th></tr></thead>
-        <tbody>
-          {% for doc in documents %}
-          <tr>
-            <td><strong>{{ doc.title }}</strong><br><span class="emp-table__sub">v{{ doc.version }}</span></td>
-            <td>{{ doc.get_doc_type_display }}</td>
-            <td><span class="hr-registry-status hr-registry-status--{{ doc.status }}">{{ doc.get_status_display }}</span></td>
-            <td>{{ doc.expires_at|date:"d.m.Y"|default:"—" }}</td>
-            <td class="emp-table__actions">
-              {% if doc.file %}<a href="{{ doc.file.url }}" target="_blank" class="emp-icon-btn" title="Файл"><i class="bi bi-file-earmark"></i></a>{% endif %}
-              {% if can_manage %}<a href="{% url 'hr:documents_edit' doc.pk %}" class="emp-icon-btn" title="Изменить"><i class="bi bi-pencil"></i></a>{% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+        <table class="emp-table">
+          <thead>
+            <tr>
+              <th>Документ</th>
+              <th>Тип</th>
+              <th>Статус</th>
+              <th>Истекает</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for doc in documents %}
+            <tr>
+              <td>
+                <strong>{{ doc.title }}</strong>
+                {% if doc.version %}
+                  <br><span class="emp-table__sub">v{{ doc.version }}</span>
+                {% endif %}
+              </td>
+              <td>{{ doc.get_doc_type_display }}</td>
+              <td>
+                <span class="hr-registry-status hr-registry-status--{{ doc.status }}">
+                  {{ doc.get_status_display }}
+                </span>
+              </td>
+              <td>{{ doc.expires_at|date:"d.m.Y"|default:"—" }}</td>
+              <td>
+                <div class="emp-table__actions">
+                  {% if doc.file %}
+                    <a href="{{ doc.file.url }}" target="_blank"
+                       class="emp-icon-btn" title="Скачать файл">
+                      <i class="bi bi-file-earmark"></i>
+                    </a>
+                  {% endif %}
+                  {% if can_manage %}
+                    <a href="{% url 'hr:documents_edit' doc.pk %}"
+                       class="emp-icon-btn" title="Редактировать">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                    <form action="{% url 'hr:documents_delete' doc.pk %}" method="post"
+                          onsubmit="return confirm('Удалить документ?');"
+                          style="display:inline;">
+                      {% csrf_token %}
+                      <button type="submit"
+                              class="emp-icon-btn emp-icon-btn--danger"
+                              title="Удалить">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       {% else %}
-      <div class="emp-empty"><i class="bi bi-folder2-open"></i><strong>Документов нет</strong></div>
+        <div class="emp-empty">
+          <i class="bi bi-folder2-open"></i>
+          <strong>Документов нет</strong>
+          <p>
+            {% if can_manage %}Добавьте первый кадровый документ
+            {% else %}Кадровые документы ещё не загружены{% endif %}
+          </p>
+        </div>
       {% endif %}
     </section>
 
+    {# ════ TAB: CERTIFICATIONS ════ #}
     {% elif tab == 'certifications' %}
+
     <section class="emp-card">
       <div class="emp-card__head">
         <h2 class="emp-card__title">Сертификации</h2>
         {% if can_manage %}
-        <a href="{% url 'hr:certifications_create' %}?employee_id={{ employee.pk }}" class="hr-btn hr-btn--primary hr-btn--sm">
-          <i class="bi bi-plus-lg"></i> Добавить
-        </a>
+          <a href="{% url 'hr:certifications_create' %}?employee_id={{ employee.pk }}"
+             class="hr-btn hr-btn--primary hr-btn--sm">
+            <i class="bi bi-plus-lg"></i> Добавить
+          </a>
         {% endif %}
       </div>
+
       {% if certifications %}
-      <table class="emp-table">
-        <thead><tr><th>Тип</th><th>Номер</th><th>Выдан</th><th>Истекает</th><th>Статус</th><th></th></tr></thead>
-        <tbody>
-          {% for cert in certifications %}
-          <tr>
-            <td><strong>{{ cert.cert_type }}</strong></td>
-            <td>{{ cert.certificate_number|default:"—" }}</td>
-            <td>{{ cert.issue_date|date:"d.m.Y" }}</td>
-            <td>{{ cert.expiry_date|date:"d.m.Y"|default:"—" }}</td>
-            <td>
-              <span class="hr-registry-status hr-registry-status--{{ cert.status }}">
-                {% if cert.is_revoked %}Отозван{% elif cert.expiry_date and cert.expiry_date < date_today %}Истёк{% elif cert.expiry_date and cert.days_until_expiry <= 30 %}Истекает{% else %}Активен{% endif %}
-              </span>
-            </td>
-            <td class="emp-table__actions">
-              {% if cert.scan %}<a href="{{ cert.scan.url }}" target="_blank" class="emp-icon-btn"><i class="bi bi-file-earmark"></i></a>{% endif %}
-              {% if can_manage %}<a href="{% url 'hr:certifications_edit' cert.pk %}" class="emp-icon-btn"><i class="bi bi-pencil"></i></a>{% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+        <table class="emp-table">
+          <thead>
+            <tr>
+              <th>Тип</th>
+              <th>Номер</th>
+              <th>Выдан</th>
+              <th>Истекает</th>
+              <th>Статус</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cert in certifications %}
+            <tr>
+              <td><strong>{{ cert.cert_type }}</strong></td>
+              <td>{{ cert.certificate_number|default:"—" }}</td>
+              <td>{{ cert.issue_date|date:"d.m.Y" }}</td>
+              <td>{{ cert.expiry_date|date:"d.m.Y"|default:"—" }}</td>
+              <td>
+                {% if cert.is_revoked %}
+                  <span class="hr-registry-status hr-registry-status--expired">Отозван</span>
+                {% elif cert.expiry_date and cert.expiry_date < date_today %}
+                  <span class="hr-registry-status hr-registry-status--expired">Истёк</span>
+                {% elif cert.expiry_date and cert.days_until_expiry <= 30 %}
+                  <span class="hr-registry-status hr-registry-status--expiring">Истекает</span>
+                {% else %}
+                  <span class="hr-registry-status hr-registry-status--active">Активен</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="emp-table__actions">
+                  {% if cert.scan %}
+                    <a href="{{ cert.scan.url }}" target="_blank" class="emp-icon-btn">
+                      <i class="bi bi-file-earmark"></i>
+                    </a>
+                  {% endif %}
+                  {% if can_manage %}
+                    <a href="{% url 'hr:certifications_edit' cert.pk %}" class="emp-icon-btn">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       {% else %}
-      <div class="emp-empty"><i class="bi bi-award"></i><strong>Сертификаций нет</strong></div>
+        <div class="emp-empty">
+          <i class="bi bi-award"></i>
+          <strong>Сертификаций нет</strong>
+          <p>
+            {% if can_manage %}Добавьте первую сертификацию сотрудника
+            {% else %}Сертификации ещё не добавлены{% endif %}
+          </p>
+        </div>
       {% endif %}
     </section>
 
+    {# ════ TAB: PERMITS ════ #}
     {% elif tab == 'permits' %}
+
     <section class="emp-card">
       <div class="emp-card__head">
         <h2 class="emp-card__title">Допуски к работам</h2>
         {% if can_manage %}
-        <a href="{% url 'hr:permits_create' %}?employee_id={{ employee.pk }}" class="hr-btn hr-btn--primary hr-btn--sm">
-          <i class="bi bi-plus-lg"></i> Добавить
-        </a>
+          <a href="{% url 'hr:permits_create' %}?employee_id={{ employee.pk }}"
+             class="hr-btn hr-btn--primary hr-btn--sm">
+            <i class="bi bi-plus-lg"></i> Добавить
+          </a>
         {% endif %}
       </div>
+
       {% if permits %}
-      <table class="emp-table">
-        <thead><tr><th>Категория</th><th>Номер</th><th>Выдан</th><th>Истекает</th><th></th></tr></thead>
-        <tbody>
-          {% for p in permits %}
-          <tr>
-            <td><strong>{{ p.category.name }}</strong></td>
-            <td>{{ p.document_number|default:"—" }}</td>
-            <td>{{ p.issue_date|date:"d.m.Y" }}</td>
-            <td>{{ p.expiry_date|date:"d.m.Y" }}</td>
-            <td class="emp-table__actions">
-              {% if p.scan %}<a href="{{ p.scan.url }}" target="_blank" class="emp-icon-btn"><i class="bi bi-file-earmark"></i></a>{% endif %}
-              {% if can_manage %}<a href="{% url 'hr:permits_edit' p.pk %}" class="emp-icon-btn"><i class="bi bi-pencil"></i></a>{% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+        <table class="emp-table">
+          <thead>
+            <tr>
+              <th>Категория</th>
+              <th>Номер</th>
+              <th>Выдан</th>
+              <th>Истекает</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in permits %}
+            <tr>
+              <td><strong>{{ p.category.name }}</strong></td>
+              <td>{{ p.document_number|default:"—" }}</td>
+              <td>{{ p.issue_date|date:"d.m.Y" }}</td>
+              <td>{{ p.expiry_date|date:"d.m.Y" }}</td>
+              <td>
+                <div class="emp-table__actions">
+                  {% if p.scan %}
+                    <a href="{{ p.scan.url }}" target="_blank" class="emp-icon-btn">
+                      <i class="bi bi-file-earmark"></i>
+                    </a>
+                  {% endif %}
+                  {% if can_manage %}
+                    <a href="{% url 'hr:permits_edit' p.pk %}" class="emp-icon-btn">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       {% else %}
-      <div class="emp-empty"><i class="bi bi-shield-check"></i><strong>Допусков нет</strong></div>
+        <div class="emp-empty">
+          <i class="bi bi-shield-check"></i>
+          <strong>Допусков нет</strong>
+          <p>
+            {% if can_manage %}Добавьте допуски к работам для сотрудника
+            {% else %}Допуски ещё не добавлены{% endif %}
+          </p>
+        </div>
       {% endif %}
     </section>
 
+    {# ════ TAB: LEAVES ════ #}
     {% elif tab == 'leaves' %}
+
     <section class="emp-card">
       <div class="emp-card__head">
-        <h2 class="emp-card__title">{% if is_own_profile %}Мои заявки на отпуск{% else %}Заявки на отпуск{% endif %}</h2>
+        <h2 class="emp-card__title">
+          {% if is_own_profile %}Мои заявки на отпуск{% else %}Заявки на отпуск{% endif %}
+        </h2>
         {% if is_own_profile %}
-        <a href="{% url 'hr:leave_create' %}" class="hr-btn hr-btn--primary hr-btn--sm">
-          <i class="bi bi-plus-lg"></i> Подать заявку
-        </a>
-        {% else %}
-        <a href="{% url 'hr:leave_create' %}" class="hr-btn hr-btn--light hr-btn--sm">Подать заявку</a>
+          <a href="{% url 'hr:leave_create' %}" class="hr-btn hr-btn--primary hr-btn--sm">
+            <i class="bi bi-plus-lg"></i> Подать заявку
+          </a>
         {% endif %}
       </div>
+
       {% if leaves %}
-      <table class="emp-table">
-        <thead><tr><th>Тип</th><th>Период</th><th>Дней</th><th>Статус</th><th></th></tr></thead>
-        <tbody>
-          {% for leave in leaves %}
-          <tr>
-            <td>{{ leave.leave_type.name }}</td>
-            <td>{{ leave.start_date|date:"d.m.Y" }} — {{ leave.end_date|date:"d.m.Y" }}</td>
-            <td>{{ leave.working_days_count }}</td>
-            <td>
-              <span class="leave-status leave-status--{{ leave.status }}">{{ leave.get_status_display }}</span>
-            </td>
-            <td><a href="{% url 'hr:leave_detail' leave.pk %}" class="emp-card__link">Детали</a></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+        <table class="emp-table">
+          <thead>
+            <tr>
+              <th>Тип</th>
+              <th>Период</th>
+              <th>Дней</th>
+              <th>Статус</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for leave in leaves %}
+            <tr>
+              <td>{{ leave.leave_type.name }}</td>
+              <td>{{ leave.start_date|date:"d.m.Y" }} — {{ leave.end_date|date:"d.m.Y" }}</td>
+              <td>{{ leave.working_days_count }}</td>
+              <td>
+                <span class="leave-status leave-status--{{ leave.status }}">
+                  {{ leave.get_status_display }}
+                </span>
+              </td>
+              <td>
+                <a href="{% url 'hr:leave_detail' leave.pk %}" class="emp-card__link">
+                  Детали
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       {% else %}
-      <div class="emp-empty"><i class="bi bi-calendar-x"></i><strong>Заявок нет</strong></div>
+        <div class="emp-empty">
+          <i class="bi bi-calendar-x"></i>
+          <strong>Заявок нет</strong>
+          <p>
+            {% if is_own_profile %}Подайте первую заявку на отпуск
+            {% else %}Заявок на отпуск пока не было{% endif %}
+          </p>
+        </div>
       {% endif %}
     </section>
 
+    {# ════ TAB: ATTENDANCE ════ #}
     {% elif tab == 'attendance' %}
+
     <section class="emp-card">
       <div class="emp-card__head">
         <h2 class="emp-card__title">Посещаемость за 30 дней</h2>
-        <a href="{% url 'hr:attendance_my' %}{% if not is_own_profile %}?employee_id={{ employee.pk }}{% endif %}" class="hr-btn hr-btn--light hr-btn--sm">
+        <a href="{% url 'hr:attendance_my' %}{% if not is_own_profile %}?employee_id={{ employee.pk }}{% endif %}"
+           class="hr-btn hr-btn--light hr-btn--sm">
           Подробная история
         </a>
       </div>
       {% include 'site/hr/_employee_attendance_table.html' with rows=attendance_rows %}
     </section>
+
     {% endif %}
 
   </div>
