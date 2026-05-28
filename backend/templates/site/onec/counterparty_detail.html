@@ -116,6 +116,33 @@
         </div>
       </div>
 
+      <div class="onec-tab-panel" id="invoices" hidden>
+        <div class="onec-invoice-hint">
+          <i class="bi bi-box-arrow-in-down"></i>
+      
+        <div class="onec-invoice-list">
+          {% for invoice in counterparty.invoices.all %}
+            <div class="onec-invoice-file">
+              <div class="onec-file-icon">
+                <i class="bi bi-file-earmark-pdf-fill"></i>
+              </div>
+              <div class="onec-file-info">
+                <div class="onec-file-title">Счёт №{{ invoice.number|default:invoice.id }}</div>
+                <div class="onec-file-meta">{{ invoice.total_amount|floatformat:0 }} ₸ · {{ invoice.get_status_display }}</div>
+              </div>
+              <div class="onec-file-actions">
+                <a href="{% url 'finances:invoice_detail' invoice.pk %}"
+                   class="onec-btn onec-btn--light onec-btn--sm" title="Просмотр">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </div>
+            </div>
+          {% empty %}
+            <div class="onec-empty-small">Счетов пока нет</div>
+          {% endfor %}
+        </div>
+      </div>
+      
       <div class="onec-tab-panel" id="processes" hidden>
         <div class="onec-mini-table">
           <div class="onec-mini-table__head onec-mini-table__head--processes">

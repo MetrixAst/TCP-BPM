@@ -13,11 +13,6 @@
   <section class="inv-topbar">
     <div>
       <h1 class="inv-title">Счета</h1>
-      <p class="inv-subtitle">
-        <i class="bi bi-info-circle"></i>
-        Счета создаются через
-        <a href="{% url 'onec:invoice_create' %}" class="inv-onec-link">1С → Новый счёт</a>
-      </p>
     </div>
 
     <form method="get" class="inv-filter-form">
@@ -63,7 +58,7 @@
     </div>
     <div class="inv-onec-banner__body">
       <strong>Счета создаются в 1С</strong>
-      <span>Перейдите в раздел 1С, выберите контрагента и создайте счёт там. Он автоматически появится в этом реестре.</span>
+      <span>Перейдите в раздел 1С и создайте счёт там. Он автоматически появится в этом реестре.</span>
     </div>
     <a href="{% url 'onec:counterparty_list' %}" class="inv-btn inv-btn--light inv-btn--sm">
       <i class="bi bi-building"></i> Перейти в 1С
@@ -134,11 +129,14 @@
 
                 <td>
                   <div class="inv-actions">
-                    {# FE-FIX-02: редактирование и удаление — только через 1С.
-                       Оставляем только просмотр и отправку #}
                     <a href="{% url 'finances:invoice_detail' inv.pk %}" class="inv-action-link">
                       Просмотр
                     </a>
+                    {% if inv.status == 'created' %}
+                      <a href="{% url 'finances:invoice_detail' inv.pk %}" class="inv-action-link">
+                        Отправить
+                      </a>
+                    {% endif %}
                   </div>
                 </td>
               </tr>
