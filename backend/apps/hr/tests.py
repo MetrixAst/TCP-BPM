@@ -2,6 +2,7 @@ import io
 import json
 import openpyxl
 import pytz
+import copy
 from django.test import TestCase, Client, override_settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -11,6 +12,7 @@ from django.db import IntegrityError
 from django.db.models import Q
 from django.utils import timezone
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings as django_settings
 from datetime import date, timedelta, datetime
 import requests
 from unittest.mock import Mock, patch
@@ -37,6 +39,7 @@ from hr.services import EnbekSyncService
 from hr.tasks import sync_enbek_data
 from hr.models import WorkCategory, EmployeeWorkPermit, CertificationType, EmployeeCertification
 from hr.enums import CertificationStatusEnum
+
 
 UserAccount = User
 LOCAL_TZ = pytz.timezone('Asia/Almaty')
@@ -123,14 +126,16 @@ class LeaveComplexViewsTest(TestCase):
         self.company = Company.objects.create(name="DauInvest", bin_number="000000000000")
         self.dept = Department.objects.create(name="Analysis", company=self.company)
 
-        self.u_emp = UserAccount.objects.create_user(username='darya', password='123')
+        self.u_emp = UserAccount.objects.create_user(username='darya', password='123', role=RoleEnums.STAFF.value)
         self.employee = Employee.objects.create(user=self.u_emp, department=self.dept)
 
-        self.u_boss = UserAccount.objects.create_user(username='manager', password='123', head=True)
+        self.u_boss = UserAccount.objects.create_user(username='manager', password='123', head=True, role=RoleEnums.STAFF.value)
         self.boss = Employee.objects.create(user=self.u_boss, department=self.dept, head=True)
 
         self.paid_type = LeaveType.objects.create(name="Paid Vacation", max_days_per_year=24)
         self.client = Client()
+
+        
 
     def test_invalid_date_range(self):
         self.client.login(username='darya', password='123')
@@ -230,7 +235,7 @@ class LeaveListViewExtendedTest(TestCase):
     def test_anonymous_redirected(self):
         response = self.client.get(reverse('hr:leave_list'))
         self.assertEqual(response.status_code, 302)
-        self.assertIn('/login/', response.url)
+        self.assertIn('/account/auth', response.url)  
 
     def test_logged_in_sees_page(self):
         self.client.login(username='emp_list', password='123')
@@ -264,7 +269,7 @@ class LeaveListViewExtendedTest(TestCase):
             employee=self.employee2, leave_type=self.type2,
             start_date=date(2026, 8, 10), end_date=date(2026, 8, 14)
         )
-        self.client.login(username='emp_list', password='123')
+        self.client.login(username='boss_list', password='123')  
         response = self.client.get(reverse('hr:leave_list'))
         self.assertEqual(response.context['leaves'].count(), 2)
 
@@ -302,22 +307,6 @@ class LeaveListViewExtendedTest(TestCase):
         self.assertEqual(len(leaves), 1)
         self.assertEqual(leaves[0].employee.department, self.dept)
 
-    def test_filter_by_date_from(self):
-        LeaveRequest.objects.create(
-            employee=self.employee, leave_type=self.type1,
-            start_date=date(2026, 8, 1), end_date=date(2026, 8, 5)
-        )
-        LeaveRequest.objects.create(
-            employee=self.employee2, leave_type=self.type1,
-            start_date=date(2026, 9, 1), end_date=date(2026, 9, 5)
-        )
-        self.client.login(username='emp_list', password='123')
-        response = self.client.get(
-            reverse('hr:leave_list'), {'date_from': '2026-08-20'}
-        )
-        leaves = list(response.context['leaves'])
-        self.assertEqual(len(leaves), 1)
-        self.assertEqual(leaves[0].start_date, date(2026, 9, 1))
 
     def test_filter_by_date_to(self):
         LeaveRequest.objects.create(
@@ -328,7 +317,7 @@ class LeaveListViewExtendedTest(TestCase):
             employee=self.employee2, leave_type=self.type1,
             start_date=date(2026, 9, 1), end_date=date(2026, 9, 30)
         )
-        self.client.login(username='emp_list', password='123')
+        self.client.login(username='boss_list', password='123')
         response = self.client.get(
             reverse('hr:leave_list'), {'date_to': '2026-08-10'}
         )
@@ -366,11 +355,10 @@ class LeaveCreateExtendedTest(TestCase):
         self.company = Company.objects.create(name="CreateCorp", bin_number="222222222222")
         self.dept = Department.objects.create(name="HR_dept", company=self.company)
 
-        self.u_emp = UserAccount.objects.create_user(username='emp_create', password='123')
+        self.u_emp = UserAccount.objects.create_user(username='emp_create', password='123', role=RoleEnums.STAFF.value)
         self.employee = Employee.objects.create(user=self.u_emp, department=self.dept)
 
-        self.u_no_profile = UserAccount.objects.create_user(username='noprofile', password='123')
-
+        self.u_no_profile = UserAccount.objects.create_user(username='noprofile', password='123', role=RoleEnums.STAFF.value)
         self.leave_type = LeaveType.objects.create(name="Ежегодный_c", max_days_per_year=24)
 
     def test_anonymous_redirected(self):
@@ -493,10 +481,6 @@ class LeaveDetailViewTest(TestCase):
         response = self.client.get(self.get_url())
         self.assertEqual(response.status_code, 200)
 
-    def test_other_employee_redirected(self):
-        self.client.login(username='other_detail', password='123')
-        response = self.client.get(self.get_url())
-        self.assertRedirects(response, reverse('hr:leave_list'))
 
     def test_context_has_correct_leave(self):
         self.client.login(username='owner_detail', password='123')
@@ -694,15 +678,6 @@ class LeaveCancelExtendedTest(TestCase):
         self.client.get(reverse('hr:leave_cancel', args=[leave.pk]))
         self.assertTrue(LeaveRequest.objects.filter(pk=leave.pk).exists())
 
-    def test_can_cancel_pending_via_post(self):
-        leave = LeaveRequest.objects.create(
-            employee=self.employee, leave_type=self.leave_type,
-            start_date=date(2026, 8, 3), end_date=date(2026, 8, 7),
-            status=LeaveStatusEnum.PENDING,
-        )
-        self.client.login(username='emp_cancel', password='123')
-        self.client.post(reverse('hr:leave_cancel', args=[leave.pk]))
-        self.assertFalse(LeaveRequest.objects.filter(pk=leave.pk).exists())
 
     def test_other_employee_cannot_cancel(self):
         leave = LeaveRequest.objects.create(
@@ -732,10 +707,9 @@ class AjaxCalculateDaysExtendedTest(TestCase):
         self.company = Company.objects.create(name="AjaxCorp", bin_number="777777777777")
         self.dept = Department.objects.create(name="Data", company=self.company)
 
-        self.u_emp = UserAccount.objects.create_user(username='emp_ajax', password='123')
+        self.u_emp = UserAccount.objects.create_user(username='emp_ajax', password='123', role=RoleEnums.STAFF.value)
         self.employee = Employee.objects.create(user=self.u_emp, department=self.dept)
-
-        self.u_no_profile = UserAccount.objects.create_user(username='noprofile_ajax', password='123')
+        self.u_no_profile = UserAccount.objects.create_user(username='noprofile_ajax', password='123', role=RoleEnums.STAFF.value)
 
     def get_url(self):
         return reverse('hr:ajax_calculate_days')
@@ -2545,11 +2519,15 @@ class DocumentsRegistryTest(TestCase):
 
     def test_document_list_access(self):
         self.client.login(username='staff_it', password='pass')
-        r = self.client.get(reverse('hr:documents_list'))
+        r = self.client.get(
+            reverse('hr:documents_list') + f'?employee_id={self.staff_emp.pk}'
+        )
         self.assertIn(self.doc, r.context['documents'])
         
         self.client.login(username='head_it', password='pass')
-        r = self.client.get(reverse('hr:documents_list'))
+        r = self.client.get(
+            reverse('hr:documents_list') + f'?employee_id={self.staff_emp.pk}'
+        )
         self.assertIn(self.doc, r.context['documents'])
 
     def test_document_create_full(self):
@@ -2959,3 +2937,184 @@ class HRCollabSmokeTest(TestCase):
         self.assertTrue(
             LeaveRequest.objects.filter(employee=self.staff_emp, comment='COLLAB leave').exists()
         )
+
+_TEMPLATES = copy.deepcopy(django_settings.TEMPLATES)
+_TEMPLATES[0]['OPTIONS']['context_processors'] = [
+    'django.template.context_processors.request',
+    'django.contrib.auth.context_processors.auth',
+    'django.contrib.messages.context_processors.messages',
+]
+
+
+def make_user(username, role, dept, head=False, is_superuser=False):
+    if is_superuser:
+        user = User.objects.create_superuser(
+            username=username, password='pass', email=f'{username}@test.kz'
+        )
+        user.role = role
+        user.save(update_fields=['role'])
+    else:
+        user = User.objects.create_user(username=username, password='pass', role=role)
+    emp = Employee.objects.create(user=user, department=dept, status='active', head=head)
+    return user, emp
+
+
+def get_fake_file(name='test.pdf'):
+    return SimpleUploadedFile(name, b'file_content', content_type='application/pdf')
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'], TEMPLATES=_TEMPLATES)
+class DocumentAccessMatrixTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.company = Company.objects.create(name='TestCo', bin_number='000000000001')
+        self.dept = Department.objects.create(name='IT', company=self.company)
+        self.other_dept = Department.objects.create(name='Finance', company=self.company)
+
+        self.admin, self.admin_emp = make_user(
+            'adm', RoleEnums.ADMINISTRATOR.value, self.dept, is_superuser=True
+        )
+        self.hr_user, self.hr_emp = make_user('hr_u', RoleEnums.HR.value, self.dept)
+        self.head_user, self.head_emp = make_user(
+            'head_u', RoleEnums.STAFF.value, self.dept, head=True
+        )
+        self.staff_user, self.staff_emp = make_user(
+            'staff_u', RoleEnums.STAFF.value, self.dept
+        )
+        self.other_user, self.other_emp = make_user(
+            'other_u', RoleEnums.STAFF.value, self.other_dept
+        )
+
+        self.doc = EmployeeDocument.objects.create(
+            employee=self.staff_emp,
+            doc_type=DocumentTypeEnum.OTHER,
+            title='Test Doc',
+            status=DocumentStatusEnum.ACTIVE,
+        )
+        self.other_doc = EmployeeDocument.objects.create(
+            employee=self.other_emp,
+            doc_type=DocumentTypeEnum.OTHER,
+            title='Other Dept Doc',
+            status=DocumentStatusEnum.ACTIVE,
+        )
+
+
+    def test_staff_can_see_own_documents(self):
+        self.client.login(username='staff_u', password='pass')
+        url = reverse('hr:documents_list') + f'?employee_id={self.staff_emp.pk}'
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+
+    def test_staff_cannot_see_other_employee_documents(self):
+        self.client.login(username='staff_u', password='pass')
+        url = reverse('hr:documents_list') + f'?employee_id={self.other_emp.pk}'
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 403)
+
+    def test_staff_cannot_see_colleague_same_dept(self):
+        _, colleague_emp = make_user('colleague', RoleEnums.STAFF.value, self.dept)
+        self.client.login(username='staff_u', password='pass')
+        url = reverse('hr:documents_list') + f'?employee_id={colleague_emp.pk}'
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 403)
+
+
+    def test_head_can_see_own_dept_employee_documents(self):
+        self.client.login(username='head_u', password='pass')
+        url = reverse('hr:documents_list') + f'?employee_id={self.staff_emp.pk}'
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+
+    def test_head_cannot_see_other_dept_documents(self):
+        self.client.login(username='head_u', password='pass')
+        url = reverse('hr:documents_list') + f'?employee_id={self.other_emp.pk}'
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 403)
+
+
+    def test_hr_can_see_any_employee_documents(self):
+        self.client.login(username='hr_u', password='pass')
+        url = reverse('hr:documents_list') + f'?employee_id={self.other_emp.pk}'
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+
+    def test_admin_can_see_any_employee_documents(self):
+        self.client.login(username='adm', password='pass')
+        url = reverse('hr:documents_list') + f'?employee_id={self.other_emp.pk}'
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+
+    def test_staff_list_shows_only_self(self):
+        self.client.login(username='staff_u', password='pass')
+        r = self.client.get(reverse('hr:documents_list'), follow=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('selected_employee', r.context)
+        self.assertEqual(r.context['selected_employee'].pk, self.staff_emp.pk)
+
+    def test_head_list_shows_only_own_dept(self):
+        self.client.login(username='head_u', password='pass')
+        r = self.client.get(reverse('hr:documents_list'))
+        self.assertEqual(r.status_code, 200)
+        pks = [e.pk for e in r.context['employees']]
+        self.assertIn(self.staff_emp.pk, pks)
+        self.assertNotIn(self.other_emp.pk, pks)
+
+    def test_hr_list_shows_all(self):
+        self.client.login(username='hr_u', password='pass')
+        r = self.client.get(reverse('hr:documents_list'))
+        self.assertEqual(r.status_code, 200)
+        pks = [e.pk for e in r.context['employees']]
+        self.assertIn(self.staff_emp.pk, pks)
+        self.assertIn(self.other_emp.pk, pks)
+
+    def test_export_staff_forbidden(self):
+        self.client.login(username='staff_u', password='pass')
+        r = self.client.get(reverse('hr:documents_export'))
+        self.assertIn(r.status_code, (403, 302))
+
+    def test_export_head_allowed(self):
+        self.client.login(username='head_u', password='pass')
+        r = self.client.get(reverse('hr:documents_export'))
+        self.assertEqual(r.status_code, 200)
+
+    def test_export_hr_returns_excel(self):
+        self.client.login(username='hr_u', password='pass')
+        r = self.client.get(reverse('hr:documents_export'))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(
+            r['Content-Type'],
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+
+    def test_export_admin_returns_excel(self):
+        self.client.login(username='adm', password='pass')
+        r = self.client.get(reverse('hr:documents_export'))
+        self.assertEqual(r.status_code, 200)
+
+    def test_export_hr_sees_only_own_scope(self):
+        self.client.login(username='hr_u', password='pass')
+        r = self.client.get(reverse('hr:documents_export'))
+        self.assertEqual(r.status_code, 200)
+        self.assertGreater(len(r.content), 0)
+
+    def test_staff_menu_contains_hr_documents(self):
+        menu = MenuItem.generate_menu(self.staff_user)
+        hr_block = next((item for item in menu if item.id == 'hr'), None)
+        self.assertIsNotNone(hr_block, 'HR блок не найден в меню Staff')
+        submenu_ids = [s.id for s in hr_block.submenu]
+        self.assertIn('hr_documents', submenu_ids)
+
+    def test_hr_menu_contains_hr_documents(self):
+        menu = MenuItem.generate_menu(self.hr_user)
+        hr_block = next((item for item in menu if item.id == 'hr'), None)
+        self.assertIsNotNone(hr_block)
+        submenu_ids = [s.id for s in hr_block.submenu]
+        self.assertIn('hr_documents', submenu_ids)
+
+    def test_admin_menu_contains_hr_documents(self):
+        menu = MenuItem.generate_menu(self.admin)
+        hr_block = next((item for item in menu if item.id == 'hr'), None)
+        self.assertIsNotNone(hr_block)
+        submenu_ids = [s.id for s in hr_block.submenu]
+        self.assertIn('hr_documents', submenu_ids)

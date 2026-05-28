@@ -7,6 +7,7 @@ import re
 
 from hr.models import Position
 from .models import UserAccount, Employee
+from hr.enums import EmployeeStatusEnum
 ROLE_PICK_NEW = '__new_role__'
 
 
