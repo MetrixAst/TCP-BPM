@@ -1261,3 +1261,262 @@ body.onec-invoice-body {
     grid-template-columns: 1fr;
   }
 }
+
+// Баннер «Создать счёт через 1С» в табе Счета
+.onec-invoice-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #eef2ff;
+  border: 1px solid #c7d4f7;
+  border-radius: 12px;
+  margin-bottom: 14px;
+ 
+  > i {
+    font-size: 20px;
+    color: $onec-primary;
+    flex-shrink: 0;
+  }
+ 
+  > div {
+    flex: 1;
+    min-width: 0;
+ 
+    strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: $onec-text;
+    }
+ 
+    span {
+      font-size: 12px;
+      color: $onec-muted;
+    }
+  }
+}
+ 
+.onec-btn--sm {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 12px;
+}
+// ==========================================================================
+// FE-FIX-02 additions — добавить в конец onec.scss
+// ==========================================================================
+
+// ── Шапка страницы (список контрагентов) ─────────────────────────────────
+.onec-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+
+  &__left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
+
+.onec-page-sub {
+  margin: 0;
+  font-size: 13px;
+  color: $onec-muted;
+}
+
+.onec-table-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: $onec-primary;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+.onec-mono {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: $onec-muted;
+}
+
+.onec-address {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: $onec-muted;
+  font-size: 12px;
+}
+
+.onec-type-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: $onec-field-bg;
+  color: $onec-muted;
+
+  &--supplier {
+    background: #eef2ff;
+    color: $onec-primary;
+  }
+
+  &--customer {
+    background: #e8f8ee;
+    color: #16a34a;
+  }
+
+  &--both {
+    background: #fff5d6;
+    color: #d97706;
+  }
+}
+
+// ── Форма создания контрагента — инпуты (вне #onecInvoiceForm) ────────────
+#onecCounterpartyForm {
+  .onec-input,
+  .onec-textarea {
+    width: 100%;
+    border: 0 !important;
+    background: $onec-field-bg !important;
+    color: $onec-text !important;
+    font-size: 13px !important;
+    font-weight: 500;
+    outline: none !important;
+    box-shadow: none !important;
+
+    &::placeholder { color: #9a98aa; }
+  }
+
+  .onec-input {
+    height: 36px !important;
+    min-height: 36px !important;
+    border-radius: 999px !important;
+    padding: 0 16px !important;
+  }
+
+  .onec-textarea {
+    min-height: 72px !important;
+    border-radius: 14px !important;
+    padding: 10px 16px !important;
+    resize: none;
+  }
+}
+
+// ── Ошибки формы ──────────────────────────────────────────────────────────
+.onec-form-errors {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.onec-form-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #feecec;
+  color: $onec-danger;
+  font-size: 13px;
+
+  i { flex-shrink: 0; }
+}
+
+// ── Чекбоксы «Поставщик / Клиент» ────────────────────────────────────────
+.onec-cp-checkboxes {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.onec-cp-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+
+  input[type="checkbox"] {
+    display: none;
+  }
+
+  &__box {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: $onec-field-bg;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background .15s;
+
+    i {
+      font-size: 12px;
+      color: #fff;
+      opacity: 0;
+      transition: opacity .15s;
+    }
+  }
+
+  &__label {
+    font-size: 13px;
+    font-weight: 500;
+    color: $onec-text;
+  }
+
+  input:checked + .onec-cp-check__box {
+    background: $onec-primary;
+
+    i { opacity: 1; }
+  }
+}
+
+// ── Белая карточка шапки страницы (counterparty_list) ────────────────────
+.onec-page-header-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px 22px;
+  margin-bottom: 18px;
+ 
+  .onec-page-header__left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+ 
+  .onec-page-header__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
+ 

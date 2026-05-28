@@ -1,3 +1,4 @@
+@use "sass:color";
 $fin-primary: #2f6bed;
 $fin-primary-hover: #2458c7;
 $fin-success: #22a85a;
@@ -2215,7 +2216,7 @@ body.invoice-edit-body {
     background: #2f6bed;
     color: #fff;
   }
-}
+
 
 // ── FE-5.4 / FE-5.5: Shared finance UI ───────────────────────────────────────
 
@@ -2319,7 +2320,7 @@ body.invoice-edit-body {
   text-decoration: none;
   cursor: pointer;
   transition: background .15s;
-  &:hover { background: darken($fin-field-bg, 5%); }
+  &:hover { background: color.adjust($fin-field-bg, $lightness: -5%); }
   &--primary { background: $fin-primary; color: #fff; border-color: $fin-primary;
     &:hover { background: $fin-primary-hover; } }
   &--danger  { background: #fff1f0; color: $fin-danger; border-color: $fin-danger;
@@ -2868,4 +2869,73 @@ body.invoice-edit-body {
 @media (max-width: 480px) {
   .fin-kpi-grid { grid-template-columns: 1fr; }
   .fin-kpi-value { font-size: 20px; }
+}
+
+// Подзаголовок под «Счета» с подсказкой про 1С
+.inv-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: $fin-muted;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+ 
+  i { font-size: 13px; }
+}
+ 
+.inv-onec-link {
+  color: $fin-primary;
+  font-weight: 600;
+  text-decoration: none;
+ 
+  &:hover { text-decoration: underline; }
+}
+ 
+// Баннер-подсказка над таблицей
+.inv-onec-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: #eef2ff;
+  border: 1px solid #c7d4f7;
+  border-radius: 14px;
+  margin-bottom: 16px;
+ 
+  &__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #dce6ff;
+    color: $fin-primary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+ 
+  &__body {
+    flex: 1;
+    min-width: 0;
+ 
+    strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      color: $fin-text;
+    }
+ 
+    span {
+      font-size: 12px;
+      color: $fin-muted;
+    }
+  }
+}
+ 
+// Маленький размер кнопки
+.inv-btn--sm {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 12px;
 }

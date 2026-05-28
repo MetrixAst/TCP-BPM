@@ -4,7 +4,7 @@
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}">
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}">
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe53-list-select2">
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe-fix-02">
 {% endblock %}
 
 {% block content %}
@@ -13,6 +13,11 @@
   <section class="inv-topbar">
     <div>
       <h1 class="inv-title">Счета</h1>
+      <p class="inv-subtitle">
+        <i class="bi bi-info-circle"></i>
+        Счета создаются через
+        <a href="{% url 'onec:invoice_create' %}" class="inv-onec-link">1С → Новый счёт</a>
+      </p>
     </div>
 
     <form method="get" class="inv-filter-form">
@@ -47,19 +52,27 @@
         Сбросить
       </a>
 
-      <a href="{% url 'finances:invoice_create' %}" class="inv-btn inv-btn--primary">
-        <i class="bi bi-plus-lg"></i>
-        Создать счёт
-      </a>
+      {# FE-FIX-02: кнопка «Создать счёт» убрана — только через 1С #}
     </form>
   </section>
 
+  {# Баннер-подсказка для бухгалтера #}
+  <div class="inv-onec-banner">
+    <div class="inv-onec-banner__icon">
+      <i class="bi bi-box-arrow-in-down"></i>
+    </div>
+    <div class="inv-onec-banner__body">
+      <strong>Счета создаются в 1С</strong>
+      <span>Перейдите в раздел 1С, выберите контрагента и создайте счёт там. Он автоматически появится в этом реестре.</span>
+    </div>
+    <a href="{% url 'onec:counterparty_list' %}" class="inv-btn inv-btn--light inv-btn--sm">
+      <i class="bi bi-building"></i> Перейти в 1С
+    </a>
+  </div>
+
   <section class="inv-table-card">
     <div class="inv-table-head">
-      <div>
-        <div class="inv-table-title">Список счетов</div>
-      </div>
-
+      <div class="inv-table-title">Список счетов</div>
     </div>
 
     <div class="inv-table-wrap">
@@ -98,7 +111,9 @@
                       {% endif %}
                     </strong>
                     <span>
-                      {% if inv.tenant %}Арендатор{% elif inv.counterparty %}Контрагент{% else %}Не выбран{% endif %}
+                      {% if inv.tenant %}Арендатор
+                      {% elif inv.counterparty %}Контрагент
+                      {% else %}Не выбран{% endif %}
                     </span>
                   </div>
                 </td>
@@ -119,26 +134,11 @@
 
                 <td>
                   <div class="inv-actions">
-
-                    {% if inv.status != 'paid' %}
-                      <a href="{% url 'finances:invoice_edit' inv.pk %}" class="inv-action-link">
-                        Ред.
-                      </a>
-                    {% endif %}
-
-
-                    {% if inv.status != 'paid' %}
-                      <form
-                        action="{% url 'finances:invoice_delete' inv.pk %}"
-                        method="post"
-                        onsubmit="return confirm('Удалить счёт?');"
-                      >
-                        {% csrf_token %}
-                        <button type="submit" class="inv-action-link inv-action-link--danger">
-                          Удалить
-                        </button>
-                      </form>
-                    {% endif %}
+                    {# FE-FIX-02: редактирование и удаление — только через 1С.
+                       Оставляем только просмотр и отправку #}
+                    <a href="{% url 'finances:invoice_detail' inv.pk %}" class="inv-action-link">
+                      Просмотр
+                    </a>
                   </div>
                 </td>
               </tr>
@@ -149,7 +149,9 @@
                 <div class="inv-empty-state">
                   <i class="bi bi-receipt"></i>
                   <strong>Счетов не найдено</strong>
-                  <span>Создайте первый счёт или измените параметры фильтра</span>
+                  <span>Создайте счёт через
+                    <a href="{% url 'onec:counterparty_list' %}">раздел 1С</a>
+                  </span>
                 </div>
               </td>
             </tr>
@@ -157,13 +159,11 @@
         </tbody>
       </table>
     </div>
-
-
   </section>
-
 
 </section>
 {% endblock %}
+
 {% block scripts %}
 <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
 <script>
