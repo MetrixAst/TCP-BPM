@@ -6,94 +6,149 @@
 {% endblock %}
 
 {% block content %}
-<div class="onec-page">
+<script>
+  document.body.classList.add('onec-invoice-body');
+</script>
 
-  <div class="onec-page-header">
-    <div class="onec-page-header__left">
-      <a href="{% url 'onec:counterparty_list' %}" class="onec-detail-back" aria-label="Назад">
-        <i class="bi bi-arrow-left"></i>
-      </a>
-      <div>
-        <h1 class="onec-page-title">{{ title }}</h1>
-        <nav aria-label="breadcrumb">
-          <ol class="onec-breadcrumb">
-            <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-            <li><a href="{% url 'onec:counterparty_list' %}">Контрагенты</a></li>
-            <li>{{ title }}</li>
-          </ol>
-        </nav>
-      </div>
+<div class="onec-create-page">
+  <form method="post" class="onec-create-card" id="onecCounterpartyForm">
+    {% csrf_token %}
+
+    <div class="onec-create-card__header">
+      <h1 class="onec-create-card__title">{{ title|default:"Новый контрагент" }}</h1>
+      <a href="{% url 'onec:counterparty_list' %}" class="onec-create-card__close" title="Закрыть">×</a>
     </div>
-  </div>
 
-  <section class="onec-filter-card" style="max-width:720px;">
-    <form method="post" class="onec-filter-form" style="flex-direction:column;align-items:stretch;gap:14px;">
-      {% csrf_token %}
-
-      <div class="onec-field">
-        <label class="onec-label" for="{{ form.short_name.id_for_label }}">Краткое название *</label>
-        {{ form.short_name }}
-      </div>
-
-      <div class="onec-field">
-        <label class="onec-label" for="{{ form.full_name.id_for_label }}">Полное наименование *</label>
-        {{ form.full_name }}
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-        <div class="onec-field">
-          <label class="onec-label" for="{{ form.bin_number.id_for_label }}">БИН</label>
-          {{ form.bin_number }}
-        </div>
-        <div class="onec-field">
-          <label class="onec-label" for="{{ form.iin.id_for_label }}">ИИН</label>
-          {{ form.iin }}
-        </div>
-      </div>
-
-      <div class="onec-field">
-        <label class="onec-label" for="{{ form.address.id_for_label }}">Адрес</label>
-        {{ form.address }}
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-        <div class="onec-field">
-          <label class="onec-label" for="{{ form.phone.id_for_label }}">Телефон</label>
-          {{ form.phone }}
-        </div>
-        <div class="onec-field">
-          <label class="onec-label" for="{{ form.email.id_for_label }}">Email</label>
-          {{ form.email }}
-        </div>
-      </div>
-
-      <div style="display:flex;gap:20px;flex-wrap:wrap;">
-        <label class="form-check" style="display:flex;align-items:center;gap:8px;">
-          {{ form.is_supplier }}
-          <span>Поставщик</span>
-        </label>
-        <label class="form-check" style="display:flex;align-items:center;gap:8px;">
-          {{ form.is_customer }}
-          <span>Клиент</span>
-        </label>
-      </div>
-
-      {% if form.errors %}
-        <div class="alert alert-danger">
-          {% for field, errors in form.errors.items %}
-            {% for error in errors %}<div>{{ field }}: {{ error }}</div>{% endfor %}
+    {% if form.errors %}
+      <div class="onec-form-errors">
+        {% for field, errors in form.errors.items %}
+          {% for error in errors %}
+            <div class="onec-form-error">
+              <i class="bi bi-exclamation-circle"></i>
+              {% if field != '__all__' %}{{ field }}: {% endif %}{{ error }}
+            </div>
           {% endfor %}
-        </div>
-      {% endif %}
-
-      <div class="onec-filter-actions">
-        <button type="submit" class="onec-btn onec-btn--primary">
-          <i class="bi bi-check-lg"></i> Сохранить
-        </button>
-        <a href="{% url 'onec:counterparty_list' %}" class="onec-btn onec-btn--light">Отмена</a>
+        {% endfor %}
       </div>
-    </form>
-  </section>
+    {% endif %}
 
+    <div class="onec-create-card__section-title">Основная информация</div>
+
+    <div class="onec-form-grid">
+
+      <div class="onec-form-field onec-form-field--full">
+        <label class="onec-label">Краткое название <span>*</span></label>
+        <input
+          type="text"
+          name="short_name"
+          value="{{ form.short_name.value|default:'' }}"
+          class="onec-input"
+          placeholder="Краткое название"
+          required
+        >
+      </div>
+
+      <div class="onec-form-field onec-form-field--full">
+        <label class="onec-label">Полное наименование <span>*</span></label>
+        <input
+          type="text"
+          name="full_name"
+          value="{{ form.full_name.value|default:'' }}"
+          class="onec-input"
+          placeholder="Полное наименование"
+          required
+        >
+      </div>
+
+      <div class="onec-form-field">
+        <label class="onec-label">БИН</label>
+        <input
+          type="text"
+          name="bin_number"
+          value="{{ form.bin_number.value|default:'' }}"
+          class="onec-input"
+          placeholder="12 цифр"
+          maxlength="12"
+        >
+      </div>
+
+      <div class="onec-form-field">
+        <label class="onec-label">ИИН</label>
+        <input
+          type="text"
+          name="iin"
+          value="{{ form.iin.value|default:'' }}"
+          class="onec-input"
+          placeholder="ИИН (для ИП)"
+        >
+      </div>
+
+      <div class="onec-form-field onec-form-field--full">
+        <label class="onec-label">Адрес</label>
+        <textarea
+          name="address"
+          class="onec-textarea"
+          placeholder="Юридический адрес"
+          rows="2"
+        >{{ form.address.value|default:'' }}</textarea>
+      </div>
+
+      <div class="onec-form-field">
+        <label class="onec-label">Телефон</label>
+        <input
+          type="text"
+          name="phone"
+          value="{{ form.phone.value|default:'' }}"
+          class="onec-input"
+          placeholder="+7 (___) ___-__-__"
+        >
+      </div>
+
+      <div class="onec-form-field">
+        <label class="onec-label">Email</label>
+        <input
+          type="email"
+          name="email"
+          value="{{ form.email.value|default:'' }}"
+          class="onec-input"
+          placeholder="email@example.com"
+        >
+      </div>
+
+    </div>
+
+    <div class="onec-create-card__section-title onec-create-card__section-title--items">
+      Категория
+    </div>
+
+    <div class="onec-cp-checkboxes">
+      <label class="onec-cp-check">
+        <input
+          type="checkbox"
+          name="is_supplier"
+          {% if form.is_supplier.value %}checked{% endif %}
+        >
+        <span class="onec-cp-check__box"><i class="bi bi-check-lg"></i></span>
+        <span class="onec-cp-check__label">Поставщик</span>
+      </label>
+      <label class="onec-cp-check">
+        <input
+          type="checkbox"
+          name="is_customer"
+          {% if form.is_customer.value %}checked{% endif %}
+        >
+        <span class="onec-cp-check__box"><i class="bi bi-check-lg"></i></span>
+        <span class="onec-cp-check__label">Клиент</span>
+      </label>
+    </div>
+
+    <div class="onec-create-footer">
+      <a href="{% url 'onec:counterparty_list' %}" class="onec-btn onec-btn--ghost">Отменить</a>
+      <button type="submit" class="onec-btn onec-btn--primary">
+        <i class="bi bi-check-lg"></i>
+        {% if title == "Редактировать контрагента" %}Сохранить{% else %}Создать{% endif %}
+      </button>
+    </div>
+  </form>
 </div>
 {% endblock %}

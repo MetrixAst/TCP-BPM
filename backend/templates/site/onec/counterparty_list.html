@@ -8,40 +8,32 @@
 {% block content %}
 <div class="onec-page onec-page--counterparties">
 
-  <!-- Page Header -->
-  <div class="onec-page-header">
+  <div class="onec-page-header-card">
     <div class="onec-page-header__left">
       <h1 class="onec-page-title">Контрагенты</h1>
-      <nav aria-label="breadcrumb">
-        <ol class="onec-breadcrumb">
-          <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-          <li>Контрагенты</li>
-        </ol>
-      </nav>
       {% if total_count %}
-        <p class="onec-page-sub" style="margin:6px 0 0;font-size:13px;color:#74728a;">Всего в базе: {{ total_count }}</p>
+        <p class="onec-page-sub">Всего в базе: {{ total_count }}</p>
       {% endif %}
     </div>
-    <div class="onec-filter-actions" style="flex-wrap:wrap;">
+    <div class="onec-page-header__actions">
       <a href="{% url 'onec:counterparty_create' %}" class="onec-btn onec-btn--primary">
         <i class="bi bi-plus-lg"></i> Добавить
       </a>
       <form method="post" action="{% url 'onec:counterparty_sync' %}" style="display:inline;">
         {% csrf_token %}
-        <button type="submit" class="onec-btn onec-btn--light" title="Загрузить из 1С">
+        <button type="submit" class="onec-btn onec-btn--light">
           <i class="bi bi-cloud-download"></i> Из 1С
         </button>
       </form>
       <form method="post" action="{% url 'onec:counterparty_seed_demo' %}" style="display:inline;">
         {% csrf_token %}
-        <button type="submit" class="onec-btn onec-btn--light" name="force" value="1" title="Обновить демо-набор">
+        <button type="submit" class="onec-btn onec-btn--light" name="force" value="1">
           <i class="bi bi-database"></i> Демо-набор
         </button>
       </form>
     </div>
   </div>
 
-  <!-- Filter -->
   <section class="onec-filter-card">
     <form method="get" class="onec-filter-form">
       <div class="onec-field">
@@ -56,25 +48,20 @@
           >
         </div>
       </div>
-
       <div class="onec-filter-actions">
         <button type="submit" class="onec-btn onec-btn--primary">
-          <i class="bi bi-search"></i>
-          Найти
+          <i class="bi bi-search"></i> Найти
         </button>
         {% if request.GET.search %}
           <a href="{% url 'onec:counterparty_list' %}" class="onec-btn onec-btn--light">
-            <i class="bi bi-x"></i>
-            Сбросить
+            <i class="bi bi-x"></i> Сбросить
           </a>
         {% endif %}
       </div>
     </form>
   </section>
 
-  <!-- Table -->
   <section class="onec-table-card">
-
     <div class="onec-table-head">
       <div class="onec-table-title">
         Список контрагентов
@@ -97,24 +84,16 @@
           </tr>
         </thead>
         <tbody>
-
           {% for cp in counterparties %}
-          <tr class="onec-table-row">
-
+          <tr>
             <td>
               <a href="{% url 'onec:counterparty_detail' cp.pk %}" class="onec-name">
                 {{ cp.short_name|default:cp.full_name }}
               </a>
             </td>
-
-            <td>
-              <span class="onec-mono">{{ cp.bin_number|default:"—" }}</span>
-            </td>
-
+            <td><span class="onec-mono">{{ cp.bin_number|default:"—" }}</span></td>
             <td>{{ cp.email|default:"—" }}</td>
-
             <td>{{ cp.phone|default:"—" }}</td>
-
             <td>
               {% if cp.is_supplier and cp.is_customer %}
                 <span class="onec-type-badge onec-type-badge--both">Поставщик / Клиент</span>
@@ -126,9 +105,7 @@
                 <span class="onec-type-badge">—</span>
               {% endif %}
             </td>
-
             <td class="onec-address">{{ cp.address|default:"—"|truncatechars:40 }}</td>
-
           </tr>
           {% empty %}
           <tr>
@@ -138,11 +115,9 @@
             </td>
           </tr>
           {% endfor %}
-
         </tbody>
       </table>
     </div>
-
   </section>
 
 </div>
