@@ -1,8 +1,5 @@
 from django.db import models
 
-
-
-
 class Remnant(models.Model):
 
     QuantityRemainder = models.FloatField("Остаток", null=True, blank=True)
@@ -106,6 +103,14 @@ class Counterparty(models.Model):
     
     bank_accounts = models.JSONField("Банковские счета", default=list, blank=True)
     contracts = models.JSONField("Договоры", default=list, blank=True)
+    counterparty_type = models.ForeignKey(
+    'CounterpartyType',
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name='counterparties',
+    verbose_name="Тип контрагента"
+)
     
     synced_at = models.DateTimeField("Дата синхронизации", null=True, blank=True)
 
@@ -116,3 +121,52 @@ class Counterparty(models.Model):
         verbose_name = "Контрагент"
         verbose_name_plural = "Контрагенты"
         ordering = ['short_name']
+
+class CounterpartyType(models.Model):
+    name = models.CharField("Название", max_length=100)
+    code = models.SlugField("Код", max_length=50, unique=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Тип контрагента"
+        verbose_name_plural = "Типы контрагентов"
+        ordering = ['name']
+
+
+class AccessScope(models.Model):
+    name = models.CharField("Название", max_length=100)
+    users = models.ManyToManyField(
+        'account.UserAccount',
+        blank=True,
+        related_name='access_scopes',
+        verbose_name="Пользователи"
+    )
+    roles = models.JSONField("Роли", default=list, blank=True)
+    departments = models.ManyToManyField(
+        'account.Department',
+        blank=True,
+        related_name='access_scopes',
+        verbose_name="Отделы"
+    )
+    counterparties = models.ManyToManyField(
+        'Counterparty',
+        blank=True,
+        related_name='access_scopes',
+        verbose_name="Контрагенты"
+    )
+    counterparty_types = models.ManyToManyField(
+        'CounterpartyType',
+        blank=True,
+        related_name='access_scopes',
+        verbose_name="Типы контрагентов"
+    )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Зона доступа"
+        verbose_name_plural = "Зоны доступа"
+        ordering = ['name']

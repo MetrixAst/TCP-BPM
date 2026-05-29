@@ -20,6 +20,8 @@ from .services.sync_counterparties import sync_counterparties_from_1c
 from rest_framework import viewsets, filters
 from .serializers import CounterpartySerializer, InvoiceSerializer
 
+from account.services.access_scope import get_visible_counterparties
+
 logger = logging.getLogger(__name__)
 
 def get_1c_client():
@@ -39,10 +41,9 @@ class CounterpartyListView(ListView):
     paginate_by = 50
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = get_visible_counterparties(self.request.user)
 
         search_query = self.request.GET.get('search')
-
         if search_query:
             queryset = queryset.filter(
                 models.Q(short_name__icontains=search_query)
@@ -50,7 +51,6 @@ class CounterpartyListView(ListView):
                 | models.Q(bin_number__icontains=search_query)
                 | models.Q(phone__icontains=search_query)
             )
-
         return queryset
 
     def dispatch(self, request, *args, **kwargs):
@@ -159,11 +159,11 @@ class CounterpartyDetailView(DetailView):
 @login_required
 def counterparty_search_api(request):
     q = request.GET.get('q', '')
-    counterparties = Counterparty.objects.filter(
+    counterparties = get_visible_counterparties(request.user).filter(
         models.Q(short_name__icontains=q) | models.Q(bin_number__icontains=q)
     )[:20]
     results = [
-        {'id': cp.id, 'text': f"{cp.short_name} (БИН: {cp.bin_number or '---'})"} 
+        {'id': cp.id, 'text': f"{cp.short_name} (БИН: {cp.bin_number or '---'})"}
         for cp in counterparties
     ]
     return JsonResponse({'results': results})
@@ -239,12 +239,13 @@ class InvoiceCreateView(View):
             messages.error(request, f"Произошла ошибка при сохранении: {e}")
             return redirect('onec:invoice_create')
 
-
 class CounterpartyViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Counterparty.objects.all()
     serializer_class = CounterpartySerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['short_name', 'bin_number']
+
+    def get_queryset(self):
+        return get_visible_counterparties(self.request.user)
 
 class InvoiceViewSet(viewsets.ModelViewSet):
     queryset = Invoice.objects.all().order_by('-Date')
