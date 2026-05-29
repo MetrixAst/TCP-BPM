@@ -17,6 +17,26 @@
   <link rel="stylesheet" href="{% static 'site/css/layout.css' %}?v={{ static_version|default:'1' }}" />
   <link rel="stylesheet" href="{% static 'site/css/components.css' %}?v={{ static_version|default:'1' }}" />
   <link rel="stylesheet" href="{% static 'site/css/design-system.css' %}?v={{ static_version|default:'1' }}" />
+
+  {# i18n: читаем cookie ДО рендера, убираем мигание + чистим старый googtrans #}
+  <script>
+    (function () {
+      // Удаляем старую cookie Google Translate если осталась
+      var exp = '; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+      document.cookie = 'googtrans=' + exp;
+      document.cookie = 'googtrans=' + exp + '; domain=.' + location.hostname;
+
+      var m = document.cookie.match('(?:^|; )bpm_lang=([^;]*)');
+      var lang = m ? decodeURIComponent(m[1]) : 'ru';
+      if (['ru', 'kk', 'en'].indexOf(lang) === -1) lang = 'ru';
+      window.BPM_I18N = { lang: lang };
+      document.documentElement.lang = lang;
+      if (lang !== 'ru') {
+        document.documentElement.setAttribute('data-i18n-pending', '1');
+      }
+    })();
+  </script>
+
   {% block styles %}{% endblock styles %}
 </head>
 <body class="bpm-body {% block body_classes %}{% endblock body_classes %}">
@@ -57,6 +77,12 @@
     try { const indicatorsData = JSON.parse('{{ indicators_json|default:"{}"|escapejs }}'); } catch(e) {}
   </script>
   <script src="{% static 'site/js/layout.js' %}?v={{ static_version|default:'1' }}"></script>
+
+  {# i18n: только JSON-движок, без Google Translate #}
+  <script src="{% static 'site/js/i18n-bundle.js' %}?v={{ static_version|default:'1' }}"></script>
+  <script src="{% static 'site/js/i18n.js' %}?v={{ static_version|default:'1' }}"></script>
+  <script src="{% static 'site/js/lang-switcher.js' %}?v={{ static_version|default:'1' }}"></script>
+
   {% block scripts %}{% endblock scripts %}
 
 </body>
