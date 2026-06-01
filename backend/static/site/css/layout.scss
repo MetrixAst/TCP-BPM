@@ -751,3 +751,118 @@ body.sidebar-collapsed {
   border-top-left-radius: 14px;
   border-bottom-left-radius: 14px;
 }
+
+// ── Обёртка переключателя языка ───────────────────────────────────────────
+.bpm-topbar__lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #f5f6fb;
+  border: 1px solid #e5e7ef;
+}
+
+.bpm-topbar__lang-btn {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+  line-height: 1;
+
+  &:hover:not(.is-active) {
+    background: #eef2ff;
+    color: #2563eb;
+  }
+}
+
+// ── Anti-flash при не-русском языке ───────────────────────────────────────
+html[data-i18n-pending] #bpmMain,
+html[data-i18n-pending] .auth-page {
+  visibility: hidden;
+}
+
+html.i18n-ready #bpmMain,
+html.i18n-ready .auth-page {
+  visibility: visible;
+}
+
+html[data-i18n-pending] .bpm-topbar__lang {
+  visibility: visible;
+}
+
+// ── Гарантированно убираем остатки Google Translate ───────────────────────
+// (если cookie или iframe остались — чтобы дизайн не ломался)
+
+.goog-te-banner-frame,
+.goog-te-banner,
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.goog-tooltip,
+.goog-tooltip:hover,
+.skiptranslate iframe {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+}
+
+body {
+  top: 0 !important;
+  position: static !important;
+}
+
+#bpm-gt-root,
+#google_translate_element {
+  display: none !important;
+}
+
+.goog-text-highlight {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+// ── Mobile ────────────────────────────────────────────────────────────────
+@media (max-width: 991px) {
+  .bpm-topbar__lang {
+    display: none;
+  }
+}
+
+ 
+.bpm-sidebar__footer {
+  // Уже есть: display:flex, align-items:center, gap:10px
+  // Нужно: user-link занимал всё доступное место
+ 
+  .bpm-sidebar__user-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;           // растягиваем на всю ширину (вытесняет logout вправо)
+    min-width: 0;      // разрешаем сжатие текста
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+ 
+    &:hover {
+      text-decoration: none;
+      color: inherit;
+ 
+      .bpm-sidebar__user-name {
+        color: #2563eb;
+      }
+    }
+  }
+ 
+  // Если нет ссылки (нет permission:profile) — аватар и имя тоже flex
+  > .bpm-sidebar__avatar {
+    flex-shrink: 0;
+  }
+ 
+  > .bpm-sidebar__user {
+    flex: 1;
+    min-width: 0;
+  }
+}

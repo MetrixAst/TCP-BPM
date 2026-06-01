@@ -61,7 +61,7 @@ class CounterpartyListView(ListView):
         if request.method == 'GET' and not Counterparty.objects.exists():
             seed_demo_counterparties(force=False)
         return super().dispatch(request, *args, **kwargs)
-
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['total_count'] = Counterparty.objects.count()

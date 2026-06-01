@@ -28,6 +28,13 @@
 
   <div class="bpm-topbar__right">
 
+    {# Переключатель языка — кнопки не переводим #}
+    <div class="bpm-topbar__lang bpm-no-translate" id="bpmLangSwitcher">
+      <button type="button" class="bpm-topbar__lang-btn" data-lang="ru">Рус</button>
+      <button type="button" class="bpm-topbar__lang-btn" data-lang="kk">Қаз</button>
+      <button type="button" class="bpm-topbar__lang-btn" data-lang="en">Eng</button>
+    </div>
+
     <div class="dropdown">
       <button class="bpm-topbar__icon-btn"
               type="button"
@@ -52,9 +59,10 @@
         <div class="bpm-notif__list">
           {% for n in notifications %}
             <a href="{{ n.url }}" class="bpm-notif__item">
-              <div class="bpm-notif__title">{{ n.title }}</div>
+              {# Заголовки уведомлений — данные из БД #}
+              <div class="bpm-notif__title bpm-no-translate">{{ n.title }}</div>
               {% if n.text %}
-                <div class="bpm-notif__text">{{ n.text }}</div>
+                <div class="bpm-notif__text bpm-no-translate">{{ n.text }}</div>
               {% endif %}
             </a>
           {% empty %}
