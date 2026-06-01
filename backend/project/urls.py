@@ -33,6 +33,7 @@ urlpatterns = [
     path('ecopark/', include(('ecopark.urls', 'ecopark'))),
     path('finances/', include(('finances.urls', 'finances'))),
     path('onec/', include(('onec.urls', 'onec'))),
+    path('settings/', include(('settings_app.urls', 'settings'))),
     path('hr/', include(('hr.urls', 'hr'))),
     path('purchases/', include(('purchases.urls', 'purchases'))),
     path('reports/', include(('reports.urls', 'reports'))),

@@ -51,6 +51,10 @@ class CounterpartyListView(ListView):
                 | models.Q(bin_number__icontains=search_query)
                 | models.Q(phone__icontains=search_query)
             )
+        cp_type = self.request.GET.get('cp_type')
+        if cp_type:
+            queryset = queryset.filter(counterparty_type_id=cp_type)
+
         return queryset
 
     def dispatch(self, request, *args, **kwargs):
@@ -62,6 +66,12 @@ class CounterpartyListView(ListView):
         context = super().get_context_data(**kwargs)
         context['total_count'] = Counterparty.objects.count()
         context['onec_configured'] = bool(getattr(settings, 'ONE_C_BASE_URL', None))
+        from onec.models import CounterpartyType
+        from account.role_permissions import RoleEnums
+        context['counterparty_types'] = CounterpartyType.objects.all()
+        context['can_manage_types'] = self.request.user.role in (
+            RoleEnums.ADMINISTRATOR.value, RoleEnums.OWNER.value
+        )
         return context
 
 
