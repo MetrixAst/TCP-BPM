@@ -62,6 +62,7 @@ class CounterpartyListView(ListView):
         context = super().get_context_data(**kwargs)
         context['total_count'] = Counterparty.objects.count()
         context['onec_configured'] = bool(getattr(settings, 'ONE_C_BASE_URL', None))
+        
         return context
 
 
