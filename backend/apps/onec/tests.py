@@ -1,4 +1,4 @@
-from django.test import TestCase, override_settings
+from django.test import TestCase, override_settings, RequestFactory
 from django.db.utils import IntegrityError
 from .models import Counterparty, Invoice, InvoiceItem
 from django.utils import timezone
@@ -9,6 +9,10 @@ from .tasks import sync_counterparties
 from unittest.mock import patch, MagicMock
 from .tasks import sync_counterparties
 from datetime import timedelta
+from django.contrib.auth import get_user_model
+from account.models import Department
+from onec.models import Counterparty, CounterpartyType, AccessScope
+from account.services.access_scope import get_visible_counterparties
 
 class CounterpartyModelTest(TestCase):
 
@@ -531,3 +535,79 @@ class OneCCollabSmokeTest(TestCase):
             result = sync_counterparties()
         self.assertIn('Сбой синхронизации', result)
         self.assertEqual(Counterparty.objects.filter(id_1c='COLLAB-CP-01').count(), 1)
+
+
+User = get_user_model()
+
+
+def make_user(username, role):
+    return User.objects.create_user(
+        username=username,
+        password='test',
+        role=role,
+    )
+
+
+def make_counterparty(short_name, bin_number):
+    return Counterparty.objects.create(
+        id_1c=f'1c_{bin_number}',
+        full_name=short_name,
+        short_name=short_name,
+        bin_number=bin_number,
+    )
+
+
+class CounterpartyTypeTest(TestCase):
+    def test_create_type(self):
+        ct = CounterpartyType.objects.create(name='Поставщик', code='supplier')
+        self.assertEqual(str(ct), 'Поставщик')
+
+
+class AccessScopeTest(TestCase):
+    def setUp(self):
+        self.cp1 = make_counterparty('Компания А', '111111111111')
+        self.cp2 = make_counterparty('Компания Б', '222222222222')
+        self.cp3 = make_counterparty('Компания В', '333333333333')
+
+    def test_admin_sees_all(self):
+        user = make_user('admin1', 'administrator')
+        qs = get_visible_counterparties(user)
+        self.assertEqual(qs.count(), 3)
+
+    def test_owner_sees_all(self):
+        user = make_user('owner1', 'owner')
+        qs = get_visible_counterparties(user)
+        self.assertEqual(qs.count(), 3)
+
+    def test_cfo_sees_all(self):
+        user = make_user('cfo1', 'cfo')
+        qs = get_visible_counterparties(user)
+        self.assertEqual(qs.count(), 3)
+
+    def test_chief_accountant_sees_all(self):
+        user = make_user('ca1', 'chief_accountant')
+        qs = get_visible_counterparties(user)
+        self.assertEqual(qs.count(), 3)
+
+    def test_staff_no_scope_sees_all(self):
+        user = make_user('staff1', 'staff')
+        qs = get_visible_counterparties(user)
+        self.assertEqual(qs.count(), 3)
+
+    def test_staff_with_scope_sees_only_assigned(self):
+        user = make_user('staff2', 'staff')
+        scope = AccessScope.objects.create(name='Тест скоп')
+        scope.users.add(user)
+        scope.counterparties.add(self.cp1, self.cp2)
+
+        qs = get_visible_counterparties(user)
+        self.assertEqual(qs.count(), 2)
+        self.assertIn(self.cp1, qs)
+        self.assertIn(self.cp2, qs)
+        self.assertNotIn(self.cp3, qs)
+
+    def test_counterparty_type_fk(self):
+        ct = CounterpartyType.objects.create(name='Клиент', code='client')
+        self.cp1.counterparty_type = ct
+        self.cp1.save()
+        self.assertEqual(self.cp1.counterparty_type.code, 'client')

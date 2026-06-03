@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Remnant, Invoice, Counterparty, InvoiceItem
+from .models import Remnant, Invoice, Counterparty, InvoiceItem, CounterpartyType, AccessScope
 
 admin.site.register(Remnant)
 
@@ -49,3 +49,15 @@ class InvoiceAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False 
+
+@admin.register(CounterpartyType)
+class CounterpartyTypeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code')
+    search_fields = ('name', 'code')
+
+
+@admin.register(AccessScope)
+class AccessScopeAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+    filter_horizontal = ('users', 'departments', 'counterparties', 'counterparty_types')
