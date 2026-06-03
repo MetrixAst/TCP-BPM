@@ -163,6 +163,13 @@ class AccessScope(models.Model):
         verbose_name="Типы контрагентов"
     )
 
+    folders = models.ManyToManyField(
+        'documents.Folder',
+        blank=True,
+        related_name='access_scopes',
+        verbose_name='Папки'
+    )
+
     def __str__(self):
         return self.name
 

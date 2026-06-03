@@ -1149,6 +1149,7 @@ def attendance_journal(request):
     return render(request, 'site/hr/attendance_journal.html', {
         'journal': journal,
         'target_date': target_date,
+        'target_date_iso': target_date.isoformat(),
         'departments': departments,
         'is_hr': is_hr
     })
