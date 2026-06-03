@@ -18,7 +18,9 @@
         <i class="bi bi-chevron-left"></i>
       </a>
 
-      <div class="fin-calendar-month">{{ month_name }} {{ year }}</div>
+      <div class="fin-calendar-month">
+          <span>{{ month_name }}</span>&nbsp;{{ year }}
+      </div>
 
       <a href="?year={{ next_year }}&month={{ next_month }}&tenant={{ f_tenant }}&status={{ f_status }}"
          class="fin-calendar-nav">

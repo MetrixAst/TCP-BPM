@@ -11,10 +11,6 @@
   <div class="attendance-page__top">
     <div>
       <h1 class="attendance-page__title">Моя посещаемость</h1>
-      <p class="attendance-page__subtitle">
-        {% if employee %}{{ employee.user.get_full_name|default:employee.user.username }} · {% endif %}
-        {{ view_date|date:"F Y" }}
-      </p>
     </div>
 
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">

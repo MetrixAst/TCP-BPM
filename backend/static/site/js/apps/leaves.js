@@ -15,6 +15,9 @@
           orientation: 'bottom auto'
         });
       }
+      if (window.BPM && window.BPM.applyTranslations) {
+        window.BPM.applyTranslations();
+      }
     }
   
     function setupLeaveFilters() {
@@ -149,8 +152,8 @@
     }
 
     /* ═══════════════════════════════════
-       LEAVE TIMELINE / CALENDAR
-       ═══════════════════════════════════ */
+   LEAVE TIMELINE / CALENDAR
+   ═══════════════════════════════════ */
     var tlYear, tlMonth, tlAllItems = [];
 
     var RU_MONTHS = [
@@ -158,6 +161,16 @@
       'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'
     ];
     var RU_DAYS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+
+    function t(text) {
+      return window.BPM && window.BPM.t ? window.BPM.t(text, text) : text;
+    }
+
+    function applyI18n() {
+      if (window.BPM && window.BPM.applyTranslations) {
+        window.BPM.applyTranslations();
+      }
+    }
 
     function daysInMonth(y, m) {
       return new Date(y, m + 1, 0).getDate();
@@ -184,6 +197,7 @@
       if (todayBtn) todayBtn.addEventListener('click', function () { tlYear = today.getFullYear(); tlMonth = today.getMonth(); renderCalendar(); });
 
       root.innerHTML = '<div class="leave-timeline__loading"><span>Загрузка…</span></div>';
+      applyI18n();
 
       fetch(sourceUrl)
         .then(function (r) { return r.json(); })
@@ -193,6 +207,7 @@
         })
         .catch(function () {
           root.innerHTML = '<div class="leave-timeline__empty"><i class="bi bi-exclamation-circle"></i><strong>Ошибка загрузки</strong></div>';
+          applyI18n();
         });
     }
 
@@ -205,9 +220,8 @@
       var monthStart = new Date(tlYear, tlMonth, 1);
       var monthEnd   = new Date(tlYear, tlMonth, numDays);
 
-      if (subtitle) subtitle.textContent = RU_MONTHS[tlMonth] + ' ' + tlYear;
+      if (subtitle) subtitle.textContent = t(RU_MONTHS[tlMonth]) + ' ' + tlYear;
 
-      // Фильтруем заявки пересекающиеся с месяцем
       var items = tlAllItems.filter(function (item) {
         var s = new Date(item.start);
         var e = new Date(item.end);
@@ -215,56 +229,66 @@
       });
 
       if (!items.length) {
-        root.innerHTML = '<div class="leave-timeline__empty"><i class="bi bi-calendar-x"></i><strong>Нет заявок за ' + RU_MONTHS[tlMonth].toLowerCase() + ' ' + tlYear + '</strong><span>Попробуйте другой месяц или создайте заявку</span></div>';
+        root.innerHTML =
+          '<div class="leave-timeline__empty">' +
+            '<i class="bi bi-calendar-x"></i>' +
+            '<strong>' + t('Нет заявок') + '</strong>' +
+            '<span>' + t('Попробуйте другой месяц или создайте заявку') + '</span>' +
+          '</div>';
+        applyI18n();
         return;
       }
 
-      // ── шапка с датами ──
-      var cols = numDays + 1;
       var gridStyle = 'grid-template-columns: 180px repeat(' + numDays + ', 1fr)';
 
       var headHtml = '<div class="tl-grid__row tl-grid__row--head" style="' + gridStyle + '">';
-      headHtml += '<div class="tl-grid__cell tl-grid__cell--name">Сотрудник</div>';
+      headHtml += '<div class="tl-grid__cell tl-grid__cell--name">' + t('Сотрудник') + '</div>';
+
       var today = new Date();
+
       for (var d = 1; d <= numDays; d++) {
         var dt = new Date(tlYear, tlMonth, d);
         var isToday = (dt.toDateString() === today.toDateString());
         var isWeekend = (dt.getDay() === 0 || dt.getDay() === 6);
+
         var cls = 'tl-grid__cell tl-grid__cell--day';
         if (isToday)   cls += ' tl-grid__cell--today';
         if (isWeekend) cls += ' tl-grid__cell--weekend';
+
         headHtml += '<div class="' + cls + '">';
         headHtml += '<span class="tl-day-num">' + d + '</span>';
-        headHtml += '<span class="tl-day-name">' + RU_DAYS[dt.getDay()] + '</span>';
+        headHtml += '<span class="tl-day-name">' + t(RU_DAYS[dt.getDay()]) + '</span>';
         headHtml += '</div>';
       }
+
       headHtml += '</div>';
 
-      // ── строки сотрудников ──
-      // Группируем по group (отделу) + content (сотрудник)
       var empMap = {};
+
       items.forEach(function (item) {
         var key = (item.group || '') + '||' + (item.content || '');
-        if (!empMap[key]) empMap[key] = { label: item.content, group: item.group, items: [] };
+        if (!empMap[key]) {
+          empMap[key] = { label: item.content, group: item.group, items: [] };
+        }
         empMap[key].items.push(item);
       });
 
       var rowsHtml = '';
+
       Object.keys(empMap).forEach(function (key) {
         var emp = empMap[key];
+
         rowsHtml += '<div class="tl-grid__row" style="' + gridStyle + '">';
         rowsHtml += '<div class="tl-grid__cell tl-grid__cell--name">';
         rowsHtml += '<span class="tl-emp-name">' + (emp.label || '—') + '</span>';
         rowsHtml += '<span class="tl-dept-name">' + (emp.group || '') + '</span>';
         rowsHtml += '</div>';
 
-        // Ячейки дней
         for (var d = 1; d <= numDays; d++) {
-          var dt2   = new Date(tlYear, tlMonth, d);
+          var dt2 = new Date(tlYear, tlMonth, d);
           var isWeekend2 = (dt2.getDay() === 0 || dt2.getDay() === 6);
-          var isToday2   = dt2.toDateString() === today.toDateString();
+          var isToday2 = dt2.toDateString() === today.toDateString();
 
-          // Попадает ли в этот день хоть одна заявка
           var dayItems = emp.items.filter(function (item) {
             var s = new Date(item.start);
             var e = new Date(item.end);
@@ -276,6 +300,7 @@
           if (isToday2)   cellCls += ' tl-grid__cell--today';
 
           var inner = '';
+
           if (dayItems.length) {
             var st = dayItems[0].status || 'pending';
             cellCls += ' tl-grid__cell--filled tl-grid__cell--' + st;
