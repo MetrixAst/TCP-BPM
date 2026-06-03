@@ -41,7 +41,11 @@
         {% endif %}
         <h1 class="emp-profile__name">{{ user.get_name|default:user.username }}</h1>
         <p class="emp-profile__role">
-          {% if employee.position %}{{ employee.position.title }}{% else %}Должность не указана{% endif %}
+          {% if employee.position %}
+            {{ employee.position.title }}
+          {% else %}
+            <span data-i18n="Должность не указана">Должность не указана</span>
+          {% endif %}
           {% if employee.department %} · {{ employee.department.name }}{% endif %}
         </p>
         <div class="emp-profile__badges">
@@ -99,7 +103,9 @@
         {% if is_own_profile %}Мои отпуска{% else %}Заявки на отпуск{% endif %}
       </span>
       {% if stats.leaves_pending %}
-        <span class="emp-stat-card__hint">{{ stats.leaves_pending }} на рассмотрении</span>
+        <span class="emp-stat-card__hint">
+          {{ stats.leaves_pending }} <span>на рассмотрении</span>
+        </span>
       {% endif %}
     </a>
     <a href="{{ profile_base_url }}?tab=attendance" class="emp-stat-card">
@@ -224,7 +230,7 @@
     <section class="emp-card">
       <div class="emp-card__head">
         <h2 class="emp-card__title">Посещаемость за 7 дней</h2>
-        <a href="{{ profile_base_url }}?tab=attendance" class="emp-card__link">Все →</a>
+        <a href="{{ profile_base_url }}?tab=attendance" class="emp-card__link">Все <span>→</span></a>
       </div>
       {% include 'site/hr/_employee_attendance_table.html' with rows=attendance_rows %}
     </section>

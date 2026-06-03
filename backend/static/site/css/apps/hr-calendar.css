@@ -28,7 +28,7 @@
 }
 
 .hr-cal-month__card.is-loading #calendar::before {
-  content: "Загрузка календаря…";
+  content: attr(data-loading-text);
   display: block;
   padding: 24px;
   text-align: center;

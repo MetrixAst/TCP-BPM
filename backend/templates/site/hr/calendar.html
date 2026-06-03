@@ -91,7 +91,10 @@
     <h2 class="hr-cal-month__title" id="calendarTitle">Календарь</h2>
     <div class="hr-card hr-cal-month__card" id="hrCalMonthCard">
       <div class="card-body p-3">
-        <div id="calendar" data-csrf="{{ csrf_token }}"></div>
+        <div id="calendar"
+            data-csrf="{{ csrf_token }}"
+            data-i18n-loading="Загрузка календаря...">
+        </div>
       </div>
     </div>
   </div>
@@ -150,5 +153,5 @@
 <script src="{% static 'site/js/main.js' %}?v={{ static_version|default:'1' }}"></script>
 <script src="{% static 'site/js/vendor/fullcalendar/main.min.js' %}"></script>
 <script src="{% static 'site/js/vendor/moment-with-locales.min.js' %}"></script>
-<script src="{% static 'site/js/apps/hr_calendar.js' %}?v=3"></script>
+<script src="{% static 'site/js/apps/hr_calendar.js' %}?v=4"></script>
 {% endblock scripts %}

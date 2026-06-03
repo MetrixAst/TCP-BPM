@@ -15,16 +15,24 @@ class Calendar {
     });
   }
 
+  _translatePage() {
+    if (window.BPM && window.BPM.applyTranslations) {
+      window.BPM.applyTranslations();
+    }
+  }
+
   _loadWorkCalendar(start, end) {
     const startStr = start.toISOString().slice(0, 10);
     const endStr = end.toISOString().slice(0, 10);
     const url = Helpers.UrlFix(
       '/hr/calendar/work-days/json/?start=' + startStr + '&end=' + endStr
     );
+
     Helpers.FetchJSON(url, (data) => {
       this.workCalendar = data || {};
       if (this.calendar) {
         this.calendar.render();
+        this._translatePage();
       }
     });
   }
@@ -32,19 +40,14 @@ class Calendar {
   _dayClassNames(arg) {
     const key = arg.date.toISOString().slice(0, 10);
     const type = this.workCalendar[key];
-    if (type === 'holiday') {
-      return ['hr-cal-day', 'hr-cal-day--holiday'];
-    }
-    if (type === 'weekend') {
-      return ['hr-cal-day', 'hr-cal-day--weekend'];
-    }
-    if (type === 'working') {
-      return ['hr-cal-day', 'hr-cal-day--working'];
-    }
+
+    if (type === 'holiday') return ['hr-cal-day', 'hr-cal-day--holiday'];
+    if (type === 'weekend') return ['hr-cal-day', 'hr-cal-day--weekend'];
+    if (type === 'working') return ['hr-cal-day', 'hr-cal-day--working'];
+
     const dow = arg.date.getDay();
-    if (dow === 0 || dow === 6) {
-      return ['hr-cal-day', 'hr-cal-day--weekend'];
-    }
+    if (dow === 0 || dow === 6) return ['hr-cal-day', 'hr-cal-day--weekend'];
+
     return ['hr-cal-day', 'hr-cal-day--working'];
   }
 
@@ -72,53 +75,87 @@ class Calendar {
       },
       eventClick: this._eventClick.bind(this),
     });
+
     this.calendar.render();
+
     const card = document.getElementById('hrCalMonthCard');
     if (card) card.classList.remove('is-loading');
+
+    this._translatePage();
   }
 
   _addListeners() {
     const prev = document.getElementById('goPrev');
     const next = document.getElementById('goNext');
+
     if (prev) {
       prev.addEventListener('click', () => {
         this.calendar.prev();
         this._updateTitle();
+        this._translatePage();
       });
     }
+
     if (next) {
       next.addEventListener('click', () => {
         this.calendar.next();
         this._updateTitle();
+        this._translatePage();
       });
     }
   }
 
   _updateTitle() {
     const titleEl = document.getElementById('calendarTitle');
+
     if (titleEl && this.calendar) {
-      titleEl.textContent = this.calendar.view.title;
+      const title = this.calendar.view.title;
+      const parts = title.split(' ');
+
+      if (window.BPM && window.BPM.t && parts.length === 2) {
+        titleEl.textContent = window.BPM.t(parts[0], parts[0]) + ' ' + parts[1];
+      } else {
+        titleEl.textContent = title;
+      }
+
+      this._translatePage();
     }
   }
 
   _eventClick(info) {
     const event = info.event.toPlainObject();
     const content = renderMustache('event_template', event);
+
     $('#event_content').html(content);
     $('#edit_button').attr('href', '/hr/calendar/edit/' + event.id);
     $('#delete_button').attr('href', '/hr/calendar/delete/' + event.id);
+
+    this._translatePage();
     this.newEventModal.show();
   }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof calendar_category === 'undefined') return;
+
   const card = document.getElementById('hrCalMonthCard');
   if (card) card.classList.add('is-loading');
+
   if (typeof Helpers === 'undefined' || typeof FullCalendar === 'undefined') {
     console.error('HR calendar: missing Helpers or FullCalendar');
     if (card) card.classList.remove('is-loading');
     return;
   }
+
+
+  const calendar = document.getElementById('calendar');
+
+  if (calendar && window.BPM && window.BPM.t) {
+    calendar.setAttribute(
+      'data-loading-text',
+      window.BPM.t('Загрузка календаря...', 'Загрузка календаря...')
+    );
+  }
+
   new Calendar();
 });

@@ -21,7 +21,7 @@
   <div class="fin-filter-card">
     <form method="GET" class="fin-filter-form">
       <div class="fin-field fin-date">
-        <label class="fin-label">С</label>
+        <label class="fin-label">От</label>
         <input type="date" name="date_from" value="{{ date_from }}" class="fin-input">
       </div>
       <div class="fin-field fin-date">
@@ -86,7 +86,7 @@
     <div class="fin-table-head">
       <div>
         <div class="fin-table-title">Операции</div>
-        <div class="fin-table-subtitle">{{ records|length }} запис{{ records|length|pluralize:"ь,и,ей" }}{% if records|length >= 500 %} (показаны первые 500){% endif %}</div>
+        <div class="fin-table-subtitle">{{ records|length }} {% if records|length == 1 %}запись{% elif records|length == 2 or records|length == 3 or records|length == 4 %}записи{% else %}записей{% endif %}{% if records|length >= 500 %} (показаны первые 500){% endif %}</div>
       </div>
       <div class="fin-legend">
         <span class="fin-legend__dot fin-legend__dot--success"></span>Приход

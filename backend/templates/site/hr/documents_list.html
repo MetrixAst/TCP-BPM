@@ -25,7 +25,7 @@
             {{ selected_employee.user.get_full_name|default:selected_employee.user.username }}
           </a>
         </h1>
-        <p>{{ selected_employee.department|default:"Без отдела" }} · Документы</p>
+        <p>{{ selected_employee.department|default:"Без отдела" }} · <span>Документы</span></p>
       </div>
     </div>
 
@@ -81,8 +81,9 @@
                      class="hr-registry-icon" title="Редактировать">
                     <i class="bi bi-pencil"></i>
                   </a>
-                  <form action="{% url 'hr:documents_delete' doc.pk %}" method="post"
-                        onsubmit="return confirm('Удалить документ?');">
+                  <form action="{% url 'hr:documents_delete' doc.pk %}"
+                        method="post"
+                        onsubmit="return confirm(window.BPM && window.BPM.t ? window.BPM.t('Удалить документ?', 'Удалить документ?') : 'Удалить документ?');">
                     {% csrf_token %}
                     <button type="submit"
                             class="hr-registry-icon hr-registry-icon--danger"
@@ -155,7 +156,7 @@
             {% with cnt=emp.documents.count %}
             <div class="hr-docs-emp-card__count">
               {% if cnt %}
-                <i class="bi bi-file-text"></i> {{ cnt }} докум.
+                <i class="bi bi-file-text"></i> {{ cnt }} документ{{ cnt|pluralize:",а,ов" }}
               {% else %}
                 <span class="hr-docs-emp-card__count--empty">Нет документов</span>
               {% endif %}

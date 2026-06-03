@@ -18,7 +18,7 @@
         </a>
         <h1 class="fin-page-title">{{ title }}</h1>
         <p class="fin-page-subtitle">
-          Категория: <strong>{{ category.name }}</strong>
+          Категория<span>:</span> <strong>{{ category.name }}</strong>
           {% if category.category_type == 'income' %}
             <span class="fin-status fin-status--success">Доход</span>
           {% else %}

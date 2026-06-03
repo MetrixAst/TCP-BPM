@@ -15,7 +15,7 @@
       <h1 class="fin-rent-hero__title">Аналитика аренды</h1>
       <p class="fin-rent-hero__meta">
         <span class="fin-rent-hero__chip"><i class="bi bi-calendar3"></i> {{ today }}</span>
-        <span>Арендаторов: {{ occupied_count }} / {{ tenants_count }}</span>
+        <span>Арендаторов<span>:</span> {{ occupied_count }} / {{ tenants_count }}</span>
         <span>Данные по оплатам из реестра</span>
       </p>
     </div>
@@ -102,7 +102,7 @@
             <tr>
               <th style="width:48px">#</th>
               <th>Арендатор</th>
-              <th class="fin-rent-table__num">Оплачено, ₸</th>
+              <th class="fin-rent-table__num">Оплачено<span>, ₸</span></th>
             </tr>
           </thead>
           <tbody>
@@ -150,7 +150,7 @@
           <thead>
             <tr>
               <th>Арендатор</th>
-              <th class="fin-rent-table__num">Долг, ₸</th>
+              <th class="fin-rent-table__num">Долг<span>, ₸</span></th>
               <th>Статус</th>
             </tr>
           </thead>
