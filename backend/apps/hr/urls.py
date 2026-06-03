@@ -18,7 +18,12 @@ urlpatterns = [
     path('positions/', views.positions, name="positions"),
     path('positions/create/', views.create_position, name="create_position"),
     path('positions/by-department/', views.positions_by_department, name="positions_by_department"),
+   
+   
     path('departments/', views.departments, name="departments"),
+    path('departments/<int:pk>/edit/', views.department_edit, name="department_edit"),
+    path('departments/<int:pk>/delete/', views.department_delete, name="department_delete"),
+    path('departments/<int:pk>/move/', views.department_move, name="department_move"),
     path('departments/create/', views.create_department, name="create_department"),
 
     path('vacations/', views.vacations, name="vacations"),
