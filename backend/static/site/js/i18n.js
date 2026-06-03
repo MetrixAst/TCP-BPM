@@ -1,10 +1,3 @@
-/**
- * Клиентский переводчик BPM (FE-FIX-03).
- *
- * Переводит: #bpmSidebar, #bpmMain, .bpm-topbar, .auth-page
- * Только полные совпадения — никаких частичных замен подстрок.
- * class="bpm-no-translate" пропускается (данные из БД).
- */
 (function (window) {
   'use strict';
 
@@ -33,6 +26,7 @@
     return null;
   }
 
+  // Только полное совпадение — никаких подстрок
   function translateText(text, map) {
     var norm = normalize(text);
     if (!norm || !map) return text;
@@ -87,6 +81,37 @@
     });
   }
 
+
+  function refreshSelect2Placeholders(map) {
+    if (!map) return;
+    if (typeof window.jQuery === 'undefined' || !window.jQuery.fn.select2) return;
+
+    var $ = window.jQuery;
+
+    $('select.select2-hidden-accessible').each(function () {
+      var $sel = $(this);
+
+      // Берём текущий placeholder из rendered .select2-selection__placeholder
+      var $ph = $sel.next('.select2-container').find('.select2-selection__placeholder');
+      if (!$ph.length) return;
+
+      var current = normalize($ph.text());
+      if (!current || !map[current]) return;
+
+      // Обновляем placeholder через Select2 settings
+      var settings = $sel.data('select2');
+      if (settings && settings.options && settings.options.options) {
+        var opts = settings.options.options;
+        if (opts.placeholder && typeof opts.placeholder === 'string') {
+          opts.placeholder = map[normalize(opts.placeholder)] || opts.placeholder;
+        }
+      }
+
+      // Перерисовываем selection (самый надёжный способ)
+      $ph.text(map[current]);
+    });
+  }
+
   window.BPM.applyTranslations = function (lang) {
     lang = lang || currentLang();
 
@@ -102,6 +127,7 @@
       return;
     }
 
+    // Переводим все зоны
     walkRoot(document.getElementById('bpmSidebar'), map);
     walkRoot(document.getElementById('bpmMain'),    map);
     walkRoot(document.querySelector('.bpm-topbar'), map);
@@ -114,6 +140,13 @@
     document.documentElement.lang = lang;
     document.documentElement.classList.add('i18n-ready');
     document.documentElement.removeAttribute('data-i18n-pending');
+
+    // Select2 инициализируется после DOMContentLoaded в tasks.js.
+    // Запускаем обновление плейсхолдеров с небольшой задержкой,
+    // чтобы Select2 точно успел отрисоваться.
+    setTimeout(function () {
+      refreshSelect2Placeholders(map);
+    }, 150);
   };
 
   window.BPM.t = function (key, fallback) {
