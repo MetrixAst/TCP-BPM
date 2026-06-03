@@ -252,6 +252,7 @@ class BudgetCategory(models.Model):
     category_type = models.CharField(
         'Тип', max_length=10, choices=Type.choices, db_index=True
     )
+
     parent      = models.ForeignKey(
         'self',
         on_delete=models.CASCADE,
@@ -292,6 +293,7 @@ class BudgetCategory(models.Model):
             lvl += 1
             current = current.parent
         return lvl
+
 
 
 class BudgetItem(models.Model):

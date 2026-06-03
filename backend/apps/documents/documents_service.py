@@ -20,6 +20,8 @@ def documents_list(request, document_type, folder=None, status=None):
 
     root = ensure_folder_tree(document_type)
     folders = root.get_descendants(include_self=True)
+    from documents.services.access_scope import get_visible_folders
+    folders = get_visible_folders(request.user, folders)
 
     queryset = Document.get_available_queryset(request)
     queryset = queryset.filter(folder__in=folders)

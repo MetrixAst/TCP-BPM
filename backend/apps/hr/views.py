@@ -40,6 +40,8 @@ import calendar as calendar_module
 
 from .enums import CalendarItemType, LeaveStatusEnum, CertificationStatusEnum
 
+from audit.models import AuditLog
+
 
 
 @need_permission(PermissionEnums.HR)
@@ -502,12 +504,17 @@ def create_department(request):
                 parent = None
                 if parent_id:
                     parent = Department.objects.get(pk=parent_id, company=company)
-                Department.objects.create(
+                dept = Department.objects.create(
                     name=name,
                     company=company,
                     parent=parent,
                     level_type=level_type,
                 )
+                _log_action(request, AuditLog.Action.CREATE, dept, {
+                    'name': name,
+                    'company': str(company),
+                    'parent': str(parent) if parent else None,
+                })
                 messages.success(request, f'Отдел «{name}» добавлен.')
             except (Company.DoesNotExist, Department.DoesNotExist):
                 messages.error(request, 'Компания или родительский отдел не найдены.')
@@ -1149,6 +1156,7 @@ def attendance_journal(request):
     return render(request, 'site/hr/attendance_journal.html', {
         'journal': journal,
         'target_date': target_date,
+        'target_date_iso': target_date.isoformat(),
         'departments': departments,
         'is_hr': is_hr
     })
@@ -1608,3 +1616,148 @@ def certifications_export(request):
     response['Content-Disposition'] = 'attachment; filename="certifications_export.xlsx"'
     wb.save(response)
     return response
+
+
+def _log_action(request, action, obj, changes=None):
+    AuditLog.objects.create(
+        user=request.user,
+        action=action,
+        object_type='Department',
+        object_id=str(obj.pk),
+        object_repr=str(obj),
+        changes=changes or {},
+        ip_address=request.META.get('REMOTE_ADDR'),
+        user_agent=request.META.get('HTTP_USER_AGENT', ''),
+    )
+
+
+@need_permission(PermissionEnums.HR_COMPANIES)
+def department_create(request):
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        company_id = request.POST.get('company')
+        parent_id = request.POST.get('parent') or None
+        level_type = request.POST.get('level_type') or 'department'
+
+        if name and company_id:
+            try:
+                company = Company.objects.get(pk=company_id)
+                parent = None
+                if parent_id:
+                    parent = Department.objects.get(pk=parent_id, company=company)
+                dept = Department.objects.create(
+                    name=name,
+                    company=company,
+                    parent=parent,
+                    level_type=level_type,
+                )
+                _log_action(request, AuditLog.Action.CREATE, dept, {
+                    'name': name,
+                    'company': str(company),
+                    'parent': str(parent) if parent else None,
+                })
+                messages.success(request, f'Отдел «{name}» добавлен.')
+            except (Company.DoesNotExist, Department.DoesNotExist):
+                messages.error(request, 'Компания или родительский отдел не найдены.')
+        else:
+            messages.error(request, 'Название и компания обязательны.')
+
+    return redirect('hr:departments')
+
+
+@need_permission(PermissionEnums.HR_COMPANIES)
+def department_edit(request, pk):
+    dept = get_object_or_404(Department, pk=pk)
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        parent_id = request.POST.get('parent') or None
+        level_type = request.POST.get('level_type') or dept.level_type
+
+        if name:
+            old_repr = str(dept)
+            changes = {}
+
+            if dept.name != name:
+                changes['name'] = {'old': dept.name, 'new': name}
+                dept.name = name
+
+            if level_type != dept.level_type:
+                changes['level_type'] = {'old': dept.level_type, 'new': level_type}
+                dept.level_type = level_type
+
+            if parent_id:
+                try:
+                    new_parent = Department.objects.get(pk=parent_id, company=dept.company)
+                    if dept.parent != new_parent:
+                        changes['parent'] = {
+                            'old': str(dept.parent) if dept.parent else None,
+                            'new': str(new_parent),
+                        }
+                        dept.parent = new_parent
+                except Department.DoesNotExist:
+                    messages.error(request, 'Родительский отдел не найден.')
+                    return redirect('hr:departments')
+            else:
+                if dept.parent is not None:
+                    changes['parent'] = {'old': str(dept.parent), 'new': None}
+                    dept.parent = None
+
+            dept.save()
+            if changes:
+                _log_action(request, AuditLog.Action.UPDATE, dept, changes)
+            messages.success(request, f'Отдел «{name}» обновлён.')
+        else:
+            messages.error(request, 'Название обязательно.')
+
+    return redirect('hr:departments')
+
+
+@need_permission(PermissionEnums.HR_COMPANIES)
+def department_delete(request, pk):
+    dept = get_object_or_404(Department, pk=pk)
+
+    if request.method == 'POST':
+        emp_count = dept.employees.count()
+        if emp_count > 0:
+            messages.error(
+                request,
+                f'Нельзя удалить «{dept.name}»: привязано {emp_count} сотрудников.',
+            )
+        else:
+            name = dept.name
+            _log_action(request, AuditLog.Action.DELETE, dept)
+            dept.delete()
+            messages.success(request, f'Отдел «{name}» удалён.')
+
+    return redirect('hr:departments')
+
+
+@need_permission(PermissionEnums.HR_COMPANIES)
+def department_move(request, pk):
+    dept = get_object_or_404(Department, pk=pk)
+
+    if request.method == 'POST':
+        new_parent_id = request.POST.get('parent') or None
+        try:
+            if new_parent_id:
+                new_parent = Department.objects.get(pk=new_parent_id, company=dept.company)
+            else:
+                new_parent = None
+
+            old_parent = dept.parent
+            dept.parent = new_parent
+            dept.save()
+            Department.objects.rebuild()
+
+            _log_action(request, AuditLog.Action.UPDATE, dept, {
+                'parent': {
+                    'old': str(old_parent) if old_parent else None,
+                    'new': str(new_parent) if new_parent else None,
+                }
+            })
+            return JsonResponse({'success': True})
+        except Department.DoesNotExist:
+            return JsonResponse({'error': 'Родительский отдел не найден'}, status=400)
+
+    return JsonResponse({'error': 'Метод не поддерживается'}, status=405)

@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'audit',
     'rest_framework',
     'drf_spectacular',
+    'settings_app',
 ]
 
 MIDDLEWARE = [

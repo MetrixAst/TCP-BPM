@@ -3,7 +3,7 @@ import json
 import openpyxl
 import pytz
 import copy
-from django.test import TestCase, Client, override_settings
+from django.test import TestCase, Client, override_settings, RequestFactory
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.urls import reverse
@@ -37,8 +37,12 @@ except ImportError:
 from hr.enbek_client import EnbekClient, EnbekClientError, AuthenticationError, ConnectionError
 from hr.services import EnbekSyncService
 from hr.tasks import sync_enbek_data
-from hr.models import WorkCategory, EmployeeWorkPermit, CertificationType, EmployeeCertification
+from hr.models import WorkCategory, EmployeeWorkPermit, CertificationType, EmployeeCertification, Company
 from hr.enums import CertificationStatusEnum
+
+from account.models import UserAccount, Department
+from audit.models import AuditLog
+
 
 
 UserAccount = User
@@ -3118,3 +3122,65 @@ class DocumentAccessMatrixTest(TestCase):
         self.assertIsNotNone(hr_block)
         submenu_ids = [s.id for s in hr_block.submenu]
         self.assertIn('hr_documents', submenu_ids)
+
+
+class DepartmentCRUDTest(TestCase):
+
+    def setUp(self):
+        self.admin = UserAccount.objects.create_user(
+            username='admin_fix06', password='pass', role=RoleEnums.ADMINISTRATOR.value
+        )
+        self.staff = UserAccount.objects.create_user(
+            username='staff_fix06', password='pass', role=RoleEnums.STAFF.value
+        )
+        self.company = Company.objects.create(name='TestCo', bin_number='123456789012')
+        self.dept = Department.objects.create(
+            name='TestDept', company=self.company
+        )
+
+    def test_create_department(self):
+        self.client.force_login(self.admin)
+        self.client.post(reverse('hr:create_department'), {
+            'name': 'NewDept',
+            'company': self.company.pk,
+        })
+        self.assertTrue(Department.objects.filter(name='NewDept').exists())
+        self.assertTrue(AuditLog.objects.filter(
+            object_type='Department', action='create'
+        ).exists())
+
+    def test_edit_department(self):
+        self.client.force_login(self.admin)
+        self.client.post(reverse('hr:department_edit', args=[self.dept.pk]), {
+            'name': 'UpdatedDept',
+        })
+        self.dept.refresh_from_db()
+        self.assertEqual(self.dept.name, 'UpdatedDept')
+        self.assertTrue(AuditLog.objects.filter(
+            object_type='Department', action='update'
+        ).exists())
+
+    def test_delete_department(self):
+        self.client.force_login(self.admin)
+        self.client.post(reverse('hr:department_delete', args=[self.dept.pk]))
+        self.assertFalse(Department.objects.filter(pk=self.dept.pk).exists())
+        self.assertTrue(AuditLog.objects.filter(
+            object_type='Department', action='delete'
+        ).exists())
+
+    def test_staff_cannot_create_department(self):
+        self.client.force_login(self.staff)
+        response = self.client.post(reverse('hr:create_department'), {
+            'name': 'StaffDept',
+            'company': self.company.pk,
+        })
+        self.assertFalse(Department.objects.filter(name='StaffDept').exists())
+
+    def test_move_department(self):
+        parent_dept = Department.objects.create(name='ParentDept', company=self.company)
+        self.client.force_login(self.admin)
+        self.client.post(reverse('hr:department_move', args=[self.dept.pk]), {
+            'parent': parent_dept.pk,
+        })
+        self.dept.refresh_from_db()
+        self.assertEqual(self.dept.parent, parent_dept)

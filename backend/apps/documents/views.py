@@ -6,7 +6,7 @@ from account.role_permissions import need_permission, PermissionEnums
 
 from .forms import InnerDocumentForm
 from .enums import DocumentTypeEnum
-from .services import documents_list, document, document_action, edit_document_by_type
+from .documents_service import documents_list, document, document_action, edit_document_by_type
 
 from project.utils import get_or_error
 
