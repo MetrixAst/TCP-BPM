@@ -79,7 +79,11 @@
             <div>
               <div class="tenant-table-title">Реестр арендаторов</div>
               <div class="tenant-table-sub">
-                {% if paginator.items %}{{ paginator.count }} запис{{ paginator.count|pluralize:"ь,и,ей" }}{% else %}Нет данных{% endif %}
+                  {% if paginator.items %}
+                      {{ paginator.count }} {{ paginator.count|ru_plural_records }}
+                  {% else %}
+                      Нет данных
+                  {% endif %}
               </div>
             </div>
           </div>

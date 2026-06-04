@@ -212,7 +212,7 @@
 
       input.setAttribute('type', 'text');
       input.setAttribute('autocomplete', 'off');
-      input.setAttribute('placeholder', 'дд.мм.гггг');
+      input.setAttribute('placeholder', window.BPM ? window.BPM.t('date_placeholder', 'дд.мм.гггг') : 'дд.мм.гггг');
 
       if (window.jQuery && jQuery.fn.datepicker) {
         jQuery(input).datepicker({

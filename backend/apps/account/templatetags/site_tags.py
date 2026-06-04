@@ -179,3 +179,37 @@ def subtract(value, arg):
         return float(value) - float(arg)
     except (ValueError, TypeError):
         return ''
+
+
+@register.filter
+def ru_plural_records(value):
+    value = abs(int(value))
+
+    if value % 100 in (11, 12, 13, 14):
+        return "записей"
+
+    if value % 10 == 1:
+        return "запись"
+
+    if value % 10 in (2, 3, 4):
+        return "записи"
+
+    return "записей"
+
+@register.filter
+def ru_plural_categories(value):
+    try:
+        value = abs(int(value))
+    except (TypeError, ValueError):
+        return "категорий"
+
+    if value % 100 in (11, 12, 13, 14):
+        return "категорий"
+
+    if value % 10 == 1:
+        return "категория"
+
+    if value % 10 in (2, 3, 4):
+        return "категории"
+
+    return "категорий"

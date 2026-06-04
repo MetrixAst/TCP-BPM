@@ -77,7 +77,15 @@
     root.querySelectorAll('*').forEach(function (el) {
       if (el.hasAttribute('data-i18n-skip')) return;
       if (el.classList.contains('bpm-no-translate')) return;
+    
       translateAttributes(el, map);
+    
+      if (el.tagName === 'OPTION') {
+        var current = normalize(el.textContent);
+        if (map[current]) {
+          el.textContent = map[current];
+        }
+      }
     });
   }
 

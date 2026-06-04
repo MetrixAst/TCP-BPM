@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block title %}Бюджет | metriX BPM{% endblock %}
 
@@ -76,7 +77,7 @@
     <div class="fin-table-head">
       <div>
         <div class="fin-table-title">Статьи бюджета</div>
-        <div class="fin-table-subtitle">{{ rows|length }} {% if rows|length == 1 %}категория{% elif rows|length == 2 or rows|length == 3 or rows|length == 4 %}категории{% else %}категорий{% endif %}</div>
+        <div class="fin-table-subtitle">{{ rows|length }} {{ rows|length|ru_plural_categories }}</div>
       </div>
       <div class="fin-legend">
         <span class="fin-legend__dot fin-legend__dot--success"></span>В норме
@@ -148,7 +149,7 @@
               {% if row.overrun %}
                 <span class="fin-status fin-status--danger">Перерасход</span>
               {% else %}
-                <span class="fin-status fin-status--success">Норма</span>
+                <span class="fin-status fin-status--success">В норме</span>
               {% endif %}
             </td>
 
