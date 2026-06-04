@@ -4178,3 +4178,33 @@ body.hr-registry-edit-body {
 .org-node__edit-btn:hover {
   transform: translateY(-1px);
 }
+
+.hr-org-edit-mode .org-node--dept {
+  cursor: grab;
+}
+
+.hr-org-dragging,
+.hr-org-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+.hr-org-drag-ghost {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  max-width: 220px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: #25233f;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.24);
+}
+
+.org-node--drop-target {
+  outline: 2px dashed #2f6bed !important;
+  outline-offset: 5px;
+  box-shadow: 0 0 0 6px rgba(47, 107, 237, 0.10), 0 14px 34px rgba(15, 23, 42, 0.16) !important;
+}

@@ -257,7 +257,7 @@
         .toUpperCase();
 
       return `
-        <div class="org-node org-node--company${highlighted}">
+        <div class="org-node org-node--company${highlighted}" data-org-node-id="${data.id}">
           <div class="org-node__company-logo">${initials}</div>
           <div class="org-node__company-name">${rawName}</div>
           <div class="org-node__company-label">Компания</div>
@@ -278,9 +278,6 @@
             </button>
             <button type="button" class="org-node__edit-btn" data-org-action="edit" data-org-id="${data.id}" title="Редактировать отдел">
               <i class="bi bi-pencil"></i>
-            </button>
-            <button type="button" class="org-node__edit-btn" data-org-action="move" data-org-id="${data.id}" title="Переместить отдел">
-              <i class="bi bi-diagram-3"></i>
             </button>
           </div>
 
@@ -337,22 +334,83 @@
   function initOrgChart() {
     const container = document.getElementById("hrOrgChart");
     if (!container || typeof d3 === "undefined" || typeof d3.OrgChart === "undefined") return;
-
+  
     const url = container.dataset.url;
     const editUrlTemplate = container.dataset.editUrlTemplate || "/hr/departments/__ID__/edit/";
     const moveUrlTemplate = container.dataset.moveUrlTemplate || "/hr/departments/__ID__/move/";
-    let movingDeptId = null;
-    let movingDeptName = "";
     const createUrl = container.dataset.createUrl || "/hr/departments/create/";
+  
     let chart = null;
     let chartData = [];
     let editMode = false;
-
+    let dragState = null;
+  
     function renderChart() {
       if (!chart || !chartData.length) return;
       chart.data(chartData).render();
     }
-
+  
+    function findDropTarget(clientX, clientY, draggedRawId) {
+      const elements = document.elementsFromPoint(clientX, clientY);
+  
+      for (const el of elements) {
+        const node = el.closest && el.closest(".org-node--dept, .org-node--company");
+        if (!node) continue;
+  
+        const rawId = node.getAttribute("data-org-node-id");
+        if (!rawId) continue;
+  
+        if (String(rawId) === String(draggedRawId)) continue;
+  
+        return node;
+      }
+  
+      return null;
+    }
+  
+    function clearDropTargets() {
+      document.querySelectorAll(".org-node--drop-target").forEach(function (el) {
+        el.classList.remove("org-node--drop-target");
+      });
+    }
+  
+    function moveDepartmentToTarget(sourceRawId, targetRawId, sourceName) {
+      const sourceId = getCleanDepartmentId(sourceRawId);
+      const isCompanyTarget = String(targetRawId || "").startsWith("company_");
+      const targetId = isCompanyTarget ? "" : getCleanDepartmentId(targetRawId);
+  
+      if (!sourceId) return;
+      if (!isCompanyTarget && (!targetId || targetId === sourceId)) return;
+  
+      const targetText = isCompanyTarget ? "компанию" : "выбранный отдел";
+  
+      if (!confirm("Переместить отдел «" + sourceName + "» внутрь: " + targetText + "?")) {
+        return;
+      }
+  
+      fetch(moveUrlTemplate.replace("__ID__", sourceId), {
+        method: "POST",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-CSRFToken": getCsrfToken()
+        },
+        body: new URLSearchParams({
+          parent: targetId
+        })
+      })
+        .then(function (response) {
+          if (!response.ok) throw new Error("Move failed");
+          return response.json();
+        })
+        .then(function () {
+          window.location.reload();
+        })
+        .catch(function () {
+          alert("Не удалось переместить отдел.");
+        });
+    }
+  
     fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
       .then(function (response) {
         if (!response.ok) throw new Error("Bad response");
@@ -360,27 +418,31 @@
       })
       .then(function (raw) {
         chartData = normalizeOrgData(raw);
-
+  
         if (!chartData.length) {
           container.innerHTML = `<div class="hr-empty"><h3>Нет данных</h3></div>`;
           return;
         }
-
+  
         chart = new d3.OrgChart()
           .container("#hrOrgChart")
           .data(chartData)
           .nodeId(function (d) { return d.id; })
           .parentNodeId(function (d) { return d.parentId; })
           .nodeWidth(function (d) {
+            const nodeId = String(d.data.id || "");
             const t = (d.data.type || "").toLowerCase();
-            if (t.includes("компания")) return 220;
-            if (t.includes("департамент") || t.includes("отдел")) return 200;
+  
+            if (nodeId.startsWith("company_") || t.includes("компания")) return 220;
+            if (nodeId.startsWith("dept_") || t.includes("департамент") || t.includes("отдел")) return 200;
             return 240;
           })
           .nodeHeight(function (d) {
+            const nodeId = String(d.data.id || "");
             const t = (d.data.type || "").toLowerCase();
-            if (t.includes("компания")) return 100;
-            if (t.includes("департамент") || t.includes("отдел")) return 80;
+  
+            if (nodeId.startsWith("company_") || t.includes("компания")) return 100;
+            if (nodeId.startsWith("dept_") || t.includes("департамент") || t.includes("отдел")) return 80;
             return 72;
           })
           .childrenMargin(function () { return 48; })
@@ -395,26 +457,26 @@
           })
           .onNodeClick(function (node) {
             if (editMode) return;
-
+  
             const data = node && node.data ? node.data : node;
             const profileUrl = data && data.profileUrl;
-
+  
             if (profileUrl && String(data.id || "").startsWith("emp_")) {
               window.location.href = profileUrl;
             }
           })
           .render();
-
+  
         setTimeout(function () {
           chart.fit();
-
+  
           const highlightId = container.dataset.highlight;
           if (highlightId) {
             chartData.forEach(function (item) {
               item._highlighted = item.id === highlightId;
               if (item._highlighted) item._expanded = true;
             });
-
+  
             chart.data(chartData).render().fit();
           }
         }, 200);
@@ -428,7 +490,7 @@
             <p style="font-size: 12px; opacity: 0.6;">${error.message}</p>
           </div>`;
       });
-
+  
     function setupAction(id, action) {
       const el = document.getElementById(id);
       if (el) {
@@ -439,137 +501,162 @@
         });
       }
     }
-
+  
     setupAction("hrOrgZoomIn", "zoomIn");
     setupAction("hrOrgZoomOut", "zoomOut");
     setupAction("hrOrgFit", "fit");
-
+  
     const expandAll = document.getElementById("hrOrgExpandAll");
     if (expandAll) {
       expandAll.addEventListener("click", function () {
         if (!chart || !chartData.length) return;
-
+  
         chartData.forEach(function (item) {
           item._expanded = true;
           item._highlighted = false;
         });
-
+  
         chart.data(chartData).render().fit();
       });
     }
-
+  
     const search = document.getElementById("hrOrgSearch");
     if (search) {
       search.addEventListener("input", function () {
         if (!chart || !chartData.length) return;
-
+  
         const val = search.value.trim().toLowerCase();
-
+  
         chartData.forEach(function (item) {
           const text = [item.name, item.position, item.type].join(" ").toLowerCase();
           item._highlighted = Boolean(val && text.includes(val));
           if (val && text.includes(val)) item._expanded = true;
         });
-
+  
         chart.data(chartData).render().fit();
       });
     }
-
+  
     const editToggle = document.getElementById("hrOrgEditToggle");
     if (editToggle) {
       editToggle.addEventListener("click", function () {
         editMode = !editMode;
-
+  
         document.body.classList.toggle("hr-org-edit-mode", editMode);
         editToggle.classList.toggle("is-active", editMode);
-
+  
+        dragState = null;
+        document.body.classList.remove("hr-org-dragging");
+        clearDropTargets();
+  
         renderChart();
       });
     }
-
+  
     container.addEventListener("click", function (event) {
-      const deptNode = event.target.closest(".org-node--dept");
       const button = event.target.closest("[data-org-action]");
-    
-      if (!editMode) return;
-    
-      if (button) {
-        event.preventDefault();
-        event.stopPropagation();
-    
-        const action = button.dataset.orgAction;
-        const nodeId = button.dataset.orgId;
-        const cleanId = getCleanDepartmentId(nodeId);
-        const node = chartData.find(function (item) {
-          return String(item.id) === String(nodeId);
-        });
-    
-        if (!cleanId) return;
-    
-        if (action === "create-child") {
-          window.location.href = createUrl + "?parent=" + encodeURIComponent(cleanId);
-          return;
-        }
-    
-        if (action === "edit") {
-          window.location.href = editUrlTemplate.replace("__ID__", cleanId);
-          return;
-        }
-    
-        if (action === "move") {
-          movingDeptId = cleanId;
-          movingDeptName = node ? String(node.name || "").split("·")[0].trim() : "отдел";
-    
-          document.body.classList.add("hr-org-move-mode");
-    
-          if (chart) {
-            chart.data(chartData).render();
-          }
-    
-          alert("Теперь нажмите на отдел, внутрь которого нужно переместить «" + movingDeptName + "».");
-          return;
-        }
+  
+      if (!editMode || !button) return;
+  
+      event.preventDefault();
+      event.stopPropagation();
+  
+      const action = button.dataset.orgAction;
+      const nodeId = button.dataset.orgId;
+      const cleanId = getCleanDepartmentId(nodeId);
+  
+      if (!cleanId) return;
+  
+      if (action === "create-child") {
+        window.location.href = createUrl + "?parent=" + encodeURIComponent(cleanId);
+        return;
       }
-    
-      if (movingDeptId && deptNode) {
-        event.preventDefault();
-        event.stopPropagation();
-    
-        const targetRawId = deptNode.getAttribute("data-org-node-id");
-        const targetId = getCleanDepartmentId(targetRawId);
-    
-        if (!targetId || targetId === movingDeptId) return;
-    
-        if (!confirm("Переместить отдел «" + movingDeptName + "» внутрь выбранного отдела?")) {
-          movingDeptId = null;
-          movingDeptName = "";
-          document.body.classList.remove("hr-org-move-mode");
-          return;
-        }
-    
-        const csrfToken = getCsrfToken();
-    
-        fetch(moveUrlTemplate.replace("__ID__", movingDeptId), {
-          method: "POST",
-          headers: {
-            "X-Requested-With": "XMLHttpRequest",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-CSRFToken": csrfToken
-          },
-          body: new URLSearchParams({
-            parent: targetId
-          })
-        })
-          .then(function (response) {
-            if (!response.ok) throw new Error("Move failed");
-            return response.json();
-          })
-          .then(function () {
-            window.location.reload();
-          })
-          .catch(function () {
-            alert("Не удалось переместить отдел.");
-          });
+  
+      if (action === "edit") {
+        window.location.href = editUrlTemplate.replace("__ID__", cleanId);
+        return;
+      }
+    });
+  
+    container.addEventListener("mousedown", function (event) {
+      if (!editMode) return;
+  
+      const deptNode = event.target.closest(".org-node--dept");
+      if (!deptNode) return;
+  
+      if (event.target.closest("[data-org-action]")) return;
+  
+      const rawId = deptNode.getAttribute("data-org-node-id");
+      const cleanId = getCleanDepartmentId(rawId);
+      if (!cleanId) return;
+  
+      const node = chartData.find(function (item) {
+        return String(item.id) === String(rawId);
+      });
+  
+      dragState = {
+        rawId: rawId,
+        name: node ? String(node.name || "").split("·")[0].trim() : "отдел",
+        startX: event.clientX,
+        startY: event.clientY,
+        dragging: false,
+        ghost: null,
+        target: null
+      };
+    });
+  
+    document.addEventListener("mousemove", function (event) {
+      if (!dragState) return;
+  
+      const dx = Math.abs(event.clientX - dragState.startX);
+      const dy = Math.abs(event.clientY - dragState.startY);
+  
+      if (!dragState.dragging && (dx > 6 || dy > 6)) {
+        dragState.dragging = true;
+        document.body.classList.add("hr-org-dragging");
+  
+        const ghost = document.createElement("div");
+        ghost.className = "hr-org-drag-ghost";
+        ghost.textContent = dragState.name;
+        document.body.appendChild(ghost);
+        dragState.ghost = ghost;
+      }
+  
+      if (!dragState.dragging) return;
+  
+      event.preventDefault();
+  
+      if (dragState.ghost) {
+        dragState.ghost.style.left = event.clientX + 14 + "px";
+        dragState.ghost.style.top = event.clientY + 14 + "px";
+      }
+  
+      clearDropTargets();
+  
+      const target = findDropTarget(event.clientX, event.clientY, dragState.rawId);
+      dragState.target = target;
+  
+      if (target) {
+        target.classList.add("org-node--drop-target");
+      }
+    });
+  
+    document.addEventListener("mouseup", function () {
+      if (!dragState) return;
+  
+      const state = dragState;
+      dragState = null;
+  
+      document.body.classList.remove("hr-org-dragging");
+      clearDropTargets();
+  
+      if (state.ghost) {
+        state.ghost.remove();
+      }
+  
+      if (state.dragging && state.target) {
+        const targetRawId = state.target.getAttribute("data-org-node-id");
+        moveDepartmentToTarget(state.rawId, targetRawId, state.name);
       }
     });
   }
