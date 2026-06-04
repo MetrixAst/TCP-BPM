@@ -4,7 +4,7 @@
 {% block title %}Оргструктура | metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&org=2">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&org=6">
 {% endblock styles %}
 
 {% block content %}
@@ -31,14 +31,19 @@
           </button>
         </div>
 
-        <button class="hr-org-expand" type="button" id="hrOrgExpandAll" title="Раскрыть всё дерево">
+        <button class="hr-org-expand" type="button" id="hrOrgExpandAll">
           <i class="bi bi-arrows-expand"></i>
           <span>Раскрыть всё</span>
         </button>
 
-        <button class="hr-org-fit" type="button" id="hrOrgFit" title="Подогнать под экран">
+        <button class="hr-org-fit" type="button" id="hrOrgFit">
           <i class="bi bi-arrows-fullscreen"></i>
           <span>Подогнать</span>
+        </button>
+
+        <button class="hr-org-edit-toggle" type="button" id="hrOrgEditToggle">
+          <i class="bi bi-pencil-square"></i>
+          <span>Редактировать</span>
         </button>
       </div>
     </div>
@@ -48,19 +53,13 @@
     <div class="hr-org-panel__head">
       <div>
         <h2>Структура компании</h2>
-        <p>Нажмите на сотрудника чтобы открыть карточку</p>
+        <p>Редактируйте отделы прямо из дерева</p>
       </div>
 
       <div class="hr-org-legend">
-        <span class="hr-org-legend__item hr-org-legend__item--company">
-          <span class="hr-org-legend__dot"></span>Компания
-        </span>
-        <span class="hr-org-legend__item hr-org-legend__item--dept">
-          <span class="hr-org-legend__dot"></span>Отдел
-        </span>
-        <span class="hr-org-legend__item hr-org-legend__item--emp">
-          <span class="hr-org-legend__dot"></span>Сотрудник
-        </span>
+        <span><span class="hr-org-legend__dot hr-org-legend__dot--company"></span>Компания</span>
+        <span><span class="hr-org-legend__dot hr-org-legend__dot--dept"></span>Отдел</span>
+        <span><span class="hr-org-legend__dot hr-org-legend__dot--emp"></span>Сотрудник</span>
       </div>
     </div>
 
@@ -69,6 +68,10 @@
         class="hr-org-chart"
         id="hrOrgChart"
         data-url="/account/structure/all"
+        data-create-url="{% url 'hr:create_department' %}"
+        data-departments-url="{% url 'hr:departments' %}"
+        data-edit-url-template="/hr/departments/__ID__/edit/"
+        data-move-url-template="/hr/departments/__ID__/move/"
         data-highlight="{{ request.GET.highlight|default:'' }}">
       </div>
     </div>
@@ -81,5 +84,5 @@
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-flextree@2.1.2/build/d3-flextree.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-org-chart@3"></script>
-<script src="{% static 'site/js/apps/hr.js' %}?v=9999"></script>
+<script src="{% static 'site/js/apps/hr.js' %}?v=10010"></script>
 {% endblock scripts %}

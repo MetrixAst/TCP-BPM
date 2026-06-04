@@ -1,0 +1,92 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Новый отдел — metriX BPM{% endblock %}
+
+{% block body_classes %}hr-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&dept-form=4">
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-edit-page">
+  <div class="hr-edit-card">
+
+    <div class="hr-edit-card__header">
+      <h1 class="hr-edit-card__title">Новый отдел</h1>
+
+      <a href="{% url 'hr:departments' %}" class="hr-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
+    </div>
+
+    <form method="POST" class="hr-edit-form" id="hrDepartmentForm">
+      {% csrf_token %}
+
+      <div class="hr-edit-card__body">
+        <section class="hr-edit-section">
+          <h2 class="hr-edit-section__title">Данные отдела</h2>
+
+          <div class="hr-edit-grid hr-edit-grid--2">
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Название<span>*</span></label>
+              <input type="text" name="name" placeholder="Отдел продаж" required>
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Компания<span>*</span></label>
+              <select name="company" required>
+                <option value="">Выберите компанию</option>
+                {% for company in companies %}
+                  <option value="{{ company.pk }}">{{ company.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Родительский отдел</label>
+              <select name="parent">
+                <option value="">Корневой отдел</option>
+                {% for item in departments %}
+                  <option value="{{ item.pk }}">
+                    {{ item.name }}{% if item.company %} ({{ item.company.name }}){% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Тип</label>
+              <select name="level_type">
+                <option value="department">Отдел</option>
+                <option value="division">Подразделение</option>
+              </select>
+            </div>
+
+          </div>
+        </section>
+      </div>
+
+      <div class="hr-edit-card__footer">
+        <a href="{% url 'hr:departments' %}" class="hr-edit-btn hr-edit-btn--cancel">
+          Отменить
+        </a>
+      
+        <button type="submit" class="hr-edit-btn hr-edit-btn--save">
+          Создать
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/hr.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock scripts %}

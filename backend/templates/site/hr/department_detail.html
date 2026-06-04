@@ -1,0 +1,175 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}{{ department.name }} — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&dept-detail=1">
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-page hr-department-detail-page">
+
+  <div class="hr-dept-detail-layout">
+
+    <div class="hr-dept-detail-main">
+      <div class="hr-dept-detail-card">
+        <div class="hr-dept-detail-breadcrumb">
+          <a href="{% url 'hr:departments' %}">
+            <i class="bi bi-arrow-left"></i>
+            Отделы
+          </a>
+          <span>/</span>
+          <span>{{ department.name }}</span>
+        </div>
+
+        <div class="hr-dept-detail-head">
+          <div class="hr-avatar hr-avatar--dept">
+            {{ department.name|slice:":1"|upper }}
+          </div>
+
+          <div>
+            <h1>{{ department.name }}</h1>
+            <p>
+              {% if department.company %}{{ department.company.name }}{% else %}Компания не указана{% endif %}
+            </p>
+          </div>
+        </div>
+
+        <div class="hr-dept-detail-stats">
+          <div class="hr-dept-detail-stat">
+            <strong>{{ employees_count }}</strong>
+            <span>Сотрудников</span>
+          </div>
+
+          <div class="hr-dept-detail-stat">
+            <strong>{{ children|length }}</strong>
+            <span>Подотделов</span>
+          </div>
+
+          <div class="hr-dept-detail-stat">
+            <strong>
+              {% if department.parent %}1{% else %}—{% endif %}
+            </strong>
+            <span>Родительский отдел</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hr-dept-detail-card">
+        <div class="hr-dept-detail-section-head">
+          <h2>Сотрудники отдела</h2>
+          <span>{{ employees_count }}</span>
+        </div>
+
+        {% if employees %}
+          <div class="hr-table hr-table--dept-employees">
+            <div class="hr-table__head">
+              <div>Сотрудник</div>
+              <div>Должность</div>
+              <div>Статус</div>
+            </div>
+
+            <div class="hr-table__body">
+              {% for employee in employees %}
+              <a href="{% url 'hr:employee_detail' employee.pk %}" class="hr-table__row">
+                <div class="hr-employee">
+                  <div class="hr-avatar">
+                    {% if employee.user.first_name %}
+                      {{ employee.user.first_name|slice:":1" }}
+                    {% else %}
+                      {{ employee.user.username|slice:":1" }}
+                    {% endif %}
+                  </div>
+
+                  <div>
+                    <div class="hr-employee__name">
+                      {% if employee.user.get_name %}{{ employee.user.get_name }}{% else %}{{ employee.user.username }}{% endif %}
+                    </div>
+                    <div class="hr-employee__meta">@{{ employee.user.username }}</div>
+                  </div>
+                </div>
+
+                <div class="hr-muted">
+                  {% if employee.position %}{{ employee.position.title }}{% else %}—{% endif %}
+                </div>
+
+                <div>
+                  <span class="hr-status hr-status--{{ employee.status }}">
+                    {{ employee.get_status_display }}
+                  </span>
+                </div>
+              </a>
+              {% endfor %}
+            </div>
+          </div>
+        {% else %}
+          <div class="hr-empty">
+            <i class="bi bi-people"></i>
+            <h3>Сотрудников нет</h3>
+            <p>В этом отделе пока нет сотрудников.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <aside class="hr-dept-detail-side">
+      <div class="hr-dept-detail-card">
+        <div class="hr-dept-detail-side-head">
+          <h2>Информация</h2>
+
+          <a href="{% url 'hr:department_edit' department.pk %}" class="hr-icon-action" title="Редактировать">
+            <i class="bi bi-pencil"></i>
+          </a>
+        </div>
+
+        <div class="hr-dept-info-list">
+          <div class="hr-dept-info-item">
+            <span>Компания</span>
+            <strong>{% if department.company %}{{ department.company.name }}{% else %}—{% endif %}</strong>
+          </div>
+
+          <div class="hr-dept-info-item">
+            <span>Родительский отдел</span>
+            <strong>{% if department.parent %}{{ department.parent.name }}{% else %}—{% endif %}</strong>
+          </div>
+
+          <div class="hr-dept-info-item">
+            <span>Тип</span>
+            <strong>{% if department.level_type %}{{ department.level_type }}{% else %}—{% endif %}</strong>
+          </div>
+
+          <div class="hr-dept-info-item">
+            <span>Сотрудники</span>
+            <strong>{{ employees_count }}</strong>
+          </div>
+        </div>
+      </div>
+
+      {% if children %}
+      <div class="hr-dept-detail-card">
+        <div class="hr-dept-detail-side-head">
+          <h2>Подотделы</h2>
+          <span class="hr-count">{{ children|length }}</span>
+        </div>
+
+        <div class="hr-dept-children">
+          {% for child in children %}
+          <a href="{% url 'hr:department_detail' child.pk %}" class="hr-dept-child">
+            <span>{{ child.name }}</span>
+            <i class="bi bi-chevron-right"></i>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </aside>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/hr.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock scripts %}

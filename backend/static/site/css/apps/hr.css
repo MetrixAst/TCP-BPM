@@ -3359,5 +3359,707 @@ body.hr-registry-edit-body .bpm-content {
     grid-template-columns: 1fr;
   }
 }
+.hr-org-edit-toggle {
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #f5f3fa;
+  color: #25233f;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hr-org-edit-toggle:hover,
+.hr-org-edit-toggle.is-active {
+  background: #2f6bed;
+  color: #ffffff;
+}
+
+.org-node {
+  position: relative;
+}
+
+.org-node__edit-actions {
+  position: absolute;
+  top: -12px;
+  right: -10px;
+  z-index: 5;
+  display: none;
+  gap: 5px;
+}
+
+.hr-org-edit-mode .org-node--dept .org-node__edit-actions {
+  display: flex;
+}
+
+.org-node__edit-btn {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: #2f6bed;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(47, 107, 237, 0.28);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.org-node__edit-btn:hover {
+  background: #2458c7;
+}
+
+.hr-org-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hr-org-zoom {
+  height: 36px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #f5f3fa;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.hr-org-zoom__btn,
+.hr-org-expand,
+.hr-org-edit-toggle {
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #25233f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hr-org-zoom__btn {
+  width: 30px;
+  padding: 0;
+}
+
+.hr-org-expand,
+.hr-org-edit-toggle {
+  height: 36px;
+  padding: 0 14px;
+  background: #f5f3fa;
+}
+
+.hr-org-zoom__btn:hover,
+.hr-org-expand:hover,
+.hr-org-edit-toggle:hover {
+  background: #ece9f4;
+}
+
+.hr-org-edit-toggle.is-active {
+  background: #2f6bed;
+  color: #ffffff;
+}
+
+.hr-org-fit {
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #2f6bed;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hr-org-fit:hover {
+  background: #2458c7;
+}
+
+.org-node {
+  position: relative;
+}
+
+.org-node__edit-actions {
+  position: absolute;
+  top: -12px;
+  right: -10px;
+  z-index: 5;
+  display: none;
+  gap: 5px;
+}
+
+.hr-org-edit-mode .org-node--dept .org-node__edit-actions {
+  display: flex;
+}
+
+.org-node__edit-btn {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: #2f6bed;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(47, 107, 237, 0.28);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.org-node__edit-btn:hover {
+  background: #2458c7;
+}
+
+@media (max-width: 991px) {
+  .hr-org-toolbar {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .hr-org-expand,
+  .hr-org-fit,
+  .hr-org-edit-toggle {
+    flex: 1 1 auto;
+  }
+}
+#hrDepartmentForm input,
+#hrDepartmentForm select,
+#hrDepartmentForm textarea {
+  width: 100%;
+  height: 32px !important;
+  min-height: 32px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f5f3fa !important;
+  color: #25233f !important;
+  font-size: 13px !important;
+  font-weight: 500;
+  padding: 0 16px !important;
+  outline: none !important;
+  box-shadow: none !important;
+  box-sizing: border-box;
+}
+
+#hrDepartmentForm input::placeholder {
+  color: #9a98aa;
+}
+
+#hrDepartmentForm input:focus,
+#hrDepartmentForm select:focus,
+#hrDepartmentForm textarea:focus {
+  box-shadow: 0 0 0 2px rgba(54, 100, 220, 0.15) !important;
+}
+
+#hrDepartmentForm select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B6880' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 12px 8px !important;
+  padding-right: 36px !important;
+  cursor: pointer;
+}
+
+.hr-departments-page .hr-table--departments .hr-table__head,
+.hr-departments-page .hr-table--departments .hr-table__row {
+  grid-template-columns: minmax(260px, 1.6fr) minmax(220px, 1.2fr) minmax(220px, 1.2fr) 120px !important;
+}
+
+.hr-departments-page .hr-table__row {
+  text-decoration: none;
+}
+
+.hr-departments-page .hr-table__row:hover {
+  color: #25233f;
+  text-decoration: none;
+}
+
+.hr-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.hr-badge--neutral {
+  background: #edf4ff;
+  color: #2f6bed;
+}
+
+#hrDepartmentForm input,
+#hrDepartmentForm select,
+#hrDepartmentForm textarea {
+  width: 100%;
+  height: 32px !important;
+  min-height: 32px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f5f3fa !important;
+  color: #25233f !important;
+  font-size: 13px !important;
+  font-weight: 500;
+  padding: 0 16px !important;
+  outline: none !important;
+  box-shadow: none !important;
+  box-sizing: border-box;
+}
+
+#hrDepartmentForm input:focus,
+#hrDepartmentForm select:focus,
+#hrDepartmentForm textarea:focus {
+  box-shadow: 0 0 0 2px rgba(54, 100, 220, 0.15) !important;
+}
+
+#hrDepartmentForm select {
+  appearance: none;
+}
+
+.hr-edit-card__footer--between {
+  justify-content: space-between;
+}
+
+.hr-edit-card__footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.hr-edit-btn--danger {
+  background: #ef4444;
+  color: #ffffff;
+  gap: 6px;
+}
+
+.hr-edit-btn--danger:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+#hrDepartmentForm input,
+#hrDepartmentForm textarea,
+#hrDepartmentForm .select2-container--default .select2-selection--single,
+#hrDepartmentForm .select2-container--bootstrap4 .select2-selection--single {
+  width: 100% !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f5f3fa !important;
+  color: #25233f !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+#hrDepartmentForm input,
+#hrDepartmentForm textarea {
+  font-size: 13px !important;
+  font-weight: 500;
+  padding: 0 16px !important;
+  outline: none !important;
+  box-sizing: border-box;
+}
+
+#hrDepartmentForm .select2-selection__rendered {
+  height: 32px !important;
+  line-height: 32px !important;
+  padding-left: 16px !important;
+  padding-right: 34px !important;
+  color: #25233f !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+#hrDepartmentForm .select2-selection__arrow {
+  height: 32px !important;
+  right: 10px !important;
+}
+
+.select2-dropdown {
+  border: 0 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16) !important;
+  overflow: hidden !important;
+}
+
+.select2-results__options {
+  padding: 6px !important;
+}
+
+.select2-results__option {
+  min-height: 34px !important;
+  padding: 8px 12px !important;
+  border-radius: 10px !important;
+  color: #25233f !important;
+  font-size: 13px !important;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+  background: #2f6bed !important;
+  color: #ffffff !important;
+}
+
+.hr-edit-btn {
+  height: 30px;
+  padding: 0 14px;
+  font-size: 12px;
+}
+
+.hr-edit-card__footer {
+  gap: 10px;
+}
+
+.hr-edit-card__footer-actions {
+  gap: 10px;
+}
+
+.hr-org-panel {
+  border: 1px solid #ebeaf1;
+}
+
+.hr-org-shell {
+  height: calc(100vh - 300px);
+  min-height: 680px;
+  background: radial-gradient(circle at 1px 1px, #d9def0 1.2px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.org-node {
+  position: relative;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  border: 1px solid #eef0f7;
+  padding: 12px 14px;
+}
+
+.org-node--company {
+  border-left: 4px solid #2f6bed;
+}
+
+.org-node--dept {
+  border-left: 4px solid #22a85a;
+}
+
+.org-node--emp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-left: 4px solid #8b8fa3;
+}
+
+.org-node__company-logo,
+.org-node__dept-icon,
+.org-emp__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #edf4ff;
+  color: #2f6bed;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.org-node__company-name,
+.org-node__dept-name,
+.org-emp__name {
+  color: #25233f;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.org-node__company-label,
+.org-node__dept-count,
+.org-node__dept-head,
+.org-emp__pos {
+  margin-top: 3px;
+  color: #74728a;
+  font-size: 12px;
+}
+
+.hr-org-legend__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.hr-org-legend__dot--company {
+  background: #2f6bed;
+}
+
+.hr-org-legend__dot--dept {
+  background: #22a85a;
+}
+
+.hr-org-legend__dot--emp {
+  background: #8b8fa3;
+}
+
+.org-node__edit-actions {
+  position: absolute;
+  top: -12px;
+  right: -10px;
+  z-index: 5;
+  display: none;
+  gap: 5px;
+}
+
+.hr-org-edit-mode .org-node--dept .org-node__edit-actions {
+  display: flex;
+}
+
+.hr-department-detail-page {
+  gap: 18px;
+}
+
+.hr-dept-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  align-items: start;
+}
+
+.hr-dept-detail-main {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.hr-dept-detail-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 22px;
+  overflow: hidden;
+}
+
+.hr-dept-detail-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 22px;
+  color: #74728a;
+  font-size: 13px;
+}
+
+.hr-dept-detail-breadcrumb a {
+  color: #2f6bed;
+  text-decoration: none;
+}
+
+.hr-dept-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hr-dept-detail-head h1 {
+  margin: 0;
+  color: #25233f;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.hr-dept-detail-head p {
+  margin: 4px 0 0;
+  color: #74728a;
+  font-size: 14px;
+}
+
+.hr-dept-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.hr-dept-detail-stat {
+  min-height: 86px;
+  padding: 18px;
+  border-radius: 16px;
+  background: #f8f8fc;
+}
+
+.hr-dept-detail-stat strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #25233f;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.hr-dept-detail-stat span {
+  color: #74728a;
+  font-size: 13px;
+}
+
+.hr-dept-detail-section-head,
+.hr-dept-detail-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.hr-dept-detail-section-head h2,
+.hr-dept-detail-side-head h2 {
+  margin: 0;
+  color: #25233f;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.hr-table--dept-employees .hr-table__head,
+.hr-table--dept-employees .hr-table__row {
+  grid-template-columns: minmax(260px, 1.6fr) minmax(200px, 1fr) 130px !important;
+}
+
+.hr-dept-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hr-dept-info-item span {
+  display: block;
+  margin-bottom: 5px;
+  color: #74728a;
+  font-size: 12px;
+}
+
+.hr-dept-info-item strong {
+  color: #25233f;
+  font-size: 14px;
+}
+
+.hr-dept-children {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hr-dept-child {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: #f5f3fa;
+  color: #25233f;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hr-dept-child:hover {
+  background: #ece9f4;
+  color: #25233f;
+  text-decoration: none;
+}
+
+@media (max-width: 1100px) {
+  .hr-dept-detail-layout {
+    grid-template-columns: 1fr;
+  }
+  .hr-dept-detail-stats {
+    grid-template-columns: 1fr;
+  }
+}
+.hr-dept-detail-card {
+  padding: 18px;
+  border-radius: 16px;
+}
+
+.hr-dept-detail-layout {
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 14px;
+}
+
+.hr-dept-detail-main {
+  gap: 14px;
+}
+
+.hr-dept-detail-head h1 {
+  font-size: 24px;
+}
+
+.hr-dept-detail-head p {
+  font-size: 13px;
+}
+
+.hr-dept-detail-stats {
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.hr-dept-detail-stat {
+  min-height: 72px;
+  padding: 14px 16px;
+  border-radius: 14px;
+}
+
+.hr-dept-detail-stat strong {
+  font-size: 22px;
+}
+
+.hr-dept-detail-section-head h2,
+.hr-dept-detail-side-head h2 {
+  font-size: 18px;
+}
+
+.hr-table--dept-employees .hr-table__head,
+.hr-table--dept-employees .hr-table__row {
+  min-height: 46px;
+}
+
+.hr-dept-info-list {
+  gap: 12px;
+}
+
+.hr-dept-child {
+  min-height: 38px;
+}
+
+.hr-org-move-mode .org-node--dept {
+  cursor: crosshair;
+}
+
+.hr-org-move-mode .org-node--dept:hover {
+  outline: 2px dashed #2f6bed;
+  outline-offset: 4px;
+}
+
+.org-node__edit-btn {
+  transition: 0.15s ease;
+}
+
+.org-node__edit-btn:hover {
+  transform: translateY(-1px);
+}
 
 /*# sourceMappingURL=hr.css.map */

@@ -1,0 +1,91 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Редактирование отдела — metriX BPM{% endblock %}
+{% block body_classes %}hr-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&dept-form=4">
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-edit-page">
+  <div class="hr-edit-card">
+
+    <div class="hr-edit-card__header">
+      <h1 class="hr-edit-card__title">{{ department.name }}</h1>
+
+      <a href="{% url 'hr:departments' %}" class="hr-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
+    </div>
+
+    <form method="POST" class="hr-edit-form" id="hrDepartmentForm">
+      {% csrf_token %}
+
+      <div class="hr-edit-card__body">
+        <section class="hr-edit-section">
+          <h2 class="hr-edit-section__title">Данные отдела</h2>
+
+          <div class="hr-edit-grid hr-edit-grid--2">
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Название<span>*</span></label>
+              <input type="text" name="name" value="{{ department.name }}" required>
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Компания<span>*</span></label>
+              <select name="company" required>
+                {% for company in companies %}
+                  <option value="{{ company.pk }}" {% if department.company_id == company.pk %}selected{% endif %}>{{ company.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Родительский отдел</label>
+              <select name="parent">
+                <option value="">Корневой отдел</option>
+                {% for item in departments %}
+                  <option value="{{ item.pk }}" {% if department.parent_id == item.pk %}selected{% endif %}>{{ item.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Тип</label>
+              <select name="level_type">
+                <option value="department" {% if department.level_type == "department" %}selected{% endif %}>Отдел</option>
+                <option value="division" {% if department.level_type == "division" %}selected{% endif %}>Подразделение</option>
+              </select>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="hr-edit-card__footer hr-edit-card__footer--between">
+        <button type="submit"
+                formaction="{% url 'hr:department_delete' department.pk %}"
+                class="hr-edit-btn hr-edit-btn--danger"
+                onclick="return confirm('Удалить отдел без возможности восстановления?');">
+          <i class="bi bi-trash"></i>
+          Удалить
+        </button>
+
+        <div class="hr-edit-card__footer-actions">
+          <a href="{% url 'hr:departments' %}" class="hr-edit-btn hr-edit-btn--cancel">Отменить</a>
+          <button type="submit" class="hr-edit-btn hr-edit-btn--save">Сохранить</button>
+        </div>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/hr.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock scripts %}

@@ -492,6 +492,9 @@ def departments(request):
 
 @need_permission(PermissionEnums.HR_COMPANIES)
 def create_department(request):
+    companies_qs = Company.objects.all().order_by('name')
+    departments_qs = Department.objects.select_related('company').order_by('name')
+
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         company_id = request.POST.get('company')
@@ -502,26 +505,37 @@ def create_department(request):
             try:
                 company = Company.objects.get(pk=company_id)
                 parent = None
+
                 if parent_id:
                     parent = Department.objects.get(pk=parent_id, company=company)
+
                 dept = Department.objects.create(
                     name=name,
                     company=company,
                     parent=parent,
                     level_type=level_type,
                 )
+
                 _log_action(request, AuditLog.Action.CREATE, dept, {
                     'name': name,
                     'company': str(company),
                     'parent': str(parent) if parent else None,
                 })
+
                 messages.success(request, f'Отдел «{name}» добавлен.')
+                return redirect('hr:departments')
+
             except (Company.DoesNotExist, Department.DoesNotExist):
                 messages.error(request, 'Компания или родительский отдел не найдены.')
         else:
             messages.error(request, 'Название и компания обязательны.')
 
-    return redirect('hr:departments')
+    context = {
+        'companies': companies_qs,
+        'departments': departments_qs,
+    }
+
+    return render(request, 'site/hr/create_department.html', context)
 
 
 @need_permission(PermissionEnums.HR)
@@ -1667,50 +1681,85 @@ def department_create(request):
 
 @need_permission(PermissionEnums.HR_COMPANIES)
 def department_edit(request, pk):
-    dept = get_object_or_404(Department, pk=pk)
+    department = get_object_or_404(Department, pk=pk)
+
+    companies_qs = Company.objects.all().order_by('name')
+    departments_qs = (
+        Department.objects
+        .select_related('company')
+        .exclude(pk=department.pk)
+        .order_by('name')
+    )
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
+        company_id = request.POST.get('company')
         parent_id = request.POST.get('parent') or None
-        level_type = request.POST.get('level_type') or dept.level_type
+        level_type = request.POST.get('level_type') or department.level_type or 'department'
 
-        if name:
-            old_repr = str(dept)
-            changes = {}
+        if name and company_id:
+            try:
+                company = Company.objects.get(pk=company_id)
+                parent = None
 
-            if dept.name != name:
-                changes['name'] = {'old': dept.name, 'new': name}
-                dept.name = name
+                if parent_id:
+                    parent = Department.objects.get(pk=parent_id, company=company)
 
-            if level_type != dept.level_type:
-                changes['level_type'] = {'old': dept.level_type, 'new': level_type}
-                dept.level_type = level_type
+                    if parent.pk == department.pk or parent in department.get_descendants():
+                        messages.error(request, 'Нельзя выбрать дочерний отдел родителем.')
+                        return redirect('hr:department_edit', pk=department.pk)
 
-            if parent_id:
-                try:
-                    new_parent = Department.objects.get(pk=parent_id, company=dept.company)
-                    if dept.parent != new_parent:
-                        changes['parent'] = {
-                            'old': str(dept.parent) if dept.parent else None,
-                            'new': str(new_parent),
-                        }
-                        dept.parent = new_parent
-                except Department.DoesNotExist:
-                    messages.error(request, 'Родительский отдел не найден.')
-                    return redirect('hr:departments')
-            else:
-                if dept.parent is not None:
-                    changes['parent'] = {'old': str(dept.parent), 'new': None}
-                    dept.parent = None
+                department.name = name
+                department.company = company
+                department.parent = parent
+                department.level_type = level_type
+                department.save()
 
-            dept.save()
-            if changes:
-                _log_action(request, AuditLog.Action.UPDATE, dept, changes)
-            messages.success(request, f'Отдел «{name}» обновлён.')
+                _log_action(request, AuditLog.Action.UPDATE, department, {
+                    'name': name,
+                    'company': str(company),
+                    'parent': str(parent) if parent else None,
+                })
+
+                messages.success(request, f'Отдел «{name}» сохранён.')
+                return redirect('hr:departments')
+
+            except (Company.DoesNotExist, Department.DoesNotExist):
+                messages.error(request, 'Компания или родительский отдел не найдены.')
         else:
-            messages.error(request, 'Название обязательно.')
+            messages.error(request, 'Название и компания обязательны.')
 
-    return redirect('hr:departments')
+    context = {
+        'department': department,
+        'companies': companies_qs,
+        'departments': departments_qs,
+    }
+
+    return render(request, 'site/hr/edit_department.html', context)
+
+
+@need_permission(PermissionEnums.HR_COMPANIES)
+def department_detail(request, pk):
+    department = get_object_or_404(
+        Department.objects.select_related('company', 'parent'),
+        pk=pk,
+    )
+
+    employees_qs = (
+        Employee.objects
+        .filter(department=department)
+        .select_related('user', 'position')
+        .order_by('user__first_name', 'user__username')
+    )
+
+    context = {
+        'department': department,
+        'employees': employees_qs,
+        'employees_count': employees_qs.count(),
+        'children': department.get_children().select_related('company'),
+    }
+
+    return render(request, 'site/hr/department_detail.html', context)
 
 
 @need_permission(PermissionEnums.HR_COMPANIES)
