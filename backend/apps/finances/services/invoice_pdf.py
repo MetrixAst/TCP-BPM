@@ -83,6 +83,7 @@ def build_invoice_pdf(invoice) -> bytes:
             'issuer_address': ISSUER_ADDRESS,
             'pdf_font_family': PDF_FONT_FAMILY,
             'pdf_font_file': font_filename,
+            'lang': lang,
         },
     )
 

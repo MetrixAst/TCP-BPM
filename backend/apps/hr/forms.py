@@ -126,6 +126,12 @@ class EmployeesListForm(PaginatorForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
+        self.fields['search'].label = 'Поиск'
+        self.fields['department'].label = 'Отдел'
+        self.fields['position'].label = 'Должность'
+        self.fields['status'].label = 'Статус'
+        self.fields['ordering'].label = 'Фильтр'
+        
         placeholders = {
             'department': 'Отдел',
             'position': 'Должность',

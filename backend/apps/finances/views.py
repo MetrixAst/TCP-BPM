@@ -374,7 +374,8 @@ def invoice_pdf(request, pk):
     from .services.invoice_pdf import build_invoice_pdf
 
     try:
-        pdf_bytes = build_invoice_pdf(invoice)
+        lang = request.session.get('django_language', 'ru')
+    pdf_bytes = build_invoice_pdf(invoice, lang=lang)
     except Exception:
         return HttpResponse('Ошибка генерации PDF', status=500, content_type='text/plain; charset=utf-8')
 

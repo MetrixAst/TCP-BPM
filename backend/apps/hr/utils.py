@@ -67,85 +67,86 @@ class OrgChart:
             writer.writerow(row)
 
     def _virtual_root_row(self):
-        return [
-            self.VIRTUAL_ROOT_ID,
-            self.DEFAULT_IMAGE,
-            '',
-            '#',
-            'Организация',
-            'root,infinity',
-            'false',
-            '',
-            'Организация',
-            '',
-            '',
-        ]
+    return [
+        self.VIRTUAL_ROOT_ID,
+        self.DEFAULT_IMAGE,
+        '',
+        '#',
+        'Организация',
+        'root,infinity',
+        'false',
+        '',
+        'Организация',
+        '',
+        '',
+    ]
 
-    def _company_row(self, company, node_id, parent_node_id):
-        return [
-            node_id,
-            self.DEFAULT_IMAGE,
-            'Компания',
-            '#',
-            str(company.name),
-            'company,infinity',
-            'false',
-            'Компания',
-            str(company.name),
-            parent_node_id,
-            '',
-        ]
+def _company_row(self, company, node_id, parent_node_id):
+    return [
+        node_id,
+        self.DEFAULT_IMAGE,
+        'Компания',
+        '#',
+        str(company.name),
+        'company,infinity',
+        'false',
+        'Компания',
+        str(company.name),
+        parent_node_id,
+        '',
+    ]
 
-    def _department_row(self, dept, node_id, parent_node_id):
-        head_info = dept.get_head_info
-        count = self._active_employees(dept).count()
-        subtitle = f'{dept.name} · {count} чел.' if count else str(dept.name)
-        return [
-            node_id,
-            head_info.get('photo', self.DEFAULT_IMAGE),
-            'Департамент',
-            '#',
-            str(dept.name),
-            'dept,infinity',
-            'false',
-            head_info.get('job_title', 'Отдел'),
-            subtitle,
-            parent_node_id,
-            '',
-        ]
+def _department_row(self, dept, node_id, parent_node_id):
+    head_info = dept.get_head_info
+    count = self._active_employees(dept).count()
+    subtitle = f'{dept.name} · {count} чел.' if count else str(dept.name)
 
-    def _employee_row(self, emp, dept, dept_node_id, request):
-        try:
-            image = emp.user.get_avatar_url() if emp.user else self.DEFAULT_IMAGE
-        except Exception:
-            image = self.DEFAULT_IMAGE
+    return [
+        node_id,
+        head_info.get('photo', self.DEFAULT_IMAGE),
+        'Отдел',
+        '#',
+        str(dept.name),
+        'dept,infinity',
+        'false',
+        head_info.get('job_title', 'Отдел'),
+        subtitle,
+        parent_node_id,
+        '',
+    ]
 
-        full_name = 'Сотрудник'
-        if emp.user:
-            full_name = emp.user.get_full_name() or emp.user.username
+def _employee_row(self, emp, dept, dept_node_id, request):
+    try:
+        image = emp.user.get_avatar_url() if emp.user else self.DEFAULT_IMAGE
+    except Exception:
+        image = self.DEFAULT_IMAGE
 
-        is_logged = (
-            'true'
-            if emp.user and request and emp.user == request.user
-            else 'false'
-        )
+    full_name = 'Сотрудник'
+    if emp.user:
+        full_name = emp.user.get_full_name() or emp.user.username
 
-        position_title = emp.position.title if emp.position else 'Сотрудник'
-        profile_url = reverse('hr:employee_detail', args=[emp.pk])
+    is_logged = (
+        'true'
+        if emp.user and request and emp.user == request.user
+        else 'false'
+    )
 
-        return [
-            f"emp_{emp.id}",
-            image,
-            'Сотрудник',
-            profile_url,
-            str(dept.name),
-            'сотрудник,infinity',
-            is_logged,
-            position_title,
-            full_name,
-            dept_node_id,
-            '',
-        ]
+    position_title = emp.position.title if emp.position else 'Сотрудник'
+    profile_url = reverse('hr:employee_detail', args=[emp.pk])
+
+    return [
+        f"emp_{emp.id}",
+        image,
+        'Сотрудник',
+        profile_url,
+        str(dept.name),
+        'сотрудник,infinity',
+        is_logged,
+        position_title,
+        full_name,
+        dept_node_id,
+        '',
+    ]
 
     def _get_companies(self):
         if Company is None:
