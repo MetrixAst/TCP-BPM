@@ -2,12 +2,16 @@ from project.enums import CustomEnum
 
 
 class RequstionTypesEnum(CustomEnum):
-
     IMPORT = ("import", "Ввоз")
     EXPORT = ("export", "Вывоз")
     TEMP_PASS = ("temp_pass", "Временный пропуск")
     PERM_PASS = ("perm_pass", "Постоянный пропуск")
     WORKS = ("works", "Проведение работ")
+    REPAIR = ("repair", "Ремонтные работы")
+    CLEANING = ("cleaning", "Клининг")
+    INCIDENT = ("incident", "Инцидент / авария")
+    OTHER = ("other", "Прочее")
+
 
 
 class RequstionStatusEnum(CustomEnum):

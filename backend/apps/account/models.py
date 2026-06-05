@@ -26,6 +26,7 @@ class UserAccount(AbstractUser):
         (RoleEnums.OWNER.value, 'Владелец'),
         (RoleEnums.CFO.value, 'Финансовый директор'),
         (RoleEnums.CHIEF_ACCOUNTANT.value, 'Главный бухгалтер'),
+        (RoleEnums.TENANT.value, 'Арендатор'),
     ]
 
     GENDERS = [
@@ -40,6 +41,16 @@ class UserAccount(AbstractUser):
     gender = models.CharField("Пол", max_length=6, choices=GENDERS, null=True, blank=True)
 
     head = models.BooleanField("Руководитель компании", default=False, blank=True)
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='users',
+        verbose_name='Арендатор',
+    )
+
+
 
     class Meta:
         verbose_name = "Пользователь"

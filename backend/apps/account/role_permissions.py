@@ -13,6 +13,7 @@ class RoleEnums(Enum):
     OWNER = "owner"
     CFO = "cfo"
     CHIEF_ACCOUNTANT = "chief_accountant"
+    TENANT = "tenant"
 
     @staticmethod
     def tenant_roles():
@@ -140,6 +141,11 @@ class RolePermissions:
             PermissionEnums.DASHBOARD,
             PermissionEnums.REQUISTIONS,
         ],
+        RoleEnums.TENANT.value: [
+            PermissionEnums.PROFILE,
+            PermissionEnums.DASHBOARD,
+            PermissionEnums.REQUISTIONS,
+    ],
     }
 
     @staticmethod

@@ -14,7 +14,7 @@
       <span class="fin-rent-hero__eyebrow"><i class="bi bi-shop"></i> Коммерция</span>
       <h1 class="fin-rent-hero__title">Аналитика аренды</h1>
       <p class="fin-rent-hero__meta">
-        <span class="fin-rent-hero__chip"><i class="bi bi-calendar3"></i> {{ today }}</span>
+        <span class="fin-rent-hero__chip"><i class="bi bi-calendar3"></i> {{ today|date:"j" }} <span>{{ today|date:"F" }}</span> {{ today|date:"Y" }} <span>г.</span></span>
         <span>Арендаторов<span>:</span> {{ occupied_count }} / {{ tenants_count }}</span>
         <span>Данные по оплатам из реестра</span>
       </p>

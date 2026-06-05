@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
@@ -111,7 +112,7 @@
     <div class="fin-table-head">
       <div>
         <div class="fin-table-title">Наименование работ</div>
-        <div class="fin-table-subtitle">{{ works|length }} запис{{ works|length|pluralize:"ь,и,ей" }}</div>
+        <div class="fin-table-subtitle">{{ works|length }} {{ works|length|ru_plural_records }}</div>
       </div>
       <div class="fin-legend">
         <span><i class="is-success"></i> Выполнен</span>
