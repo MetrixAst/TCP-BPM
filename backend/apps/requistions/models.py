@@ -100,6 +100,24 @@ class Requistion(models.Model):
 
         #TODO add notification
 
+    def notify_operations(self):
+        from account.models import UserAccount, Notification
+        from account.role_permissions import RoleEnums
+
+        ops_users = UserAccount.objects.filter(
+            role__in=[
+                RoleEnums.ADMINISTRATOR.value,
+                RoleEnums.HR.value,
+            ]
+        )
+        notification = Notification.objects.create(
+            title='Новая заявка арендатора',
+            text=f'{self.get_requistion_type_display()} #{self.id}',
+            target_type='requistion',
+            target_id=self.id,
+        )
+        notification.users.add(*ops_users)
+
     def get_data(self):
         res = {
             'Идентификатор': self.id,
