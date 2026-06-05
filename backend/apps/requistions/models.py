@@ -83,8 +83,12 @@ class Requistion(models.Model):
         return RequstionStatusEnum.get_info(self.status, self.requistion_type)
     
     def actions(self, request):
-        #TODO check can action
-        return RequstionStatusEnum.get_actions(self.status, self.requistion_type, self.user, request.user)
+        return RequstionStatusEnum.get_actions(
+            self.status,
+            self.requistion_type,
+            self,
+            request.user,
+        )
     
     def set_action(self, request, action, text = ''):
         actions = self.actions(request)
@@ -98,7 +102,8 @@ class Requistion(models.Model):
         self.save()
         RequistionHistory.objects.create(requistion=self, user=request.user, status=self.status, text=text)
 
-        #TODO add notification
+        from .services import notify_requisition_status
+        notify_requisition_status(self)
 
     def get_data(self):
         res = {

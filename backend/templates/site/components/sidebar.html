@@ -11,7 +11,7 @@
           {% if item.always_expanded %}
           <div class="bpm-sidebar__item bpm-sidebar__item--parent bpm-sidebar__item--static is-open">
             <i class="bi bi-{{ item.icon|default:'circle' }} bpm-sidebar__icon"></i>
-            <span class="bpm-sidebar__label">{{ item.title }}</span>
+            <span class="bpm-sidebar__label">{% menu_t item.id item.title %}</span>
           </div>
           <div class="bpm-sidebar__submenu bpm-sidebar__submenu--open" id="bpm-sg-{{ forloop.counter }}">
           {% else %}
@@ -21,7 +21,7 @@
                   data-bs-target="#bpm-sg-{{ forloop.counter }}"
                   aria-expanded="{{ item.is_active|yesno:'true,false' }}">
             <i class="bi bi-{{ item.icon|default:'circle' }} bpm-sidebar__icon"></i>
-            <span class="bpm-sidebar__label">{{ item.title }}</span>
+            <span class="bpm-sidebar__label">{% menu_t item.id item.title %}</span>
             <span class="bpm-sidebar__chevron" aria-hidden="true"></span>
           </button>
           <div class="collapse {% if item.is_active %}show{% endif %}" id="bpm-sg-{{ forloop.counter }}">
@@ -36,7 +36,7 @@
                  {% else %}
                    <span class="bpm-sidebar__icon bpm-sidebar__icon--empty"></span>
                  {% endif %}
-                <span class="bpm-sidebar__label">{{ sub.title }}</span>
+                <span class="bpm-sidebar__label">{% menu_t sub.id sub.title %}</span>
               </a>
             {% endfor %}
           </div>
@@ -47,7 +47,7 @@
            data-type="{{ item.indicator_alias }}"
            {% if item.is_active %}aria-current="page"{% endif %}>
           <i class="bi bi-{{ item.icon|default:'circle' }} bpm-sidebar__icon"></i>
-          <span class="bpm-sidebar__label">{{ item.title }}</span>
+          <span class="bpm-sidebar__label">{% menu_t item.id item.title %}</span>
         </a>
       {% endif %}
     {% endfor %}
@@ -55,7 +55,7 @@
 
   <div class="bpm-sidebar__footer">
     {% if user|has_permission:"profile" %}
-    <a href="{% url 'hr:my_profile' %}" class="bpm-sidebar__user-link" title="Личный профиль">
+    <a href="{% url 'hr:my_profile' %}" class="bpm-sidebar__user-link" title="{% t 'menu.my_profile' 'Личный профиль' %}">
     {% endif %}
       <div class="bpm-sidebar__avatar">
         {% if user.get_avatar_url %}
@@ -67,7 +67,8 @@
 
       <div class="bpm-sidebar__user">
         <div class="bpm-sidebar__user-name">
-          {% firstof user.get_name user.first_name user.username "Пользователь" %}
+          {% firstof user.get_name user.first_name user.username %}
+          {% if not user.get_name and not user.first_name and not user.username %}{% t 'sidebar.user_fallback' 'Пользователь' %}{% endif %}
         </div>
         <div class="bpm-sidebar__user-role">
           {% role_label user.role %}
@@ -77,7 +78,7 @@
     </a>
     {% endif %}
 
-    <a href="{% url 'account:logout' %}" class="bpm-sidebar__logout" title="Выйти">
+    <a href="{% url 'account:logout' %}" class="bpm-sidebar__logout" title="{% t 'sidebar.logout' 'Выйти' %}">
       <i class="bi bi-box-arrow-right"></i>
     </a>
   </div>

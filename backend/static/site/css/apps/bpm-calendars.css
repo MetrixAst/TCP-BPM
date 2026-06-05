@@ -39,16 +39,25 @@
 
 .fc .fc-daygrid-day-top {
   flex-direction: row;
-  justify-content: flex-end;
-  padding: 4px 6px 2px;
+  justify-content: center;
+  padding: 4px 4px 2px;
 }
 
 .fc .fc-daygrid-day-number {
+  float: none !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 !important;
+  margin: 0;
   font-size: 13px;
   font-weight: 600;
   color: #25233f;
-  padding: 2px 6px;
-  line-height: 1.2;
+  line-height: 1;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .fc .fc-daygrid-day-events {
@@ -82,7 +91,7 @@
 .fc .fc-day-today .fc-daygrid-day-number {
   background: #2f6bed;
   color: #fff;
-  border-radius: 8px;
+  border-radius: 50%;
 }
 
 .fc table {
@@ -116,6 +125,65 @@
 .fin-calendar-day {
   box-sizing: border-box;
   min-height: 118px;
+}
+
+.fin-calendar-day__number {
+  align-self: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+/* Bootstrap datepicker — круг/подсветка по центру числа */
+.datepicker table tr td {
+  box-sizing: border-box;
+  padding: 0 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+}
+
+.datepicker table tr td.day,
+.datepicker table tr td.new,
+.datepicker table tr td.old {
+  border-radius: 50% !important;
+}
+
+.datepicker table tr td span {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  line-height: 36px;
+}
+
+/* Календарь отпусков (tl-grid) — число в шапке */
+.tl-grid__cell--day {
+  gap: 2px;
+}
+
+.tl-grid__cell--today .tl-day-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: #2f6bed;
+  color: #fff !important;
+  line-height: 1;
+}
+
+.tl-grid__cell--slot {
+  align-items: center;
+  justify-content: center;
+}
+
+.tl-cell-dot {
+  margin: 0 auto;
+  flex-shrink: 0;
 }
 
 /* ── Календарь отпусков (timeline) ── */

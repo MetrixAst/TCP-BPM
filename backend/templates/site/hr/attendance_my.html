@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&t=5">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&att=1">
 {% endblock %}
 
 {% block content %}
@@ -17,7 +17,7 @@
       </p>
     </div>
 
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div class="attendance-page__top-actions">
       <a href="{% url 'hr:attendance_checkin' %}"
          class="attendance-page__btn attendance-page__btn--primary">
         <i class="bi bi-camera-fill"></i>
@@ -43,6 +43,10 @@
   </div>
 
   <div class="attendance-page__panel">
+    <p class="attendance-page__hint">
+      <i class="bi bi-hand-index-thumb"></i>
+      Нажмите на строку с датой — откроются фото, время и адрес отметки
+    </p>
     <div class="attendance-page__table-wrap">
       <table class="attendance-table">
         <thead>
@@ -52,18 +56,23 @@
             <th>Обед</th>
             <th>Уход</th>
             <th>Отработано</th>
-            <th style="width:32px;"></th>
+            <th aria-hidden="true"></th>
           </tr>
         </thead>
 
         <tbody>
           {% for item in attendance_list %}
           <tr class="attendance-table__row attendance-table__row--clickable{% if item.no_record %} attendance-table__row--empty{% endif %}"
+              data-name="{{ item.date|date:'d.m.Y' }}"
               data-date="{{ item.date|date:'d.m.Y' }}"
               data-arrival="{{ item.day_start|date:'H:i'|default:'' }}"
               data-departure="{{ item.day_end|date:'H:i'|default:'' }}"
               data-lunch-start="{{ item.lunch_start|date:'H:i'|default:'' }}"
               data-lunch-end="{{ item.lunch_end|date:'H:i'|default:'' }}"
+              data-arrival-full="{% if item.day_start %}{{ item.day_start|date:'d.m.Y H:i' }}{% endif %}"
+              data-departure-full="{% if item.day_end %}{{ item.day_end|date:'d.m.Y H:i' }}{% endif %}"
+              data-lunch-start-full="{% if item.lunch_start %}{{ item.lunch_start|date:'d.m.Y H:i' }}{% endif %}"
+              data-lunch-end-full="{% if item.lunch_end %}{{ item.lunch_end|date:'d.m.Y H:i' }}{% endif %}"
               data-hours="{% if item.total_hours > 0 %}{{ item.total_hours|floatformat:1 }}{% endif %}"
               data-late="{{ item.late|yesno:'1,0' }}"
               data-early="{{ item.early_leave|yesno:'1,0' }}"
@@ -77,8 +86,7 @@
               data-departure-photo="{{ item.departure_photo }}"
               data-departure-lat="{{ item.departure_lat }}"
               data-departure-lng="{{ item.departure_lng }}"
-              data-departure-address="{{ item.departure_address }}"
-              style="cursor:pointer;">
+              data-departure-address="{{ item.departure_address }}">
 
             <td>
               <strong>{{ item.date|date:"d.m.Y" }}</strong>
@@ -141,5 +149,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'site/js/apps/attendance-modal.js' %}?v={{ static_version|default:'1' }}&t=7"></script>
+<script src="{% static 'site/js/apps/attendance-modal.js' %}?v={{ static_version|default:'1' }}&att=2"></script>
 {% endblock %}

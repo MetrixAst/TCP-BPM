@@ -1,0 +1,41 @@
+{% extends 'site/base.html' %}
+{% load static site_tags %}
+
+{% block title %}{% t 'tasks.kanban_title' 'Канбан задач' %} — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'4' }}&kanban=3" />
+{% endblock %}
+
+{% block content %}
+<div class="tasks-page tasks-kanban-page" id="tasksKanbanPage"
+     data-kanban-api="{% url 'tasks:kanban_api' %}"
+     data-status-url-tpl="{% url 'tasks:kanban_status' 0 %}">
+
+  <div class="tasks-page__top">
+    <div class="tasks-page__header">
+      <h1 class="tasks-page__title">{% t 'tasks.kanban_title' 'Канбан задач' %}</h1>
+
+      <div class="tasks-view-switch">
+        <a href="{% url 'tasks:list' %}" class="tasks-view-switch__btn">{% t 'tasks.list_view' 'Список' %}</a>
+        <a href="{% url 'tasks:kanban' %}" class="tasks-view-switch__btn is-active">{% t 'tasks.kanban_view' 'Канбан' %}</a>
+      </div>
+
+      {% if can_create %}
+        <a href="{% url 'tasks:edit' 0 %}" class="tasks-page__btn tasks-page__btn--primary">
+          <i class="bi bi-plus-lg"></i>
+          Создать
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="tasks-kanban" id="tasksKanbanBoard">
+    <div class="tasks-kanban__loading">Загрузка…</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/tasks-kanban.js' %}?v=3"></script>
+{% endblock %}

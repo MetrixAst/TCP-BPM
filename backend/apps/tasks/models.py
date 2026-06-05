@@ -3,6 +3,10 @@ from django.db.models import Q
 from django.http import Http404
 from django.core.exceptions import PermissionDenied
 
+from decimal import Decimal
+
+from django.core.validators import MinValueValidator
+
 from account.models import UserAccount, Notification
 from project.utils import get_or_error, get_or_none
 from .enums import TaskStatusEnum, PriorityEnum, TaskTypeEnum
@@ -54,6 +58,14 @@ class Task(models.Model):
 
     priority = models.SlugField("Приоритет", choices=PRIORITIES, default='medium')
     task_type = models.SlugField("Тип задачи", choices=TASK_TYPES, default='assignment')
+    counterparty = models.ForeignKey(
+        'onec.Counterparty',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tasks',
+        verbose_name='Контрагент',
+    )
     views = models.IntegerField("Просмотры", default=0)
 
     TRANSITIONS = {
@@ -103,11 +115,20 @@ class Task(models.Model):
 
     @staticmethod
     def get_available_queryset(request):
+        from account.role_permissions import RoleEnums
+
+        user = request.user
+        role = getattr(user, 'role', None)
+        if hasattr(role, 'value'):
+            role = role.value
+        if getattr(user, 'is_superuser', False) or role == RoleEnums.ADMINISTRATOR.value:
+            return Task.objects.all()
+
         queryset = Task.objects.filter(
-            Q(author=request.user) |
-            Q(executor=request.user) |
-            Q(co_executors=request.user) |
-            Q(observers=request.user)
+            Q(author=user) |
+            Q(executor=user) |
+            Q(co_executors=user) |
+            Q(observers=user)
         )
         return queryset.distinct()
 
@@ -182,6 +203,24 @@ class Task(models.Model):
 
         return available_actions
 
+    @staticmethod
+    def _notify_participants(task):
+        try:
+            Notification.create_for_task(task)
+        except Exception:
+            pass
+
+    @staticmethod
+    def _user_is_tasks_admin(user):
+        from account.role_permissions import RoleEnums
+
+        if not user or not user.is_authenticated:
+            return False
+        role = getattr(user, 'role', None)
+        if hasattr(role, 'value'):
+            role = role.value
+        return getattr(user, 'is_superuser', False) or role == RoleEnums.ADMINISTRATOR.value
+
     def set_action(self, request, action):
         if action == 'cancel':
             return
@@ -190,7 +229,7 @@ class Task(models.Model):
             self.status = TaskStatusEnum.CREATED.value[0]
             self.save()
             TaskHistory.objects.create(task=self, user=request.user, status=self.status)
-            Notification.create_for_task(self)
+            self._notify_participants(self)
             return
 
         transition = self._check_action_permission(request.user, action)
@@ -198,7 +237,25 @@ class Task(models.Model):
         self.save()
 
         TaskHistory.objects.create(task=self, user=request.user, status=self.status)
-        Notification.create_for_task(self)
+        self._notify_participants(self)
+
+    def transition_to_status(self, request, new_status):
+        """Смена статуса через допустимый transition (для канбана)."""
+        if self.status == new_status:
+            return None
+
+        if self._user_is_tasks_admin(request.user):
+            self.status = new_status
+            self.save(update_fields=['status'])
+            TaskHistory.objects.create(task=self, user=request.user, status=self.status)
+            self._notify_participants(self)
+            return 'admin'
+
+        for action, transition in self.TRANSITIONS.get(self.status, {}).items():
+            if transition.get('next') == new_status:
+                self.set_action(request, action)
+                return action
+        raise PermissionDenied('Недопустимый переход статуса.')
 
     @staticmethod
     def get_statistic(request):
@@ -271,3 +328,96 @@ class TaskFile(models.Model):
 
     def __str__(self):
         return self.file.name
+
+
+class TaskChecklistItem(models.Model):
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name='checklist_items',
+        verbose_name='Задача',
+    )
+    title = models.CharField('Пункт', max_length=255)
+    is_done = models.BooleanField('Выполнено', default=False)
+    sort_order = models.PositiveIntegerField('Порядок', default=0)
+
+    class Meta:
+        verbose_name = 'Пункт чеклиста'
+        verbose_name_plural = 'Чеклист задачи'
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return self.title
+
+
+class TaskLineItem(models.Model):
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name='line_items',
+        verbose_name='Задача',
+    )
+    name = models.CharField('Наименование', max_length=255)
+    quantity = models.DecimalField(
+        'Количество',
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('1'),
+        validators=[MinValueValidator(Decimal('0.01'))],
+    )
+    unit = models.CharField('Ед. изм.', max_length=20, blank=True, default='шт')
+    price = models.DecimalField(
+        'Цена',
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal('0'),
+    )
+
+    class Meta:
+        verbose_name = 'Позиция задачи'
+        verbose_name_plural = 'Позиции задачи'
+        ordering = ['id']
+
+    @property
+    def total(self):
+        return self.quantity * self.price
+
+    def __str__(self):
+        return self.name
+
+
+class TaskUserFlag(models.Model):
+    """Персональные пометки пользователя на задаче (например «избранное»).
+
+    Заменяет хранение в localStorage: состояние больше не растёт в браузере,
+    а живёт в БД по паре (пользователь, задача, флаг).
+    """
+
+    FAVORITE = 'favorite'
+    FLAG_CHOICES = [
+        (FAVORITE, 'Избранное'),
+    ]
+
+    user = models.ForeignKey(
+        UserAccount,
+        on_delete=models.CASCADE,
+        related_name='task_flags',
+        verbose_name='Пользователь',
+    )
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name='user_flags',
+        verbose_name='Задача',
+    )
+    flag = models.SlugField('Флаг', choices=FLAG_CHOICES, default=FAVORITE)
+    created_at = models.DateTimeField('Создано', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Пометка задачи'
+        verbose_name_plural = 'Пометки задач'
+        unique_together = ('user', 'task', 'flag')
+        ordering = ['-id']
+
+    def __str__(self):
+        return f'{self.user_id}:{self.task_id}:{self.flag}'

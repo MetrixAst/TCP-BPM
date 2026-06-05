@@ -105,6 +105,14 @@
                 <div class="task-edit-field__error">{{ form.observers.errors.0 }}</div>
               {% endif %}
             </div>
+
+            <div class="task-edit-field {% if form.counterparty.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Контрагент</label>
+              {{ form.counterparty }}
+              {% if form.counterparty.errors %}
+                <div class="task-edit-field__error">{{ form.counterparty.errors.0 }}</div>
+              {% endif %}
+            </div>
           </div>
         </section>
 

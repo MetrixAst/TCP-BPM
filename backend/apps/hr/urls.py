@@ -10,6 +10,7 @@ urlpatterns = [
     path('profile/', views.my_profile, name='my_profile'),
     path('employee/<int:pk>/', views.employee_detail, name="employee_detail"),
     path('employee/<int:pk>/edit/', views.edit_employee, name="edit_employee"),
+    path('employee/<int:pk>/schedule/', views.employee_schedule, name="employee_schedule"),
     path('employee/<int:pk>/delete/', views.delete_employee, name="delete_employee"),
 
     path('companies/', views.companies, name="companies"),
@@ -27,6 +28,7 @@ urlpatterns = [
 
     path('calendar/<slug:category>/', views.calendar, name="calendar"),
     path('calendar/<slug:category>/json/', views.calendar_json, name="calendar_json"),
+    path('calendar/<slug:category>/timeline/', views.calendar_timeline, name="calendar_timeline"),
     path('calendar/work-days/json/', views.work_calendar_json, name="work_calendar_json"),
     path('calendar/edit/<int:pk>/', views.edit_calendar_item, name="edit_calendar"),
     path('calendar/delete/<int:pk>/', views.delete_calendar_item, name="delete_calendar"),

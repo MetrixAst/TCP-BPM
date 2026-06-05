@@ -1,13 +1,13 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="{{ html_lang|default:'ru' }}">
+<html lang="{{ html_lang|default:'ru' }}"{% if current_lang and current_lang != 'ru' %} data-i18n-pending="1"{% endif %}>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>{% block title %}metriX BPM{% endblock %}</title>
   <meta name="description" content="metriX BPM" />
-  <link rel="icon" type="image/svg+xml" href="{% static 'site/img/favicon/favicon.svg' %}">
-  <link rel="apple-touch-icon" href="{% static 'site/img/logo/logo-green-dark.svg' %}">
+  <link rel="icon" type="image/svg+xml" href="{% static 'site/img/favicon/metrix-logo.svg' %}">
+  <link rel="apple-touch-icon" href="{% static 'site/img/favicon/metrix-logo.svg' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
@@ -17,6 +17,12 @@
   <link rel="stylesheet" href="{% static 'site/css/layout.css' %}?v={{ static_version|default:'1' }}" />
   <link rel="stylesheet" href="{% static 'site/css/components.css' %}?v={{ static_version|default:'1' }}" />
   <link rel="stylesheet" href="{% static 'site/css/design-system.css' %}?v={{ static_version|default:'1' }}" />
+  <link rel="stylesheet" href="{% static 'site/css/apps/bpm-calendars.css' %}?v={{ static_version|default:'1' }}" />
+  <link rel="stylesheet" href="{% static 'site/css/bpm-modal.css' %}?v={{ static_version|default:'1' }}" />
+  <style>
+    html[data-i18n-pending] .bpm-main { visibility: hidden; }
+    html.i18n-ready .bpm-main { visibility: visible; }
+  </style>
   {% block styles %}{% endblock styles %}
 </head>
 <body class="bpm-body {% block body_classes %}{% endblock body_classes %}">
@@ -56,7 +62,9 @@
   <script>
     try { const indicatorsData = JSON.parse('{{ indicators_json|default:"{}"|escapejs }}'); } catch(e) {}
   </script>
+  {% include "site/components/i18n_scripts.html" %}
   <script src="{% static 'site/js/layout.js' %}?v={{ static_version|default:'1' }}"></script>
+  <script src="{% static 'site/js/bpm-modal.js' %}?v={{ static_version|default:'1' }}"></script>
   {% block scripts %}{% endblock scripts %}
 
 </body>

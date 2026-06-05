@@ -19,6 +19,14 @@ class Folder(MPTTModel):
     parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     root_type = models.SlugField("Тип папки (только для корневых)", choices=ROOT_TYPES, null=True, blank=True, unique=True)
     multiple_files = models.BooleanField("Несколько файлов в одном документе", default=False)
+    access_scope = models.ForeignKey(
+        'account.AccessScope',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='folders',
+        verbose_name='Зона доступа',
+    )
 
     @staticmethod
     def get_by_root_type(type, include_self=False):
@@ -93,17 +101,16 @@ class Document(models.Model):
     
     @staticmethod
     def get_by_id(request, id, exception = True):
-        
-        qs = Document.get_available_queryset(request).filter(pk=id)
-        if qs.count() > 0:
-            if exception:
-                return get_or_error(Document, id=id)
-            return get_or_none(Document, id=id)
-        else:
-            if exception:
-                raise Http404
-            return None
-        
+        from account.services.access_scope import user_can_view_folder
+
+        qs = Document.get_available_queryset(request).filter(pk=id).select_related('folder', 'folder__access_scope')
+        doc = qs.first()
+        if doc is not None and user_can_view_folder(request.user, doc.folder):
+            return doc
+        if exception:
+            raise Http404
+        return None
+
     def get_status_notification(self):
         return DocumentStatusEnum.get_notification_text(self.status, self.document_type)
 

@@ -480,12 +480,21 @@
 .fin-drill-panel {
   position: fixed;
   inset: 0;
+  /* Сбрасываем возможные конфликтующие правила из finances.css
+     (width/height/display), иначе панель «Загрузка...» вылезает на экран. */
+  width: auto;
+  height: auto;
+  right: 0;
+  bottom: 0;
+  display: block;
   z-index: 1050;
   pointer-events: none;
+  visibility: hidden;
 }
 
 .fin-drill-panel.is-open {
   pointer-events: auto;
+  visibility: visible;
 }
 
 .fin-drill-panel__overlay {

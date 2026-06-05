@@ -1,5 +1,5 @@
 {% extends 'site/base.html' %}
-{% load static %}
+{% load static site_tags %}
 
 {% block title %}Отпуска — metriX BPM{% endblock %}
 
@@ -86,7 +86,7 @@
 
         <tbody>
 
-          {% for leave in leaves %}
+          {% for leave in paginator.items %}
           <tr class="leaves-table__row">
 
             <td class="leaves-table__td leaves-table__td--title">
@@ -243,6 +243,12 @@
       </table>
 
     </div>
+
+    {% if paginator.pages_count > 1 %}
+    <div class="leaves-page__pagination hr-pagination">
+      {% show_paginator paginator %}
+    </div>
+    {% endif %}
 
   </div>
 

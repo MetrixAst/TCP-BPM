@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% load static %}
+{% load static site_tags %}
 
 {% block title %}Реестр документов — metriX BPM{% endblock %}
 
@@ -57,7 +57,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for doc in documents %}
+          {% for doc in paginator.items %}
           <tr>
             <td><strong>{{ doc.title }}</strong></td>
             <td>{{ doc.get_doc_type_display }}</td>
@@ -71,9 +71,10 @@
             <td>
               <div class="hr-registry-actions">
                 {% if doc.file %}
-                  <a href="{{ doc.file.url }}" target="_blank"
-                     class="hr-registry-icon" title="Скачать файл">
-                    <i class="bi bi-file-earmark-text"></i>
+                  <a href="{{ doc.file.url }}" target="_blank" download
+                     class="hr-download-btn" title="Скачать документ">
+                    <i class="bi bi-download"></i>
+                    <span>Скачать документ</span>
                   </a>
                 {% endif %}
                 {% if is_hr %}
@@ -114,6 +115,11 @@
         </tbody>
       </table>
     </div>
+    {% if paginator.pages_count > 1 %}
+    <div class="hr-pagination">
+      {% show_paginator paginator %}
+    </div>
+    {% endif %}
   </div>
 
   {% else %}
@@ -137,9 +143,9 @@
     {% endif %}
   </div>
 
-  {% if employees %}
+  {% if paginator.count %}
     <div class="hr-docs-employee-grid">
-      {% for emp in employees %}
+      {% for emp in paginator.items %}
         <a href="{% url 'hr:documents_list' %}?employee_id={{ emp.pk }}"
            class="hr-docs-emp-card">
           <div class="hr-docs-emp-card__avatar">
@@ -166,6 +172,11 @@
         </a>
       {% endfor %}
     </div>
+    {% if paginator.pages_count > 1 %}
+    <div class="hr-pagination">
+      {% show_paginator paginator %}
+    </div>
+    {% endif %}
   {% else %}
     <div class="hr-registry-panel">
       <div class="hr-registry-empty">

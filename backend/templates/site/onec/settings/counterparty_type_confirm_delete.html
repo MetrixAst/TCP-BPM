@@ -1,0 +1,18 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="onec-page" style="max-width:520px;margin:40px auto">
+  <div class="onec-create-card" style="padding:24px">
+    <h1 class="onec-page-title">Удалить тип «{{ counterparty_type.name }}»?</h1>
+    <p class="onec-page-sub">
+      У {{ counterparty_type.counterparties.count }} контрагентов поле типа будет сброшено.
+    </p>
+    <form method="post" class="onec-create-footer" style="margin-top:24px">
+      {% csrf_token %}
+      <a href="{% url 'onec:counterparty_type_list' %}" class="onec-btn onec-btn--ghost">Отмена</a>
+      <button type="submit" class="onec-btn onec-btn--primary" style="background:#dc3545;border-color:#dc3545">Удалить</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

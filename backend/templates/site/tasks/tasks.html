@@ -1,7 +1,7 @@
 {% extends 'site/base.html' %}
 {% load static site_tags %}
 
-{% block title %}Менеджер задач — metriX BPM{% endblock %}
+{% block title %}{% t 'tasks.list_title' 'Менеджер задач' %} — metriX BPM{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
@@ -14,7 +14,12 @@
 <div class="tasks-page" id="tasksPage">
   <div class="tasks-page__top">
     <div class="tasks-page__header">
-      <h1 class="tasks-page__title">Менеджер задач</h1>
+      <h1 class="tasks-page__title">{% t 'tasks.list_title' 'Менеджер задач' %}</h1>
+
+      <div class="tasks-view-switch">
+        <a href="{% url 'tasks:list' %}" class="tasks-view-switch__btn is-active">{% t 'tasks.list_view' 'Список' %}</a>
+        <a href="{% url 'tasks:kanban' %}" class="tasks-view-switch__btn">{% t 'tasks.kanban_view' 'Канбан' %}</a>
+      </div>
 
       <form method="get" class="tasks-page__toolbar" id="tasksFilterForm">
         <div class="tasks-page__field">

@@ -1,8 +1,18 @@
 from django import forms
-from addits.forms import Select2FieldDefault, UserSelect2Field, UserSelect2MultipleField, TreeField
+from addits.forms import Select2FieldDefault, UserSelect2MultipleField, TreeField
 from purchases.models import Supplier
 
 from .models import Document, Folder, InnerDocument
+from .folder_structure import ensure_folder_tree
+
+
+def all_folders_queryset(document_type):
+    """Все папки указанного типа (включая вложенные) — для выбора при создании."""
+    try:
+        root = ensure_folder_tree(document_type)
+        return root.get_descendants(include_self=False)
+    except Exception:
+        return Folder.objects.none()
 
 class PaginatorForm(forms.Form):
     page = forms.IntegerField(widget=forms.HiddenInput(), required=False, initial=1)
@@ -10,35 +20,37 @@ class PaginatorForm(forms.Form):
     
 
 class DocumentForm(forms.ModelForm):
+    """Загрузка файла в папку документооборота (без маршрута согласования)."""
 
-    title = forms.CharField(widget=forms.TextInput(attrs={'class':'form-control'}))
-    number = forms.CharField(widget=forms.TextInput(attrs={'class':'form-control'}))
-    reg_date = forms.DateField(widget=forms.TextInput(attrs={'class':'form-control single_date_picker'}))
-    text = forms.CharField(widget=forms.Textarea(attrs={'class':'form-control', 'rows': 4}))
-
-    days = forms.IntegerField(initial=4, widget=forms.NumberInput(attrs={'class': 'form-control'}))
-
-    document = forms.FileField(widget=forms.FileInput(attrs={'class':'form-control'}))
-
-    coordinators = UserSelect2MultipleField(required=True, all=True, placeholder='Согласующие')
-    observers = UserSelect2MultipleField(required=True, all=True, placeholder='Наблюдатели')
-
-    # folder = Select2FieldDefault(Folder.get_by_root_type('documents'), required=True)
+    title = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Название документа'}),
+    )
+    number = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Авто, если пусто'}),
+    )
+    reg_date = forms.DateField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control single_date_picker'}),
+    )
+    text = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Комментарий (необязательно)'}),
+    )
+    document = forms.FileField(
+        widget=forms.FileInput(attrs={'class': 'form-control'}),
+    )
     folder = TreeField(Folder.objects.none(), required=True)
 
-    need_all = forms.BooleanField(widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}), required=False)
-    need_head = forms.BooleanField(widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}), required=False)
-
-    supplier = Select2FieldDefault(queryset=Supplier.objects.all(), required=True)
-
     def __init__(self, *args, **kwargs):
+        kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-
-        self.fields['folder'].queryset = Folder.get_by_root_type('documents') or Folder.objects.none()
+        self.fields['folder'].queryset = all_folders_queryset('documents')
+        self.fields['folder'].label = 'Папка'
 
     class Meta:
         model = Document
-        fields = ('title', 'number', 'text', 'days', 'coordinators', 'observers', 'need_all', 'need_head', 'supplier', 'reg_date', 'document', 'folder')
+        fields = ('title', 'number', 'text', 'reg_date', 'document', 'folder')
 
 
 
@@ -75,9 +87,9 @@ class PurchaseForm(forms.ModelForm):
     supplier = Select2FieldDefault(queryset=Supplier.objects.all(), required=True)
 
     def __init__(self, *args, **kwargs):
+        kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-
-        self.fields['folder'].queryset = Folder.get_by_root_type('purchases') or Folder.objects.none()
+        self.fields['folder'].queryset = all_folders_queryset('purchases')
 
     class Meta:
         model = Document
@@ -113,5 +125,4 @@ class DocumentsForm(PaginatorForm):
     search = forms.CharField(widget=forms.TextInput(attrs={'class':'form-control', 'placeholder': 'Поиск'}), required=False)
     supplier = Select2FieldDefault(queryset=Supplier.objects.all(), placeholder='Контрагент', required=False)
     date = forms.DateField(widget=forms.TextInput(attrs={'class':'form-control single_date_picker', 'placeholder': 'Дата'}), required=False)
-    coordinator = UserSelect2Field(all=True, required=False, placeholder='Ответственный')
 

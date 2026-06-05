@@ -78,6 +78,47 @@
                     {% if type_config.tree %}
                         <div class="doc-nav__divider"></div>
                         <span class="doc-nav__section-label">Папки</span>
+                        {% if can_manage_folder_acl %}
+                        <a class="doc-nav__link doc-nav__link--sub"
+                           href="{% url 'documents:folder_access_list' document_type %}"
+                           title="Настройка доступа к папкам">
+                            <i class="bi bi-shield-lock"></i>
+                            <span>Доступ к папкам</span>
+                        </a>
+                        {% endif %}
+                        {% if can_create %}
+                        <details class="doc-folder-create">
+                            <summary class="doc-folder-create__toggle">
+                                <span class="doc-folder-create__toggle-icon">
+                                    <i class="bi bi-folder-plus"></i>
+                                </span>
+                                <span class="doc-folder-create__toggle-text">Создать папку</span>
+                                <i class="bi bi-chevron-down doc-folder-create__chevron"></i>
+                            </summary>
+                            <form method="POST" action="{% url 'documents:folder_create' document_type %}"
+                                  class="doc-folder-create__form">
+                                {% csrf_token %}
+                                <label class="doc-folder-create__field">
+                                    <span class="doc-folder-create__label">Название</span>
+                                    <input type="text" name="name" class="doc-folder-create__input"
+                                           placeholder="Например: Договоры" maxlength="40" required>
+                                </label>
+                                <label class="doc-folder-create__field">
+                                    <span class="doc-folder-create__label">Расположение</span>
+                                    <select name="parent" class="doc-folder-create__select">
+                                        <option value="">Корневой уровень</option>
+                                        {% for node in tree %}
+                                            <option value="{{ node.id }}">{{ node.short_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </label>
+                                <button type="submit" class="doc-folder-create__btn">
+                                    <i class="bi bi-plus-lg"></i>
+                                    <span>Создать папку</span>
+                                </button>
+                            </form>
+                        </details>
+                        {% endif %}
                         <a class="doc-nav__link {% if folder == 'all' or not folder %}doc-nav__link--active{% endif %}"
                            href="{% url 'documents:list' document_type %}">
                             <i class="bi bi-folder2-open"></i>
@@ -115,6 +156,7 @@
 
                 <div class="doc-list">
                     {% for current in paginator.items %}
+                        <div class="doc-list-row">
                         <a href="{% url 'documents:document' current.id %}"
                            class="doc-list-item indicator_item"
                            data-type="{{ current.document_type }}"
@@ -137,6 +179,14 @@
                             </div>
 
                         </a>
+                        {% if current.document %}
+                            <a href="{{ current.document.url }}" target="_blank" download
+                               class="doc-download-btn" title="Скачать документ">
+                                <i class="bi bi-download"></i>
+                                <span>Скачать документ</span>
+                            </a>
+                        {% endif %}
+                        </div>
                     {% empty %}
                         <div class="doc-empty">
                             <i class="bi bi-inbox"></i>

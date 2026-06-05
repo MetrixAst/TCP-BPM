@@ -43,7 +43,7 @@
                         <div class="mb-5 d-flex align-items-center flex-column">
                             <div class="text-muted">{{current.supplier}}</div>
                             <div class="h5 mb-2">{{current.get_requistion_type_display}}</div>
-                            <span class="badge bg-info">{{current.status_info.title}}</span>
+                            <span class="badge bg-{{current.status_info.color|default:'info'}}">{{current.status_info.title}}</span>
                         </div>
                         <div class="flex-row justify-content-between w-100">
                             
@@ -62,8 +62,8 @@
 
                                                 <select class="select2" name="action" data-placeholder="Действие">
                                                     <option label="&nbsp;"></option>
-                                                    {% for current in actions %}
-                                                        <option value="{{current.action}}">{{current.title}}</option>
+                                                    {% for act in actions %}
+                                                        <option value="{{act.action}}">{{act.title}}</option>
                                                     {% endfor %}
                                                 </select>
                                                 

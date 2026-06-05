@@ -4,6 +4,8 @@
 
 {% block content %}
 
+    {% include 'site/tenants/portal_banner.html' %}
+
     <!-- Title and Top Buttons Start -->
     <div class="page-title-container">
         <div class="row">
@@ -12,8 +14,12 @@
                 <h1 class="mb-0 pb-0 display-4" id="title">Заявки</h1>
                 <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
                     <ul class="breadcrumb pt-0">
+                    {% if is_portal_user %}
+                    <li class="breadcrumb-item">Мои заявки</li>
+                    {% else %}
                     <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная страница</a></li>
                     <li class="breadcrumb-item">Заявки от арендаторов</li>
+                    {% endif %}
                     </ul>
                 </nav>
             </div>

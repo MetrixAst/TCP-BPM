@@ -43,6 +43,10 @@ class HRMenuAndAccessTest(TestCase):
         response = self.client.get(reverse('hr:companies'))
         self.assertEqual(response.status_code, 200)
 
+        self.assertEqual(self.client.get(reverse('hr:leave_list')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('hr:leave_timeline_page')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('hr:documents_list')).status_code, 200)
+
     def test_staff_hr_access(self):
         self.client.login(username='staff_user', password='password123')
         
@@ -51,12 +55,17 @@ class HRMenuAndAccessTest(TestCase):
         self.assertIsNotNone(hr_menu)
         
         submenu_titles = [sub.title for sub in hr_menu.submenu]
-        self.assertIn('Орг. структура', submenu_titles)
-        self.assertIn('Сотрудники', submenu_titles)
+        self.assertIn('Личный профиль', submenu_titles)
+        self.assertIn('Мои документы', submenu_titles)
+        self.assertNotIn('Орг. структура', submenu_titles)
+        self.assertNotIn('Сотрудники', submenu_titles)
         self.assertNotIn('Компании', submenu_titles)
 
         response = self.client.get(reverse('hr:org'))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get(reverse('hr:employees'))
+        self.assertEqual(response.status_code, 403)
 
     def test_hr_role_full_hr_menu(self):
         menu = MenuItem.generate_menu(self.hr_user)

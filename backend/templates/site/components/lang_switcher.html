@@ -1,0 +1,15 @@
+{% load site_tags %}
+<nav class="bpm-topbar__lang bpm-lang-switcher" aria-label="{% t 'topbar.language' 'Язык интерфейса' %}">
+  <a href="{% lang_url 'ru' %}"
+     class="bpm-topbar__lang-btn{% if current_lang == 'ru' %} is-active{% endif %}"
+     hreflang="ru"
+     lang="ru">{% t 'topbar.lang_ru' 'Рус' %}</a>
+  <a href="{% lang_url 'kk' %}"
+     class="bpm-topbar__lang-btn{% if current_lang == 'kk' %} is-active{% endif %}"
+     hreflang="kk"
+     lang="kk">{% t 'topbar.lang_kk' 'Қаз' %}</a>
+  <a href="{% lang_url 'en' %}"
+     class="bpm-topbar__lang-btn{% if current_lang == 'en' %} is-active{% endif %}"
+     hreflang="en"
+     lang="en">{% t 'topbar.lang_en' 'Eng' %}</a>
+</nav>

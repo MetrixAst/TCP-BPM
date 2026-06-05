@@ -122,7 +122,26 @@
      margin-bottom: 56px;
    }
    .auth-page__logo:hover { color: #fff; text-decoration: none; }
-   .auth-page__logo-icon { display: flex; }
+   .auth-page__logo-icon {
+     display: flex;
+     color: #fff;
+   }
+
+   /* Логотип на синем фоне — светлые буквы, иначе «metri» и BPM сливаются */
+   .auth-page__logo--white .bpm-logo__metri,
+   .auth-page__logo--white .bpm-logo__bpm {
+     color: #fff;
+   }
+   .auth-page__logo--white .bpm-logo__x {
+     color: #bbf7d0;
+   }
+   .auth-page__logo--white:hover .bpm-logo__metri,
+   .auth-page__logo--white:hover .bpm-logo__bpm {
+     color: #fff;
+   }
+   .auth-page__logo--white:hover .bpm-logo__x {
+     color: #dcfce7;
+   }
    
    .auth-page__heading {
      font-size: 44px;
@@ -130,13 +149,16 @@
      line-height: 1.15;
      margin: 0 0 20px;
      letter-spacing: -0.02em;
+     color: #fff;
+     text-shadow: 0 2px 24px rgba(15, 23, 42, 0.35);
    }
    
    .auth-page__lead {
      font-size: 16px;
      line-height: 1.6;
      margin: 0 0 36px;
-     color: rgba(255, 255, 255, 0.85);
+     color: rgba(255, 255, 255, 0.94);
+     text-shadow: 0 1px 12px rgba(15, 23, 42, 0.2);
    }
    
    .auth-page__features {
@@ -152,11 +174,14 @@
      align-items: center;
      gap: 12px;
      font-size: 15px;
-     color: rgba(255, 255, 255, 0.92);
+     font-weight: 500;
+     color: #fff;
+     text-shadow: 0 1px 8px rgba(15, 23, 42, 0.18);
    }
    .auth-page__features i {
-     color: #93C5FD;
+     color: #bbf7d0;
      font-size: 18px;
+     filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.2));
    }
    
    /* ── Правая часть: форма ──────────────────────────────────────────────────── */

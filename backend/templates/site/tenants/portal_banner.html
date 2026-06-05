@@ -1,0 +1,12 @@
+{% load site_tags %}
+{% if is_portal_user and portal_tenant %}
+<div class="alert alert-info mb-4" role="status">
+  <strong>{{ portal_tenant.name }}</strong>
+  {% if portal_tenant.room %}
+    — помещение {{ portal_tenant.room.number }}
+  {% endif %}
+  <span class="d-block small mt-1 mb-0 text-muted">
+    {% t 'requistions.portal_hint' 'Портал арендатора: подайте заявку на пропуск или проведение работ.' %}
+  </span>
+</div>
+{% endif %}

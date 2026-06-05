@@ -13,6 +13,17 @@
   gap: 18px;
 }
 
+.onec-type-badge--scope {
+  background: #eef2ff;
+  color: #3730a3;
+  margin-right: 4px;
+}
+
+.onec-btn--sm {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
 .onec-page-title {
   margin: 0;
   font-size: 24px;

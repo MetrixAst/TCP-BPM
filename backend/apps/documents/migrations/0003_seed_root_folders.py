@@ -26,7 +26,7 @@ def unseed_root_folders(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('documents', '0002_document_date_notify'),
+        ('documents', '0005_folder_acl'),
     ]
 
     operations = [

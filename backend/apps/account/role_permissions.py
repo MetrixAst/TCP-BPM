@@ -10,16 +10,25 @@ class RoleEnums(Enum):
     HR = "hr"
     STAFF = "staff"
     GUEST = "guest"
+    TENANT = "tenant"
     OWNER = "owner"
     CFO = "cfo"
     CHIEF_ACCOUNTANT = "chief_accountant"
 
     @staticmethod
     def tenant_roles():
+        """Внутренние роли, получающие уведомления по арендаторам."""
         return [
             RoleEnums.ADMINISTRATOR.value,
             RoleEnums.HR.value,
             RoleEnums.STAFF.value,
+        ]
+
+    @staticmethod
+    def portal_roles():
+        return [
+            RoleEnums.GUEST.value,
+            RoleEnums.TENANT.value,
         ]
 
 
@@ -40,6 +49,7 @@ class PermissionEnums(Enum):
     HR_POSITIONS = "hr_positions"
     HR_JOURNAL = "hr_journal"
     HR_REGISTRIES = "hr_registries"
+    HR_SELF = "hr_self"
     ECOPARK = "ecopark"
     REQUISTIONS = "requistions"
     REPORTS = "reports"
@@ -69,6 +79,7 @@ class RolePermissions:
             PermissionEnums.EDIT_SUPPLIERS,
             PermissionEnums.FINANCES,
             PermissionEnums.HR,
+            PermissionEnums.HR_SELF,
             PermissionEnums.HR_COMPANIES,
             PermissionEnums.HR_POSITIONS,
             PermissionEnums.HR_REGISTRIES,
@@ -108,6 +119,8 @@ class RolePermissions:
         RoleEnums.CHIEF_ACCOUNTANT.value: [
             PermissionEnums.PROFILE,
             PermissionEnums.DASHBOARD,
+            PermissionEnums.HR_SELF,
+            PermissionEnums.HR_REGISTRIES,
             PermissionEnums.FINANCE_DASHBOARD,
             PermissionEnums.FINANCE_REPORTS,
             PermissionEnums.FINANCE_INVOICES,
@@ -118,6 +131,7 @@ class RolePermissions:
             PermissionEnums.PROFILE,
             PermissionEnums.DASHBOARD,
             PermissionEnums.HR,
+            PermissionEnums.HR_SELF,
             PermissionEnums.HR_COMPANIES,
             PermissionEnums.HR_POSITIONS,
             PermissionEnums.HR_REGISTRIES,
@@ -133,10 +147,14 @@ class RolePermissions:
             PermissionEnums.USERS_LIST,
             PermissionEnums.DOCUMENTS,
             PermissionEnums.TENANTS,
-            PermissionEnums.HR,
+            PermissionEnums.HR_SELF,
             PermissionEnums.COMMENT,
         ],
         RoleEnums.GUEST.value: [
+            PermissionEnums.DASHBOARD,
+            PermissionEnums.REQUISTIONS,
+        ],
+        RoleEnums.TENANT.value: [
             PermissionEnums.DASHBOARD,
             PermissionEnums.REQUISTIONS,
         ],
@@ -174,6 +192,9 @@ def need_permission(permission):
     def _method_wrapper(view_method):
         def _arguments_wrapper(request, *args, **kwargs):
             if request.user.is_authenticated:
+                if getattr(request.user, 'is_superuser', False):
+                    return view_method(request, *args, **kwargs)
+
                 role = request.user.role
                 if hasattr(role, 'value'):
                     role = role.value
@@ -227,6 +248,7 @@ class MenuItem:
             RoleEnums.CFO.value: 'dashboard:dashboard',
             RoleEnums.CHIEF_ACCOUNTANT.value: 'dashboard:dashboard',
             RoleEnums.GUEST.value: 'requistions:home',
+            RoleEnums.TENANT.value: 'requistions:home',
         }
         return items.get(user.role, None)
 
@@ -321,6 +343,12 @@ class MenuItem:
 
             RoleEnums.CHIEF_ACCOUNTANT.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
+                MenuItem('hr', '#hr', 'people', 'HR', submenu=[
+                    MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
+                    MenuItem('hr_documents', 'hr:documents_list', '', 'Кадровые документы'),
+                    MenuItem('hr_permits', 'hr:permits_list', '', 'Допуски'),
+                    MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
+                ]),
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_readonly_submenu),
             ],
 
@@ -344,18 +372,38 @@ class MenuItem:
             ],
 
             RoleEnums.STAFF.value: [
-                MenuItem('hr', '#hr', 'user', 'HR', always_expanded=True, submenu=[
-                    MenuItem('my_profile', 'hr:my_profile', '', 'Личный профиль'),
-                    MenuItem('org', 'hr:org', '', 'Орг. структура'),
-                    MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
-                    MenuItem('leaves', 'hr:leave_list', '', 'Мои отпуска'),
-                    MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
-                    MenuItem('hr_documents', 'hr:documents_list', '', 'Мои документы'),
-                ]),
+                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
             ],
 
             RoleEnums.GUEST.value: [
                 MenuItem('requistions', 'requistions:home', 'inbox', 'Заявки'),
             ],
+
+            RoleEnums.TENANT.value: [
+                MenuItem('my_requisitions', 'requistions:home', 'inbox', 'Мои заявки'),
+            ],
         }
-        return items.get(user.role, [])
+        role = user.role
+        if hasattr(role, 'value'):
+            role = role.value
+
+        menu = list(items.get(role, []))
+
+        if role == RoleEnums.STAFF.value:
+            hr_submenu = [
+                MenuItem('my_profile', 'hr:my_profile', '', 'Личный профиль'),
+                MenuItem('leaves', 'hr:leave_list', '', 'Мои отпуска'),
+                MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
+                MenuItem('hr_documents', 'hr:documents_list', '', 'Мои документы'),
+            ]
+            employee = getattr(user, 'employee_info', None)
+            if employee and employee.head:
+                hr_submenu[1:1] = [
+                    MenuItem('org', 'hr:org', '', 'Орг. структура'),
+                    MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
+                ]
+            menu.append(
+                MenuItem('hr', '#hr', 'user', 'HR', always_expanded=True, submenu=hr_submenu)
+            )
+
+        return menu

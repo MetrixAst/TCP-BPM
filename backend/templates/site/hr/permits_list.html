@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% load static %}
+{% load static site_tags %}
 
 {% block title %}Реестр допусков — metriX BPM{% endblock %}
 
@@ -87,7 +87,7 @@
         </thead>
 
         <tbody>
-          {% for permit in permits %}
+          {% for permit in paginator.items %}
             <tr>
               <td>
                 <strong>{{ permit.employee.get_display_name }}</strong>
@@ -151,6 +151,11 @@
         </tbody>
       </table>
     </div>
+    {% if paginator.pages_count > 1 %}
+    <div class="hr-pagination">
+      {% show_paginator paginator %}
+    </div>
+    {% endif %}
   </div>
 
 </div>

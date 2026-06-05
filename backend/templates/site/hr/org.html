@@ -4,7 +4,7 @@
 {% block title %}Оргструктура | metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&org=2">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&org=3">
 {% endblock styles %}
 
 {% block content %}
@@ -40,6 +40,13 @@
           <i class="bi bi-arrows-fullscreen"></i>
           <span>Подогнать</span>
         </button>
+
+        {% if can_edit_org %}
+        <button class="hr-org-edit-toggle" type="button" id="hrOrgEditToggle" title="Редактировать структуру">
+          <i class="bi bi-pencil"></i>
+          <span>Редактировать</span>
+        </button>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -69,12 +76,59 @@
         class="hr-org-chart"
         id="hrOrgChart"
         data-url="/account/structure/all"
-        data-highlight="{{ request.GET.highlight|default:'' }}">
+        data-highlight="{{ request.GET.highlight|default:'' }}"
+        data-can-edit="{% if can_edit_org %}1{% else %}0{% endif %}"
+        data-departments-api="{{ departments_api_url }}"
+        data-companies-api="{{ companies_api_url }}">
       </div>
     </div>
   </div>
 
 </div>
+
+{% if can_edit_org %}
+<div class="hr-org-modal" id="hrOrgDeptModal" hidden>
+  <div class="hr-org-modal__backdrop" data-hr-org-modal-close></div>
+  <div class="hr-org-modal__dialog" role="dialog" aria-labelledby="hrOrgDeptModalTitle">
+    <div class="hr-org-modal__header">
+      <h3 id="hrOrgDeptModalTitle">Отдел</h3>
+      <button type="button" class="hr-org-modal__close" data-hr-org-modal-close aria-label="Закрыть">&times;</button>
+    </div>
+    <form id="hrOrgDeptForm" class="hr-org-modal__body">
+      <input type="hidden" name="id" id="hrOrgDeptId" value="">
+      <div class="hr-org-field">
+        <label for="hrOrgDeptName">Название</label>
+        <input type="text" id="hrOrgDeptName" name="name" class="form-control" required maxlength="50">
+      </div>
+      <div class="hr-org-field">
+        <label for="hrOrgDeptCompany">Компания</label>
+        <select id="hrOrgDeptCompany" name="company" class="form-control" required></select>
+      </div>
+      <div class="hr-org-field">
+        <label for="hrOrgDeptParent">Родительский отдел</label>
+        <select id="hrOrgDeptParent" name="parent" class="form-control">
+          <option value="">— корневой отдел компании —</option>
+        </select>
+      </div>
+      <div class="hr-org-field">
+        <label for="hrOrgDeptLevel">Тип уровня</label>
+        <select id="hrOrgDeptLevel" name="level_type" class="form-control">
+          <option value="department">Отдел</option>
+          <option value="division">Дивизион</option>
+        </select>
+      </div>
+      <p class="hr-org-modal__error text-danger small" id="hrOrgDeptError" hidden></p>
+      <div class="hr-org-modal__footer">
+        <button type="button" class="hr-org-btn hr-org-btn--danger" id="hrOrgDeptDelete" hidden>Удалить</button>
+        <span class="hr-org-modal__spacer"></span>
+        <button type="button" class="hr-org-btn hr-org-btn--ghost" data-hr-org-modal-close>Отмена</button>
+        <button type="submit" class="hr-org-btn hr-org-btn--primary">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}

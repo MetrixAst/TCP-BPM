@@ -80,7 +80,8 @@ class RequstionStatusEnum(CustomEnum):
         return res.get(status, {})
     
     @classmethod
-    def get_actions(cls, status, requistion_type, requistion_user, user):
+    def get_actions(cls, status, requistion_type, requistion, user):
+        requistion_user = requistion.user if requistion else None
 
         # if document_type == DocumentTypeEnum.PURCHASES.value[0]:
         #     actions = {
@@ -109,16 +110,6 @@ class RequstionStatusEnum(CustomEnum):
         #         ],
         #     }
         # else:
-
-        if requistion_user == user:
-            return [
-                {
-                    'title': 'Удалить',
-                    'color': 'outline-dark',
-                    'action': 'cancel', 
-                    'permission': 'author',
-                },
-            ]
 
         actions = {
             cls.DRAFT.value[0]: [
@@ -171,5 +162,16 @@ class RequstionStatusEnum(CustomEnum):
             ],
         }
 
-        return actions.get(status, {})
+        if requistion_user and requistion_user == user:
+            return actions.get(status, [])
+
+        if requistion and requistion.coordinators.filter(pk=user.pk).exists():
+            coord_actions = {
+                cls.COORDINATION.value[0]: actions.get(cls.COORDINATION.value[0], []),
+                cls.SIGNING.value[0]: actions.get(cls.SIGNING.value[0], []),
+                cls.ACTIVE.value[0]: actions.get(cls.ACTIVE.value[0], []),
+            }
+            return coord_actions.get(status, [])
+
+        return []
     

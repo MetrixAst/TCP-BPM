@@ -16,6 +16,11 @@
       {% endif %}
     </div>
     <div class="onec-page-header__actions">
+      {% if can_manage_acl %}
+      <a href="{% url 'onec:counterparty_type_list' %}" class="onec-btn onec-btn--light">
+        <i class="bi bi-shield-lock"></i> Типы и доступ
+      </a>
+      {% endif %}
       <a href="{% url 'onec:counterparty_create' %}" class="onec-btn onec-btn--primary">
         <i class="bi bi-plus-lg"></i> Добавить
       </a>
@@ -48,6 +53,17 @@
           >
         </div>
       </div>
+      {% if counterparty_types %}
+      <div class="onec-field">
+        <label class="onec-label">Тип</label>
+        <select name="type" class="onec-input" style="min-width:180px">
+          <option value="">Все типы</option>
+          {% for ct in counterparty_types %}
+            <option value="{{ ct.pk }}" {% if f_type == ct.pk|stringformat:"s" %}selected{% endif %}>{{ ct.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
       <div class="onec-filter-actions">
         <button type="submit" class="onec-btn onec-btn--primary">
           <i class="bi bi-search"></i> Найти
@@ -95,13 +111,16 @@
             <td>{{ cp.email|default:"—" }}</td>
             <td>{{ cp.phone|default:"—" }}</td>
             <td>
+              {% if cp.counterparty_type %}
+                <span class="onec-type-badge onec-type-badge--scope" title="Зона доступа">{{ cp.counterparty_type.name }}</span>
+              {% endif %}
               {% if cp.is_supplier and cp.is_customer %}
                 <span class="onec-type-badge onec-type-badge--both">Поставщик / Клиент</span>
               {% elif cp.is_supplier %}
                 <span class="onec-type-badge onec-type-badge--supplier">Поставщик</span>
               {% elif cp.is_customer %}
                 <span class="onec-type-badge onec-type-badge--customer">Клиент</span>
-              {% else %}
+              {% elif not cp.counterparty_type %}
                 <span class="onec-type-badge">—</span>
               {% endif %}
             </td>

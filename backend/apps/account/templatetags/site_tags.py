@@ -23,6 +23,13 @@ def lang_url(context, lang):
 
 
 @register.simple_tag(takes_context=True)
+def menu_t(context, menu_id, default=''):
+    request = context.get('request')
+    lang = getattr(request, 'current_lang', DEFAULT_LANG) if request else DEFAULT_LANG
+    return translate(lang, f'menu.{menu_id}', default=default or menu_id)
+
+
+@register.simple_tag(takes_context=True)
 def role_label(context, role):
     request = context.get('request')
     lang = getattr(request, 'current_lang', DEFAULT_LANG) if request else DEFAULT_LANG
@@ -30,9 +37,9 @@ def role_label(context, role):
         role = role.value
     key = f'sidebar.role_{role}'
     translated = translate(lang, key, default=None)
-    if translated != key:
+    if translated and translated != key:
         return translated
-    return translate(lang, 'sidebar.role_administrator', default=str(role))
+    return str(role)
 
 
 @register.filter(name='has_permission')
@@ -45,9 +52,13 @@ def has_permission(user, permission):
     return RolePermissions.checkPermission(role, permission)
 
 
-@register.inclusion_tag('site/layouts/form.html')
-def init_form(form, additional_style = False):
-    return {'form': form, 'additional_style': additional_style}
+@register.inclusion_tag('site/layouts/form.html', takes_context=True)
+def init_form(context, form, additional_style = False):
+    return {
+        'form': form,
+        'additional_style': additional_style,
+        'request': context.get('request'),
+    }
 
 
 @register.inclusion_tag('site/layouts/form_errors.html')
@@ -55,11 +66,18 @@ def check_form(form):
     return {'form': form}
 
 
-@register.inclusion_tag('site/layouts/paginator.html')
-def show_paginator(paginator, as_paginator_handler = False):
+@register.inclusion_tag('site/layouts/paginator.html', takes_context=True)
+def show_paginator(context, paginator, as_paginator_handler=False):
+    request = context.get('request')
+    base_qs = ''
+    if request is not None:
+        q = request.GET.copy()
+        q.pop('page', None)
+        base_qs = q.urlencode()
     return {
         'paginator': paginator,
         'as_paginator_handler': as_paginator_handler,
+        'paginator_base_qs': base_qs,
     }
 
 @register.inclusion_tag('site/layouts/comments.html')
@@ -78,9 +96,15 @@ def load_comments(target_type, target_id):
 
 @register.inclusion_tag('site/documents/document_frame.html')
 def document_frame(request, document):
+    from documents import onlyoffice
+
+    has_file = bool(getattr(document, 'document', None))
+    filename = document.document.name if has_file else ''
+    oo_enabled = has_file and onlyoffice.is_enabled() and onlyoffice.is_supported(filename)
     return {
         'document': document,
-        'full_url': request.build_absolute_uri(document.document.url)
+        'full_url': request.build_absolute_uri(document.document.url) if has_file else '',
+        'oo_enabled': oo_enabled,
     }
 
 @register.filter(name='get_item')

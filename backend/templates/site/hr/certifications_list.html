@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% load static %}
+{% load static site_tags %}
 
 {% block title %}Реестр сертификаций — metriX BPM{% endblock %}
 
@@ -117,8 +117,10 @@
               <td>
                 <div class="hr-registry-actions">
                   {% if cert.scan %}
-                    <a href="{{ cert.scan.url }}" target="_blank" class="hr-registry-icon" title="Скан">
-                      <i class="bi bi-file-earmark-text"></i>
+                    <a href="{{ cert.scan.url }}" target="_blank" download
+                       class="hr-download-btn hr-download-btn--compact" title="Скачать сертификат">
+                      <i class="bi bi-download"></i>
+                      <span>Скачать</span>
                     </a>
                   {% endif %}
 
@@ -152,6 +154,11 @@
         </tbody>
       </table>
     </div>
+    {% if paginator.pages_count > 1 %}
+    <div class="hr-pagination">
+      {% show_paginator paginator %}
+    </div>
+    {% endif %}
   </div>
 
 </div>

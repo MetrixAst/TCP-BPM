@@ -23,6 +23,7 @@ class UserAccount(AbstractUser):
         (RoleEnums.HR.value, 'HR-менеджер'),
         (RoleEnums.STAFF.value, 'Сотрудник'),
         (RoleEnums.GUEST.value, 'Гость'),
+        (RoleEnums.TENANT.value, 'Арендатор'),
         (RoleEnums.OWNER.value, 'Владелец'),
         (RoleEnums.CFO.value, 'Финансовый директор'),
         (RoleEnums.CHIEF_ACCOUNTANT.value, 'Главный бухгалтер'),
@@ -34,6 +35,14 @@ class UserAccount(AbstractUser):
     ]
 
     role = models.SlugField("Роль", choices=ROLES)
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='portal_users',
+        verbose_name='Арендатор',
+    )
     avatar = models.FileField("Аватар", upload_to=PathAndRename("uploads/"), null=True, blank=True)
 
     birthday = models.DateField("Дата рождения", null=True, blank=True)
@@ -93,7 +102,30 @@ class UserAccount(AbstractUser):
                                 )
 
         return user
-    
+
+    @staticmethod
+    def create_tenant_user(tenant):
+        base = f"tenant{tenant.pk}"
+        username = base
+        suffix = 1
+        while UserAccount.objects.filter(username=username).exists():
+            username = f"{base}_{suffix}"
+            suffix += 1
+
+        user = UserAccount.objects.create_user(
+            username=username,
+            email=f"{username}@tenant.local",
+            password=get_random_string(),
+            role=RoleEnums.TENANT.value,
+            first_name=tenant.name[:30],
+            tenant=tenant,
+        )
+        return user
+
+    @property
+    def is_portal_user(self):
+        return self.role in RoleEnums.portal_roles()
+
 
 class Department(MPTTModel):
     company = models.ForeignKey(
@@ -145,6 +177,54 @@ class Department(MPTTModel):
             }
         return res
 
+
+class AccessScope(models.Model):
+    """Зона видимости: роли, отделы и/или конкретные пользователи."""
+
+    name = models.CharField('Название', max_length=120)
+    description = models.TextField('Описание', blank=True)
+    is_global = models.BooleanField(
+        'Доступен всем авторизованным',
+        default=False,
+        help_text='Если включено — контрагенты этого типа видят все пользователи.',
+    )
+    roles = models.JSONField(
+        'Роли',
+        default=list,
+        blank=True,
+        help_text='Список slug ролей (administrator, staff, …).',
+    )
+    departments = models.ManyToManyField(
+        Department,
+        blank=True,
+        verbose_name='Отделы',
+        related_name='access_scopes',
+    )
+    users = models.ManyToManyField(
+        UserAccount,
+        blank=True,
+        verbose_name='Пользователи',
+        related_name='access_scopes',
+    )
+
+    class Meta:
+        verbose_name = 'Зона доступа'
+        verbose_name_plural = 'Зоны доступа'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def is_unrestricted(self):
+        if self.is_global:
+            return True
+        if self.roles:
+            return False
+        if self.departments.exists():
+            return False
+        if self.users.exists():
+            return False
+        return True
 
 
 class Employee(models.Model):
@@ -268,6 +348,7 @@ class Notification(models.Model):
                 'purchases': reverse('documents:document', args=[self.target_id]),
                 'budget': reverse('documents:document', args=[self.target_id]),
                 'task': reverse('tasks:task', args=[self.target_id]),
+                'requistion': reverse('requistions:item', args=[self.target_id]),
             }
 
             return links.get(self.target_type, None)
@@ -275,16 +356,15 @@ class Notification(models.Model):
         return None
 
     def send(self):
-        send_notifications_task.delay(self.id)
-
-
-    @staticmethod
-    def create_for_document(document):
-        users_qs = document.coordinators.all() | document.observers.all() | UserAccount.objects.filter(pk=document.author.pk)
-        users_qs = users_qs.distinct()
-
-        notification = Notification.objects.create(title="Добавлен документ", text="Новый документ", target_id=document.id, target_type=document.document_type)
-        notification.users.add(*users_qs)
+        try:
+            send_notifications_task.delay(self.id)
+        except Exception:
+            try:
+                # Redis/Celery недоступен (локальная разработка) — выполняем синхронно.
+                send_notifications_task(self.id)
+            except Exception:
+                # FCM/конфиг недоступен — не блокируем смену статуса задачи и др.
+                pass
 
 
     @staticmethod

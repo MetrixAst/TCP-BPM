@@ -1,8 +1,9 @@
 import logging
 
 from django.shortcuts import render, get_object_or_404, redirect
+from django.http import Http404
 from django.utils.decorators import method_decorator
-from django.views.generic import ListView, DetailView, View
+from django.views.generic import ListView, View
 from django.http import JsonResponse
 from django.contrib import messages
 from django.conf import settings
@@ -11,6 +12,11 @@ from django.db import transaction
 from django.utils import timezone
 
 from account.role_permissions import login_required
+from account.services.access_scope import (
+    filter_counterparties_queryset,
+    get_visible_counterparties,
+    user_can_view_counterparty,
+)
 from .models import Counterparty, Invoice, InvoiceItem
 from .client_1c.client import Client1C
 from .forms import CounterpartyForm
@@ -39,7 +45,10 @@ class CounterpartyListView(ListView):
     paginate_by = 50
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = filter_counterparties_queryset(
+            super().get_queryset().select_related('counterparty_type', 'counterparty_type__access_scope'),
+            self.request.user,
+        )
 
         search_query = self.request.GET.get('search')
 
@@ -51,6 +60,10 @@ class CounterpartyListView(ListView):
                 | models.Q(phone__icontains=search_query)
             )
 
+        type_id = self.request.GET.get('type')
+        if type_id:
+            queryset = queryset.filter(counterparty_type_id=type_id)
+
         return queryset
 
     def dispatch(self, request, *args, **kwargs):
@@ -60,8 +73,14 @@ class CounterpartyListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['total_count'] = Counterparty.objects.count()
+        visible = get_visible_counterparties(self.request.user)
+        context['total_count'] = visible.count()
         context['onec_configured'] = bool(getattr(settings, 'ONE_C_BASE_URL', None))
+        from .models import CounterpartyType
+        context['counterparty_types'] = CounterpartyType.objects.filter(is_active=True)
+        context['f_type'] = self.request.GET.get('type', '')
+        from account.services.access_scope import user_can_manage_access_scopes
+        context['can_manage_acl'] = user_can_manage_access_scopes(self.request.user)
         return context
 
 
@@ -133,6 +152,8 @@ def counterparty_create(request):
 @login_required
 def counterparty_edit(request, pk):
     counterparty = get_object_or_404(Counterparty, pk=pk)
+    if not user_can_view_counterparty(request.user, counterparty):
+        raise Http404
     form = CounterpartyForm(request.POST or None, instance=counterparty)
 
     if request.method == 'POST' and form.is_valid():
@@ -150,16 +171,27 @@ def counterparty_edit(request, pk):
     })
 
 
-@method_decorator(login_required, name='dispatch')
-class CounterpartyDetailView(DetailView):
-    model = Counterparty
-    template_name = 'site/onec/counterparty_detail.html'
-    context_object_name = 'counterparty'
+@login_required
+def counterparty_detail(request, pk):
+    counterparty = get_object_or_404(
+        filter_counterparties_queryset(
+            Counterparty.objects.select_related('counterparty_type', 'counterparty_type__access_scope'),
+            request.user,
+        ),
+        pk=pk,
+    )
+    return render(request, 'site/onec/counterparty_detail.html', {
+        'counterparty': counterparty,
+    })
+
 
 @login_required
 def counterparty_search_api(request):
     q = request.GET.get('q', '')
-    counterparties = Counterparty.objects.filter(
+    counterparties = filter_counterparties_queryset(
+        Counterparty.objects.all(),
+        request.user,
+    ).filter(
         models.Q(short_name__icontains=q) | models.Q(bin_number__icontains=q)
     )[:20]
     results = [
@@ -187,7 +219,10 @@ class InvoiceCreateView(View):
 
         try:
             with transaction.atomic():
-                counterparty = get_object_or_404(Counterparty, id=cp_id)
+                counterparty = get_object_or_404(
+                    filter_counterparties_queryset(Counterparty.objects.all(), request.user),
+                    id=cp_id,
+                )
                 
                 invoice = Invoice.objects.create(
                     counterparty=counterparty,
@@ -241,10 +276,15 @@ class InvoiceCreateView(View):
 
 
 class CounterpartyViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Counterparty.objects.all()
     serializer_class = CounterpartySerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['short_name', 'bin_number']
+
+    def get_queryset(self):
+        return filter_counterparties_queryset(
+            Counterparty.objects.select_related('counterparty_type'),
+            self.request.user,
+        )
 
 class InvoiceViewSet(viewsets.ModelViewSet):
     queryset = Invoice.objects.all().order_by('-Date')

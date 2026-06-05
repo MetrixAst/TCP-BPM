@@ -1,0 +1,94 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .onec-acl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 991px) { .onec-acl-grid { grid-template-columns: 1fr; } }
+  .onec-acl-roles ul { list-style: none; padding: 0; margin: 0; }
+  .onec-acl-roles li { margin-bottom: 8px; }
+  .onec-acl-roles label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="onec-page onec-create-page">
+  <form method="post" class="onec-create-card">
+    {% csrf_token %}
+
+    <div class="onec-create-card__header">
+      <h1 class="onec-create-card__title">{{ title }}</h1>
+      <a href="{% url 'onec:counterparty_type_list' %}" class="onec-create-card__close" title="Закрыть">×</a>
+    </div>
+
+    {% if form.errors %}
+      <div class="onec-form-errors">
+        {% for field, errors in form.errors.items %}
+          {% for error in errors %}
+            <div class="onec-form-error">{{ field }}: {{ error }}</div>
+          {% endfor %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="onec-create-card__section-title">Тип</div>
+    <div class="onec-form-grid">
+      <div class="onec-form-field">
+        <label class="onec-label">Название</label>
+        {{ form.name }}
+      </div>
+      <div class="onec-form-field">
+        <label class="onec-label">Код</label>
+        {{ form.code }}
+      </div>
+      <div class="onec-form-field">
+        <label class="onec-label">Порядок</label>
+        {{ form.sort_order }}
+      </div>
+      <div class="onec-form-field" style="align-self:end">
+        <label class="onec-cp-check">
+          {{ form.is_active }}
+          <span class="onec-cp-check__label">Активен</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="onec-create-card__section-title">Кто видит контрагентов этого типа</div>
+
+    <div class="onec-form-field onec-form-field--full">
+      <label class="onec-cp-check">
+        {{ form.scope_is_global }}
+        <span class="onec-cp-check__label">Доступен всем авторизованным пользователям</span>
+      </label>
+    </div>
+
+    <div class="onec-acl-grid">
+      <div class="onec-form-field onec-acl-roles">
+        <label class="onec-label">Роли</label>
+        {{ form.scope_roles }}
+      </div>
+      <div class="onec-form-field">
+        <label class="onec-label">Отделы</label>
+        {{ form.scope_departments }}
+      </div>
+      <div class="onec-form-field onec-form-field--full" style="grid-column: 1 / -1">
+        <label class="onec-label">Отдельные пользователи</label>
+        {{ form.scope_users }}
+      </div>
+    </div>
+
+    <p class="text-muted small">
+      Если не выбрано ни одной роли, отдела и пользователя и флаг «всем» выключен — тип видят все (как без зоны).
+    </p>
+
+    <div class="onec-create-footer">
+      {% if is_edit %}
+      <a href="{% url 'onec:counterparty_type_delete' counterparty_type.pk %}" class="onec-btn onec-btn--ghost text-danger">Удалить</a>
+      {% endif %}
+      <a href="{% url 'onec:counterparty_type_list' %}" class="onec-btn onec-btn--ghost">Отмена</a>
+      <button type="submit" class="onec-btn onec-btn--primary">Сохранить</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -203,6 +203,42 @@
     });
   }
 
+  const orgChartState = {
+    editMode: false,
+    canEdit: false,
+    chart: null,
+    chartData: [],
+    reload: null,
+    departmentsApi: "",
+    companiesApi: "",
+  };
+
+  function orgEditActionsHtml(nodeId, kind) {
+    if (!orgChartState.editMode || !orgChartState.canEdit) return "";
+    if (kind === "company") {
+      const companyId = String(nodeId).replace("company_", "");
+      return `
+        <div class="org-node__actions" onclick="event.stopPropagation()">
+          <button type="button" class="org-node__btn" data-org-company-add="${companyId}" title="Добавить отдел">
+            <i class="bi bi-plus-lg"></i>
+          </button>
+        </div>`;
+    }
+    if (kind === "dept") {
+      const deptId = String(nodeId).replace("dept_", "");
+      return `
+        <div class="org-node__actions" onclick="event.stopPropagation()">
+          <button type="button" class="org-node__btn" data-org-dept-edit="${deptId}" title="Изменить">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button type="button" class="org-node__btn" data-org-dept-child="${deptId}" title="Подотдел">
+            <i class="bi bi-plus-lg"></i>
+          </button>
+        </div>`;
+    }
+    return "";
+  }
+
   function getNodeHtml(d) {
     const data = d.data || d;
     const rawName  = (data.name     || "Без названия").trim();
@@ -211,19 +247,21 @@
     const imageUrl = (data.imageUrl || "").trim();
     const profileUrl = (data.profileUrl || "").trim();
     const highlighted = data._highlighted ? " org-node--hl" : "";
+    const nodeId = String(data.id || "");
 
     const isCompany  = type.includes("компания");
     const isDept     = type.includes("департамент") || type.includes("отдел");
-    const isEmployee = String(data.id || "").startsWith("emp_");
+    const isEmployee = nodeId.startsWith("emp_");
 
     /* ── COMPANY ── */
     if (isCompany) {
       const initials = rawName.split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
       return `
-        <div class="org-node org-node--company${highlighted}">
+        <div class="org-node org-node--company${highlighted}${orgChartState.editMode ? " org-node--editable" : ""}">
           <div class="org-node__company-logo">${initials}</div>
           <div class="org-node__company-name">${rawName}</div>
           <div class="org-node__company-label">Компания</div>
+          ${orgEditActionsHtml(nodeId, "company")}
         </div>`;
     }
 
@@ -235,13 +273,14 @@
       const count    = parts[1] ? parts[1].trim() : "";
       const icon     = iconForDept(deptName);
       return `
-        <div class="org-node org-node--dept${highlighted}">
+        <div class="org-node org-node--dept${highlighted}${orgChartState.editMode ? " org-node--editable" : ""}">
           <div class="org-node__dept-icon">${icon}</div>
           <div class="org-node__dept-body">
             <div class="org-node__dept-name">${deptName}</div>
             ${count ? `<div class="org-node__dept-count">${count}</div>` : ""}
             ${position && position !== "Отдел" ? `<div class="org-node__dept-head">Рук.: ${position}</div>` : ""}
           </div>
+          ${orgEditActionsHtml(nodeId, "dept")}
         </div>`;
     }
 
@@ -285,6 +324,250 @@
     return '<i class="bi bi-diagram-3-fill"></i>';
   }
 
+  function getCsrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : "";
+  }
+
+  function apiFetch(url, options) {
+    const opts = Object.assign({
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        "Content-Type": "application/json",
+      },
+      credentials: "same-origin",
+    }, options || {});
+    if (opts.method && opts.method !== "GET") {
+      opts.headers["X-CSRFToken"] = getCsrfToken();
+    }
+    return fetch(url, opts).then(function (response) {
+      if (!response.ok) {
+        return response.json().catch(function () { return {}; }).then(function (body) {
+          let msg = body.detail;
+          if (!msg && typeof body === "object") {
+            const firstKey = Object.keys(body)[0];
+            if (firstKey && Array.isArray(body[firstKey])) msg = body[firstKey][0];
+            else if (firstKey) msg = body[firstKey];
+          }
+          throw new Error(msg || "Ошибка запроса");
+        });
+      }
+      if (response.status === 204) return null;
+      return response.json();
+    });
+  }
+
+  function initOrgChartEdit(container) {
+    if (!container || container.dataset.canEdit !== "1") return;
+
+    orgChartState.canEdit = true;
+    orgChartState.departmentsApi = container.dataset.departmentsApi || "/api/v1/hr/departments/";
+    orgChartState.companiesApi = container.dataset.companiesApi || "/api/v1/hr/companies/";
+
+    const modal = document.getElementById("hrOrgDeptModal");
+    const form = document.getElementById("hrOrgDeptForm");
+    const toggle = document.getElementById("hrOrgEditToggle");
+    const deleteBtn = document.getElementById("hrOrgDeptDelete");
+    const errorEl = document.getElementById("hrOrgDeptError");
+    const companySelect = document.getElementById("hrOrgDeptCompany");
+    const parentSelect = document.getElementById("hrOrgDeptParent");
+
+    if (!modal || !form || !toggle) return;
+
+    let modalContext = { companyId: null, parentId: null, departmentId: null };
+    let companiesCache = null;
+    let departmentsCache = null;
+
+    function showError(message) {
+      if (!errorEl) return;
+      if (message) {
+        errorEl.textContent = message;
+        errorEl.hidden = false;
+      } else {
+        errorEl.textContent = "";
+        errorEl.hidden = true;
+      }
+    }
+
+    function closeModal() {
+      modal.hidden = true;
+      showError("");
+    }
+
+    function loadCompanies() {
+      if (companiesCache) return Promise.resolve(companiesCache);
+      return apiFetch(orgChartState.companiesApi + "?page_size=200").then(function (data) {
+        companiesCache = data.results || data;
+        return companiesCache;
+      });
+    }
+
+    function loadDepartments(companyId) {
+      const url = orgChartState.departmentsApi + "tree/?company=" + encodeURIComponent(companyId);
+      return apiFetch(url).then(function (data) {
+        departmentsCache = data.results || data;
+        return departmentsCache;
+      });
+    }
+
+    function fillParentOptions(companyId, excludeId, selectedId) {
+      return loadDepartments(companyId).then(function (rows) {
+        parentSelect.innerHTML = '<option value="">— корневой отдел компании —</option>';
+        rows.forEach(function (row) {
+          if (excludeId && String(row.id) === String(excludeId)) return;
+          const opt = document.createElement("option");
+          opt.value = row.id;
+          const indent = row.level ? "—".repeat(row.level) + " " : "";
+          opt.textContent = indent + row.name;
+          if (selectedId && String(row.id) === String(selectedId)) {
+            opt.selected = true;
+          }
+          parentSelect.appendChild(opt);
+        });
+      });
+    }
+
+    function openDeptModal(ctx) {
+      modalContext = ctx || {};
+      showError("");
+      const isEdit = Boolean(modalContext.departmentId);
+      document.getElementById("hrOrgDeptModalTitle").textContent = isEdit ? "Редактировать отдел" : "Новый отдел";
+      deleteBtn.hidden = !isEdit;
+      document.getElementById("hrOrgDeptId").value = modalContext.departmentId || "";
+      document.getElementById("hrOrgDeptName").value = "";
+      document.getElementById("hrOrgDeptLevel").value = "department";
+      modal.hidden = false;
+
+      loadCompanies().then(function (companies) {
+        companySelect.innerHTML = "";
+        companies.forEach(function (c) {
+          const opt = document.createElement("option");
+          opt.value = c.id;
+          opt.textContent = c.name;
+          companySelect.appendChild(opt);
+        });
+
+        const companyId = modalContext.companyId || (companies[0] && companies[0].id);
+        if (companyId) companySelect.value = companyId;
+
+        if (isEdit) {
+          return apiFetch(orgChartState.departmentsApi + modalContext.departmentId + "/").then(function (dept) {
+            document.getElementById("hrOrgDeptName").value = dept.name || "";
+            companySelect.value = dept.company;
+            document.getElementById("hrOrgDeptLevel").value = dept.level_type || "department";
+            return fillParentOptions(dept.company, dept.id, dept.parent);
+          });
+        }
+
+        if (modalContext.companyId) {
+          companySelect.value = modalContext.companyId;
+        }
+        return fillParentOptions(companySelect.value, null, modalContext.parentId || null);
+      }).catch(function (err) {
+        showError(err.message);
+      });
+    }
+
+    companySelect.addEventListener("change", function () {
+      fillParentOptions(companySelect.value, modalContext.departmentId || null, null);
+    });
+
+    toggle.addEventListener("click", function () {
+      orgChartState.editMode = !orgChartState.editMode;
+      toggle.classList.toggle("is-active", orgChartState.editMode);
+      toggle.querySelector("span").textContent = orgChartState.editMode ? "Готово" : "Редактировать";
+      if (orgChartState.chart && orgChartState.chartData.length) {
+        orgChartState.chart.data(orgChartState.chartData).render().fit();
+      }
+    });
+
+    container.addEventListener("click", function (event) {
+      const editBtn = event.target.closest("[data-org-dept-edit]");
+      const childBtn = event.target.closest("[data-org-dept-child]");
+      const companyBtn = event.target.closest("[data-org-company-add]");
+      if (editBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+        const row = (departmentsCache || []).find(function (d) {
+          return String(d.id) === editBtn.getAttribute("data-org-dept-edit");
+        });
+        openDeptModal({
+          departmentId: editBtn.getAttribute("data-org-dept-edit"),
+          companyId: row && row.company,
+        });
+        return;
+      }
+      if (childBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+        const deptId = childBtn.getAttribute("data-org-dept-child");
+        const row = (departmentsCache || []).find(function (d) {
+          return String(d.id) === deptId;
+        });
+        openDeptModal({
+          parentId: deptId,
+          companyId: row && row.company,
+        });
+        return;
+      }
+      if (companyBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+        openDeptModal({ companyId: companyBtn.getAttribute("data-org-company-add") });
+      }
+    });
+
+    modal.querySelectorAll("[data-hr-org-modal-close]").forEach(function (el) {
+      el.addEventListener("click", closeModal);
+    });
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      showError("");
+      const payload = {
+        name: document.getElementById("hrOrgDeptName").value.trim(),
+        company: parseInt(companySelect.value, 10),
+        level_type: document.getElementById("hrOrgDeptLevel").value,
+        parent: parentSelect.value ? parseInt(parentSelect.value, 10) : null,
+      };
+      const deptId = document.getElementById("hrOrgDeptId").value;
+      const method = deptId ? "PATCH" : "POST";
+      const url = deptId
+        ? orgChartState.departmentsApi + deptId + "/"
+        : orgChartState.departmentsApi;
+
+      apiFetch(url, { method: method, body: JSON.stringify(payload) })
+        .then(function () {
+          closeModal();
+          departmentsCache = null;
+          if (typeof orgChartState.reload === "function") {
+            orgChartState.reload();
+          }
+        })
+        .catch(function (err) {
+          showError(err.message);
+        });
+    });
+
+    deleteBtn.addEventListener("click", function () {
+      const deptId = document.getElementById("hrOrgDeptId").value;
+      if (!deptId || !window.confirm("Удалить отдел?")) return;
+      apiFetch(orgChartState.departmentsApi + deptId + "/", { method: "DELETE" })
+        .then(function () {
+          closeModal();
+          departmentsCache = null;
+          if (typeof orgChartState.reload === "function") {
+            orgChartState.reload();
+          }
+        })
+        .catch(function (err) {
+          showError(err.message);
+        });
+    });
+
+    window.hrOrgOpenDeptModal = openDeptModal;
+  }
+
   function initOrgChart() {
     const container = document.getElementById("hrOrgChart");
     if (!container || typeof d3 === "undefined" || typeof d3.OrgChart === "undefined") return;
@@ -293,21 +576,24 @@
     let chart = null;
     let chartData = [];
 
-    fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+    function renderChart() {
+      return fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
       .then(response => {
         if (!response.ok) throw new Error("Bad response");
         return response.text();
       })
-      .then(raw => {
+      .then(function (raw) {
         chartData = normalizeOrgData(raw);
+        orgChartState.chartData = chartData;
 
         if (!chartData.length) {
           container.innerHTML = `<div class="hr-empty"><h3>Нет данных</h3></div>`;
+          orgChartState.chart = null;
           return;
         }
 
-        // Инициализация без вызова .imageUrl()
-        chart = new d3.OrgChart()
+        if (!chart) {
+          chart = new d3.OrgChart()
           .container("#hrOrgChart")
           .data(chartData)
           .nodeId(d => d.id)
@@ -338,18 +624,34 @@
           })
           .onNodeClick(function (node) {
             const data = node && node.data ? node.data : node;
-            const url = data && data.profileUrl;
-            if (url && String(data.id || "").startsWith("emp_")) {
-              window.location.href = url;
+            if (!data) return;
+            const id = String(data.id || "");
+            if (orgChartState.editMode && orgChartState.canEdit) {
+              if (id.startsWith("dept_") && window.hrOrgOpenDeptModal) {
+                window.hrOrgOpenDeptModal({ departmentId: id.replace("dept_", "") });
+                return;
+              }
+              if (id.startsWith("company_") && window.hrOrgOpenDeptModal) {
+                window.hrOrgOpenDeptModal({ companyId: id.replace("company_", "") });
+                return;
+              }
             }
-          })
-          .render();
+            const profileUrl = data.profileUrl;
+            if (profileUrl && id.startsWith("emp_")) {
+              window.location.href = profileUrl;
+            }
+          });
+        }
 
-        setTimeout(() => {
+        chart.data(chartData).render();
+
+        orgChartState.chart = chart;
+
+        setTimeout(function () {
           chart.fit();
           const highlightId = container.dataset.highlight;
           if (highlightId) {
-            chartData.forEach(item => {
+            chartData.forEach(function (item) {
               item._highlighted = item.id === highlightId;
               if (item._highlighted) {
                 item._expanded = true;
@@ -359,7 +661,7 @@
           }
         }, 200);
       })
-      .catch(error => {
+      .catch(function (error) {
         console.error("Chart Error Details:", error);
         container.innerHTML = `
           <div class="hr-empty">
@@ -368,11 +670,23 @@
             <p style="font-size: 12px; opacity: 0.6;">${error.message}</p>
           </div>`;
       });
+    }
+
+    orgChartState.reload = function () {
+      renderChart();
+    };
+
+    renderChart();
+    initOrgChartEdit(container);
 
     // Оставляем кнопки зума и поиска как были
-    const setupAction = (id, action) => {
+    const setupAction = function (id, action) {
       const el = document.getElementById(id);
-      if (el) el.addEventListener("click", () => chart && chart[action]());
+      if (el) {
+        el.addEventListener("click", function () {
+          if (orgChartState.chart) orgChartState.chart[action]();
+        });
+      }
     };
 
     setupAction("hrOrgZoomIn", "zoomIn");
@@ -382,28 +696,28 @@
     const expandAll = document.getElementById("hrOrgExpandAll");
     if (expandAll) {
       expandAll.addEventListener("click", function () {
-        if (!chart || !chartData.length) return;
-        chartData.forEach(function (item) {
+        if (!orgChartState.chart || !orgChartState.chartData.length) return;
+        orgChartState.chartData.forEach(function (item) {
           item._expanded = true;
           item._highlighted = false;
         });
-        chart.data(chartData).render().fit();
+        orgChartState.chart.data(orgChartState.chartData).render().fit();
       });
     }
 
     const search = document.getElementById("hrOrgSearch");
     if (search) {
       search.addEventListener("input", function () {
-        if (!chart || !chartData.length) return;
+        if (!orgChartState.chart || !orgChartState.chartData.length) return;
         const val = search.value.trim().toLowerCase();
 
-        chartData.forEach(item => {
+        orgChartState.chartData.forEach(function (item) {
           const text = [item.name, item.position, item.type].join(" ").toLowerCase();
           item._highlighted = Boolean(val && text.includes(val));
           if (val && text.includes(val)) item._expanded = true;
         });
 
-        chart.data(chartData).render().fit();
+        orgChartState.chart.data(orgChartState.chartData).render().fit();
       });
     }
   }

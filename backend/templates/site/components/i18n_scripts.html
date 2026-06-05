@@ -1,0 +1,6 @@
+{% load static %}
+<script>
+  window.BPM_I18N = { lang: '{{ current_lang|default:"ru"|escapejs }}' };
+</script>
+<script src="{% static 'site/js/i18n-bundle.js' %}?v={{ static_version|default:'1' }}"></script>
+<script src="{% static 'site/js/i18n.js' %}?v={{ static_version|default:'1' }}"></script>

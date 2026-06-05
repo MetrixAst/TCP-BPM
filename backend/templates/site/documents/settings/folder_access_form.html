@@ -1,0 +1,67 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/docs.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .doc-acl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 991px) { .doc-acl-grid { grid-template-columns: 1fr; } }
+  .doc-acl-roles ul { list-style: none; padding: 0; margin: 0; }
+  .doc-acl-roles li { margin-bottom: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="doc-page-header">
+  <div class="doc-page-header__left">
+    <h1 class="doc-page-title">{{ title }}</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="doc-breadcrumb">
+        <li><a href="{% url 'documents:list' document_type %}">{{ type_config.title }}</a></li>
+        <li><a href="{% url 'documents:folder_access_list' document_type %}">Доступ к папкам</a></li>
+        <li>{{ folder.short_name }}</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="doc-filter-card" style="margin-top:16px">
+  <form method="post">
+    {% csrf_token %}
+    {% if form.errors %}
+      <div class="alert alert-danger">{{ form.errors }}</div>
+    {% endif %}
+
+    <div class="mb-3">
+      <label class="doc-cp-check d-flex align-items-center gap-2">
+        {{ form.scope_is_global }}
+        <span>Доступна всем авторизованным пользователям</span>
+      </label>
+    </div>
+
+    <div class="doc-acl-grid">
+      <div class="doc-acl-roles">
+        <label class="doc-filter-label">Роли</label>
+        {{ form.scope_roles }}
+      </div>
+      <div>
+        <label class="doc-filter-label">Отделы</label>
+        {{ form.scope_departments }}
+      </div>
+      <div style="grid-column:1/-1">
+        <label class="doc-filter-label">Пользователи</label>
+        {{ form.scope_users }}
+      </div>
+    </div>
+
+    <p class="text-muted small mt-3">
+      Пустая матрица без флага «всем» — папка видна всем (как без зоны). Дочерние папки наследуют только отображение в дереве через предков.
+    </p>
+
+    <div class="d-flex gap-2 mt-4">
+      <a href="{% url 'documents:folder_access_list' document_type %}" class="doc-btn doc-btn--ghost">Отмена</a>
+      <button type="submit" class="doc-btn doc-btn--primary">Сохранить</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

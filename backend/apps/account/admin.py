@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django_mptt_admin.admin import DjangoMpttAdmin
-from .models import UserAccount, Department, Employee, Notification, PushToken
+from .models import UserAccount, Department, Employee, Notification, PushToken, AccessScope
 from .forms import EmployeeAdminForm
 from .models import Employee
 from hr.models import Position
@@ -34,6 +34,13 @@ class CustomUserAdmin(UserAdmin):
     )
 
 admin.site.register(UserAccount, CustomUserAdmin)
+
+
+@admin.register(AccessScope)
+class AccessScopeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'is_global', 'roles')
+    search_fields = ('name',)
+    filter_horizontal = ('departments', 'users')
 
 
 class EmployeeInline(admin.TabularInline):

@@ -60,6 +60,8 @@ def profile_view(request):
             if password_form.is_valid():
                 password_form.save()
 
+    _apply_profile_labels(request, profile_form, password_form)
+
     context = {
         'info': request.user.get_info(),
         'profile_form': profile_form,
@@ -67,6 +69,24 @@ def profile_view(request):
     }
 
     return render(request, 'site/account/profile.html', context)
+
+
+def _apply_profile_labels(request, profile_form, password_form):
+    from .i18n import translate, DEFAULT_LANG
+
+    lang = getattr(request, 'current_lang', DEFAULT_LANG)
+
+    for form in (profile_form, password_form):
+        changed = False
+        for name, field in form.fields.items():
+            label = translate(lang, f'profile.fields.{name}', default=None)
+            if label and label != f'profile.fields.{name}':
+                field.label = label
+                changed = True
+        # CustomModelForm pins bound-field labels at init and Django caches
+        # bound fields, so drop the cache to pick up the new field labels.
+        if changed and hasattr(form, '_bound_fields_cache'):
+            form._bound_fields_cache = {}
 
 
 @login_required

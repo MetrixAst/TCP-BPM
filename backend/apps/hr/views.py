@@ -16,7 +16,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 
 from project.utils import get_or_none, get_or_error
-from project.paginator import CustomPaginator
+from project.paginator import CustomPaginator, page_from_request
 
 from account.role_permissions import need_permission, PermissionEnums, RolePermissions, RoleEnums
 from account.models import Employee, Department
@@ -28,30 +28,48 @@ from .forms import (
     EmployeeDocumentForm, DocumentFilterForm,
     EmployeeWorkPermitForm, PermitFilterForm,
     EmployeeCertificationForm, CertificationFilterForm,
+    WorkScheduleForm,
 )
 
 from .models import (
     CalendarItem, Company, Position, LeaveRequest, 
-    LeaveType, Vacation, SickLeave, EmploymentContract, AttendanceRecord, CheckInEnum, EmployeeDocument, EmployeeWorkPermit, EmployeeCertification, WorkCategory, WorkCalendar
+    LeaveType, Vacation, SickLeave, EmploymentContract, AttendanceRecord, CheckInEnum, EmployeeDocument, EmployeeWorkPermit, EmployeeCertification, WorkCategory, WorkCalendar, EmployeeWorkSchedule
 )
 from .serializers import CalendarItemSerializer
+from . import work_schedule as work_schedule_helper
 
 import calendar as calendar_module
 
 from .enums import CalendarItemType, LeaveStatusEnum, CertificationStatusEnum
+from .access import (
+    need_hr_directory,
+    need_hr_registry,
+    get_registry_access,
+    can_view_employee,
+    filter_by_access,
+)
 
 
-
-@need_permission(PermissionEnums.HR)
+@need_hr_directory
 def structure(request):
-    return render(request, 'site/hr/org.html')
+    role = request.user.role
+    if hasattr(role, 'value'):
+        role = role.value
+    return render(request, 'site/hr/org.html', {
+        'can_edit_org': RolePermissions.checkPermission(role, PermissionEnums.HR_COMPANIES),
+        'departments_api_url': '/api/v1/hr/departments/',
+        'companies_api_url': '/api/v1/hr/companies/',
+    })
 
 
-@need_permission(PermissionEnums.HR)
+@need_hr_directory
 def employees(request):
 
     page = 1
     queryset = Employee.objects.all()
+    is_hr, is_head, curr = get_registry_access(request.user)
+    if is_head and not is_hr and curr:
+        queryset = queryset.filter(department=curr.department)
     ordered = False
     form = EmployeesListForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
@@ -100,9 +118,12 @@ def employees(request):
     return render(request, 'site/hr/employees.html', context)
 
 
-@need_permission(PermissionEnums.HR)
+@need_hr_directory
 @transaction.atomic
 def create_employee(request):
+    is_hr, _, _ = get_registry_access(request.user)
+    if not is_hr:
+        return HttpResponseForbidden()
 
     form = EmployeeCreationForm(request.POST or None)
 
@@ -143,7 +164,7 @@ def _build_employee_profile_context(request, employee, tab=None):
     user = employee.user
     curr_employee = getattr(request.user, 'employee_info', None)
     is_own_profile = curr_employee is not None and curr_employee.pk == employee.pk
-    is_hr, is_head, _ = _get_registry_access(request.user)
+    is_hr, is_head, _ = get_registry_access(request.user)
     can_manage = (is_hr or is_head) and not is_own_profile
 
     documents = employee.documents.all().order_by('-created_at')
@@ -211,6 +232,7 @@ def _build_employee_profile_context(request, employee, tab=None):
         'leaves': leaves,
         'attendance_rows': attendance_rows,
         'subordinates': subordinates,
+        'work_schedule': work_schedule_helper.get_schedule(employee),
         'stats': {
             'documents': documents.count(),
             'certifications': certifications.count(),
@@ -240,7 +262,7 @@ def my_profile(request):
     return render(request, 'site/hr/employee_detail.html', context)
 
 
-@need_permission(PermissionEnums.HR)
+@need_permission(PermissionEnums.HR_SELF)
 def employee_detail(request, pk):
     employee = get_object_or_404(
         Employee.objects.select_related(
@@ -248,12 +270,17 @@ def employee_detail(request, pk):
         ),
         pk=pk,
     )
+    if not can_view_employee(request.user, employee):
+        return HttpResponseForbidden()
     context = _build_employee_profile_context(request, employee)
     return render(request, 'site/hr/employee_detail.html', context)
 
 
-@need_permission(PermissionEnums.HR)
+@need_hr_directory
 def edit_employee(request, pk):
+    is_hr, _, _ = get_registry_access(request.user)
+    if not is_hr:
+        return HttpResponseForbidden()
 
     employee = get_object_or_404(Employee, pk=pk)
 
@@ -269,17 +296,52 @@ def edit_employee(request, pk):
             messages.success(request, 'Данные сотрудника сохранены.')
             return redirect('hr:employee_detail', pk=pk)
 
+    schedule = work_schedule_helper.get_schedule(employee)
     context = {
         'form': form,
         'employee': employee,
+        'schedule_form': WorkScheduleForm(instance=schedule),
         'positions_by_department_url': reverse('hr:positions_by_department'),
     }
 
     return render(request, 'site/hr/edit_employee.html', context)
 
 
-@need_permission(PermissionEnums.HR)
+@need_hr_directory
+def employee_schedule(request, pk):
+    is_hr, _, _ = get_registry_access(request.user)
+    if not is_hr:
+        return HttpResponseForbidden()
+
+    employee = get_object_or_404(Employee, pk=pk)
+    schedule = work_schedule_helper.get_schedule(employee)
+
+    if request.method == 'POST':
+        form = WorkScheduleForm(request.POST, instance=schedule)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.employee = employee
+            obj.save()
+            messages.success(request, 'График работы сохранён.')
+            return redirect('hr:edit_employee', pk=pk)
+        messages.error(request, 'Проверьте поля графика работы.')
+        context = {
+            'form': EmployeeForm(instance=employee),
+            'employee': employee,
+            'schedule_form': form,
+            'positions_by_department_url': reverse('hr:positions_by_department'),
+        }
+        return render(request, 'site/hr/edit_employee.html', context)
+
+    return redirect('hr:edit_employee', pk=pk)
+
+
+@need_hr_directory
 def delete_employee(request, pk):
+    is_hr, _, _ = get_registry_access(request.user)
+    if not is_hr:
+        return HttpResponseForbidden()
+
     employee = get_object_or_404(Employee, pk=pk)
     if request.method == 'POST':
         name = employee.user.get_name if employee.user else str(employee.pk)
@@ -316,6 +378,30 @@ def calendar_json(request, category):
     res = CalendarItemSerializer(qs, many=True)
 
     return JsonResponse(res.data, safe=False)
+
+
+@need_permission(PermissionEnums.HR)
+def calendar_timeline(request, category):
+    """Данные для полосного календаря (командировки и др.)."""
+    from django.urls import reverse
+
+    qs = CalendarItem.objects.filter(category=category).select_related('user')
+    data = []
+    for item in qs:
+        user = item.user
+        name = user.get_name if hasattr(user, 'get_name') else (
+            f'{user.first_name or ""} {user.last_name or ""}'.strip() or user.username
+        )
+        data.append({
+            'id': item.id,
+            'content': name,
+            'start': item.start_date.isoformat(),
+            'end': item.end_date.isoformat(),
+            'group': item.title or CalendarItemType.get_title(category),
+            'status': 'approved',
+            'url': reverse('hr:edit_calendar', args=[item.pk]) + f'?category={category}',
+        })
+    return JsonResponse(data, safe=False)
 
 
 @need_permission(PermissionEnums.HR)
@@ -517,7 +603,7 @@ def create_department(request):
     return redirect('hr:departments')
 
 
-@need_permission(PermissionEnums.HR)
+@need_hr_directory
 def positions_by_department(request):
     from django.http import JsonResponse
 
@@ -550,13 +636,13 @@ def _is_manager(user):
     return False
 
 
-@need_permission(PermissionEnums.HR)
+@need_permission(PermissionEnums.HR_SELF)
 def leave_timeline_page(request):
     """HTML-страница Календаря отпусков (данные грузятся через leave_timeline JSON)."""
     return render(request, 'site/hr/leave_timeline.html', {})
 
 
-@need_permission(PermissionEnums.HR)
+@need_permission(PermissionEnums.HR_SELF)
 def leave_list(request):
     is_manager = _is_manager(request.user)
     employee = getattr(request.user, 'employee_info', None)
@@ -599,15 +685,18 @@ def leave_list(request):
         if data.get('date_to'):
             queryset = queryset.filter(end_date__lte=data['date_to'])
 
+    page = page_from_request(request)
+    paginator = CustomPaginator(queryset, page)
+
     context = {
-        'leaves': queryset,
+        'paginator': paginator,
         'filter_form': filter_form,
         'is_manager': is_manager,
     }
 
     return render(request, 'site/hr/leave_list.html', context)
 
-@need_permission(PermissionEnums.HR)
+@need_permission(PermissionEnums.HR_SELF)
 def leave_create(request):
     employee = getattr(request.user, 'employee_info', None)
 
@@ -633,7 +722,7 @@ def leave_create(request):
 
     return render(request, 'site/hr/leave_create.html', context)
 
-@need_permission(PermissionEnums.HR)
+@need_permission(PermissionEnums.HR_SELF)
 def leave_detail(request, pk):
     leave = get_object_or_404(
         LeaveRequest.objects.select_related(
@@ -658,7 +747,7 @@ def leave_detail(request, pk):
     return render(request, 'site/hr/leave_detail.html', context)
 
 
-@need_permission(PermissionEnums.HR)
+@need_permission(PermissionEnums.HR_SELF)
 def leave_confirm(request, pk):
     """Первый шаг согласования: подтверждение перед финальным одобрением."""
     leave = get_object_or_404(LeaveRequest, pk=pk)
@@ -672,7 +761,7 @@ def leave_confirm(request, pk):
     return redirect(request.POST.get('next') or 'hr:leave_list')
 
 
-@need_permission(PermissionEnums.HR)
+@need_permission(PermissionEnums.HR_SELF)
 def leave_approve(request, pk):
     leave = get_object_or_404(LeaveRequest, pk=pk)
 
@@ -686,7 +775,7 @@ def leave_approve(request, pk):
     return redirect(request.POST.get('next') or 'hr:leave_list')
 
 
-@need_permission(PermissionEnums.HR)
+@need_permission(PermissionEnums.HR_SELF)
 def leave_reject(request, pk):
     leave = get_object_or_404(LeaveRequest, pk=pk)
 
@@ -701,7 +790,7 @@ def leave_reject(request, pk):
 
     return redirect(request.POST.get('next') or 'hr:leave_list')
 
-@need_permission(PermissionEnums.HR)
+@need_permission(PermissionEnums.HR_SELF)
 def leave_cancel(request, pk):
     leave = get_object_or_404(LeaveRequest, pk=pk, employee__user=request.user)
 
@@ -712,7 +801,7 @@ def leave_cancel(request, pk):
     
     return redirect('hr:leave_list')
 
-@need_permission(PermissionEnums.HR)
+@need_permission(PermissionEnums.HR_SELF)
 def ajax_calculate_days(request):
     start = request.GET.get('start')
     end = request.GET.get('end')
@@ -745,7 +834,7 @@ def ajax_calculate_days(request):
     except Exception as e:
         return JsonResponse({'days': 0, 'error': str(e)})
 
-@need_permission(PermissionEnums.HR)
+@need_permission(PermissionEnums.HR_SELF)
 def leave_timeline(request):
     is_manager = _is_manager(request.user)
     curr_employee = getattr(request.user, 'employee_info', None)
@@ -1053,7 +1142,7 @@ def attendance_journal(request):
     target_date_str = request.GET.get('date', date.today().isoformat())
     target_date = parse_date(target_date_str) or date.today()
     
-    employees_qs = Employee.objects.filter(status='active').select_related('user', 'department')
+    employees_qs = Employee.objects.filter(status='active').select_related('user', 'department', 'work_schedule')
     
     if not is_hr and is_head:
         employees_qs = employees_qs.filter(department=employee.department)
@@ -1094,8 +1183,7 @@ def attendance_journal(request):
             if start_dt:
                 local_start = start_dt.astimezone(LOCAL_TZ)
                 start_dt = local_start
-                if local_start.hour > 9 or (local_start.hour == 9 and local_start.minute > 0):
-                    late = True
+                late = work_schedule_helper.is_late(emp, local_start)
 
             end_dt = events.get(CheckInEnum.DAY_END)
             if end_dt:
@@ -1221,8 +1309,7 @@ def attendance_my(request):
         start_dt = events.get(CheckInEnum.DAY_START)
         if start_dt:
             start_dt = start_dt.astimezone(LOCAL_TZ)
-            if start_dt.hour > 9 or (start_dt.hour == 9 and start_dt.minute > 0):
-                late = True
+            late = work_schedule_helper.is_late(employee, start_dt)
 
         end_dt = events.get(CheckInEnum.DAY_END)
         if end_dt:
@@ -1278,33 +1365,9 @@ def attendance_my(request):
     })
 
 
-def _get_registry_access(user):
-    employee = getattr(user, 'employee_info', None)
-    role = user.role
-    if hasattr(role, 'value'):
-        role = role.value
-
-    is_hr = (
-        getattr(user, 'is_superuser', False)
-        or role == RoleEnums.ADMINISTRATOR.value
-        or RolePermissions.checkPermission(role, PermissionEnums.HR_REGISTRIES)
-    )
-    is_head = bool(employee and employee.head)
-    return is_hr, is_head, employee
-
-def _filter_by_access(queryset, user, employee_field='employee'):
-    is_hr, is_head, employee = _get_registry_access(user)
-    if is_hr:
-        return queryset
-    if not employee:
-        return queryset.none()
-    if is_head:
-        return queryset.filter(**{f'{employee_field}__department': employee.department})
-    return queryset.filter(**{employee_field: employee})
-
-@need_permission(PermissionEnums.HR)
+@need_permission(PermissionEnums.HR_SELF)
 def documents_list(request):
-    is_hr, is_head, curr_employee = _get_registry_access(request.user)
+    is_hr, is_head, curr_employee = get_registry_access(request.user)
 
     employee_id = request.GET.get('employee_id')
 
@@ -1325,8 +1388,10 @@ def documents_list(request):
         queryset = EmployeeDocument.objects.filter(employee=selected_employee).select_related(
             'employee__user', 'employee__department'
         ).order_by('-created_at')
+        page = page_from_request(request)
+        doc_paginator = CustomPaginator(queryset, page)
         return render(request, 'site/hr/documents_list.html', {
-            'documents': queryset,
+            'paginator': doc_paginator,
             'selected_employee': selected_employee,
             'is_hr': is_hr or is_head,
             'employee_mode': True,
@@ -1347,17 +1412,19 @@ def documents_list(request):
         else:
             employees_qs = employees_qs.none()
 
+    page = page_from_request(request)
+    emp_paginator = CustomPaginator(employees_qs, page)
     return render(request, 'site/hr/documents_list.html', {
-        'employees': employees_qs,
+        'paginator': emp_paginator,
         'is_hr': is_hr or is_head,
         'employee_mode': False,
     })
 
-@need_permission(PermissionEnums.HR)
+@need_hr_registry
 def permits_list(request):
-    is_hr, is_head, _ = _get_registry_access(request.user)
+    is_hr, is_head, _ = get_registry_access(request.user)
     queryset = EmployeeWorkPermit.objects.select_related('employee__user', 'employee__department', 'category').order_by('expiry_date')
-    queryset = _filter_by_access(queryset, request.user)
+    queryset = filter_by_access(queryset, request.user)
     filter_form = PermitFilterForm(request.GET)
     if filter_form.is_valid():
         data = filter_form.cleaned_data
@@ -1374,17 +1441,19 @@ def permits_list(request):
             queryset = queryset.filter(expiry_date__lte=date.today() + timedelta(days=30), expiry_date__gte=date.today())
         if data.get('expired'):
             queryset = queryset.filter(expiry_date__lt=date.today())
+    page = page_from_request(request)
+    paginator = CustomPaginator(queryset, page)
     return render(request, 'site/hr/permits_list.html', {
-        'permits': queryset,
+        'paginator': paginator,
         'filter_form': filter_form,
         'is_hr': is_hr or is_head,
         'date_today': date.today(),
         'expiration_threshold': date.today() + timedelta(days=30),
     })
 
-@need_permission(PermissionEnums.HR)
+@need_hr_registry
 def documents_create(request):
-    is_hr, is_head, _ = _get_registry_access(request.user)
+    is_hr, is_head, _ = get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
     emp_id = request.GET.get('employee_id')
@@ -1398,9 +1467,9 @@ def documents_create(request):
         return redirect(f"{reverse('hr:employee_detail', args=[doc.employee_id])}?tab=documents")
     return render(request, 'site/hr/documents_form.html', {'form': form, 'title': 'Добавить документ'})
 
-@need_permission(PermissionEnums.HR)
+@need_hr_registry
 def documents_edit(request, pk):
-    is_hr, is_head, _ = _get_registry_access(request.user)
+    is_hr, is_head, _ = get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
     doc = get_object_or_404(EmployeeDocument, pk=pk)
@@ -1411,9 +1480,9 @@ def documents_edit(request, pk):
         return redirect('hr:documents_list')
     return render(request, 'site/hr/documents_form.html', {'form': form, 'title': 'Редактировать документ'})
 
-@need_permission(PermissionEnums.HR)
+@need_hr_registry
 def documents_delete(request, pk):
-    is_hr, is_head, _ = _get_registry_access(request.user)
+    is_hr, is_head, _ = get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
     doc = get_object_or_404(EmployeeDocument, pk=pk)
@@ -1422,13 +1491,13 @@ def documents_delete(request, pk):
         messages.success(request, "Документ удалён.")
     return redirect('hr:documents_list')
 
-@need_permission(PermissionEnums.HR)
+@need_hr_registry
 def documents_export(request):
-    is_hr, is_head, _ = _get_registry_access(request.user)
+    is_hr, is_head, _ = get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
     queryset = EmployeeDocument.objects.select_related('employee__user', 'employee__department').order_by('-created_at')
-    queryset = _filter_by_access(queryset, request.user)
+    queryset = filter_by_access(queryset, request.user)
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Документы"
@@ -1451,9 +1520,9 @@ def documents_export(request):
     wb.save(response)
     return response
 
-@need_permission(PermissionEnums.HR)
+@need_hr_registry
 def permits_create(request):
-    is_hr, is_head, _ = _get_registry_access(request.user)
+    is_hr, is_head, _ = get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
     emp_id = request.GET.get('employee_id')
@@ -1467,9 +1536,9 @@ def permits_create(request):
         return redirect(f"{reverse('hr:employee_detail', args=[permit.employee_id])}?tab=permits")
     return render(request, 'site/hr/permits_form.html', {'form': form, 'title': 'Добавить допуск'})
 
-@need_permission(PermissionEnums.HR)
+@need_hr_registry
 def permits_edit(request, pk):
-    is_hr, is_head, _ = _get_registry_access(request.user)
+    is_hr, is_head, _ = get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
     permit = get_object_or_404(EmployeeWorkPermit, pk=pk)
@@ -1480,9 +1549,9 @@ def permits_edit(request, pk):
         return redirect('hr:permits_list')
     return render(request, 'site/hr/permits_form.html', {'form': form, 'title': 'Редактировать допуск'})
 
-@need_permission(PermissionEnums.HR)
+@need_hr_registry
 def permits_delete(request, pk):
-    is_hr, is_head, _ = _get_registry_access(request.user)
+    is_hr, is_head, _ = get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
     permit = get_object_or_404(EmployeeWorkPermit, pk=pk)
@@ -1491,10 +1560,10 @@ def permits_delete(request, pk):
         messages.success(request, "Допуск удалён.")
     return redirect('hr:permits_list')
 
-@need_permission(PermissionEnums.HR)
+@need_hr_registry
 def permits_export(request):
     queryset = EmployeeWorkPermit.objects.select_related('employee__user', 'employee__department', 'category').order_by('expiry_date')
-    queryset = _filter_by_access(queryset, request.user)
+    queryset = filter_by_access(queryset, request.user)
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Допуски"
@@ -1516,11 +1585,11 @@ def permits_export(request):
     wb.save(response)
     return response
 
-@need_permission(PermissionEnums.HR)
+@need_hr_registry
 def certifications_list(request):
-    is_hr, is_head, _ = _get_registry_access(request.user)
+    is_hr, is_head, _ = get_registry_access(request.user)
     queryset = EmployeeCertification.objects.select_related('employee__user', 'employee__department').order_by('expiry_date')
-    queryset = _filter_by_access(queryset, request.user)
+    queryset = filter_by_access(queryset, request.user)
     filter_form = CertificationFilterForm(request.GET)
     if filter_form.is_valid():
         data = filter_form.cleaned_data
@@ -1538,15 +1607,17 @@ def certifications_list(request):
             queryset = queryset.filter(status=data['status'])
         if data.get('expiring_soon'):
             queryset = queryset.filter(expiry_date__lte=date.today() + timedelta(days=30), expiry_date__gte=date.today())
+    page = page_from_request(request)
+    paginator = CustomPaginator(queryset, page)
     return render(request, 'site/hr/certifications_list.html', {
-        'certifications': queryset,
+        'paginator': paginator,
         'filter_form': filter_form,
         'is_hr': is_hr or is_head,
     })
 
-@need_permission(PermissionEnums.HR)
+@need_hr_registry
 def certifications_create(request):
-    is_hr, is_head, _ = _get_registry_access(request.user)
+    is_hr, is_head, _ = get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
     emp_id = request.GET.get('employee_id')
@@ -1560,9 +1631,9 @@ def certifications_create(request):
         return redirect(f"{reverse('hr:employee_detail', args=[cert.employee_id])}?tab=certifications")
     return render(request, 'site/hr/certifications_form.html', {'form': form, 'title': 'Добавить сертификацию'})
 
-@need_permission(PermissionEnums.HR)
+@need_hr_registry
 def certifications_edit(request, pk):
-    is_hr, is_head, _ = _get_registry_access(request.user)
+    is_hr, is_head, _ = get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
     cert = get_object_or_404(EmployeeCertification, pk=pk)
@@ -1573,9 +1644,9 @@ def certifications_edit(request, pk):
         return redirect('hr:certifications_list')
     return render(request, 'site/hr/certifications_form.html', {'form': form, 'title': 'Редактировать сертификацию'})
 
-@need_permission(PermissionEnums.HR)
+@need_hr_registry
 def certifications_delete(request, pk):
-    is_hr, is_head, _ = _get_registry_access(request.user)
+    is_hr, is_head, _ = get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
     cert = get_object_or_404(EmployeeCertification, pk=pk)
@@ -1584,10 +1655,10 @@ def certifications_delete(request, pk):
         messages.success(request, "Сертификация удалена.")
     return redirect('hr:certifications_list')
 
-@need_permission(PermissionEnums.HR)
+@need_hr_registry
 def certifications_export(request):
     queryset = EmployeeCertification.objects.select_related('employee__user', 'employee__department').order_by('expiry_date')
-    queryset = _filter_by_access(queryset, request.user)
+    queryset = filter_by_access(queryset, request.user)
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Сертификации"

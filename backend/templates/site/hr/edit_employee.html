@@ -152,6 +152,60 @@
 
   </div>
 
+  <div class="hr-edit-card">
+    <div class="hr-edit-card__header">
+      <h1 class="hr-edit-card__title">График работы</h1>
+    </div>
+
+    <form method="POST" action="{% url 'hr:employee_schedule' employee.pk %}" class="hr-edit-form">
+      {% csrf_token %}
+      <div class="hr-edit-card__body">
+        <section class="hr-edit-section">
+          <p class="hr-edit-section__hint">
+            Индивидуальное время начала дня используется при расчёте опозданий в журнале посещаемости.
+          </p>
+
+          <div class="hr-edit-grid hr-edit-grid--2">
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Начало рабочего дня</label>
+              {{ schedule_form.work_start }}
+              {% if schedule_form.work_start.errors %}<div class="hr-edit-field__error">{{ schedule_form.work_start.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Конец рабочего дня</label>
+              {{ schedule_form.work_end }}
+              {% if schedule_form.work_end.errors %}<div class="hr-edit-field__error">{{ schedule_form.work_end.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Начало обеда</label>
+              {{ schedule_form.lunch_start }}
+            </div>
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Конец обеда</label>
+              {{ schedule_form.lunch_end }}
+            </div>
+            <div class="hr-edit-field">
+              <label class="hr-edit-field__label">Допустимое опоздание, мин</label>
+              {{ schedule_form.grace_minutes }}
+              {% if schedule_form.grace_minutes.errors %}<div class="hr-edit-field__error">{{ schedule_form.grace_minutes.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="hr-edit-field">
+            <label class="hr-edit-field__label">Рабочие дни</label>
+            <div class="hr-edit-weekdays">
+              {{ schedule_form.workdays }}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="hr-edit-card__footer">
+        <button type="submit" class="hr-edit-btn hr-edit-btn--save">Сохранить график</button>
+      </div>
+    </form>
+  </div>
+
 </div>
 
 {% endblock %}

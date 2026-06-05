@@ -1,0 +1,60 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/docs.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
+
+{% block content %}
+<div class="doc-page-header">
+  <div class="doc-page-header__left">
+    <h1 class="doc-page-title">{{ title }}</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="doc-breadcrumb">
+        <li><a href="{% url 'documents:list' document_type %}">{{ type_config.title }}</a></li>
+        <li>Доступ к папкам</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="doc-table-card" style="margin-top:16px">
+  <table class="table table-sm align-middle mb-0">
+    <thead>
+      <tr>
+        <th>Папка</th>
+        <th>Зона доступа</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for folder in folders %}
+      <tr>
+        <td style="padding-left:{{ folder.level|add:1 }}em">
+          {% if folder.is_root_node %}<strong>{% endif %}
+          {{ folder.short_name }}
+          {% if folder.is_root_node %}</strong>{% endif %}
+        </td>
+        <td>
+          {% if folder.access_scope %}
+            {% if folder.access_scope.is_global %}
+              <span class="badge bg-success">Все</span>
+            {% else %}
+              {{ folder.access_scope.name }}
+              {% if folder.access_scope.roles %}
+                <div class="text-muted small">Роли: {{ folder.access_scope.roles|join:", " }}</div>
+              {% endif %}
+            {% endif %}
+          {% else %}
+            <span class="text-muted">Без ограничений</span>
+          {% endif %}
+        </td>
+        <td class="text-end">
+          <a href="{% url 'documents:folder_access_edit' document_type folder.pk %}" class="doc-btn doc-btn--ghost doc-btn--sm">Настроить</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

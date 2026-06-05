@@ -854,9 +854,13 @@
 .fin-calendar-day__number {
   width: 30px;
   height: 30px;
-  border-radius: 999px;
+  border-radius: 50%;
   background: #f5f3fa;
   color: #25233f;
+  align-self: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;

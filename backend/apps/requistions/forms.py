@@ -14,6 +14,14 @@ class GuestRequistionInitForm(CustomModelForm):
         fields = ('requistion_type', )
 
 
+class TenantRequistionInitForm(CustomModelForm):
+    """Шаг 1 заявки для арендатора — только тип."""
+
+    class Meta:
+        model = Requistion
+        fields = ('requistion_type',)
+
+
 class RequistionInitForm(CustomModelForm):
 
     coordinators = UserSelect2MultipleField(required=True, placeholder="Согласующие")

@@ -9,10 +9,10 @@
         <div class="row">
             <!-- Title Start -->
             <div class="col-12 col-md-7">
-                <h1 class="mb-0 pb-0 display-4" id="title">Профиль</h1>
+                <h1 class="mb-0 pb-0 display-4" id="title">{% t 'profile.title' 'Профиль' %}</h1>
                 <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
                     <ul class="breadcrumb pt-0">
-                        <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">{% t 'common.home' 'Главная' %}</a></li>
                         <li class="breadcrumb-item">{{user.get_name}}</li>
                     </ul>
                 </nav>
@@ -26,7 +26,7 @@
         <!-- Left Side Start -->
         <div class="col-12 col-xl-4 col-xxl-3">
             <!-- Biography Start -->
-            <h2 class="small-title">Профиль</h2>
+            <h2 class="small-title">{% t 'profile.title' 'Профиль' %}</h2>
             <div class="card mb-5">
                 <div class="card-body">
                     <div class="d-flex align-items-center flex-column mb-4">
@@ -47,17 +47,17 @@
                     <div class="nav flex-column" role="tablist">
                         <a class="nav-link active px-0 border-bottom border-separator-light" data-bs-toggle="tab" href="#overviewTab" role="tab">
                             <i data-acorn-icon="activity" class="me-2" data-acorn-size="17"></i>
-                            <span class="align-middle">Аккаунт</span>
+                            <span class="align-middle">{% t 'profile.account' 'Аккаунт' %}</span>
                         </a>
                         {% if info %}
                             <a class="nav-link px-0 border-bottom border-separator-light" data-bs-toggle="tab" href="#projectsTab" role="tab">
                                 <i data-acorn-icon="office" class="me-2" data-acorn-size="17"></i>
-                                <span class="align-middle">Команда</span>
+                                <span class="align-middle">{% t 'profile.team' 'Команда' %}</span>
                             </a>
                         {% endif %}
                         <a class="nav-link px-0" href="/">
                             <i data-acorn-icon="lock-off" class="me-2" data-acorn-size="17"></i>
-                            <span class="align-middle">Выйти</span>
+                            <span class="align-middle">{% t 'profile.logout' 'Выйти' %}</span>
                         </a>
                     </div>
                 </div>
@@ -70,7 +70,7 @@
             <!-- Overview Tab Start -->
             <div class="tab-pane fade show active" id="overviewTab" role="tabpanel">
                 <!-- Public Info Start -->
-                <h2 class="small-title">Настройки аккаунта</h2>
+                <h2 class="small-title">{% t 'profile.account_settings' 'Настройки аккаунта' %}</h2>
                 <div class="card mb-5">
                     <div class="card-body">
                         <form method="POST">
@@ -83,7 +83,7 @@
 
 
                 <!-- Private Info Start -->
-                <h2 class="small-title">Пароль</h2>
+                <h2 class="small-title">{% t 'profile.password' 'Пароль' %}</h2>
                 <div class="card mb-5">
                     <div class="card-body">
                         <form method="POST">

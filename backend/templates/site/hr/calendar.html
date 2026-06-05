@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="{% static 'site/css/apps/bpm-calendars.css' %}?v=1" />
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}" />
 <link rel="stylesheet" href="{% static 'site/css/apps/hr-calendar.css' %}?v=3" />
+<link rel="stylesheet" href="{% static 'site/css/apps/leaves.css' %}?v={{ static_version|default:'1' }}&cal=2" />
 {% endblock styles %}
 
 {% block content %}
@@ -43,6 +44,35 @@
     <span><i class="leg-holiday"></i> Праздник</span>
     <span><i class="leg-secondment"></i> Командировка</span>
   </div>
+
+  <section class="leave-timeline-page hr-cal-timeline" id="calendarTimelinePage"
+           data-source-url="{% url 'hr:calendar_timeline' category %}">
+    <div class="leave-timeline-page__top">
+      <div>
+        <h2 class="leave-timeline-page__title">Календарь {{ category_title|lower }}</h2>
+        <p class="leave-timeline-page__subtitle" id="calendarTlSubtitle">Загрузка…</p>
+      </div>
+      <div class="leave-timeline-page__actions">
+        <button type="button" class="leaves-page__btn leaves-page__btn--outline" id="calendarTlPrev"><i class="bi bi-chevron-left"></i></button>
+        <button type="button" class="leaves-page__btn leaves-page__btn--outline" id="calendarTlToday">Сегодня</button>
+        <button type="button" class="leaves-page__btn leaves-page__btn--outline" id="calendarTlNext"><i class="bi bi-chevron-right"></i></button>
+      </div>
+    </div>
+    <div class="leave-timeline-panel">
+      <div class="tl-layout">
+        <div class="tl-main">
+          <div class="leave-timeline-wrap" id="calendarTimeline">
+            <div class="leave-timeline__empty"><strong>Загрузка…</strong></div>
+          </div>
+        </div>
+        <aside class="tl-legend-panel" aria-label="Легенда">
+          <h3 class="tl-legend-panel__title">Сотрудники</h3>
+          <p class="tl-legend-panel__hint">Цвет полосы — сотрудник и период</p>
+          <div class="tl-legend-panel__list" id="calendarLegendList"></div>
+        </aside>
+      </div>
+    </div>
+  </section>
 
   <section class="hr-card hr-cal-list hr-cal-list--first">
     <div class="hr-cal-list__head">
@@ -150,5 +180,6 @@
 <script src="{% static 'site/js/main.js' %}?v={{ static_version|default:'1' }}"></script>
 <script src="{% static 'site/js/vendor/fullcalendar/main.min.js' %}"></script>
 <script src="{% static 'site/js/vendor/moment-with-locales.min.js' %}"></script>
+<script src="{% static 'site/js/apps/leaves.js' %}?v={{ static_version|default:'1' }}&cal=2"></script>
 <script src="{% static 'site/js/apps/hr_calendar.js' %}?v=3"></script>
 {% endblock scripts %}

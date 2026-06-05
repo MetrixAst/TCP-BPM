@@ -8,7 +8,7 @@ from account.models import Department, Employee, UserAccount
 from documents.forms import PaginatorForm
 from addits.forms import Select2FieldDefault, Select2ChoiceField
 
-from .models import CalendarItem, Position, LeaveRequest, LeaveType, EmployeeDocument, EmployeeWorkPermit, EmployeeCertification
+from .models import CalendarItem, Position, LeaveRequest, LeaveType, EmployeeDocument, EmployeeWorkPermit, EmployeeCertification, EmployeeWorkSchedule
 from .enums import CalendarItemType, EmployeeStatusEnum, LeaveStatusEnum, DocumentTypeEnum, CertificationStatusEnum, DocumentStatusEnum
 
 
@@ -349,3 +349,53 @@ class CertificationFilterForm(forms.Form):
     )
     expiring_soon = forms.BooleanField(required=False, label='Истекающие (30 дней)')
     expired = forms.BooleanField(required=False, label='Просроченные')
+
+
+WEEKDAY_CHOICES = [
+    ('0', 'Пн'), ('1', 'Вт'), ('2', 'Ср'), ('3', 'Чт'),
+    ('4', 'Пт'), ('5', 'Сб'), ('6', 'Вс'),
+]
+
+
+class WorkScheduleForm(forms.ModelForm):
+    """Персональный рабочий график сотрудника."""
+
+    workdays = forms.MultipleChoiceField(
+        label='Рабочие дни',
+        choices=WEEKDAY_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+    )
+
+    class Meta:
+        model = EmployeeWorkSchedule
+        fields = ['work_start', 'work_end', 'lunch_start', 'lunch_end', 'grace_minutes', 'workdays']
+        widgets = {
+            'work_start': forms.TimeInput(attrs={'type': 'time', 'class': 'hr-edit-input'}, format='%H:%M'),
+            'work_end': forms.TimeInput(attrs={'type': 'time', 'class': 'hr-edit-input'}, format='%H:%M'),
+            'lunch_start': forms.TimeInput(attrs={'type': 'time', 'class': 'hr-edit-input'}, format='%H:%M'),
+            'lunch_end': forms.TimeInput(attrs={'type': 'time', 'class': 'hr-edit-input'}, format='%H:%M'),
+            'grace_minutes': forms.NumberInput(attrs={'class': 'hr-edit-input', 'min': 0, 'max': 240}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ('work_start', 'work_end', 'lunch_start', 'lunch_end'):
+            self.fields[name].input_formats = ['%H:%M', '%H:%M:%S']
+        instance = kwargs.get('instance')
+        if instance and instance.pk:
+            self.fields['workdays'].initial = list(instance.workdays.split(',')) if instance.workdays else []
+        else:
+            self.fields['workdays'].initial = ['0', '1', '2', '3', '4']
+
+    def clean_workdays(self):
+        days = self.cleaned_data.get('workdays') or []
+        return ','.join(sorted(days, key=int))
+
+    def clean(self):
+        cleaned = super().clean()
+        start = cleaned.get('work_start')
+        end = cleaned.get('work_end')
+        if start and end and end <= start:
+            self.add_error('work_end', 'Конец рабочего дня должен быть позже начала.')
+        return cleaned

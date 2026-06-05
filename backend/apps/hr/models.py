@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from datetime import date
+from datetime import date, time
 from account.models import UserAccount, Employee
 from datetime import timedelta
 from .enums import CalendarItemType, DayTypeEnum, LeaveStatusEnum, CheckInEnum, DocumentTypeEnum, DocumentStatusEnum, CertificationStatusEnum
@@ -324,6 +324,60 @@ class AttendanceRecord(models.Model):
 
     def __str__(self):
         return f"{self.employee} - {self.event_type} ({self.timestamp.strftime('%d.%m %H:%M')})"
+
+
+class EmployeeWorkSchedule(models.Model):
+    """Персональный рабочий график сотрудника.
+
+    Используется для расчёта опозданий по индивидуальному времени начала дня
+    (вместо единого 09:00) и для определения рабочих дней сотрудника.
+    """
+
+    employee = models.OneToOneField(
+        'account.Employee',
+        on_delete=models.CASCADE,
+        related_name='work_schedule',
+        verbose_name='Сотрудник',
+    )
+    work_start = models.TimeField('Начало рабочего дня', default=time(9, 0))
+    work_end = models.TimeField('Конец рабочего дня', default=time(18, 0))
+    lunch_start = models.TimeField('Начало обеда', null=True, blank=True)
+    lunch_end = models.TimeField('Конец обеда', null=True, blank=True)
+    grace_minutes = models.PositiveSmallIntegerField('Допустимое опоздание, мин', default=0)
+    workdays = models.CharField(
+        'Рабочие дни недели',
+        max_length=20,
+        default='0,1,2,3,4',
+        help_text='Номера дней через запятую: 0=Пн … 6=Вс',
+    )
+
+    class Meta:
+        verbose_name = 'График работы'
+        verbose_name_plural = 'Графики работы'
+
+    def __str__(self):
+        return f"{self.employee}: {self.work_start:%H:%M}–{self.work_end:%H:%M}"
+
+    @property
+    def workday_numbers(self):
+        nums = set()
+        for part in (self.workdays or '').split(','):
+            part = part.strip()
+            if part.isdigit() and 0 <= int(part) <= 6:
+                nums.add(int(part))
+        return nums
+
+    def is_workday(self, d):
+        return d.weekday() in self.workday_numbers
+
+    def start_with_grace(self):
+        """Время начала дня с учётом допустимого опоздания."""
+        from datetime import datetime
+        base = datetime.combine(date.today(), self.work_start) + timedelta(
+            minutes=self.grace_minutes or 0
+        )
+        return base.time()
+
 
 class EmployeeDocument(models.Model):
     employee = models.ForeignKey(

@@ -11,7 +11,7 @@
               <i class="bi bi-chevron-left"></i>
             </span>
           {% else %}
-            <a href="?page={{ paginator.items.previous_page_number }}" class="page-link">
+            <a href="?{% if paginator_base_qs %}{{ paginator_base_qs }}&{% endif %}page={{ paginator.items.previous_page_number }}" class="page-link">
               <i class="bi bi-chevron-left"></i>
             </a>
           {% endif %}
@@ -30,7 +30,7 @@
             {% if as_paginator_handler %}
               <span class="page-link" data-page="{{ current }}">{{ current }}</span>
             {% else %}
-              <a href="?page={{ current }}" class="page-link">{{ current }}</a>
+              <a href="?{% if paginator_base_qs %}{{ paginator_base_qs }}&{% endif %}page={{ current }}" class="page-link">{{ current }}</a>
             {% endif %}
           {% endif %}
         </li>
@@ -43,7 +43,7 @@
               <i class="bi bi-chevron-right"></i>
             </span>
           {% else %}
-            <a href="?page={{ paginator.items.next_page_number }}" class="page-link">
+            <a href="?{% if paginator_base_qs %}{{ paginator_base_qs }}&{% endif %}page={{ paginator.items.next_page_number }}" class="page-link">
               <i class="bi bi-chevron-right"></i>
             </a>
           {% endif %}

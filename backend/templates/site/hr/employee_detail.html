@@ -62,6 +62,15 @@
           <a href="{% url 'hr:edit_employee' employee.pk %}" class="hr-btn hr-btn--primary">
             <i class="bi bi-pencil"></i> Редактировать
           </a>
+          {% if not is_own_profile %}
+            <form method="post" action="{% url 'hr:delete_employee' employee.pk %}" class="d-inline"
+                  onsubmit="return confirm('Удалить сотрудника без возможности восстановления?');">
+              {% csrf_token %}
+              <button type="submit" class="hr-btn hr-btn--danger" title="Удалить сотрудника">
+                <i class="bi bi-trash"></i> Удалить
+              </button>
+            </form>
+          {% endif %}
         {% endif %}
         {% if is_own_profile %}
           <a href="{% url 'account:profile' %}" class="hr-btn hr-btn--light">
@@ -173,6 +182,24 @@
         </dl>
       </section>
 
+      <section class="emp-card">
+        <h2 class="emp-card__title">График работы</h2>
+        <dl class="emp-dl">
+          {% if work_schedule %}
+            <div><dt>Рабочий день</dt><dd>{{ work_schedule.work_start|time:"H:i" }} – {{ work_schedule.work_end|time:"H:i" }}</dd></div>
+            {% if work_schedule.lunch_start and work_schedule.lunch_end %}
+              <div><dt>Обед</dt><dd>{{ work_schedule.lunch_start|time:"H:i" }} – {{ work_schedule.lunch_end|time:"H:i" }}</dd></div>
+            {% endif %}
+            <div><dt>Допустимое опоздание</dt><dd>{{ work_schedule.grace_minutes }} мин</dd></div>
+          {% else %}
+            <div><dt>Рабочий день</dt><dd>09:00 – 18:00 (по умолчанию)</dd></div>
+          {% endif %}
+        </dl>
+        {% if can_manage %}
+          <a href="{% url 'hr:edit_employee' employee.pk %}" class="emp-card__link">Настроить график →</a>
+        {% endif %}
+      </section>
+
       {% if not is_own_profile and subordinates %}
         <section class="emp-card">
           <h2 class="emp-card__title">Подчинённые</h2>
@@ -273,9 +300,10 @@
               <td>
                 <div class="emp-table__actions">
                   {% if doc.file %}
-                    <a href="{{ doc.file.url }}" target="_blank"
-                       class="emp-icon-btn" title="Скачать файл">
-                      <i class="bi bi-file-earmark"></i>
+                    <a href="{{ doc.file.url }}" target="_blank" download
+                       class="hr-download-btn" title="Скачать документ">
+                      <i class="bi bi-download"></i>
+                      <span>Скачать документ</span>
                     </a>
                   {% endif %}
                   {% if can_manage %}

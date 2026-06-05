@@ -163,25 +163,194 @@
       return new Date(y, m + 1, 0).getDate();
     }
 
-    function setupLeaveTimeline() {
-      var page = document.querySelector('#leaveTimelinePage');
-      var root = document.querySelector('#leaveTimeline');
+    var TL_COLORS = [
+      '#2f6bed', '#22a85a', '#f59e0b', '#8b5cf6', '#ec4899',
+      '#06b6d4', '#ef4444', '#84cc16', '#6366f1', '#14b8a6',
+    ];
+
+    function parseIsoDate(str) {
+      var p = (str || '').split('-');
+      if (p.length !== 3) return null;
+      return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    }
+
+    function fmtPeriod(start, end) {
+      function f(d) {
+        return ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2);
+      }
+      return f(start) + ' — ' + f(end);
+    }
+
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text == null ? '' : String(text);
+      return div.innerHTML;
+    }
+
+    function renderCalendar() {
+      var root     = document.getElementById('leaveTimeline') || document.getElementById('calendarTimeline');
+      var legend   = document.getElementById('tlLegendList') || document.getElementById('calendarLegendList');
+      var subtitle = document.getElementById('tlSubtitle') || document.getElementById('calendarTlSubtitle');
+      if (!root) return;
+
+      var numDays  = daysInMonth(tlYear, tlMonth);
+      var monthStart = new Date(tlYear, tlMonth, 1);
+      var monthEnd   = new Date(tlYear, tlMonth, numDays);
+      var today = new Date();
+
+      if (subtitle) subtitle.textContent = RU_MONTHS[tlMonth] + ' ' + tlYear;
+
+      var items = tlAllItems.filter(function (item) {
+        var s = parseIsoDate(item.start);
+        var e = parseIsoDate(item.end);
+        if (!s || !e) return false;
+        return s <= monthEnd && e >= monthStart;
+      });
+
+      var gridStyle = 'grid-template-columns: 180px repeat(' + numDays + ', minmax(28px, 1fr))';
+
+      var headHtml = '<div class="tl-grid__row tl-grid__row--head" style="' + gridStyle + '">';
+      headHtml += '<div class="tl-grid__cell tl-grid__cell--name">Сотрудник</div>';
+      for (var d = 1; d <= numDays; d++) {
+        var dt = new Date(tlYear, tlMonth, d);
+        var isToday = (dt.toDateString() === today.toDateString());
+        var isWeekend = (dt.getDay() === 0 || dt.getDay() === 6);
+        var cls = 'tl-grid__cell tl-grid__cell--day';
+        if (isToday) cls += ' tl-grid__cell--today';
+        if (isWeekend) cls += ' tl-grid__cell--weekend';
+        headHtml += '<div class="' + cls + '">';
+        headHtml += '<span class="tl-day-num">' + d + '</span>';
+        headHtml += '<span class="tl-day-name">' + RU_DAYS[dt.getDay()] + '</span>';
+        headHtml += '</div>';
+      }
+      headHtml += '</div>';
+
+      var empMap = {};
+      var colorIdx = 0;
+      items.forEach(function (item) {
+        var label = (item.content || '').replace(/\s*\([^)]*\)\s*$/, '').trim() || item.content || '—';
+        var key = (item.group || '') + '||' + label;
+        if (!empMap[key]) {
+          empMap[key] = {
+            label: label,
+            group: item.group || '',
+            color: TL_COLORS[colorIdx % TL_COLORS.length],
+            items: [],
+          };
+          colorIdx++;
+        }
+        empMap[key].items.push(item);
+      });
+
+      var rowsHtml = '';
+      var empKeys = Object.keys(empMap);
+
+      if (!empKeys.length) {
+        rowsHtml += '<div class="tl-grid__row tl-grid__row--empty" style="' + gridStyle + '">';
+        rowsHtml += '<div class="tl-grid__cell tl-grid__cell--name tl-grid__cell--placeholder">Нет отпусков в этом месяце</div>';
+        for (var e = 1; e <= numDays; e++) {
+          var dtE = new Date(tlYear, tlMonth, e);
+          var clsE = 'tl-grid__cell tl-grid__cell--slot';
+          if (dtE.getDay() === 0 || dtE.getDay() === 6) clsE += ' tl-grid__cell--weekend';
+          rowsHtml += '<div class="' + clsE + '"></div>';
+        }
+        rowsHtml += '</div>';
+      } else {
+        empKeys.forEach(function (key) {
+          var emp = empMap[key];
+          rowsHtml += '<div class="tl-grid__row tl-grid__row--track" style="' + gridStyle + '">';
+          rowsHtml += '<div class="tl-grid__cell tl-grid__cell--name tl-grid__cell--track-name">';
+          rowsHtml += '<span class="tl-emp-color" style="background:' + emp.color + '"></span>';
+          rowsHtml += '<span class="tl-emp-info">';
+          rowsHtml += '<span class="tl-emp-name">' + escapeHtml(emp.label) + '</span>';
+          if (emp.group) {
+            rowsHtml += '<span class="tl-dept-name">' + escapeHtml(emp.group) + '</span>';
+          }
+          rowsHtml += '</span></div>';
+
+          rowsHtml += '<div class="tl-track" style="grid-column:2/' + (numDays + 2) + ';--tl-days:' + numDays + ';">';
+          for (var di = 1; di <= numDays; di++) {
+            var dtD = new Date(tlYear, tlMonth, di);
+            var c = 'tl-track__day';
+            if (dtD.getDay() === 0 || dtD.getDay() === 6) c += ' tl-track__day--weekend';
+            if (dtD.toDateString() === today.toDateString()) c += ' tl-track__day--today';
+            rowsHtml += '<div class="' + c + '" style="grid-column:' + di + ';grid-row:1;"></div>';
+          }
+
+          emp.items.forEach(function (item) {
+            var s = parseIsoDate(item.start);
+            var e = parseIsoDate(item.end);
+            if (!s || !e) return;
+            var visStart = s < monthStart ? 1 : s.getDate();
+            var visEnd = e > monthEnd ? numDays : e.getDate();
+            if (visStart > numDays || visEnd < 1) return;
+            var colStart = visStart;
+            var colEnd = visEnd + 1;
+            var title = fmtPeriod(s, e);
+            var barHref = item.url || ('/hr/leaves/' + item.id + '/');
+            var statusCls = item.status ? ' tl-bar--' + item.status : '';
+            rowsHtml += '<a class="tl-bar' + statusCls + '" href="' + barHref + '"'
+              + ' style="grid-column:' + colStart + '/' + colEnd + ';grid-row:1;background:' + emp.color + ';"'
+              + ' title="' + escapeHtml(title) + '"></a>';
+          });
+
+          rowsHtml += '</div></div>';
+        });
+      }
+
+      root.innerHTML = '<div class="tl-grid">' + headHtml + rowsHtml + '</div>';
+
+      if (legend) {
+        if (!empKeys.length) {
+          legend.innerHTML = '<div class="tl-legend-panel__empty">В этом месяце отпусков нет. Календарь доступен для планирования.</div>';
+        } else {
+          var legHtml = '';
+          empKeys.forEach(function (key) {
+            var emp = empMap[key];
+            legHtml += '<div class="tl-legend-item">';
+            legHtml += '<span class="tl-legend-item__swatch" style="background:' + emp.color + '"></span>';
+            legHtml += '<div class="tl-legend-item__body">';
+            legHtml += '<span class="tl-legend-item__name">' + escapeHtml(emp.label) + '</span>';
+            emp.items.forEach(function (item) {
+              var s = parseIsoDate(item.start);
+              var e = parseIsoDate(item.end);
+              if (s && e) {
+                legHtml += '<span class="tl-legend-item__period">' + fmtPeriod(s, e) + '</span>';
+              }
+            });
+            legHtml += '</div></div>';
+          });
+          legend.innerHTML = legHtml;
+        }
+      }
+    }
+  
+    function bindTimelineNav(prevId, nextId, todayId, renderFn) {
+      var prevBtn  = document.getElementById(prevId);
+      var nextBtn  = document.getElementById(nextId);
+      var todayBtn = document.getElementById(todayId);
+      var today = new Date();
+      if (prevBtn)  prevBtn.addEventListener('click',  function () { tlMonth--; if (tlMonth < 0)  { tlMonth = 11; tlYear--; } renderFn(); });
+      if (nextBtn)  nextBtn.addEventListener('click',  function () { tlMonth++; if (tlMonth > 11) { tlMonth = 0;  tlYear++; } renderFn(); });
+      if (todayBtn) todayBtn.addEventListener('click', function () { tlYear = today.getFullYear(); tlMonth = today.getMonth(); renderFn(); });
+    }
+
+    function initTimelinePage(cfg) {
+      var page = document.querySelector(cfg.page);
+      var root = document.querySelector(cfg.root);
       if (!page || !root) return;
 
-      var sourceUrl = page.getAttribute('data-source-url');
+      var sourceUrl = page.getAttribute(cfg.urlAttr || 'data-source-url');
       if (!sourceUrl) return;
+
+      var legend = cfg.legend ? document.querySelector(cfg.legend) : null;
+      var subtitle = cfg.subtitle ? document.getElementById(cfg.subtitle) : null;
 
       var today = new Date();
       tlYear  = today.getFullYear();
       tlMonth = today.getMonth();
 
-      var prevBtn  = document.getElementById('tlPrevMonth');
-      var nextBtn  = document.getElementById('tlNextMonth');
-      var todayBtn = document.getElementById('tlToday');
-
-      if (prevBtn)  prevBtn.addEventListener('click',  function () { tlMonth--; if (tlMonth < 0)  { tlMonth = 11; tlYear--; } renderCalendar(); });
-      if (nextBtn)  nextBtn.addEventListener('click',  function () { tlMonth++; if (tlMonth > 11) { tlMonth = 0;  tlYear++; } renderCalendar(); });
-      if (todayBtn) todayBtn.addEventListener('click', function () { tlYear = today.getFullYear(); tlMonth = today.getMonth(); renderCalendar(); });
+      bindTimelineNav(cfg.prevId, cfg.nextId, cfg.todayId, renderCalendar);
 
       root.innerHTML = '<div class="leave-timeline__loading"><span>Загрузка…</span></div>';
 
@@ -196,104 +365,34 @@
         });
     }
 
-    function renderCalendar() {
-      var root     = document.getElementById('leaveTimeline');
-      var subtitle = document.getElementById('tlSubtitle');
-      if (!root) return;
-
-      var numDays  = daysInMonth(tlYear, tlMonth);
-      var monthStart = new Date(tlYear, tlMonth, 1);
-      var monthEnd   = new Date(tlYear, tlMonth, numDays);
-
-      if (subtitle) subtitle.textContent = RU_MONTHS[tlMonth] + ' ' + tlYear;
-
-      // Фильтруем заявки пересекающиеся с месяцем
-      var items = tlAllItems.filter(function (item) {
-        var s = new Date(item.start);
-        var e = new Date(item.end);
-        return s <= monthEnd && e >= monthStart;
+    function setupLeaveTimeline() {
+      initTimelinePage({
+        page: '#leaveTimelinePage',
+        root: '#leaveTimeline',
+        legend: '#tlLegendList',
+        subtitle: 'tlSubtitle',
+        prevId: 'tlPrevMonth',
+        nextId: 'tlNextMonth',
+        todayId: 'tlToday',
       });
-
-      if (!items.length) {
-        root.innerHTML = '<div class="leave-timeline__empty"><i class="bi bi-calendar-x"></i><strong>Нет заявок за ' + RU_MONTHS[tlMonth].toLowerCase() + ' ' + tlYear + '</strong><span>Попробуйте другой месяц или создайте заявку</span></div>';
-        return;
-      }
-
-      // ── шапка с датами ──
-      var cols = numDays + 1;
-      var gridStyle = 'grid-template-columns: 180px repeat(' + numDays + ', 1fr)';
-
-      var headHtml = '<div class="tl-grid__row tl-grid__row--head" style="' + gridStyle + '">';
-      headHtml += '<div class="tl-grid__cell tl-grid__cell--name">Сотрудник</div>';
-      var today = new Date();
-      for (var d = 1; d <= numDays; d++) {
-        var dt = new Date(tlYear, tlMonth, d);
-        var isToday = (dt.toDateString() === today.toDateString());
-        var isWeekend = (dt.getDay() === 0 || dt.getDay() === 6);
-        var cls = 'tl-grid__cell tl-grid__cell--day';
-        if (isToday)   cls += ' tl-grid__cell--today';
-        if (isWeekend) cls += ' tl-grid__cell--weekend';
-        headHtml += '<div class="' + cls + '">';
-        headHtml += '<span class="tl-day-num">' + d + '</span>';
-        headHtml += '<span class="tl-day-name">' + RU_DAYS[dt.getDay()] + '</span>';
-        headHtml += '</div>';
-      }
-      headHtml += '</div>';
-
-      // ── строки сотрудников ──
-      // Группируем по group (отделу) + content (сотрудник)
-      var empMap = {};
-      items.forEach(function (item) {
-        var key = (item.group || '') + '||' + (item.content || '');
-        if (!empMap[key]) empMap[key] = { label: item.content, group: item.group, items: [] };
-        empMap[key].items.push(item);
-      });
-
-      var rowsHtml = '';
-      Object.keys(empMap).forEach(function (key) {
-        var emp = empMap[key];
-        rowsHtml += '<div class="tl-grid__row" style="' + gridStyle + '">';
-        rowsHtml += '<div class="tl-grid__cell tl-grid__cell--name">';
-        rowsHtml += '<span class="tl-emp-name">' + (emp.label || '—') + '</span>';
-        rowsHtml += '<span class="tl-dept-name">' + (emp.group || '') + '</span>';
-        rowsHtml += '</div>';
-
-        // Ячейки дней
-        for (var d = 1; d <= numDays; d++) {
-          var dt2   = new Date(tlYear, tlMonth, d);
-          var isWeekend2 = (dt2.getDay() === 0 || dt2.getDay() === 6);
-          var isToday2   = dt2.toDateString() === today.toDateString();
-
-          // Попадает ли в этот день хоть одна заявка
-          var dayItems = emp.items.filter(function (item) {
-            var s = new Date(item.start);
-            var e = new Date(item.end);
-            return dt2 >= s && dt2 <= e;
-          });
-
-          var cellCls = 'tl-grid__cell tl-grid__cell--slot';
-          if (isWeekend2) cellCls += ' tl-grid__cell--weekend';
-          if (isToday2)   cellCls += ' tl-grid__cell--today';
-
-          var inner = '';
-          if (dayItems.length) {
-            var st = dayItems[0].status || 'pending';
-            cellCls += ' tl-grid__cell--filled tl-grid__cell--' + st;
-            inner = '<span class="tl-cell-dot"></span>';
-          }
-
-          rowsHtml += '<div class="' + cellCls + '">' + inner + '</div>';
-        }
-
-        rowsHtml += '</div>';
-      });
-
-      root.innerHTML = '<div class="tl-grid">' + headHtml + rowsHtml + '</div>';
     }
-  
+
+    function setupCalendarTimeline() {
+      initTimelinePage({
+        page: '#calendarTimelinePage',
+        root: '#calendarTimeline',
+        legend: '#calendarLegendList',
+        subtitle: 'calendarTlSubtitle',
+        prevId: 'calendarTlPrev',
+        nextId: 'calendarTlNext',
+        todayId: 'calendarTlToday',
+      });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
       setupLeaveFilters();
       setupLeaveCreateForm();
       setupLeaveTimeline();
+      setupCalendarTimeline();
     });
   })();

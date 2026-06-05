@@ -1,13 +1,22 @@
 from django.contrib import admin
-from .models import Remnant, Invoice, Counterparty, InvoiceItem
+from .models import Remnant, Invoice, Counterparty, CounterpartyType, InvoiceItem
 
 admin.site.register(Remnant)
 
+
+@admin.register(CounterpartyType)
+class CounterpartyTypeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'access_scope', 'is_active', 'sort_order')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'code')
+    prepopulated_fields = {'code': ('name',)}
+
+
 @admin.register(Counterparty)
 class CounterpartyAdmin(admin.ModelAdmin):
-    list_display = ('short_name', 'bin_number', 'is_supplier', 'is_customer', 'synced_at')
+    list_display = ('short_name', 'bin_number', 'counterparty_type', 'is_supplier', 'is_customer', 'synced_at')
     search_fields = ('short_name', 'full_name', 'bin_number', 'id_1c')
-    list_filter = ('is_supplier', 'is_customer')
+    list_filter = ('is_supplier', 'is_customer', 'counterparty_type')
 
     def get_readonly_fields(self, request, obj=None):
         return [f.name for f in self.model._meta.fields]

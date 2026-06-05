@@ -1,28 +1,44 @@
 {% extends 'site/base.html' %}
-{% load static %}
+{% load static site_tags %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/dashboard.css' %}?v={{ static_version|default:'1' }}&dash=2">
+<link rel="stylesheet" href="{% static 'site/css/apps/dashboard.css' %}?v={{ static_version|default:'1' }}&dash=3">
 {% endblock %}
 
 {% block content %}
 
-<div class="dash-header">
-  <div>
-    <h1 class="dash-title">Добро пожаловать{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}</h1>
-    <p class="dash-subtitle">Обзор задач, документов и уведомлений</p>
+<div class="dash-hero">
+  <div class="dash-hero__content">
+    <p class="dash-hero__eyebrow">{% t 'dashboard.welcome' 'Добро пожаловать' %}{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}</p>
+    <h1 class="dash-hero__title">{% t 'dashboard.subtitle' 'Обзор задач, документов и уведомлений' %}</h1>
+    <p class="dash-hero__date"><i class="bi bi-calendar3"></i> {% now "d E Y" %}</p>
   </div>
+  {% if task_statistic %}
+  <div class="dash-hero__stats">
+    {% for current in task_statistic %}
+    <a href="{% url 'tasks:by_type' current.slug %}" class="dash-hero-stat{% if current.slug == 'created' or current.slug == 'accepted' %} dash-hero-stat--accent{% endif %}">
+      <span class="dash-hero-stat__value">{{ current.count }}</span>
+      <span class="dash-hero-stat__label">{{ current.title }}</span>
+      {% if current.slug == 'created' and current.count > 0 %}
+      <span class="dash-hero-stat__badge">{% t 'dashboard.new_tasks' 'Новые' %}</span>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
 </div>
 
 <div class="dash-grid">
 
-  <!-- Task Stats -->
   {% if task_statistic %}
   <section class="dash-section dash-section--full">
-    <h2 class="dash-section-title">Задачи</h2>
+    <div class="dash-section-head">
+      <h2 class="dash-section-title">{% t 'dashboard.tasks' 'Задачи' %}</h2>
+      <a href="{% url 'tasks:kanban' %}" class="dash-section-link">{% t 'tasks.kanban_view' 'Канбан' %} <i class="bi bi-arrow-right"></i></a>
+    </div>
     <div class="dash-task-grid">
       {% for current in task_statistic %}
-      <a href="{% url 'tasks:by_type' current.slug %}" class="dash-task-card">
+      <a href="{% url 'tasks:by_type' current.slug %}" class="dash-task-card dash-task-card--{{ current.slug }}">
         <div class="dash-task-icon">
           <i class="bi bi-{{ current.icon }}"></i>
         </div>
@@ -30,16 +46,19 @@
           <span class="dash-task-label">{{ current.title }}</span>
           <span class="dash-task-count">{{ current.count }}</span>
         </div>
+        {% if current.slug == 'created' and current.count > 0 %}
+        <span class="dash-task-new" title="{% t 'dashboard.new_tasks' 'Новые задачи' %}">{{ current.count }}</span>
+        {% endif %}
       </a>
       {% endfor %}
     </div>
   </section>
   {% endif %}
 
-  <!-- Documents -->
+  <div class="dash-columns">
   {% if documents %}
   <section class="dash-section">
-    <h2 class="dash-section-title">Документы</h2>
+    <h2 class="dash-section-title">{% t 'dashboard.documents' 'Документы' %}</h2>
     <div class="dash-card">
       {% for current in documents %}
       <a href="{% url 'documents:document' current.id %}" class="dash-doc-item">
@@ -57,17 +76,16 @@
       {% empty %}
       <div class="dash-empty">
         <i class="bi bi-file-earmark-x"></i>
-        <span>Документов нет</span>
+        <span>{% t 'dashboard.documents_empty' 'Документов нет' %}</span>
       </div>
       {% endfor %}
     </div>
   </section>
   {% endif %}
 
-  <!-- Notifications -->
   {% if notifications %}
   <section class="dash-section">
-    <h2 class="dash-section-title">Уведомления</h2>
+    <h2 class="dash-section-title">{% t 'dashboard.notifications' 'Уведомления' %}</h2>
     <div class="dash-card">
       {% for current in notifications %}
       {% if current.url %}
@@ -93,11 +111,11 @@
     </div>
   </section>
   {% endif %}
+  </div>
 
-  <!-- Quick Access -->
   {% if menu %}
   <section class="dash-section dash-section--full dash-section--quick">
-    <h2 class="dash-section-title">Быстрый доступ</h2>
+    <h2 class="dash-section-title">{% t 'dashboard.quick_access' 'Быстрый доступ' %}</h2>
     <div class="dash-quick-grid">
       {% for current in menu %}
         {% if not current.submenu and current.icon and current.url and current.url != '#' %}

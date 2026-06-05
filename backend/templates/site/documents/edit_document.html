@@ -38,22 +38,8 @@
 
         <div class="doc-form-card">
             <section class="doc-form-section">
-                <h2 class="doc-form-section__title">Основные данные</h2>
+                <h2 class="doc-form-section__title">{% if document_type == 'documents' %}Файл и папка{% else %}Основные данные{% endif %}</h2>
                 <div class="doc-form-grid">
-                    <div class="doc-form-field">
-                        <label class="doc-form-label" for="{{ form.number.id_for_label }}">№ документа</label>
-                        {{ form.number }}
-                    </div>
-                    <div class="doc-form-field">
-                        <label class="doc-form-label" for="{{ form.reg_date.id_for_label }}">Дата заполнения</label>
-                        {{ form.reg_date }}
-                    </div>
-                    {% if form.days %}
-                    <div class="doc-form-field">
-                        <label class="doc-form-label" for="{{ form.days.id_for_label }}">Срок выполнения (дней)</label>
-                        {{ form.days }}
-                    </div>
-                    {% endif %}
                     {% if form.folder %}
                     <div class="doc-form-field doc-form-field--full">
                         <label class="doc-form-label" for="{{ form.folder.id_for_label }}">Папка</label>
@@ -61,23 +47,11 @@
                     </div>
                     {% endif %}
                     <div class="doc-form-field doc-form-field--full">
-                        <label class="doc-form-label" for="{{ form.title.id_for_label }}">Заголовок</label>
+                        <label class="doc-form-label" for="{{ form.title.id_for_label }}">Название</label>
                         {{ form.title }}
                     </div>
-                    {% if form.text %}
                     <div class="doc-form-field doc-form-field--full">
-                        <label class="doc-form-label" for="{{ form.text.id_for_label }}">Описание</label>
-                        {{ form.text }}
-                    </div>
-                    {% endif %}
-                </div>
-            </section>
-
-            <section class="doc-form-section">
-                <h2 class="doc-form-section__title">Файлы и контрагент</h2>
-                <div class="doc-form-grid">
-                    <div class="doc-form-field {% if not form.supplier %}doc-form-field--full{% endif %}">
-                        <label class="doc-form-label" for="{{ form.document.id_for_label }}">Документ</label>
+                        <label class="doc-form-label" for="{{ form.document.id_for_label }}">Файл</label>
                         <label class="doc-form-upload" for="{{ form.document.id_for_label }}">
                             {{ form.document }}
                             <span class="doc-form-upload__icon"><i class="bi bi-file-earmark-arrow-up"></i></span>
@@ -85,6 +59,30 @@
                             <span class="doc-form-upload__name" data-upload-name>Файл не выбран</span>
                         </label>
                     </div>
+                    {% if form.number %}
+                    <div class="doc-form-field">
+                        <label class="doc-form-label" for="{{ form.number.id_for_label }}">№ документа</label>
+                        {{ form.number }}
+                    </div>
+                    {% endif %}
+                    {% if form.reg_date %}
+                    <div class="doc-form-field">
+                        <label class="doc-form-label" for="{{ form.reg_date.id_for_label }}">Дата</label>
+                        {{ form.reg_date }}
+                    </div>
+                    {% endif %}
+                    {% if form.days %}
+                    <div class="doc-form-field">
+                        <label class="doc-form-label" for="{{ form.days.id_for_label }}">Срок выполнения (дней)</label>
+                        {{ form.days }}
+                    </div>
+                    {% endif %}
+                    {% if form.text %}
+                    <div class="doc-form-field doc-form-field--full">
+                        <label class="doc-form-label" for="{{ form.text.id_for_label }}">Комментарий</label>
+                        {{ form.text }}
+                    </div>
+                    {% endif %}
                     {% if form.supplier %}
                     <div class="doc-form-field">
                         <label class="doc-form-label" for="{{ form.supplier.id_for_label }}">Контрагент</label>
@@ -94,6 +92,7 @@
                 </div>
             </section>
 
+            {% if form.coordinators %}
             <section class="doc-form-section">
                 <h2 class="doc-form-section__title">Согласование</h2>
                 <div class="doc-form-grid">
@@ -124,6 +123,7 @@
                 </div>
                 {% endif %}
             </section>
+            {% endif %}
 
             <div class="doc-form-footer">
                 <a href="{% url 'documents:list' document_type %}" class="doc-btn doc-btn--ghost">Отмена</a>

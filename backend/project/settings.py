@@ -19,7 +19,15 @@ SECRET_KEY = config('SECRET_KEY')
 
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='127.0.0.1,localhost,0.0.0.0',
+    cast=Csv(),
+)
+if DEBUG:
+    for host in ('127.0.0.1', 'localhost', '0.0.0.0'):
+        if host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(host)
 
 CSRF_TRUSTED_ORIGINS = config('TRUSTED_ORIGINS', cast=Csv())
 
@@ -260,3 +268,14 @@ ENBEK_BASE_URL = config('ENBEK_BASE_URL', default='http://web:8000/api/enbek')
 ENBEK_USERNAME = config('ENBEK_USERNAME', default='test')
 ENBEK_PASSWORD = config('ENBEK_PASSWORD', default='test')
 ENBEK_TIMEOUT = config('ENBEK_TIMEOUT', default=10, cast=int)
+
+# ONLYOFFICE Document Server (серверное редактирование документов)
+# DS уже поднят на office.metrix.com.ai; секрет — общий с сервером (HS256).
+# DS_PUBLIC_URL — адрес Document Server для браузера (откуда грузится api.js).
+# BACKEND_INTERNAL_URL — адрес Django, доступный Document Server'у для скачивания
+# файла и callback (ДОЛЖЕН быть публичным — DS внешний). Пусто — из запроса.
+ONLYOFFICE_DS_PUBLIC_URL = config('ONLYOFFICE_DS_PUBLIC_URL', default='https://office.metrix.com.ai')
+ONLYOFFICE_BACKEND_INTERNAL_URL = config('ONLYOFFICE_BACKEND_INTERNAL_URL', default='')
+ONLYOFFICE_JWT_SECRET = config('ONLYOFFICE_JWT_SECRET', default='s4x3XgJV8c6CwHlgu3WkUEdaiTwGjdBW')
+ONLYOFFICE_JWT_ENABLED = config('ONLYOFFICE_JWT_ENABLED', default=True, cast=bool)
+ONLYOFFICE_CALLBACK_TIMEOUT = config('ONLYOFFICE_CALLBACK_TIMEOUT', default=30, cast=int)

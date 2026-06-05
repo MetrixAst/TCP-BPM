@@ -295,15 +295,23 @@ def _month_name(month):
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_list(request):
+    from django.db.models import Q
+    from account.services.access_scope import filter_counterparties_queryset
+    from onec.models import Counterparty
+
     qs = GeneratedInvoice.objects.select_related(
         'tenant', 'counterparty'
     ).order_by('-created_at')
+
+    visible_cp_ids = list(
+        filter_counterparties_queryset(Counterparty.objects.all(), request.user).values_list('pk', flat=True)
+    )
+    qs = qs.filter(Q(counterparty__isnull=True) | Q(counterparty_id__in=visible_cp_ids))
 
     search = request.GET.get('search', '').strip()
     status = request.GET.get('status', '')
 
     if search:
-        from django.db.models import Q
         qs = qs.filter(
             Q(number__icontains=search) |
             Q(tenant__name__icontains=search) |
@@ -346,10 +354,14 @@ def invoice_edit(request, pk):
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_detail(request, pk):
+    from account.services.access_scope import user_can_view_counterparty
+
     invoice = get_object_or_404(
         GeneratedInvoice.objects.select_related('tenant', 'counterparty').prefetch_related('items'),
         pk=pk,
     )
+    if invoice.counterparty_id and not user_can_view_counterparty(request.user, invoice.counterparty):
+        return HttpResponseForbidden('Нет доступа к этому счёту.')
     STATUS_COLORS = {
         GeneratedInvoice.Status.CREATED: 'secondary',
         GeneratedInvoice.Status.SENT: 'info',
@@ -876,8 +888,12 @@ def cashflow_register(request):
     total_inflow = sum(r.amount for r in records if r.direction == CashFlowRecord.Direction.INFLOW)
     total_outflow = sum(r.amount for r in records if r.direction == CashFlowRecord.Direction.OUTFLOW)
 
+    from account.services.access_scope import filter_counterparties_queryset
     from onec.models import Counterparty
-    counterparties = Counterparty.objects.order_by('short_name')[:200]
+    counterparties = filter_counterparties_queryset(
+        Counterparty.objects.order_by('short_name'),
+        request.user,
+    )[:200]
 
     context = _finance_filter_context({
         'records':        records,

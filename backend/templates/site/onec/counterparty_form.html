@@ -118,6 +118,23 @@
     </div>
 
     <div class="onec-create-card__section-title onec-create-card__section-title--items">
+      Тип и зона доступа
+    </div>
+
+    <div class="onec-form-field onec-form-field--full">
+      <label class="onec-label">Тип контрагента</label>
+      <select name="counterparty_type" class="onec-input">
+        <option value="">— без типа (видят все) —</option>
+        {% for ct in form.fields.counterparty_type.queryset %}
+          <option value="{{ ct.pk }}"
+            {% if form.counterparty_type.value == ct.pk %}selected{% endif %}>
+            {{ ct.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="onec-create-card__section-title onec-create-card__section-title--items">
       Категория
     </div>
 

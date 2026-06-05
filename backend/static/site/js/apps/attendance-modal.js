@@ -102,10 +102,10 @@
         }
       }
 
-      var arrival   = row.dataset.arrival   || '';
-      var departure = row.dataset.departure || '';
-      var lunchS    = row.dataset.lunchStart  || '';
-      var lunchE    = row.dataset.lunchEnd    || '';
+      var arrival   = row.dataset.arrivalFull   || row.dataset.arrival   || '';
+      var departure = row.dataset.departureFull || row.dataset.departure || '';
+      var lunchS    = row.dataset.lunchStartFull  || row.dataset.lunchStart  || '';
+      var lunchE    = row.dataset.lunchEndFull    || row.dataset.lunchEnd    || '';
       var hours     = row.dataset.hours;
       var late      = row.dataset.late    === '1';
       var early     = row.dataset.early   === '1';
@@ -130,7 +130,8 @@
       // Обед
       if (lunchEl) {
         if (lunchS && lunchE)       lunchEl.textContent = lunchS + ' — ' + lunchE;
-        else if (lunchS)            lunchEl.textContent = lunchS + ' (без окончания)';
+        else if (lunchS)            lunchEl.textContent = lunchS;
+        else if (lunchE)            lunchEl.textContent = lunchE;
         else                        lunchEl.textContent = '—';
       }
 

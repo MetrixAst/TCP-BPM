@@ -158,7 +158,7 @@ class LeaveComplexViewsTest(TestCase):
             reverse('hr:leave_list'),
             {'status': LeaveStatusEnum.APPROVED}
         )
-        self.assertEqual(len(response.context['leaves']), 1)
+        self.assertEqual(len(response.context['paginator'].items), 1)
 
     def test_reject_workflow(self):
         leave = LeaveRequest.objects.create(
@@ -246,7 +246,7 @@ class LeaveListViewExtendedTest(TestCase):
     def test_context_keys_present(self):
         self.client.login(username='emp_list', password='123')
         response = self.client.get(reverse('hr:leave_list'))
-        self.assertIn('leaves', response.context)
+        self.assertIn('paginator', response.context)
         self.assertIn('filter_form', response.context)
         self.assertIn('is_manager', response.context)
 
@@ -271,7 +271,7 @@ class LeaveListViewExtendedTest(TestCase):
         )
         self.client.login(username='boss_list', password='123')  
         response = self.client.get(reverse('hr:leave_list'))
-        self.assertEqual(response.context['leaves'].count(), 2)
+        self.assertEqual(response.context['paginator'].count, 2)
 
     def test_filter_by_leave_type(self):
         LeaveRequest.objects.create(
@@ -286,7 +286,7 @@ class LeaveListViewExtendedTest(TestCase):
         response = self.client.get(
             reverse('hr:leave_list'), {'leave_type': self.type1.pk}
         )
-        leaves = list(response.context['leaves'])
+        leaves = list(response.context['paginator'].items)
         self.assertEqual(len(leaves), 1)
         self.assertEqual(leaves[0].leave_type, self.type1)
 
@@ -303,7 +303,7 @@ class LeaveListViewExtendedTest(TestCase):
         response = self.client.get(
             reverse('hr:leave_list'), {'department': self.dept.pk}
         )
-        leaves = list(response.context['leaves'])
+        leaves = list(response.context['paginator'].items)
         self.assertEqual(len(leaves), 1)
         self.assertEqual(leaves[0].employee.department, self.dept)
 
@@ -321,7 +321,7 @@ class LeaveListViewExtendedTest(TestCase):
         response = self.client.get(
             reverse('hr:leave_list'), {'date_to': '2026-08-10'}
         )
-        leaves = list(response.context['leaves'])
+        leaves = list(response.context['paginator'].items)
         self.assertEqual(len(leaves), 1)
         self.assertEqual(leaves[0].end_date, date(2026, 8, 5))
 
@@ -338,14 +338,14 @@ class LeaveListViewExtendedTest(TestCase):
         )
         self.client.login(username='emp_list', password='123')
         response = self.client.get(reverse('hr:leave_list'), {'search': 'Жанар'})
-        leaves = list(response.context['leaves'])
+        leaves = list(response.context['paginator'].items)
         self.assertEqual(len(leaves), 1)
         self.assertEqual(leaves[0].employee, self.employee)
 
     def test_empty_list_when_no_leaves(self):
         self.client.login(username='emp_list', password='123')
         response = self.client.get(reverse('hr:leave_list'))
-        self.assertEqual(response.context['leaves'].count(), 0)
+        self.assertEqual(response.context['paginator'].count, 0)
 
 
 class LeaveCreateExtendedTest(TestCase):
@@ -2522,13 +2522,13 @@ class DocumentsRegistryTest(TestCase):
         r = self.client.get(
             reverse('hr:documents_list') + f'?employee_id={self.staff_emp.pk}'
         )
-        self.assertIn(self.doc, r.context['documents'])
+        self.assertIn(self.doc, r.context['paginator'].items)
         
         self.client.login(username='head_it', password='pass')
         r = self.client.get(
             reverse('hr:documents_list') + f'?employee_id={self.staff_emp.pk}'
         )
-        self.assertIn(self.doc, r.context['documents'])
+        self.assertIn(self.doc, r.context['paginator'].items)
 
     def test_document_create_full(self):
         self.client.login(username='hr_admin', password='pass')
@@ -2582,7 +2582,7 @@ class PermitsRegistryTest(TestCase):
             document_number='OLD-01'
         )
         r = self.client.get(reverse('hr:permits_list'), {'expired': 'on'})
-        self.assertIn(expired, r.context['permits'])
+        self.assertIn(expired, r.context['paginator'].items)
 
 
 class CertificationsRegistryTest(TestCase):
@@ -2829,11 +2829,15 @@ class HRCollabSmokeTest(TestCase):
     ]
 
     STAFF_SCREENS = [
-        ('hr:org', {}),
-        ('hr:employees', {}),
+        ('hr:my_profile', {}),
         ('hr:leave_list', {}),
         ('hr:attendance_my', {}),
         ('hr:attendance_checkin', {}),
+    ]
+
+    STAFF_FORBIDDEN_SCREENS = [
+        ('hr:org', {}),
+        ('hr:employees', {}),
     ]
 
     def setUp(self):
@@ -2870,6 +2874,13 @@ class HRCollabSmokeTest(TestCase):
         for name, code in self._get_screens(self.staff, self.STAFF_SCREENS):
             with self.subTest(screen=name):
                 self.assertEqual(code, 200)
+
+    def test_staff_cannot_open_employee_directory(self):
+        self.client.login(username=self.staff.username, password='pass')
+        for name, _kwargs in self.STAFF_FORBIDDEN_SCREENS:
+            with self.subTest(screen=name):
+                self.assertEqual(self.client.get(reverse(name)).status_code, 403)
+        self.client.logout()
 
     def test_leave_export_excel_download(self):
         LeaveRequest.objects.create(
@@ -3056,7 +3067,7 @@ class DocumentAccessMatrixTest(TestCase):
         self.client.login(username='head_u', password='pass')
         r = self.client.get(reverse('hr:documents_list'))
         self.assertEqual(r.status_code, 200)
-        pks = [e.pk for e in r.context['employees']]
+        pks = [e.pk for e in r.context['paginator'].items]
         self.assertIn(self.staff_emp.pk, pks)
         self.assertNotIn(self.other_emp.pk, pks)
 
@@ -3064,7 +3075,7 @@ class DocumentAccessMatrixTest(TestCase):
         self.client.login(username='hr_u', password='pass')
         r = self.client.get(reverse('hr:documents_list'))
         self.assertEqual(r.status_code, 200)
-        pks = [e.pk for e in r.context['employees']]
+        pks = [e.pk for e in r.context['paginator'].items]
         self.assertIn(self.staff_emp.pk, pks)
         self.assertIn(self.other_emp.pk, pks)
 

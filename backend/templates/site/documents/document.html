@@ -22,6 +22,10 @@
         </div>
         <div class="doc-page-header__right">
             {% if document.document %}
+            <a target="_blank" href="{% url 'documents:document_editor' document.id %}" class="doc-btn doc-btn--outline">
+                <i class="bi bi-pencil-square"></i>
+                <span>Открыть в редакторе</span>
+            </a>
             <a target="_blank" href="{{ document.document.url }}" class="doc-btn doc-btn--primary">
                 <i class="bi bi-download"></i>
                 <span>Скачать</span>

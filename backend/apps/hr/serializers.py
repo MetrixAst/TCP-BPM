@@ -103,6 +103,7 @@ class CompanySerializer(serializers.ModelSerializer):
 class DepartmentSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(source='company.name', read_only=True)
     parent_name = serializers.CharField(source='parent.name', read_only=True, allow_null=True)
+    employees_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Department
@@ -114,12 +115,55 @@ class DepartmentSerializer(serializers.ModelSerializer):
             'parent',
             'parent_name',
             'level_type',
+            'employees_count',
             'lft',
             'rght',
             'tree_id',
             'level',
         )
-        read_only_fields = ('lft', 'rght', 'tree_id', 'level')
+        read_only_fields = ('lft', 'rght', 'tree_id', 'level', 'employees_count')
+
+    def get_employees_count(self, obj):
+        return obj.employees.count()
+
+    def validate(self, attrs):
+        parent = attrs.get('parent')
+        company = attrs.get('company')
+        instance = getattr(self, 'instance', None)
+
+        if instance is not None:
+            if parent is None and 'parent' not in attrs:
+                parent = instance.parent
+            if company is None and 'company' not in attrs:
+                company = instance.company
+
+        if parent and company and parent.company_id != company.id:
+            raise serializers.ValidationError({
+                'parent': 'Родительский отдел должен принадлежать той же компании.',
+            })
+
+        if instance and parent:
+            if parent.pk == instance.pk:
+                raise serializers.ValidationError({
+                    'parent': 'Отдел не может быть родителем самого себя.',
+                })
+            descendant_ids = instance.get_descendants(include_self=True).values_list('pk', flat=True)
+            if parent.pk in descendant_ids:
+                raise serializers.ValidationError({
+                    'parent': 'Нельзя переместить отдел внутрь своего поддерева.',
+                })
+
+        name = attrs.get('name')
+        if name and company:
+            qs = Department.objects.filter(company=company, name=name)
+            if instance:
+                qs = qs.exclude(pk=instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError({
+                    'name': 'Отдел с таким названием уже есть в этой компании.',
+                })
+
+        return attrs
 
 
 class EmployeeSerializer(serializers.ModelSerializer):

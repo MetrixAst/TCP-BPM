@@ -12,9 +12,25 @@ build/
 # Django
 db.sqlite3
 db.sqlite3-journal
+db.sqlite3.bak.*
+*.sqlite3
+*.db
 media/
 assets/
 *.log
+
+# Virtualenv
+.venv/
+venv/
+env/
+ENV/
+
+# Local 1C integration scratch project (отдельный проект, не часть BPM)
+1CModul/
+
+# ONLYOFFICE scratch references (содержат секреты/токены)
+backend/generateTokenJWT.txt
+backend/ONLYOFFICE.html
 
 # Environment
 .env

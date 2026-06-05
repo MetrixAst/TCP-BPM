@@ -22,7 +22,12 @@ class CommentView(View):
 
 
 def custom_page_not_found_view(request, exception):
-    return render(request, "site/error.html", {'title': 'Страница не найдена', 'text': 'Этой страницы не существует, или она была удалена!'})
+    return render(
+        request,
+        "site/error.html",
+        {'title': 'Страница не найдена', 'text': 'Этой страницы не существует, или она была удалена!'},
+        status=404,
+    )
 
 def custom_error_view(request, exception=None):
     return render(request, "site/error.html", {'title': 'Произошла ошибка', 'text': 'Не удалось выполнить запрос!'})

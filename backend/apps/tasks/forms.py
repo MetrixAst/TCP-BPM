@@ -1,5 +1,8 @@
 from django import forms
-from addits.forms import UserSelect2Field, UserSelect2MultipleField, Select2ChoiceField
+
+from addits.forms import UserSelect2Field, UserSelect2MultipleField, Select2ChoiceField, Select2Field
+from account.services.access_scope import filter_counterparties_queryset
+from onec.models import Counterparty
 from .models import Task
 from .enums import TaskTypeEnum
 
@@ -49,6 +52,13 @@ class TaskForm(forms.ModelForm):
         placeholder="Тип задачи"
     )
 
+    counterparty = Select2Field(
+        queryset=Counterparty.objects.none(),
+        url='/onec/api/cp-search/',
+        required=False,
+        placeholder="Контрагент",
+    )
+
     class Meta:
         model = Task
         fields = (
@@ -60,10 +70,18 @@ class TaskForm(forms.ModelForm):
             "text",
             "priority",
             "task_type",
+            "counterparty",
         )
 
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
+        if user is not None:
+            self.fields['counterparty'].queryset = filter_counterparties_queryset(
+                Counterparty.objects.all(),
+                user,
+            ).order_by('short_name')
 
         placeholders = {
             "executor": "Исполнитель",
@@ -71,6 +89,7 @@ class TaskForm(forms.ModelForm):
             "observers": "Наблюдатели",
             "priority": "Приоритет",
             "task_type": "Тип задачи",
+            "counterparty": "Контрагент",
         }
 
         for name, placeholder in placeholders.items():

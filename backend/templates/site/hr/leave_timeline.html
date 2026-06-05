@@ -5,7 +5,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/bpm-calendars.css' %}?v=1" />
-<link rel="stylesheet" href="{% static 'site/css/apps/leaves.css' %}?v={{ static_version|default:'1' }}&t=3">
+<link rel="stylesheet" href="{% static 'site/css/apps/leaves.css' %}?v={{ static_version|default:'1' }}&t=4">
 {% endblock %}
 
 {% block content %}
@@ -47,20 +47,22 @@
   </div>
 
   <div class="leave-timeline-panel">
-    <div class="leave-timeline-panel__header">
-      <div class="leave-timeline-legend">
-        <span><i class="leave-dot leave-dot--draft"></i> Черновик</span>
-        <span><i class="leave-dot leave-dot--pending"></i> На рассмотрении</span>
-        <span><i class="leave-dot leave-dot--approved"></i> Одобрено</span>
-        <span><i class="leave-dot leave-dot--rejected"></i> Отклонено</span>
+    <div class="tl-layout">
+      <div class="tl-main">
+        <div class="leave-timeline-wrap" id="leaveTimeline">
+          <div class="leave-timeline__empty">
+            <i class="bi bi-calendar-range"></i>
+            <strong>Загрузка данных…</strong>
+          </div>
+        </div>
       </div>
-    </div>
-
-    <div class="leave-timeline-wrap" id="leaveTimeline">
-      <div class="leave-timeline__empty">
-        <i class="bi bi-calendar-range"></i>
-        <strong>Загрузка данных…</strong>
-      </div>
+      <aside class="tl-legend-panel" id="tlLegendPanel" aria-label="Легенда">
+        <h3 class="tl-legend-panel__title">Сотрудники</h3>
+        <p class="tl-legend-panel__hint">Цвет полосы — сотрудник и период отпуска</p>
+        <div class="tl-legend-panel__list" id="tlLegendList">
+          <div class="tl-legend-panel__empty">Загрузка…</div>
+        </div>
+      </aside>
     </div>
   </div>
 
@@ -68,5 +70,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'site/js/apps/leaves.js' %}?v={{ static_version|default:'1' }}&t=3"></script>
+<script src="{% static 'site/js/apps/leaves.js' %}?v={{ static_version|default:'1' }}&t=4"></script>
 {% endblock %}

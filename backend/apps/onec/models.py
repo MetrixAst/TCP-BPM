@@ -91,6 +91,31 @@ class InvoiceItem(models.Model):
         verbose_name = "Позиция счета"
         verbose_name_plural = "Позиции счета"
 
+class CounterpartyType(models.Model):
+    """Бизнес-тип контрагента с зоной видимости."""
+
+    name = models.CharField('Название', max_length=120, unique=True)
+    code = models.SlugField('Код', max_length=50, unique=True)
+    access_scope = models.ForeignKey(
+        'account.AccessScope',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='counterparty_types',
+        verbose_name='Зона видимости',
+    )
+    is_active = models.BooleanField('Активен', default=True)
+    sort_order = models.PositiveSmallIntegerField('Порядок', default=0)
+
+    class Meta:
+        verbose_name = 'Тип контрагента'
+        verbose_name_plural = 'Типы контрагентов'
+        ordering = ['sort_order', 'name']
+
+    def __str__(self):
+        return self.name
+
+
 class Counterparty(models.Model):
     id_1c = models.CharField("ID 1C", max_length=50, unique=True)
     full_name = models.CharField("Полное наименование", max_length=500)
@@ -101,6 +126,14 @@ class Counterparty(models.Model):
     phone = models.CharField("Телефон", max_length=100, null=True, blank=True)
     email = models.EmailField("Email", null=True, blank=True)
     
+    counterparty_type = models.ForeignKey(
+        CounterpartyType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='counterparties',
+        verbose_name='Тип (зона доступа)',
+    )
     is_supplier = models.BooleanField("Поставщик", default=False)
     is_customer = models.BooleanField("Клиент", default=False)
     

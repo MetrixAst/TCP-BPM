@@ -1,10 +1,10 @@
-{% load static %}
+{% load static site_tags %}
 
 <header class="bpm-topbar" id="bpmTopbar">
   <button class="bpm-topbar__toggle"
           id="bpmSidebarToggle"
           type="button"
-          aria-label="Открыть/закрыть меню"
+          aria-label="{% t 'topbar.toggle_menu' 'Открыть/закрыть меню' %}"
           aria-controls="bpmSidebar"
           aria-expanded="true">
     <i class="bi bi-layout-sidebar-inset"></i>
@@ -19,7 +19,7 @@
     <input type="search"
            id="bpmSearch"
            class="bpm-topbar__search-input"
-           placeholder="Поиск..."
+           placeholder="{% t 'topbar.search' 'Поиск...' %}"
            autocomplete="off" />
     <div class="bpm-topbar__search-results" id="bpmSearchResults" hidden></div>
   </div>
@@ -28,13 +28,15 @@
 
   <div class="bpm-topbar__right">
 
+    {% include "site/components/lang_switcher.html" %}
+
     <div class="dropdown">
       <button class="bpm-topbar__icon-btn"
               type="button"
               data-bs-toggle="dropdown"
               data-bs-auto-close="outside"
               aria-expanded="false"
-              aria-label="Уведомления">
+              aria-label="{% t 'topbar.notifications' 'Уведомления' %}">
         <i class="bi bi-bell"></i>
         {% if indicators.indicators %}
           <span class="bpm-topbar__notif-dot"></span>
@@ -43,7 +45,7 @@
 
       <div class="dropdown-menu dropdown-menu-end bpm-notif">
         <div class="bpm-notif__header">
-          <span>Уведомления</span>
+          <span>{% t 'topbar.notifications_title' 'Уведомления' %}</span>
           {% if notifications %}
             <span class="bpm-notif__count">{{ notifications|length }}</span>
           {% endif %}
@@ -60,7 +62,7 @@
           {% empty %}
             <div class="bpm-notif__empty">
               <i class="bi bi-bell-slash"></i>
-              <span>Список уведомлений пуст</span>
+              <span>{% t 'topbar.notifications_empty' 'Список уведомлений пуст' %}</span>
             </div>
           {% endfor %}
         </div>
@@ -69,7 +71,7 @@
 
     <a href="{% url 'account:logout' %}"
        class="bpm-topbar__icon-btn bpm-topbar__logout"
-       title="Выйти">
+       title="{% t 'topbar.logout' 'Выйти' %}">
       <i class="bi bi-box-arrow-right"></i>
     </a>
 
