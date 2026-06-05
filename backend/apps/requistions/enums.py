@@ -84,59 +84,34 @@ class RequstionStatusEnum(CustomEnum):
         return res.get(status, {})
     
     @classmethod
-    def get_actions(cls, status, requistion_type, requistion_user, user):
-
-        # if document_type == DocumentTypeEnum.PURCHASES.value[0]:
-        #     actions = {
-        #         cls.OFFER.value[0]: [
-        #             {
-        #                 'title': 'Отправить на согласование',
-        #                 'color': 'primary',
-        #                 'action': 'confirm', 
-        #                 'next': cls.MODERATING.value[0],
-        #             },
-        #             {
-        #                 'title': 'Удалить',
-        #                 'color': 'outline-dark',
-        #                 'action': 'cancel',
-        #                 'permission': 'coordinators',
-        #             },
-        #         ],
-        #         cls.MODERATING.value[0]: [
-        #             {
-        #                 'title': 'Согласован',
-        #                 'color': 'tertiary',
-        #                 'action': 'confirm',
-        #                 'next': cls.COMPLETED.value[0],
-        #                 'permission': 'coordinators',
-        #             },
-        #         ],
-        #     }
-        # else:
+    def get_actions(cls, status, requistion_type, requistion_user, user, coordinators=None, observers=None):
 
         if requistion_user == user:
             return [
                 {
                     'title': 'Удалить',
                     'color': 'outline-dark',
-                    'action': 'cancel', 
+                    'action': 'cancel',
                     'permission': 'author',
                 },
             ]
+
+        if observers and user in observers:
+            return []
 
         actions = {
             cls.DRAFT.value[0]: [
                 {
                     'title': 'Отправить на согласование',
                     'color': 'primary',
-                    'action': 'confirm', 
+                    'action': 'confirm',
                     'next': cls.COORDINATION.value[0],
                     'permission': 'author',
                 },
                 {
                     'title': 'Удалить',
                     'color': 'outline-dark',
-                    'action': 'cancel', 
+                    'action': 'cancel',
                     'permission': 'author',
                 },
             ],
@@ -144,14 +119,14 @@ class RequstionStatusEnum(CustomEnum):
                 {
                     'title': 'На подписание',
                     'color': 'tertiary',
-                    'action': 'confirm', 
+                    'action': 'confirm',
                     'next': cls.SIGNING.value[0],
                     'permission': 'coordinators',
                 },
                 {
                     'title': 'Удалить',
                     'color': 'outline-dark',
-                    'action': 'cancel', 
+                    'action': 'cancel',
                     'permission': 'coordinators',
                 },
             ],
@@ -159,7 +134,7 @@ class RequstionStatusEnum(CustomEnum):
                 {
                     'title': 'Подписать',
                     'color': 'quaternary',
-                    'action': 'confirm', 
+                    'action': 'confirm',
                     'next': cls.ACTIVE.value[0],
                     'permission': 'head',
                 },
@@ -168,7 +143,7 @@ class RequstionStatusEnum(CustomEnum):
                 {
                     'title': 'В архив',
                     'color': 'outline-muted',
-                    'action': 'confirm', 
+                    'action': 'confirm',
                     'next': cls.ARCHIVE.value[0],
                     'permission': 'all',
                 },
@@ -176,4 +151,3 @@ class RequstionStatusEnum(CustomEnum):
         }
 
         return actions.get(status, {})
-    

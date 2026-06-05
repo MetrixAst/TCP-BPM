@@ -83,8 +83,14 @@ class Requistion(models.Model):
         return RequstionStatusEnum.get_info(self.status, self.requistion_type)
     
     def actions(self, request):
-        #TODO check can action
-        return RequstionStatusEnum.get_actions(self.status, self.requistion_type, self.user, request.user)
+        return RequstionStatusEnum.get_actions(
+            self.status,
+            self.requistion_type,
+            self.user,
+            request.user,
+            coordinators=list(self.coordinators.all()),
+            observers=list(self.observers.all()),
+        )
     
     def set_action(self, request, action, text = ''):
         actions = self.actions(request)
