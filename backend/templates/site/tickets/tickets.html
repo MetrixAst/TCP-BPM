@@ -1,0 +1,72 @@
+{% extends 'site/base.html' %}
+{% load static %}
+{% load site_tags %}
+
+{% block title %}Сервисные заявки — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v={{ static_version|default:'1' }}" />
+{% endblock %}
+
+{% block content %}
+<div class="tk-page">
+
+  {% include 'site/tenants/portal_banner.html' %}
+
+  <div class="tk-head">
+    <div>
+      <h1 class="tk-head__title">
+        {% if is_portal_user %}Заявки на обслуживание{% else %}Сервисные заявки{% endif %}
+      </h1>
+      <p class="tk-head__sub">
+        {% if is_portal_user %}Сообщите о поломке — мы возьмём её в работу и покажем статус
+        {% else %}Заявки арендаторов на обслуживание и ремонт{% endif %}
+      </p>
+    </div>
+    <div class="tk-head__spacer"></div>
+    {% if is_manager %}
+    <div class="tk-switch">
+      <a href="{% url 'tickets:home' %}" class="tk-switch__btn is-active">Список</a>
+      <a href="{% url 'tickets:kanban' %}" class="tk-switch__btn">Канбан</a>
+    </div>
+    {% endif %}
+    <a href="{% url 'tickets:create' %}" class="tk-btn tk-btn--primary">
+      <i class="bi bi-plus-lg"></i> {% if is_portal_user %}Новая заявка{% else %}Создать{% endif %}
+    </a>
+  </div>
+
+  <div class="tk-filters">
+    <a href="?" class="tk-chip {% if not active_status %}is-active{% endif %}">Все</a>
+    {% for slug, label in statuses %}
+      <a href="?status={{ slug }}" class="tk-chip {% if active_status == slug %}is-active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="tk-list-head">
+    <div>НОМЕР</div><div>ТЕМА</div><div>КАТЕГОРИЯ</div>
+    <div>{% if is_manager %}АРЕНДАТОР{% else %}ПОМЕЩЕНИЕ{% endif %}</div>
+    <div>СОЗДАНО</div><div>СТАТУС</div>
+  </div>
+
+  <div class="tk-list">
+    {% for t in paginator.items %}
+      <a href="{% url 'tickets:item' t.id %}" class="tk-row">
+        <div class="tk-row__num">{{ t.number }}</div>
+        <div class="tk-row__title">{{ t.title }}
+          <small class="tk-prio tk-prio--{{ t.priority_info.color }}"><span class="tk-prio__dot"></span>{{ t.priority_info.title }}</small>
+        </div>
+        <div class="tk-row__muted">{{ t.get_category_display }}</div>
+        <div class="tk-row__muted">
+          {% if is_manager %}{{ t.tenant|default:'—' }}{% else %}{{ t.room|default:'—' }}{% endif %}
+        </div>
+        <div class="tk-row__muted">{{ t.created_at|date:'d.m.Y H:i' }}</div>
+        <div><span class="tk-badge tk-badge--{{ t.status_info.color }}">{{ t.status_info.title }}</span></div>
+      </a>
+    {% empty %}
+      <div class="tk-list__empty">Заявок пока нет.</div>
+    {% endfor %}
+  </div>
+
+  {% show_paginator paginator %}
+</div>
+{% endblock %}

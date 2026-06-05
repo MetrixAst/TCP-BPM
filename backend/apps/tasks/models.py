@@ -288,6 +288,10 @@ class TaskHistory(models.Model):
     def title(self):
         return TaskStatusEnum.from_value(self.status)[1]
 
+    @property
+    def status_info(self):
+        return TaskStatusEnum.get_info(self.status)
+
     def __str__(self):
         return self.task.title
 

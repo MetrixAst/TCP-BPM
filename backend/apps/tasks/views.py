@@ -2,6 +2,7 @@ import json
 
 from django.shortcuts import redirect, render
 from django.http import Http404, HttpResponseForbidden, JsonResponse
+from django.urls import reverse
 from django.db.models import Q
 from django.core.exceptions import PermissionDenied
 from django.views.decorators.http import require_http_methods
@@ -21,25 +22,39 @@ def is_ajax(request):
     return request.headers.get("x-requested-with") == "XMLHttpRequest"
 
 
+def _can_edit_content(task, user):
+    """Кто может править чек-лист / позиции задачи."""
+    if getattr(user, 'is_superuser', False):
+        return True
+    return task._get_user_role(user) in ('author', 'executor', 'co_executor')
+
+
 def _task_card_dict(task):
     return {
         'id': task.id,
+        'number': f'#{task.id}',
         'title': task.title,
+        'type': task.get_task_type_display(),
         'priority': task.priority,
+        'priority_title': dict(task._meta.get_field('priority').choices).get(task.priority, task.priority),
         'deadline': task.deadline.isoformat() if task.deadline else None,
         'executor': task.executor.get_name if task.executor else None,
         'executor_id': task.executor_id,
         'status': task.status,
-        'url': f'/tasks/task/{task.id}',
+        'status_title': task.status_info.get('title', ''),
+        'url': reverse('tasks:task', args=[task.id]),
         'status_color': task.status_info.get('color', 'neutral'),
     }
 
 
 def _kanban_payload(request):
     qs = Task.get_available_queryset(request).select_related('executor', 'author')
+    buckets = {}
+    for task in qs:
+        buckets.setdefault(task.status, []).append(task)
     columns = []
     for slug, title in TaskStatusEnum.list():
-        items = [_task_card_dict(t) for t in qs.filter(status=slug)]
+        items = [_task_card_dict(t) for t in buckets.get(slug, [])]
         info = TaskStatusEnum.get_info(slug)
         columns.append({
             'status': slug,
@@ -243,6 +258,11 @@ def task_action(request, pk, action):
         return HttpResponseForbidden("405 Method Not Allowed")
 
     if action == "cancel":
+        is_author = current.author_id == request.user.id
+        if not (is_author or getattr(request.user, 'is_superuser', False)):
+            if is_ajax(request):
+                return JsonResponse({"ok": False, "message": "Удалить может только автор"}, status=403)
+            return HttpResponseForbidden("403 Forbidden")
         current.delete()
         if is_ajax(request):
             return JsonResponse({
@@ -393,6 +413,8 @@ def kanban_status(request, pk):
 @require_http_methods(['POST'])
 def checklist_add(request, pk):
     task = Task.get_by_id(request, pk)
+    if not _can_edit_content(task, request.user):
+        return JsonResponse({'ok': False, 'message': 'Недостаточно прав'}, status=403)
     title = (request.POST.get('title') or '').strip()
     if not title:
         return JsonResponse({'ok': False, 'message': 'Пустой пункт'}, status=400)
@@ -412,6 +434,8 @@ def checklist_add(request, pk):
 @require_http_methods(['POST'])
 def checklist_toggle(request, pk, item_id):
     task = Task.get_by_id(request, pk)
+    if not _can_edit_content(task, request.user):
+        return JsonResponse({'ok': False, 'message': 'Недостаточно прав'}, status=403)
     item = task.checklist_items.filter(pk=item_id).first()
     if not item:
         raise Http404
@@ -424,6 +448,8 @@ def checklist_toggle(request, pk, item_id):
 @require_http_methods(['POST'])
 def line_item_add(request, pk):
     task = Task.get_by_id(request, pk)
+    if not _can_edit_content(task, request.user):
+        return JsonResponse({'ok': False, 'message': 'Недостаточно прав'}, status=403)
     name = (request.POST.get('name') or '').strip()
     if not name:
         return JsonResponse({'ok': False, 'message': 'Укажите наименование'}, status=400)

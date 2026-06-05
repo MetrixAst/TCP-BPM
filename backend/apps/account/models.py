@@ -349,6 +349,7 @@ class Notification(models.Model):
                 'budget': reverse('documents:document', args=[self.target_id]),
                 'task': reverse('tasks:task', args=[self.target_id]),
                 'requistion': reverse('requistions:item', args=[self.target_id]),
+                'ticket': reverse('tickets:item', args=[self.target_id]),
             }
 
             return links.get(self.target_type, None)

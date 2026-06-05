@@ -97,6 +97,7 @@
                   <th>Окончание</th>
                   <th>Скидка</th>
                   <th>Статус</th>
+                  <th>Портал</th>
                 </tr>
               </thead>
               <tbody>
@@ -119,6 +120,12 @@
                     <span class="tenant-status tenant-status--{{ current.status }}">
                       {% if current.status == 'green' %}Стабильно{% elif current.status == 'yellow' %}Внимание{% else %}Срочно{% endif %}
                     </span>
+                  </td>
+                  <td>
+                    <button type="button" class="btn btn-sm btn-outline-primary"
+                            onclick="grantPortalAccess({{ current.id }}, '{{ current.name|escapejs }}')">
+                      <i class="bi bi-key"></i> Доступ
+                    </button>
                   </td>
                 </tr>
                 {% endfor %}
@@ -470,5 +477,47 @@
 
 			});
         });
+    </script>
+
+    <script>
+      function _tenantCsrf() {
+        var m = document.cookie.match(/csrftoken=([^;]+)/);
+        if (m) return m[1];
+        var tag = document.querySelector('[name=csrfmiddlewaretoken]');
+        return tag ? tag.value : '';
+      }
+
+      async function grantPortalAccess(tenantId, tenantName) {
+        var proceed = window.bpmModal
+          ? await window.bpmModal.confirm(
+              'Создать или сбросить доступ в портал для «' + tenantName + '»? Текущий пароль (если был) перестанет действовать.',
+              { title: 'Доступ в портал', confirmText: 'Выдать доступ', variant: 'warning' })
+          : window.confirm('Выдать доступ в портал для «' + tenantName + '»?');
+        if (!proceed) return;
+
+        try {
+          var res = await fetch('/tenants/' + tenantId + '/portal-access/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': _tenantCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+          });
+          var data = await res.json().catch(function () { return {}; });
+          if (!res.ok || data.success === false) {
+            (window.bpmModal ? window.bpmModal.alert : window.alert)(
+              (data.message || 'Не удалось выдать доступ'), { variant: 'danger', title: 'Ошибка' });
+            return;
+          }
+          var msg = 'Логин: ' + data.username + '\nПароль: ' + data.password +
+            '\n\nПередайте эти данные арендатору. Пароль больше не будет показан.';
+          if (window.bpmModal) {
+            window.bpmModal.alert(msg, { variant: 'success', title: data.created ? 'Доступ создан' : 'Пароль сброшен' });
+          } else {
+            window.prompt('Скопируйте данные доступа:', 'Логин: ' + data.username + ' / Пароль: ' + data.password);
+          }
+        } catch (e) {
+          console.error(e);
+          (window.bpmModal ? window.bpmModal.alert : window.alert)('Ошибка сети', { variant: 'danger', title: 'Ошибка' });
+        }
+      }
     </script>
 {% endblock scripts %}

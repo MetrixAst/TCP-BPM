@@ -88,6 +88,7 @@
     const swim = buildSwimlaneData(data);
     const statuses = swim.statuses;
     const rows = swim.rows;
+    board.__statuses = statuses;
 
     if (!statuses.length) {
       board.innerHTML = '<div class="tasks-kanban__error">Нет колонок статусов</div>';
@@ -172,7 +173,8 @@
         col.classList.remove('is-drag-over');
         if (!dragTaskId || moveInFlight) return;
         const newStatus = zone.getAttribute('data-status');
-        moveTask(dragTaskId, newStatus, dragFromStatus);
+        if (newStatus === dragFromStatus) { dragTaskId = null; return; }
+        confirmMove(dragTaskId, newStatus, dragFromStatus);
       });
     });
 
@@ -184,6 +186,7 @@
   function cardHtml(task) {
     const prio = PRIORITY[task.priority];
     const initial = task.executor ? escapeHtml(task.executor.charAt(0).toUpperCase()) : '';
+    const prioLabel = prio ? prio.label : (task.priority_title || '');
 
     return (
       '<a class="tasks-kanban__card tasks-kanban__card--' + (task.status_color || 'neutral') + '"' +
@@ -191,10 +194,16 @@
         ' draggable="true"' +
         ' data-task-id="' + task.id + '"' +
         ' data-status="' + escapeHtml(task.status || '') + '">' +
+        '<div class="tasks-kanban__card-head">' +
+          '<span class="tasks-kanban__card-num">' + escapeHtml(task.number || ('#' + task.id)) + '</span>' +
+          (task.type ? '<span class="tasks-kanban__card-type">' + escapeHtml(task.type) + '</span>' : '') +
+        '</div>' +
         '<div class="tasks-kanban__card-top">' +
           '<div class="tasks-kanban__card-title">' + escapeHtml(task.title) + '</div>' +
-          (prio ? '<span class="tasks-kanban__prio tasks-kanban__prio--' + prio.cls + '" title="' + prio.label + '"></span>' : '') +
         '</div>' +
+        (prio
+          ? '<div class="tasks-kanban__card-prio"><span class="tasks-kanban__prio tasks-kanban__prio--' + prio.cls + '"></span>' + escapeHtml(prioLabel) + '</div>'
+          : '') +
         '<div class="tasks-kanban__card-meta">' +
           (task.executor
             ? '<span class="tasks-kanban__assignee"><span class="tasks-kanban__assignee-avatar">' + initial + '</span>' + escapeHtml(task.executor) + '</span>'
@@ -227,6 +236,25 @@
         e.preventDefault();
       }
     });
+  }
+
+  function statusTitle(status) {
+    const head = board.querySelector('.tasks-kanban-swim__head');
+    void head;
+    const map = {};
+    (board.__statuses || []).forEach(function (s) { map[s.status] = s.title; });
+    return map[status] || status;
+  }
+
+  async function confirmMove(taskId, newStatus, fromStatus) {
+    const title = statusTitle(newStatus);
+    const proceed = window.bpmModal
+      ? await window.bpmModal.confirm(
+          'Перевести задачу в статус «' + title + '»?',
+          { title: 'Смена статуса', confirmText: 'Подтвердить', variant: 'info' })
+      : window.confirm('Перевести задачу в «' + title + '»?');
+    if (!proceed) { dragTaskId = null; dragFromStatus = null; return; }
+    moveTask(taskId, newStatus, fromStatus);
   }
 
   function showError(message) {

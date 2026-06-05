@@ -75,6 +75,9 @@ services:
     depends_on:
       - web
 
+# ONLYOFFICE Document Server поднят отдельно (office.metrix.com.ai),
+# локальный сервис в этом compose не нужен.
+
 volumes:
   postgres_data:
   static_volume:

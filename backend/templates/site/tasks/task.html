@@ -231,7 +231,7 @@
           <ul class="task-acc__list">
             {% for h in task.history.all %}
               <li class="task-acc__process">
-                <span class="task-acc__process-dot tasks-status--{{ status_info.color|default:'neutral' }}"></span>
+                <span class="task-acc__process-dot tasks-status--{{ h.status_info.color|default:'neutral' }}"></span>
                 <span class="task-acc__process-text">{{ h.title }}</span>
                 <span class="task-acc__process-date">{{ h.date|date:"d.m.Y H:i" }}</span>
               </li>

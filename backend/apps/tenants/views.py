@@ -77,3 +77,32 @@ def all_json(request):
     queryset = Tenant.objects.all().exclude(room=None)
     res = [current.to_json() for current in queryset]
     return JsonResponse(res, safe=False)
+
+
+@need_permission(PermissionEnums.TENANTS)
+@require_POST
+def tenant_portal_access(request, pk):
+    """Создаёт/сбрасывает доступ арендатора в портал и возвращает логин/пароль."""
+    from django.utils.crypto import get_random_string
+    from account.models import UserAccount
+    from account.role_permissions import RoleEnums
+
+    tenant = Tenant.objects.filter(pk=pk).first()
+    if tenant is None:
+        return JsonResponse({'success': False, 'message': 'Арендатор не найден'}, status=404)
+
+    password = get_random_string(10)
+    user = tenant.portal_users.filter(role=RoleEnums.TENANT.value).order_by('id').first()
+    created = user is None
+    if created:
+        user = UserAccount.create_tenant_user(tenant)
+    user.set_password(password)
+    user.is_active = True
+    user.save()
+
+    return JsonResponse({
+        'success': True,
+        'created': created,
+        'username': user.username,
+        'password': password,
+    })

@@ -52,6 +52,7 @@ class PermissionEnums(Enum):
     HR_SELF = "hr_self"
     ECOPARK = "ecopark"
     REQUISTIONS = "requistions"
+    SERVICE_REQUESTS = "service_requests"
     REPORTS = "reports"
     COMMENT = "comment"
     USERS_LIST = "users_list"
@@ -85,6 +86,7 @@ class RolePermissions:
             PermissionEnums.HR_REGISTRIES,
             PermissionEnums.ECOPARK,
             PermissionEnums.REQUISTIONS,
+            PermissionEnums.SERVICE_REQUESTS,
             PermissionEnums.REPORTS,
             PermissionEnums.COMMENT,
             PermissionEnums.HR_JOURNAL,
@@ -147,16 +149,19 @@ class RolePermissions:
             PermissionEnums.USERS_LIST,
             PermissionEnums.DOCUMENTS,
             PermissionEnums.TENANTS,
+            PermissionEnums.SERVICE_REQUESTS,
             PermissionEnums.HR_SELF,
             PermissionEnums.COMMENT,
         ],
         RoleEnums.GUEST.value: [
             PermissionEnums.DASHBOARD,
             PermissionEnums.REQUISTIONS,
+            PermissionEnums.SERVICE_REQUESTS,
         ],
         RoleEnums.TENANT.value: [
             PermissionEnums.DASHBOARD,
             PermissionEnums.REQUISTIONS,
+            PermissionEnums.SERVICE_REQUESTS,
         ],
     }
 
@@ -326,6 +331,7 @@ class MenuItem:
                 ]),
                 MenuItem('ecopark', 'ecopark:home', 'water', 'Эксплуатация'),
                 MenuItem('requistions', 'requistions:home', 'notebook-1', 'Заявки от арендаторов'),
+                MenuItem('tickets', 'tickets:kanban', 'tools', 'Сервисные заявки', indicator_alias='ticket'),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
@@ -373,14 +379,17 @@ class MenuItem:
 
             RoleEnums.STAFF.value: [
                 MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
+                MenuItem('tickets', 'tickets:kanban', 'tools', 'Сервисные заявки', indicator_alias='ticket'),
             ],
 
             RoleEnums.GUEST.value: [
                 MenuItem('requistions', 'requistions:home', 'inbox', 'Заявки'),
+                MenuItem('tickets', 'tickets:home', 'tools', 'Сервисные заявки', indicator_alias='ticket'),
             ],
 
             RoleEnums.TENANT.value: [
-                MenuItem('my_requisitions', 'requistions:home', 'inbox', 'Мои заявки'),
+                MenuItem('my_requisitions', 'requistions:home', 'inbox', 'Заявки на пропуск'),
+                MenuItem('tickets', 'tickets:home', 'tools', 'Заявки на обслуживание', indicator_alias='ticket'),
             ],
         }
         role = user.role

@@ -1,0 +1,138 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}{{ ticket.number }} — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v={{ static_version|default:'1' }}" />
+{% endblock %}
+
+{% block content %}
+<div class="tk-page" id="ticketDetail" data-action-url-tpl="{% url 'tickets:action' ticket.id %}">
+
+  <div class="tk-head">
+    <div>
+      <h1 class="tk-head__title">{{ ticket.title }}</h1>
+      <p class="tk-head__sub">{{ ticket.number }} · {{ ticket.get_category_display }} ·
+        <span class="tk-badge tk-badge--{{ ticket.status_info.color }}">{{ ticket.status_info.title }}</span>
+      </p>
+    </div>
+    <div class="tk-head__spacer"></div>
+    <a href="{% url 'tickets:home' %}" class="tk-btn tk-btn--ghost"><i class="bi bi-arrow-left"></i> К списку</a>
+  </div>
+
+  <div class="tk-detail">
+    <div>
+      <div class="tk-panel">
+        <h3 class="tk-panel__title">Описание проблемы</h3>
+        <div class="tk-desc">{{ ticket.description }}</div>
+        {% if ticket.photo %}
+          <div style="margin-top:16px;">
+            <a href="{{ ticket.photo.url }}" target="_blank">
+              <img src="{{ ticket.photo.url }}" alt="Фото" style="max-width:100%;border-radius:12px;" />
+            </a>
+          </div>
+        {% endif %}
+      </div>
+
+      {% if actions %}
+      <div class="tk-panel">
+        <h3 class="tk-panel__title">Действия</h3>
+        <div class="tk-actions">
+          {% for a in actions %}
+          <button type="button" class="tk-btn tk-btn--primary" data-ticket-action="{{ a.action }}"
+                  data-next-title="{{ a.title }}" data-variant="{{ a.variant }}">
+            {{ a.title }}
+          </button>
+          {% endfor %}
+        </div>
+        <form id="ticketActionForm" method="POST" action="{% url 'tickets:action' ticket.id %}" style="display:none;">
+          {% csrf_token %}
+          <input type="hidden" name="action" id="ticketActionInput" />
+        </form>
+      </div>
+      {% endif %}
+
+      <div class="tk-panel">
+        <h3 class="tk-panel__title">История</h3>
+        <ul class="tk-timeline">
+          {% for h in ticket.history.all %}
+          <li class="tk-timeline__item">
+            <div class="tk-timeline__status">{{ h.status_info.title }}</div>
+            <div class="tk-timeline__date">{{ h.created_at|date:'d.m.Y H:i' }}{% if h.user %} · {{ h.user.get_name }}{% endif %}</div>
+            {% if h.comment %}<div class="tk-timeline__comment">{{ h.comment }}</div>{% endif %}
+          </li>
+          {% empty %}
+          <li class="tk-row__muted">Нет записей</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <div class="tk-panel">
+        <h3 class="tk-panel__title">Информация</h3>
+        {% for key, value in info.items %}
+          {% if value %}
+          <div class="tk-kv"><span class="tk-kv__k">{{ key }}</span><span class="tk-kv__v">{{ value }}</span></div>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      {% if assign_form %}
+      <div class="tk-panel">
+        <h3 class="tk-panel__title">Маршрутизация</h3>
+        <form method="POST" action="{% url 'tickets:assign' ticket.id %}" class="tk-form">
+          {% csrf_token %}
+          {% for field in assign_form %}
+            <div class="tk-field">
+              <label>{{ field.label }}</label>
+              {{ field }}
+            </div>
+          {% endfor %}
+          <button type="submit" class="tk-btn tk-btn--primary" style="width:100%;justify-content:center;">
+            <i class="bi bi-diagram-3"></i> Назначить
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var form = document.getElementById('ticketActionForm');
+  var input = document.getElementById('ticketActionInput');
+  if (!form || !input) return;
+
+  document.querySelectorAll('[data-ticket-action]').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      var action = btn.getAttribute('data-ticket-action');
+      var title = btn.getAttribute('data-next-title') || 'действие';
+      var variant = btn.getAttribute('data-variant') || 'info';
+
+      var ok;
+      if (window.bpmModal) {
+        ok = await window.bpmModal.confirm(
+          'Вы собираетесь выполнить: «' + title + '».',
+          {
+            title: 'Подтверждение действия',
+            confirmText: title,
+            variant: variant === 'danger' ? 'danger' : 'info',
+            checkboxLabel: 'Подтверждаю выполнение действия'
+          }
+        );
+      } else {
+        ok = window.confirm('Выполнить «' + title + '»?');
+      }
+      if (!ok) return;
+      input.value = action;
+      form.submit();
+    });
+  });
+})();
+</script>
+{% endblock %}

@@ -13,6 +13,10 @@
         '<div class="bpm-modal__icon" data-modal-icon></div>' +
         '<h3 class="bpm-modal__title" data-modal-title></h3>' +
         '<p class="bpm-modal__text" data-modal-text></p>' +
+        '<label class="bpm-modal__check" data-modal-check-wrap style="display:none">' +
+          '<input type="checkbox" data-modal-check>' +
+          '<span data-modal-check-label></span>' +
+        '</label>' +
         '<div class="bpm-modal__actions">' +
           '<button type="button" class="bpm-modal__btn bpm-modal__btn--ghost" data-modal-cancel></button>' +
           '<button type="button" class="bpm-modal__btn bpm-modal__btn--primary" data-modal-confirm></button>' +
@@ -38,6 +42,9 @@
     const textEl = overlay.querySelector('[data-modal-text]');
     const cancelEl = overlay.querySelector('[data-modal-cancel]');
     const confirmEl = overlay.querySelector('[data-modal-confirm]');
+    const checkWrap = overlay.querySelector('[data-modal-check-wrap]');
+    const checkEl = overlay.querySelector('[data-modal-check]');
+    const checkLabel = overlay.querySelector('[data-modal-check-label]');
 
     const variant = opts.variant || 'info';
 
@@ -56,32 +63,44 @@
     cancelEl.textContent = opts.cancelText || 'Отмена';
     cancelEl.style.display = isConfirm ? '' : 'none';
 
+    // Опциональная галочка-подтверждение
+    const hasCheck = !!opts.checkboxLabel;
+    checkWrap.style.display = hasCheck ? '' : 'none';
+    checkEl.checked = false;
+    checkLabel.textContent = opts.checkboxLabel || '';
+    confirmEl.disabled = hasCheck;
+    if (hasCheck) {
+      checkEl.onchange = function () { confirmEl.disabled = !checkEl.checked; };
+    } else {
+      checkEl.onchange = null;
+    }
+
     return new Promise(function (resolve) {
       function close(result) {
         overlay.classList.remove('is-open');
         document.removeEventListener('keydown', onKey);
         confirmEl.onclick = null;
         cancelEl.onclick = null;
+        checkEl.onchange = null;
         overlay.onclick = null;
         setTimeout(function () { resolve(result); }, 60);
       }
 
       function onKey(e) {
         if (e.key === 'Escape') close(false);
-        else if (e.key === 'Enter') close(true);
+        else if (e.key === 'Enter' && !confirmEl.disabled) close(true);
       }
 
-      confirmEl.onclick = function () { close(true); };
+      confirmEl.onclick = function () { if (!confirmEl.disabled) close(true); };
       cancelEl.onclick = function () { close(false); };
       overlay.onclick = function (e) {
-        if (e.target === overlay && isConfirm) close(false);
-        else if (e.target === overlay && !isConfirm) close(false);
+        if (e.target === overlay) close(false);
       };
 
       document.addEventListener('keydown', onKey);
 
       requestAnimationFrame(function () { overlay.classList.add('is-open'); });
-      setTimeout(function () { confirmEl.focus(); }, 40);
+      setTimeout(function () { (hasCheck ? checkEl : confirmEl).focus(); }, 40);
       void dialog;
     });
   }

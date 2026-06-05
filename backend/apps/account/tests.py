@@ -36,7 +36,7 @@ class HRMenuAndAccessTest(TestCase):
         self.assertIsNotNone(hr_menu)
         
         submenu_titles = [sub.title for sub in hr_menu.submenu]
-        expected = ['Орг. структура', 'Сотрудники', 'Компании', 'Должности', 'Командировки', 'Отпуски']
+        expected = ['Орг. структура', 'Сотрудники', 'Компании', 'Должности', 'Командировки', 'Заявки на отпуск']
         for title in expected:
             self.assertIn(title, submenu_titles)
 

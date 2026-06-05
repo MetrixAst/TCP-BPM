@@ -61,6 +61,31 @@
   font-size: 14px;
   line-height: 1.5;
   color: #74728a;
+  white-space: pre-line;
+}
+
+.bpm-modal__check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  background: #f5f7fb;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #25233f;
+  cursor: pointer;
+}
+.bpm-modal__check input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.bpm-modal__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .bpm-modal__actions {

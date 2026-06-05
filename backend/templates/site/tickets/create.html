@@ -1,0 +1,51 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Новая заявка — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v={{ static_version|default:'1' }}" />
+{% endblock %}
+
+{% block content %}
+<div class="tk-page">
+
+  {% include 'site/tenants/portal_banner.html' %}
+
+  <div class="tk-head">
+    <div>
+      <h1 class="tk-head__title">Новая сервисная заявка</h1>
+      <p class="tk-head__sub">Опишите проблему — мы примем заявку в работу</p>
+    </div>
+  </div>
+
+  <div style="max-width:680px;">
+    <div class="tk-panel">
+      <form method="POST" enctype="multipart/form-data" class="tk-form">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="tk-badge tk-badge--danger" style="margin-bottom:14px;">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        {% for field in form %}
+          <div class="tk-field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+              <div class="tk-row__muted" style="color:var(--tk-danger);">{{ field.errors|striptags }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+        <div class="tk-actions">
+          <a href="{% url 'tickets:home' %}" class="tk-btn tk-btn--ghost">Отмена</a>
+          <button type="submit" class="tk-btn tk-btn--primary">
+            <i class="bi bi-send"></i> Отправить заявку
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

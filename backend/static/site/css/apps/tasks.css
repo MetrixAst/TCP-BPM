@@ -2966,3 +2966,42 @@ body.task-edit-body .bpm-content {
 .bpm-modal__btn--danger:hover {
   filter: brightness(0.95);
 }
+
+/* Канбан-карточка задачи — улучшенная читаемость */
+.tasks-kanban__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.tasks-kanban__card-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: #3a6ad6;
+  letter-spacing: 0.02em;
+}
+.tasks-kanban__card-type {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #eef2f9;
+  border-radius: 999px;
+  padding: 1px 9px;
+}
+.tasks-kanban__card-prio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin: 2px 0 8px;
+}
+.tasks-kanban__card-prio .tasks-kanban__prio {
+  position: static;
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}

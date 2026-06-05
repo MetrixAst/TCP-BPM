@@ -225,6 +225,26 @@
         const url = button.getAttribute('data-url');
         if (!url) return;
 
+        // Подтверждение смены статуса: галочка + подтвердить
+        const label = (button.textContent || 'действие').trim();
+        const isDanger = button.getAttribute('data-task-action') === 'cancel'
+          || /отклон|удал/i.test(label);
+        let confirmed;
+        if (window.bpmModal) {
+          confirmed = await window.bpmModal.confirm(
+            'Вы собираетесь выполнить: «' + label + '».',
+            {
+              title: 'Подтверждение действия',
+              confirmText: label,
+              variant: isDanger ? 'danger' : 'info',
+              checkboxLabel: 'Подтверждаю выполнение действия'
+            }
+          );
+        } else {
+          confirmed = window.confirm('Выполнить «' + label + '»?');
+        }
+        if (!confirmed) return;
+
         button.disabled = true;
         button.classList.add('is-loading');
         try {
