@@ -10,6 +10,9 @@ from .enums import TaskStatusEnum
 from .models import Task, TaskFile
 from .forms import TaskForm
 
+from django.views.decorators.http import require_http_methods
+import json
+
 
 def is_ajax(request):
     return request.headers.get("x-requested-with") == "XMLHttpRequest"
@@ -193,3 +196,81 @@ def edit_task(request, pk):
     }
 
     return render(request, "site/tasks/edit_task.html", context)
+
+
+@need_permission(PermissionEnums.TASKS)
+def kanban_board(request):
+    queryset = Task.get_available_queryset(request)
+
+    from .enums import TaskStatusEnum
+    statuses = TaskStatusEnum.list()
+
+    sort = request.GET.get('sort', '-id')
+    allowed_sorts = ['-id', 'deadline', '-deadline', 'priority']
+    if sort not in allowed_sorts:
+        sort = '-id'
+
+    limit = int(request.GET.get('limit', 20))
+    offset = int(request.GET.get('offset', 0))
+
+    board = []
+    for status_slug, status_title in statuses:
+        tasks_qs = queryset.filter(status=status_slug).select_related(
+            'author', 'executor'
+        ).order_by(sort)
+
+        total = tasks_qs.count()
+        tasks_page = tasks_qs[offset:offset + limit]
+
+        board.append({
+            'status': status_slug,
+            'title': status_title,
+            'count': total,
+            'has_more': total > offset + limit,
+            'tasks': [
+                {
+                    'id': t.id,
+                    'title': t.title,
+                    'priority': t.priority,
+                    'deadline': str(t.deadline) if t.deadline else None,
+                    'author': t.author.get_name if t.author else None,
+                    'executor': t.executor.get_name if t.executor else None,
+                    'task_type': t.task_type,
+                    'available_actions': [
+                        a['action'] for a in t.actions(request)
+                    ],
+                }
+                for t in tasks_page
+            ],
+        })
+
+    return JsonResponse({'board': board})
+
+
+@need_permission(PermissionEnums.TASKS)
+@require_http_methods(['PATCH'])
+def kanban_patch_status(request, pk):
+    task = Task.get_by_id(request, pk)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    action = data.get('action')
+    if not action:
+        return JsonResponse({'error': 'action is required'}, status=400)
+
+    try:
+        task._check_action_permission(request.user, action)
+        task.set_action(request, action)
+    except PermissionDenied as e:
+        return JsonResponse({'error': str(e)}, status=403)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+    return JsonResponse({
+        'id': task.id,
+        'status': task.status,
+        'status_title': task.status_info.get('title', ''),
+    })

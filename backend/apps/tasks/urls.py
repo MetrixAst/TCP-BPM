@@ -8,4 +8,6 @@ urlpatterns = [
     path('task/<int:pk>', views.task, name="task"),
     path('task/<int:pk>/action/<str:action>', views.task_action, name="task_action"),
     path('task/<int:pk>/edit', views.edit_task, name="edit"),
+    path('kanban/', views.kanban_board, name="kanban_board"),
+    path('kanban/<int:pk>/status/', views.kanban_patch_status, name="kanban_patch_status"),
 ]
