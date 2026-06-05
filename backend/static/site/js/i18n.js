@@ -26,6 +26,30 @@
     return null;
   }
 
+  function getByPath(obj, path) {
+    if (!obj || !path) return undefined;
+    return path.split('.').reduce(function (acc, key) {
+      return acc && acc[key] !== undefined ? acc[key] : undefined;
+    }, obj);
+  }
+  
+  function translateDataI18n(root, map) {
+    if (!root || !map) return;
+  
+    root.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n');
+      var val = getByPath(map, key);
+      if (val !== undefined) el.textContent = val;
+    });
+  
+    ['placeholder', 'title', 'aria-label', 'alt'].forEach(function (attr) {
+      root.querySelectorAll('[data-i18n-' + attr + ']').forEach(function (el) {
+        var key = el.getAttribute('data-i18n-' + attr);
+        var val = getByPath(map, key);
+        if (val !== undefined) el.setAttribute(attr, val);
+      });
+    });
+  }
   // Только полное совпадение — никаких подстрок
   function translateText(text, map) {
     var norm = normalize(text);
@@ -59,6 +83,7 @@
 
   function walkRoot(root, map) {
     if (!root) return;
+    translateDataI18n(root, map);
 
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: function (node) {
@@ -140,6 +165,7 @@
     walkRoot(document.getElementById('bpmMain'),    map);
     walkRoot(document.querySelector('.bpm-topbar'), map);
     walkRoot(document.querySelector('.auth-page'),  map);
+    walkRoot(document.body, map);
 
     if (document.title) {
       document.title = translateText(document.title, map);

@@ -26,9 +26,14 @@ class RequistionInitForm(CustomModelForm):
 
 class RequistionForm1(CustomModelForm):
 
-    start_date = forms.DateField(widget=forms.TextInput(attrs={'class':'form-control single_date_picker'}), label='Дата начала')
-    start_time = forms.CharField(widget=forms.TextInput(attrs={'class':'form-control time-picker', 'outer_container': 'time-picker-container'}), label='Время')
-
+    start_date = forms.DateField(
+        widget=forms.TextInput(attrs={'class': 'form-control single_date_picker'}),
+        label='Дата начала'
+    )
+    start_time = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control time-picker', 'placeholder': 'Например: 09:00'}),
+        label='Время'
+    )
     class Meta:
         model = Requistion
         fields = ('room', 'route', 'prop_list', 'people_list', 'name', 'role', 'phone', 'start_date', 'start_time', )

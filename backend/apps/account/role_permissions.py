@@ -233,6 +233,7 @@ class MenuItem:
             RoleEnums.CFO.value: 'dashboard:dashboard',
             RoleEnums.CHIEF_ACCOUNTANT.value: 'dashboard:dashboard',
             RoleEnums.GUEST.value: 'requistions:home',
+            RoleEnums.TENANT.value: 'dashboard:dashboard',
         }
         return items.get(user.role, None)
 
@@ -362,6 +363,15 @@ class MenuItem:
 
             RoleEnums.GUEST.value: [
                 MenuItem('requistions', 'requistions:home', 'inbox', 'Заявки'),
+            ],
+
+            RoleEnums.GUEST.value: [
+                MenuItem('requistions', 'requistions:home', 'inbox', 'Заявки'),
+            ],
+
+            RoleEnums.TENANT.value: [
+                MenuItem('dashboard', 'dashboard:dashboard', 'speedometer2', 'Главная'),
+                MenuItem('requistions', 'requistions:home', 'inbox', 'Мои заявки'),
             ],
         }
         return items.get(user.role, [])

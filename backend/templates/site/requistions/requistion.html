@@ -1,233 +1,406 @@
 {% extends 'site/base.html' %}
-{% load static %}
+{% load static site_tags %}
+
+{% block title %}Заявка №{{ current.id }} — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999" />
+<style>
+  .task-action-modal {
+    border: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+  }
+
+  .task-action-modal__header {
+    padding: 20px 22px;
+    border-bottom: 1px solid #f0eef6;
+  }
+
+  .task-action-modal__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #25233f;
+  }
+
+  .task-action-modal__body {
+    padding: 20px 22px;
+  }
+
+  .task-action-modal__textarea {
+    width: 100%;
+    min-height: 92px;
+    border: 0;
+    border-radius: 14px;
+    background: #f5f3fa;
+    color: #25233f;
+    font-size: 13px;
+    padding: 12px 16px;
+    outline: none;
+    resize: none;
+  }
+
+  .task-action-modal__textarea:focus {
+    box-shadow: 0 0 0 2px rgba(54, 100, 220, 0.15);
+  }
+
+  .task-action-modal__footer {
+    padding: 14px 22px 18px;
+    border-top: 1px solid #f0eef6;
+    gap: 14px;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 
-    <!-- Title and Top Buttons Start -->
-    <div class="page-title-container">
-        <div class="row">
-            <!-- Title Start -->
-            <div class="col-12 col-md-7">
-                <h1 class="mb-0 pb-0 display-4" id="title">{{current.number}}</h1>
-                <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
-                    <ul class="breadcrumb pt-0">
-                        <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'requistions:home' %}">Заявки</a></li>
-                        <li class="breadcrumb-item">Заявка</li>
-                    </ul>
-                </nav>
-            </div>
-            <!-- Title End -->
-            <!-- Top Buttons Start -->
-            <div class="col-12 col-md-5 d-flex align-items-start justify-content-end">
-                <!-- Contact Button Start -->
-                <a target="_blank" href="{% url 'requistions:print' current.id %}" type="button" class="btn btn-outline-primary btn-icon btn-icon-start w-100 w-md-auto">
-                    <i data-acorn-icon="download"></i>
-                    <span>Скачать</span>
-                
-                </a>
-                <!-- Contact Button End -->
-            </div>
-            <!-- Top Buttons End -->
+<div class="task-page indicator_item_opened" data-type="requistion" data-id="{{ current.id }}">
+
+  <div class="task-page__main">
+    <div class="task-card">
+
+      <div class="task-card__breadcrumb">
+        <a href="{% url 'requistions:home' %}"
+           class="task-card__back"
+           aria-label="Назад"
+           data-i18n-aria-label="common.back">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+
+        <a href="{% url 'requistions:home' %}" class="task-card__crumb" data-i18n="requisitions.my_requests">
+          Мои заявки
+        </a>
+        <span class="task-card__crumb-sep">/</span>
+        <span class="task-card__crumb task-card__crumb--current">
+          <span data-i18n="requisitions.request">Заявка</span> №{{ current.id }}
+        </span>
+
+        <div class="task-card__actions">
+          <a target="_blank"
+             href="{% url 'requistions:print' current.id %}"
+             class="task-card__icon-btn"
+             title="Печать"
+             data-i18n-title="common.print">
+            <i class="bi bi-printer"></i>
+          </a>
         </div>
+      </div>
+
+      <h1 class="task-card__title">
+        <span data-i18n="requisitions.request">Заявка</span> №{{ current.id }}
+      </h1>
+
+      <div class="task-card__meta">
+        <div class="task-card__meta-item">
+          <div class="task-card__meta-label" data-i18n="requisitions.number">Номер</div>
+          <div class="task-card__meta-value">{{ current.number|default:"—" }}</div>
+        </div>
+
+        <div class="task-card__meta-item">
+          <div class="task-card__meta-label" data-i18n="requisitions.date">Дата</div>
+          <div class="task-card__meta-value">{{ current.date|date:"d.m.Y H:i" }}</div>
+        </div>
+
+        <div class="task-card__meta-item">
+          <div class="task-card__meta-label" data-i18n="requisitions.request_type">Тип заявки</div>
+          <div class="task-card__meta-value">{{ current.get_requistion_type_display|default:"—" }}</div>
+        </div>
+
+        <div class="task-card__meta-item">
+          <div class="task-card__meta-label" data-i18n="requisitions.status">Статус</div>
+          <div class="task-card__meta-value">
+            <span class="tasks-status tasks-status--{{ current.status_info.color|default:'neutral' }}">
+              {{ current.status_info.title|default:"—" }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task-card__description">
+        <p>
+          <strong data-i18n="requisitions.identifier">Идентификатор</strong>:
+          {{ current.id }}
+        </p>
+
+        <p>
+          <strong data-i18n="requisitions.request_type">Тип заявки</strong>:
+          {{ current.get_requistion_type_display }}
+        </p>
+
+        {% if current.number %}
+          <p>
+            <strong data-i18n="requisitions.number">Номер</strong>:
+            {{ current.number }}
+          </p>
+        {% endif %}
+
+        {% if current.user %}
+          <p>
+            <strong data-i18n="requisitions.user">Пользователь</strong>:
+            {{ current.user.get_name }}
+          </p>
+        {% endif %}
+
+        {% if current.supplier %}
+          <p>
+            <strong data-i18n="requisitions.counterparty">Контрагент</strong>:
+            {{ current.supplier }}
+          </p>
+        {% endif %}
+
+        <p>
+          <strong data-i18n="requisitions.status">Статус</strong>:
+          {{ current.status_info.title }}
+        </p>
+
+        <p>
+          <strong data-i18n="requisitions.request_date">Дата заявки</strong>:
+          {{ current.date|date:"d.m.Y H:i" }}
+        </p>
+
+        {% if current.room %}
+          <p>
+            <strong data-i18n="requisitions.room">Помещение №</strong>:
+            {{ current.room }}
+          </p>
+        {% endif %}
+
+        {% if current.route %}
+          <p>
+            <strong data-i18n="requisitions.route">Маршрут</strong>:
+            {{ current.route }}
+          </p>
+        {% endif %}
+
+        {% if current.prop_list %}
+          <p>
+            <strong data-i18n="requisitions.property_list">Список имущества</strong>:
+            {{ current.prop_list }}
+          </p>
+        {% endif %}
+
+        {% if current.people_list %}
+          <p>
+            <strong data-i18n="requisitions.people_list">Список лиц</strong>:
+            {{ current.people_list }}
+          </p>
+        {% endif %}
+
+        {% if current.start_date %}
+          <p>
+            <strong data-i18n="requisitions.start_date">Дата начала</strong>:
+            {{ current.start_date|date:"d.m.Y" }}
+          </p>
+        {% endif %}
+
+        {% if current.start_time %}
+          <p>
+            <strong data-i18n="requisitions.time">Время</strong>:
+            {{ current.start_time }}
+          </p>
+        {% endif %}
+
+        {% if current.name %}
+          <p>
+            <strong data-i18n="requisitions.full_name">ФИО</strong>:
+            {{ current.name }}
+          </p>
+        {% endif %}
+
+        {% if current.role %}
+          <p>
+            <strong data-i18n="requisitions.position">Должность</strong>:
+            {{ current.role }}
+          </p>
+        {% endif %}
+
+        {% if current.phone %}
+          <p>
+            <strong data-i18n="requisitions.phone">Телефон</strong>:
+            {{ current.phone }}
+          </p>
+        {% endif %}
+
+        {% if current.address %}
+          <p>
+            <strong data-i18n="requisitions.address">Адрес</strong>:
+            {{ current.address }}
+          </p>
+        {% endif %}
+
+        {% if current.iin %}
+          <p>
+            <strong data-i18n="requisitions.iin">ИИН</strong>:
+            {{ current.iin }}
+          </p>
+        {% endif %}
+      </div>
+
+      {% if actions %}
+        <div class="task-card__workflow">
+          {% for current_action in actions %}
+            <button type="button"
+                    class="task-card__btn task-card__btn--primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#actionModal"
+                    data-action-value="{{ current_action.action }}">
+              {{ current_action.title }}
+            </button>
+          {% endfor %}
+        </div>
+      {% endif %}
+
     </div>
-    <!-- Title and Top Buttons End -->
-    <div class="row gx-4 gy-5">
-        <!-- Left Side Start -->
-        <div class="col-12 col-xl-4 col-xxl-3">
-            <!-- Biography Start -->
-            <h2 class="small-title">Информация</h2>
-            <div class="card">
-                <div class="card-body mb-n5">
-                    <div class="d-flex align-items-center flex-column mb-5 text-center">
-                        <div class="mb-5 d-flex align-items-center flex-column">
-                            <div class="text-muted">{{current.supplier}}</div>
-                            <div class="h5 mb-2">{{current.get_requistion_type_display}}</div>
-                            <span class="badge bg-info">{{current.status_info.title}}</span>
-                        </div>
-                        <div class="flex-row justify-content-between w-100">
-                            
-                            {% if actions %}
-                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#actionModal">Выполнить действие</button>
-                                <div class="modal fade" id="actionModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelDefault" aria-hidden="true">
-                                    <div class="modal-dialog">
-                                        <form method="POST" action="{% url 'requistions:action' current.id %}" class="modal-content">
-                                            {% csrf_token %}
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="exampleModalLabelDefault">Задать статус</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
 
-                                            <div class="modal-body text-start">
+    {% if current.history.exists %}
+      <div class="task-history">
+        <h2 class="task-section__title" data-i18n="requisitions.history">История</h2>
 
-                                                <select class="select2" name="action" data-placeholder="Действие">
-                                                    <option label="&nbsp;"></option>
-                                                    {% for current in actions %}
-                                                        <option value="{{current.action}}">{{current.title}}</option>
-                                                    {% endfor %}
-                                                </select>
-                                                
-                                                <div class="mt-3 filled">
-                                                    <textarea placeholder="Комментарии" class="form-control" name="text" rows="2"></textarea>
-                                                    <i data-acorn-icon="notebook-1"></i>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-outline-muted" data-bs-dismiss="modal">Закрыть</button>
-                                                <button type="submit" class="btn btn-primary">Отправить</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            {% endif %}
+        <div class="task-history__list">
+          {% for item in current.history.all %}
+            <div class="task-history__item">
+              <div class="task-history__avatar">
+                {% if item.user.get_avatar_url %}
+                  <img src="{{ item.user.get_avatar_url }}" alt="{{ item.user.get_name }}">
+                {% else %}
+                  <i class="bi bi-person-fill"></i>
+                {% endif %}
+              </div>
 
-                        </div>
-                    </div>
-                    <div class="mb-5">
+              <div class="task-history__content">
+                <div class="task-history__name">{{ item.user.get_name|default:"Система" }}</div>
+                <div class="task-history__text">{{ item.title }}</div>
+                {% if item.text %}
+                  <div class="task-history__name">{{ item.text }}</div>
+                {% endif %}
+              </div>
 
-                        <div class="row g-0 align-items-center mb-2">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Создано</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center">{{current.user.get_name}}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row g-0 align-items-center mb-2">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Дата добавления</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center">{{current.date}}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-
-                        <div class="row g-0 align-items-center mb-2">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center text-muted">Согласующие</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        {% for us in current.coordinators.all %}
-                                            <div class="sh-5 d-flex align-items-center justify-content-end">{{us.get_name}}</div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-
-                        <div class="row g-0 align-items-center mb-2">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Наблюдатели</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        {% for us in current.observers.all %}
-                                            <div class="sh-5 d-flex align-items-center justify-content-end">{{us.get_name}}</div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-
-
-                </div>
+              <div class="task-history__time">
+                {{ item.date|date:"d.m.Y" }} {{ item.date|time:"H:i" }}
+              </div>
             </div>
-            <!-- Biography End -->
+          {% endfor %}
         </div>
-        <!-- Left Side End -->
-        <!-- Right Side Start -->
-        <div class="col-12 col-xl-8 col-xxl-9">
-            <!-- Title Tabs Start -->
-            <ul class="nav nav-tabs nav-tabs-title nav-tabs-line-title responsive-tabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link active" data-bs-toggle="tab" href="#infoTab" role="tab" aria-selected="true">Информация</a>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link" data-bs-toggle="tab" href="#friendsTab" role="tab" aria-selected="false">Лист согласования</a>
-                </li>
-                <li class="nav-item dropdown ms-auto d-none responsive-tab-dropdown">
-                    <a
-                        class="btn btn-icon btn-icon-only btn-background pt-0"
-                        href="#"
-                        role="button"
-                        data-bs-toggle="dropdown"
-                        aria-haspopup="true"
-                        aria-expanded="false"
-                        data-diplay="static"
-                        >
-                    <i data-acorn-icon="more-horizontal"></i>
-                    </a>
-                    <ul class="dropdown-menu mt-2 dropdown-menu-end"></ul>
-                </li>
-            </ul>
-            <!-- Title Tabs End -->
-            <div class="tab-content">
+      </div>
+    {% endif %}
+  </div>
 
-                <div class="tab-pane fade active show" id="infoTab" role="tabpanel">
-                    <div class="card">
-                        <div class="card-body row">
-        
-                            {% for title, value in info.items %}
-                                {% if value %}
-                                    <div class="col-12 col-xxl-6 mb-2">
-                                        <div class="title_with_value">
-                                            <span>{{title}}</span>
-                                            <span>{{value}}</span>
-                                        </div>
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Friends Tab Start -->
-                <div class="tab-pane fade" id="friendsTab" role="tabpanel">
-                    
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Дата</th>
-                                <th scope="col">Пользователь</th>
-                                <th scope="col">Статус</th>
-                                <th scope="col">Комментарии</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+  <aside class="task-page__aside">
+    <div class="task-section">
+      <div class="task-section__head">
+        <h3 class="task-section__title" data-i18n="requisitions.route_block">Маршрут</h3>
+      </div>
 
-                            {% for item in current.history.all %}
-                                <tr>
-                                    <td>{{item.date}}</td>
-                                    <td>{{item.user.get_name}}</td>
-                                    <td>{{item.title}}</td>
-                                    <td class="text-info">{{item.text}}</td>
-                                </tr>
-                            {% endfor %}
-
-                        </tbody>
-                    </table>
-
-                </div>
-                <!-- Friends Tab End -->
+      <div class="task-route">
+        {% if current.user %}
+          <div class="task-route__item">
+            <div class="task-route__avatar">
+              {% if current.user.get_avatar_url %}
+                <img src="{{ current.user.get_avatar_url }}" alt="{{ current.user.get_name }}">
+              {% else %}
+                <i class="bi bi-person-fill"></i>
+              {% endif %}
             </div>
-        </div>
-        <!-- Right Side End -->
+            <div class="task-route__content">
+              <div class="task-route__role" data-i18n="requisitions.author">Автор</div>
+              <div class="task-route__name">{{ current.user.get_name }}</div>
+            </div>
+          </div>
+        {% endif %}
+
+        {% for user in current.coordinators.all %}
+          <div class="task-route__item">
+            <div class="task-route__avatar">
+              {% if user.get_avatar_url %}
+                <img src="{{ user.get_avatar_url }}" alt="{{ user.get_name }}">
+              {% else %}
+                <i class="bi bi-person-fill"></i>
+              {% endif %}
+            </div>
+            <div class="task-route__content">
+              <div class="task-route__role" data-i18n="requisitions.coordinator">Согласующий</div>
+              <div class="task-route__name">{{ user.get_name }}</div>
+            </div>
+          </div>
+        {% endfor %}
+
+        {% for user in current.observers.all %}
+          <div class="task-route__item">
+            <div class="task-route__avatar">
+              {% if user.get_avatar_url %}
+                <img src="{{ user.get_avatar_url }}" alt="{{ user.get_name }}">
+              {% else %}
+                <i class="bi bi-person-fill"></i>
+              {% endif %}
+            </div>
+            <div class="task-route__content">
+              <div class="task-route__role" data-i18n="requisitions.observer">Наблюдатель</div>
+              <div class="task-route__name">{{ user.get_name }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
     </div>
+  </aside>
+
+</div>
+
+{% if actions %}
+  <div class="modal fade" id="actionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form method="POST" action="{% url 'requistions:action' current.id %}" class="modal-content task-action-modal">
+        {% csrf_token %}
+
+        <div class="modal-header task-action-modal__header">
+          <h5 class="modal-title task-action-modal__title" data-i18n="requisitions.perform_action">
+            Выполнить действие
+          </h5>
+          <button type="button"
+                  class="task-edit-card__close"
+                  data-bs-dismiss="modal"
+                  aria-label="Закрыть"
+                  data-i18n-aria-label="common.close">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+
+        <div class="modal-body task-action-modal__body">
+          <div class="task-edit-field">
+            <label class="task-edit-field__label" data-i18n="requisitions.action">Действие</label>
+            <select class="task-card__priority-select" name="action" id="requistionActionSelect">
+              {% for current_action in actions %}
+                <option value="{{ current_action.action }}">{{ current_action.title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="task-edit-field">
+            <label class="task-edit-field__label" data-i18n="requisitions.comment">Комментарий</label>
+            <textarea class="task-action-modal__textarea"
+                      name="text"
+                      rows="3"
+                      placeholder="Комментарий"
+                      data-i18n-placeholder="requisitions.comment"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer task-action-modal__footer">
+          <button type="button"
+                  class="task-edit-btn task-edit-btn--cancel"
+                  data-bs-dismiss="modal"
+                  data-i18n="common.cancel">
+            Отменить
+          </button>
+          <button type="submit"
+                  class="task-edit-btn task-edit-btn--save"
+                  data-i18n="common.send">
+            Отправить
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endif %}
 
 {% endblock %}

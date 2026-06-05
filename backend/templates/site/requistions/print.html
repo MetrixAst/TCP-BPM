@@ -3,47 +3,230 @@
 
 {% block inner %}
 
-    <div class="py-5 px-5">
-        <div class="row">
-            <h4 class="mb-4">Информация</h4>
+<style>
+  .title_with_value {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+  }
 
-            {% for title, value in info.items %}
-                {% if value %}
-                    <div class="col-12 col-xxl-6 mb-2">
-                        <div class="title_with_value">
-                            <span>{{title}}</span>
-                            <span>{{value}}</span>
-                        </div>
-                    </div>
-                {% endif %}
-            {% endfor %}
-        </div>
+  .title_with_value span:first-child {
+    font-weight: 700;
+  }
+</style>
 
-
-        <div class="div mt-5 row">
-            <h4>Лист согласования</h4>
-            <table class="table">
-
-                <thead>
-                    <tr>
-                        <th scope="col">Дата</th>
-                        <th scope="col">Пользователь</th>
-                        <th scope="col">Статус</th>
-                    </tr>
-                </thead>
-                <tbody>
-
-                    {% for item in current.history.all %}
-                        <tr>
-                            <td>{{item.date}}</td>
-                            <td>{{item.user.get_name}}</td>
-                            <td>{{item.title}}</td>
-                        </tr>
-                    {% endfor %}
-
-                </tbody>
-            </table>
-        </div>
+<div class="py-5 px-5">
+  <div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+      <h2 class="mb-1">
+        <span data-i18n="requisitions.request">Заявка</span> №{{ current.id }}
+      </h2>
+      <div class="text-muted">
+        <span>{{ current.get_requistion_type_display }}</span> · {{ current.date|date:"d.m.Y H:i" }}
+      </div>
     </div>
+
+    <button type="button" class="btn btn-primary d-print-none" onclick="window.print()" data-i18n="common.print">
+      Печать
+    </button>
+  </div>
+
+  <div class="row">
+    <h4 class="mb-4" data-i18n="requisitions.information">Информация</h4>
+
+    <div class="col-12 col-xxl-6 mb-2">
+      <div class="title_with_value">
+        <span data-i18n="requisitions.identifier">Идентификатор</span>
+        <span>{{ current.id }}</span>
+      </div>
+    </div>
+
+    <div class="col-12 col-xxl-6 mb-2">
+      <div class="title_with_value">
+        <span data-i18n="requisitions.request_type">Тип заявки</span>
+        <span>{{ current.get_requistion_type_display }}</span>
+      </div>
+    </div>
+
+    {% if current.number %}
+      <div class="col-12 col-xxl-6 mb-2">
+        <div class="title_with_value">
+          <span data-i18n="requisitions.number">Номер</span>
+          <span>{{ current.number }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if current.user %}
+      <div class="col-12 col-xxl-6 mb-2">
+        <div class="title_with_value">
+          <span data-i18n="requisitions.user">Пользователь</span>
+          <span>{{ current.user.get_name }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if current.supplier %}
+      <div class="col-12 col-xxl-6 mb-2">
+        <div class="title_with_value">
+          <span data-i18n="requisitions.counterparty">Контрагент</span>
+          <span>{{ current.supplier }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="col-12 col-xxl-6 mb-2">
+      <div class="title_with_value">
+        <span data-i18n="requisitions.status">Статус</span>
+        <span>{{ current.status_info.title }}</span>
+      </div>
+    </div>
+
+    <div class="col-12 col-xxl-6 mb-2">
+      <div class="title_with_value">
+        <span data-i18n="requisitions.request_date">Дата заявки</span>
+        <span>{{ current.date|date:"d.m.Y H:i" }}</span>
+      </div>
+    </div>
+
+    {% if current.room %}
+      <div class="col-12 col-xxl-6 mb-2">
+        <div class="title_with_value">
+          <span data-i18n="requisitions.room">Помещение №</span>
+          <span>{{ current.room }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if current.route %}
+      <div class="col-12 col-xxl-6 mb-2">
+        <div class="title_with_value">
+          <span data-i18n="requisitions.route">Маршрут</span>
+          <span>{{ current.route }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if current.prop_list %}
+      <div class="col-12 mb-2">
+        <div class="title_with_value">
+          <span data-i18n="requisitions.property_list">Список имущества</span>
+          <span>{{ current.prop_list }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if current.people_list %}
+      <div class="col-12 mb-2">
+        <div class="title_with_value">
+          <span data-i18n="requisitions.people_list">Список лиц</span>
+          <span>{{ current.people_list }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if current.start_date %}
+      <div class="col-12 col-xxl-6 mb-2">
+        <div class="title_with_value">
+          <span data-i18n="requisitions.start_date">Дата начала</span>
+          <span>{{ current.start_date|date:"d.m.Y" }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if current.start_time %}
+      <div class="col-12 col-xxl-6 mb-2">
+        <div class="title_with_value">
+          <span data-i18n="requisitions.time">Время</span>
+          <span>{{ current.start_time }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if current.name %}
+      <div class="col-12 col-xxl-6 mb-2">
+        <div class="title_with_value">
+          <span data-i18n="requisitions.full_name">ФИО</span>
+          <span>{{ current.name }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if current.role %}
+      <div class="col-12 col-xxl-6 mb-2">
+        <div class="title_with_value">
+          <span data-i18n="requisitions.position">Должность</span>
+          <span>{{ current.role }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if current.phone %}
+      <div class="col-12 col-xxl-6 mb-2">
+        <div class="title_with_value">
+          <span data-i18n="requisitions.phone">Телефон</span>
+          <span>{{ current.phone }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if current.address %}
+      <div class="col-12 col-xxl-6 mb-2">
+        <div class="title_with_value">
+          <span data-i18n="requisitions.address">Адрес</span>
+          <span>{{ current.address }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if current.iin %}
+      <div class="col-12 col-xxl-6 mb-2">
+        <div class="title_with_value">
+          <span data-i18n="requisitions.iin">ИИН</span>
+          <span>{{ current.iin }}</span>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if current.history.exists %}
+    <div class="mt-5 row">
+      <h4 data-i18n="requisitions.approval_list">Лист согласования</h4>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col" data-i18n="requisitions.date">Дата</th>
+            <th scope="col" data-i18n="requisitions.user">Пользователь</th>
+            <th scope="col" data-i18n="requisitions.status">Статус</th>
+            <th scope="col" data-i18n="requisitions.comment">Комментарий</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for item in current.history.all %}
+            <tr>
+              <td>{{ item.date|date:"d.m.Y H:i" }}</td>
+              <td>{{ item.user.get_name|default:"Система" }}</td>
+              <td>{{ item.title }}</td>
+              <td>{{ item.text|default:"—" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+<script>
+  (function () {
+    var m = document.cookie.match('(?:^|; )bpm_lang=([^;]*)');
+    var lang = m ? decodeURIComponent(m[1]) : 'ru';
+    if (['ru', 'kk', 'en'].indexOf(lang) === -1) lang = 'ru';
+    window.BPM_I18N = { lang: lang };
+    document.documentElement.lang = lang;
+  })();
+</script>
+<script src="{% static 'site/js/i18n-bundle.js' %}?v={{ static_version|default:'1' }}"></script>
+<script src="{% static 'site/js/i18n.js' %}?v={{ static_version|default:'1' }}"></script>
 
 {% endblock %}
