@@ -197,6 +197,15 @@ def edit_task(request, pk):
 
     return render(request, "site/tasks/edit_task.html", context)
 
+@need_permission(PermissionEnums.TASKS)
+def kanban(request):
+    context = {
+        "can_create": RolePermissions.checkPermission(
+            request.user.role,
+            PermissionEnums.EDIT_TASK
+        ),
+    }
+    return render(request, "site/tasks/kanban.html", context)
 
 @need_permission(PermissionEnums.TASKS)
 def kanban_board(request):

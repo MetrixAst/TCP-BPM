@@ -59,6 +59,11 @@
           <i class="bi bi-chevron-down"></i>
         </button>
 
+        <a href="{% url 'tasks:kanban' %}" class="tasks-page__btn tasks-page__btn--outline">
+          <i class="bi bi-kanban"></i>
+          Канбан
+        </a>
+
         {% if can_create %}
           <a href="{% url 'tasks:edit' 0 %}" class="tasks-page__btn tasks-page__btn--primary">
             <i class="bi bi-plus-lg"></i>

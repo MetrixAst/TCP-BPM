@@ -1,0 +1,64 @@
+{% extends 'site/base.html' %}
+{% load static site_tags %}
+
+{% block title %}Канбан задач — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'9999' }}" />
+<style>
+  .kanban-page { display: flex; flex-direction: column; gap: 18px; }
+  .kanban-board { display: grid; grid-template-columns: repeat(5, minmax(240px, 1fr)); gap: 14px; overflow-x: auto; }
+  .kanban-column { background: #fff; border-radius: 18px; padding: 14px; min-height: 520px; }
+  .kanban-column__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .kanban-column__title { margin: 0; font-size: 14px; font-weight: 700; color: #25233f; }
+  .kanban-column__count { min-width: 24px; height: 24px; border-radius: 999px; background: #eceef3; color: #7b7890; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .kanban-column__body { display: flex; flex-direction: column; gap: 10px; min-height: 440px; }
+  .kanban-card { background: #f8f7fb; border-radius: 14px; padding: 12px; cursor: grab; border: 1px solid transparent; }
+  .kanban-card:active { cursor: grabbing; }
+  .kanban-card.is-dragging { opacity: .55; }
+  .kanban-column.is-over { outline: 2px dashed #2f6bed; outline-offset: -6px; }
+  .kanban-card__title { font-size: 13px; font-weight: 700; color: #25233f; margin-bottom: 10px; }
+  .kanban-card__meta { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #74728a; }
+  .kanban-empty { color: #aaa7b9; font-size: 13px; text-align: center; padding: 32px 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="kanban-page">
+  <div class="tasks-page__top">
+    <div class="tasks-page__header">
+      <h1 class="tasks-page__title">Канбан задач</h1>
+
+      <div class="tasks-page__toolbar">
+        <a href="{% url 'tasks:list' %}" class="tasks-page__btn tasks-page__btn--outline">
+          <i class="bi bi-list-ul"></i>
+          Список
+        </a>
+
+        <a href="{% url 'tasks:kanban' %}" class="tasks-page__btn tasks-page__btn--primary">
+          <i class="bi bi-kanban"></i>
+          Канбан
+        </a>
+
+        {% if can_create %}
+          <a href="{% url 'tasks:edit' 0 %}" class="tasks-page__btn tasks-page__btn--primary">
+            <i class="bi bi-plus-lg"></i>
+            Создать
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="kanban-board" id="tasksKanbanBoard"
+       data-board-url="{% url 'tasks:kanban_board' %}"
+       data-patch-url-template="/tasks/kanban/__TASK_ID__/status/">
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/tasks-kanban.js' %}?v=1"></script>
+{% endblock %}
