@@ -54,6 +54,14 @@ class Task(models.Model):
 
     priority = models.SlugField("Приоритет", choices=PRIORITIES, default='medium')
     task_type = models.SlugField("Тип задачи", choices=TASK_TYPES, default='assignment')
+    counterparty = models.ForeignKey(
+        'onec.Counterparty',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tasks',
+        verbose_name='Контрагент',
+    )
     views = models.IntegerField("Просмотры", default=0)
 
     TRANSITIONS = {
@@ -224,6 +232,7 @@ class TaskHistory(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="history", verbose_name="Задача")
     user = models.ForeignKey(UserAccount, on_delete=models.SET_NULL, verbose_name="Пользователь", null=True, blank=True)
     status = models.SlugField("Статус", choices=STATUSES)
+    text = models.TextField('Комментарий', null=True, blank=True)
     date = models.DateTimeField(auto_now_add=True, verbose_name="Дата")
 
 
@@ -271,3 +280,55 @@ class TaskFile(models.Model):
 
     def __str__(self):
         return self.file.name
+
+class TaskChecklist(models.Model):
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name='checklist',
+        verbose_name='Задача'
+    )
+    text = models.CharField('Пункт', max_length=300)
+    is_done = models.BooleanField('Выполнен', default=False)
+    created_by = models.ForeignKey(
+        UserAccount,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='Создал'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    order = models.PositiveIntegerField('Порядок', default=0)
+
+    class Meta:
+        verbose_name = 'Пункт чеклиста'
+        verbose_name_plural = 'Чеклист'
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return self.text
+
+
+class TaskLineItem(models.Model):
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name='line_items',
+        verbose_name='Задача'
+    )
+    name = models.CharField('Наименование', max_length=200)
+    quantity = models.DecimalField('Количество', max_digits=10, decimal_places=2, default=1)
+    unit = models.CharField('Единица', max_length=20, null=True, blank=True)
+    price = models.DecimalField('Цена', max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        verbose_name = 'Позиция товара'
+        verbose_name_plural = 'Позиции товаров'
+        ordering = ['id']
+
+    @property
+    def total(self):
+        return self.quantity * self.price
+
+    def __str__(self):
+        return self.name
