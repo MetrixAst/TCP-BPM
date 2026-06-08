@@ -5,7 +5,6 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/tenants.css' %}?v={{ static_version|default:'1' }}&t=2">
-<link rel="stylesheet" href="{% static 'site/js/custom_map/css/custom_map.css' %}" />
 {% endblock styles %}
 
 {% block content %}
@@ -33,10 +32,6 @@
       <span class="tenant-kpi-card__label">Всего арендаторов</span>
       <span class="tenant-kpi-card__value">{{ stats.total }}</span>
     </div>
-    <div class="tenant-kpi-card tenant-kpi-card--map">
-      <span class="tenant-kpi-card__label">На карте ТРЦ</span>
-      <span class="tenant-kpi-card__value">{{ stats.on_map }}</span>
-    </div>
     <div class="tenant-kpi-card tenant-kpi-card--warn">
       <span class="tenant-kpi-card__label">Срок &lt; 90 дней</span>
       <span class="tenant-kpi-card__value">{{ stats.warning }}</span>
@@ -63,18 +58,7 @@
   </form>
 
   <section class="tenant-panel">
-    <ul class="nav tenant-view-tabs" role="tablist">
-      <li class="nav-item">
-        <a class="nav-link tenant-view-tab" data-bs-toggle="tab" href="#projectsTab" role="tab">Списком</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link tenant-view-tab active" data-bs-toggle="tab" href="#collectionsTab" role="tab">На карте</a>
-      </li>
-    </ul>
-
-    <div class="tab-content">
-      <div class="tab-pane fade" id="projectsTab" role="tabpanel">
-        <div class="tenant-table-card">
+    <div class="tenant-table-card">
           <div class="tenant-table-head">
             <div>
               <div class="tenant-table-title">Реестр арендаторов</div>
@@ -141,17 +125,9 @@
           {% endif %}
         </div>
 
-        {% if paginator.count > 0 %}
-          <div class="mt-3">{% show_paginator paginator %}</div>
-        {% endif %}
-      </div>
-
-      <div class="tab-pane fade show active" id="collectionsTab" role="tabpanel">
-        <div class="tenant-map-wrap">
-          <div id="map_container"></div>
-        </div>
-      </div>
-    </div>
+    {% if paginator.count > 0 %}
+      <div class="mt-3">{% show_paginator paginator %}</div>
+    {% endif %}
   </section>
 
 </div>
@@ -415,69 +391,11 @@
     {% endverbatim %}
 
 
-    <div class="modal fade" id="selectedRoom" tabindex="-1" role="dialog" aria-labelledby="selectedRoomModal" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="selectedRoomModal">Помещение</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="cta-3">Идентификатор помещения</div>
-                <div class="mb-3 cta-3 text-primary" id="map_id_label">Join our email list!</div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
 {% endblock %}
 
 
 {% block scripts %}
-    <script src="{% static 'site/js/custom_map/js/custom_map.js' %}"></script>
     <script src="{% static 'site/js/apps/tenants.js' %}?v={{ static_version|default:'1' }}"></script>
-
-    <script>
-        $(document).ready(function(){
-            document.querySelectorAll('[data-bs-toggle="tab"]').forEach(function (el) {
-              el.addEventListener('shown.bs.tab', function (e) {
-                document.querySelectorAll('.tenant-view-tab').forEach(function (t) { t.classList.remove('active'); });
-                e.target.classList.add('active');
-              });
-            });
-
-            const map = $('#map_container').customMap({
-				floorsStartFrom: 0,
-				floors: 4,
-				currentFloor: 1,
-				//iconSize: 20,
-
-				floorsPath: '/static/site/js/custom_map/img/floors',
-				defaultIcon: "{% static 'site/img/map_pin.png' %}",
-				dataUrl: '{% url "tenants:all_json" %}',
-
-				onReady: () => {
-				},
-				floorLoaded: () => {
-					//map.selectObject(5);
-					//map.selectMapObject('object_78');
-				},
-				onTapped: (object) => {
-                    if(object.object != null){
-                        showTenant(object.object.id);
-                    }
-                    else{
-                        $('#map_id_label').text(object.map_id);
-                        $('#selectedRoom').modal('show');
-                    }
-				},
-
-			});
-        });
-    </script>
 
     <script>
       function _tenantCsrf() {

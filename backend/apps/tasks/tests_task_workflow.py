@@ -50,6 +50,58 @@ class TaskWorkflowExtendedTest(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(TaskLineItem.objects.filter(task=self.task).count(), 1)
 
+    def test_admin_non_participant_can_transition_from_detail(self):
+        """Админ, не являющийся участником, видит кнопки и двигает статус со страницы."""
+        author = UserAccount.objects.create_user(
+            username='task_author', email='ta@test.kz', password='pass',
+            role=RoleEnums.STAFF.value,
+        )
+        executor = UserAccount.objects.create_user(
+            username='task_exec', email='te@test.kz', password='pass',
+            role=RoleEnums.STAFF.value,
+        )
+        task = Task.objects.create(
+            author=author, executor=executor, title='AdminMove',
+            deadline=date.today() + timedelta(days=1),
+            status=TaskStatusEnum.CREATED.value[0],
+        )
+        # self.user — администратор и не участник этой задачи
+        self.client.login(username=self.user.username, password='pass')
+
+        page = self.client.get(reverse('tasks:task', args=[task.pk]))
+        self.assertEqual(page.status_code, 200)
+        self.assertIn('accept', page.content.decode())
+
+        url = reverse('tasks:task_action', args=[task.pk, 'accept'])
+        r = self.client.post(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(r.status_code, 200)
+        task.refresh_from_db()
+        self.assertEqual(task.status, TaskStatusEnum.ACCEPTED.value[0])
+
+    def test_non_participant_non_admin_cannot_transition(self):
+        author = UserAccount.objects.create_user(
+            username='other_author', email='oa@test.kz', password='pass',
+            role=RoleEnums.STAFF.value,
+        )
+        task = Task.objects.create(
+            author=author, executor=author, title='NoAccess',
+            deadline=date.today() + timedelta(days=1),
+            status=TaskStatusEnum.CREATED.value[0],
+        )
+        outsider = UserAccount.objects.create_user(
+            username='outsider', email='out@test.kz', password='pass',
+            role=RoleEnums.STAFF.value,
+        )
+        self.client.login(username=outsider.username, password='pass')
+        # не участник и не админ — даже страница недоступна (404 по queryset)
+        r = self.client.post(
+            reverse('tasks:task_action', args=[task.pk, 'accept']),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertIn(r.status_code, (403, 404))
+        task.refresh_from_db()
+        self.assertEqual(task.status, TaskStatusEnum.CREATED.value[0])
+
     def test_counterparty_with_acl(self):
         scope = AccessScope.objects.create(name='cp-scope', is_global=True)
         cp_type = CounterpartyType.objects.create(

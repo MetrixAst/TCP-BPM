@@ -61,3 +61,39 @@ class TenantPortalAccessTest(TestCase):
         self.client.force_login(self.staff)
         resp = self.client.get(reverse('tenants:portal_access', args=[self.tenant.id]))
         self.assertEqual(resp.status_code, 405)
+
+    def test_username_is_tenant_email(self):
+        self.client.force_login(self.staff)
+        data = self.client.post(reverse('tenants:portal_access', args=[self.tenant.id])).json()
+        self.assertEqual(data['username'], self.tenant.email.lower())
+        user = self.tenant.portal_users.first()
+        self.assertEqual(user.username, self.tenant.email.lower())
+        self.assertEqual(user.email, self.tenant.email.lower())
+
+    def test_username_syncs_with_changed_email(self):
+        self.client.force_login(self.staff)
+        first = self.client.post(reverse('tenants:portal_access', args=[self.tenant.id])).json()
+        self.tenant.email = 'new@test.kz'
+        self.tenant.save(update_fields=['email'])
+        second = self.client.post(reverse('tenants:portal_access', args=[self.tenant.id])).json()
+        self.assertFalse(second['created'])
+        self.assertEqual(second['username'], 'new@test.kz')
+        self.assertEqual(self.tenant.portal_users.count(), 1)
+
+    def test_no_email_returns_error(self):
+        self.tenant.email = ''
+        self.tenant.save(update_fields=['email'])
+        self.client.force_login(self.staff)
+        resp = self.client.post(reverse('tenants:portal_access', args=[self.tenant.id]))
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(resp.json()['success'])
+
+    def test_email_clash_with_other_account_blocked(self):
+        UserAccount.objects.create_user(
+            username='a@test.kz', email='a@test.kz', password='x',
+            role=RoleEnums.STAFF.value,
+        )
+        self.client.force_login(self.staff)
+        resp = self.client.post(reverse('tenants:portal_access', args=[self.tenant.id]))
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('уже используется', resp.json()['message'])

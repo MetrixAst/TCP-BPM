@@ -131,13 +131,15 @@ def decode(token):
 
 def _user_image(request, user):
     """Публичный URL аватара для отображения в редакторе (грузится браузером)."""
+    avatar = ''
     try:
-        avatar = user.get_avatar_url or ''
+        getter = getattr(user, 'get_avatar_url', None)
+        avatar = getter() if callable(getter) else (getter or '')
     except Exception:
         avatar = ''
     if avatar:
         return request.build_absolute_uri(avatar)
-    return '/img/avatar.svg'
+    return request.build_absolute_uri('/static/site/img/profile/profile-11.webp')
 
 
 def build_config(request, document, can_edit, callback_relative_url):

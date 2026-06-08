@@ -167,6 +167,11 @@ class Task(models.Model):
         if not transition:
             raise PermissionDenied("Недоступное действие для текущего статуса.")
 
+        # Админ задач (суперюзер/администратор) может выполнять любой переход —
+        # так же, как при перетаскивании на канбане.
+        if self._user_is_tasks_admin(user):
+            return transition
+
         user_role = self._get_user_role(user)
         allowed_roles = transition.get('roles', [])
 
@@ -185,6 +190,7 @@ class Task(models.Model):
     def actions(self, request):
         all_actions = TaskStatusEnum.get_actions(self.status) or []
         user_role = self._get_user_role(request.user)
+        is_admin = self._user_is_tasks_admin(request.user)
         available_actions = []
 
         for item in all_actions:
@@ -198,7 +204,8 @@ class Task(models.Model):
             if not transition:
                 continue
 
-            if user_role in transition.get('roles', []):
+            # Админ видит все переходы (как на канбане); остальные — по своей роли.
+            if is_admin or user_role in transition.get('roles', []):
                 available_actions.append(item)
 
         return available_actions

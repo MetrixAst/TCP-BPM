@@ -206,7 +206,8 @@
     "documents": "Документы",
     "documents_empty": "Документов нет",
     "notifications": "Уведомления",
-    "quick_access": "Быстрый доступ"
+    "quick_access": "Быстрый доступ",
+    "new_tasks": "Новые"
   },
   "profile": {
     "title": "Профиль",

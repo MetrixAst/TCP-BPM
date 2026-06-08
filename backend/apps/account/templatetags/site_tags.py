@@ -97,14 +97,24 @@ def load_comments(target_type, target_id):
 @register.inclusion_tag('site/documents/document_frame.html')
 def document_frame(request, document):
     from documents import onlyoffice
+    from account.role_permissions import RolePermissions, PermissionEnums
 
     has_file = bool(getattr(document, 'document', None))
     filename = document.document.name if has_file else ''
     oo_enabled = has_file and onlyoffice.is_enabled() and onlyoffice.is_supported(filename)
+
+    can_edit = False
+    if oo_enabled and onlyoffice.is_editable(filename):
+        user = request.user
+        if RolePermissions.checkPermission(user.role, PermissionEnums.EDIT_DOCUMENT):
+            can_edit = (document.author_id == user.id) or \
+                document.coordinators.filter(id=user.id).exists()
+
     return {
         'document': document,
         'full_url': request.build_absolute_uri(document.document.url) if has_file else '',
         'oo_enabled': oo_enabled,
+        'oo_can_edit': can_edit,
     }
 
 @register.filter(name='get_item')

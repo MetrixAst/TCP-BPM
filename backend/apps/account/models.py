@@ -104,8 +104,14 @@ class UserAccount(AbstractUser):
         return user
 
     @staticmethod
-    def create_tenant_user(tenant):
-        base = f"tenant{tenant.pk}"
+    def create_tenant_user(tenant, username=None):
+        """Создаёт портального пользователя арендатора.
+
+        Логин по умолчанию — email арендатора (если указан), иначе
+        технический `tenant{pk}`. При конфликте имени добавляется суффикс.
+        """
+        email = (getattr(tenant, 'email', '') or '').strip().lower()
+        base = (username or email or f"tenant{tenant.pk}").strip().lower()
         username = base
         suffix = 1
         while UserAccount.objects.filter(username=username).exists():
@@ -114,7 +120,7 @@ class UserAccount(AbstractUser):
 
         user = UserAccount.objects.create_user(
             username=username,
-            email=f"{username}@tenant.local",
+            email=(email or f"{username}@tenant.local"),
             password=get_random_string(),
             role=RoleEnums.TENANT.value,
             first_name=tenant.name[:30],

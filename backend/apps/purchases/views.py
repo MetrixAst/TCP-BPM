@@ -52,7 +52,7 @@ def supplier(request, pk):
         "ID": current.id,
         "Дата добавления": current.created_at,
         "Дата обновления": current.updated_at,
-        "Создано": current.author.get_name,
+        "Создано": current.author.get_name if current.author else "—",
         "Статус контрагента": current.get_status_display,
         "Благонадежность": current.get_check_status_display,
         "Форма собственности": current.get_form_display,

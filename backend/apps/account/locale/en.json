@@ -206,7 +206,8 @@
     "documents": "Documents",
     "documents_empty": "No documents",
     "notifications": "Notifications",
-    "quick_access": "Quick access"
+    "quick_access": "Quick access",
+    "new_tasks": "New"
   },
   "profile": {
     "title": "Profile",

@@ -14,7 +14,7 @@ def info(request):
     # res['active_menu'] = path.split('/')[1]
 
     res = {
-        'static_version': '1.0.8'
+        'static_version': '1.0.9'
     }
 
     

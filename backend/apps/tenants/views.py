@@ -82,7 +82,11 @@ def all_json(request):
 @need_permission(PermissionEnums.TENANTS)
 @require_POST
 def tenant_portal_access(request, pk):
-    """Создаёт/сбрасывает доступ арендатора в портал и возвращает логин/пароль."""
+    """Создаёт/сбрасывает доступ арендатора в портал и возвращает логин/пароль.
+
+    Логин арендатора — это его email. Если email не задан или занят другим
+    пользователем платформы, возвращается понятная ошибка.
+    """
     from django.utils.crypto import get_random_string
     from account.models import UserAccount
     from account.role_permissions import RoleEnums
@@ -91,11 +95,34 @@ def tenant_portal_access(request, pk):
     if tenant is None:
         return JsonResponse({'success': False, 'message': 'Арендатор не найден'}, status=404)
 
-    password = get_random_string(10)
+    email = (tenant.email or '').strip().lower()
+    if not email:
+        return JsonResponse({
+            'success': False,
+            'message': 'У арендатора не указан email. Заполните email, чтобы выдать доступ — он будет логином.',
+        }, status=400)
+
     user = tenant.portal_users.filter(role=RoleEnums.TENANT.value).order_by('id').first()
     created = user is None
+
+    # email занят другим пользователем (не текущим арендатором) — блокируем,
+    # иначе логин не совпал бы с email и вводил бы в заблуждение.
+    clash = UserAccount.objects.filter(username=email)
+    if user is not None:
+        clash = clash.exclude(pk=user.pk)
+    if clash.exists():
+        return JsonResponse({
+            'success': False,
+            'message': f'Email «{email}» уже используется другим аккаунтом. Укажите другой email арендатора.',
+        }, status=400)
+
+    password = get_random_string(10)
     if created:
-        user = UserAccount.create_tenant_user(tenant)
+        user = UserAccount.create_tenant_user(tenant, username=email)
+    else:
+        # синхронизируем логин с актуальным email арендатора
+        user.username = email
+        user.email = email
     user.set_password(password)
     user.is_active = True
     user.save()
