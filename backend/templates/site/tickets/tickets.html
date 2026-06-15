@@ -2,7 +2,7 @@
 {% load static %}
 {% load site_tags %}
 
-{% block title %}Сервисные заявки — metriX BPM{% endblock %}
+{% block title %}{% if is_portal_user %}Заявки на обслуживание{% else %}Заявки от арендаторов{% endif %} — metriX BPM{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v={{ static_version|default:'1' }}" />
@@ -16,7 +16,7 @@
   <div class="tk-head">
     <div>
       <h1 class="tk-head__title">
-        {% if is_portal_user %}Заявки на обслуживание{% else %}Сервисные заявки{% endif %}
+        {% if is_portal_user %}Заявки на обслуживание{% else %}Заявки от арендаторов{% endif %}
       </h1>
       <p class="tk-head__sub">
         {% if is_portal_user %}Сообщите о поломке — мы возьмём её в работу и покажем статус

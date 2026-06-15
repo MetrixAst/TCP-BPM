@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.shortcuts import redirect, render
 from django.db.models import Q
 from django.views.decorators.http import require_POST
@@ -47,6 +47,24 @@ def home(request):
     }
 
     return render(request, 'site/tenants/tenants.html', context)
+
+
+@need_permission(PermissionEnums.TENANTS)
+def tenant_detail(request, pk):
+    current = (
+        Tenant.objects.select_related('room', 'category')
+        .filter(pk=pk)
+        .first()
+    )
+    if current is None:
+        raise Http404
+
+    has_portal = current.portal_users.exists() if hasattr(current, 'portal_users') else False
+
+    return render(request, 'site/tenants/tenant_detail.html', {
+        'tenant': current,
+        'has_portal': has_portal,
+    })
 
 
 @need_permission(PermissionEnums.TENANTS)

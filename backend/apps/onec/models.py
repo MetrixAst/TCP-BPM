@@ -136,7 +136,12 @@ class Counterparty(models.Model):
     )
     is_supplier = models.BooleanField("Поставщик", default=False)
     is_customer = models.BooleanField("Клиент", default=False)
-    
+
+    description = models.CharField("Описание", max_length=300, null=True, blank=True)
+    website = models.CharField("Сайт / ссылка", max_length=255, null=True, blank=True)
+    activity_type = models.CharField("Вид деятельности", max_length=255, null=True, blank=True)
+    founded_date = models.CharField("Дата основания", max_length=100, null=True, blank=True)
+
     bank_accounts = models.JSONField("Банковские счета", default=list, blank=True)
     contracts = models.JSONField("Договоры", default=list, blank=True)
     
@@ -144,6 +149,25 @@ class Counterparty(models.Model):
 
     def __str__(self):
         return self.short_name or self.full_name
+
+    @property
+    def legal_form_display(self):
+        """Тип лица: юридическое (есть БИН) или физическое (только ИИН)."""
+        if self.bin_number:
+            return "Юридическое лицо"
+        if self.iin:
+            return "Физическое лицо"
+        return ""
+
+    @property
+    def website_url(self):
+        """Нормализованный URL для ссылки (добавляет https:// при отсутствии схемы)."""
+        if not self.website:
+            return ""
+        site = self.website.strip()
+        if site.startswith(("http://", "https://")):
+            return site
+        return f"https://{site}"
 
     class Meta:
         verbose_name = "Контрагент"

@@ -13,57 +13,47 @@
     <section class="onec-detail-card">
       <div class="onec-detail-card__top">
         <div class="onec-detail-breadcrumb">
-          <a href="{% url 'onec:counterparty_list' %}" class="onec-detail-back">
+          <a href="{% url 'onec:counterparty_list' %}" class="onec-detail-back" aria-label="Назад">
             <i class="bi bi-arrow-left"></i>
           </a>
           <span>Контрагенты / {{ counterparty.short_name|default:counterparty.full_name }}</span>
         </div>
-        <a href="{% url 'onec:counterparty_edit' counterparty.pk %}"
-           class="onec-btn onec-btn--light"
-           style="margin-left:auto;">
-          <i class="bi bi-pencil"></i> Редактировать
-        </a>
+
+        <div class="onec-detail-actions">
+          <button type="button" class="onec-icon-btn" id="cpFavoriteBtn"
+                  title="В избранное" aria-pressed="false">
+            <i class="bi bi-star"></i>
+          </button>
+          <a href="{% url 'onec:counterparty_edit' counterparty.pk %}"
+             class="onec-icon-btn" title="Редактировать">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <button type="button" class="onec-icon-btn onec-icon-btn--danger" id="cpDeleteBtn"
+                  title="Удалить">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
       </div>
 
-      <h1 class="onec-detail-title">
-        {{ counterparty.short_name|default:counterparty.full_name }}
-      </h1>
+      <h1 class="onec-detail-title">{{ counterparty.short_name|default:counterparty.full_name }}</h1>
 
       <div class="onec-detail-meta">
-        {% if counterparty.is_customer %}
-          <div>
-            <div class="onec-detail-meta__label">База</div>
-            <div class="onec-detail-meta__value">Клиенты</div>
-          </div>
-        {% endif %}
-        {% if counterparty.is_supplier %}
-          <div>
-            <div class="onec-detail-meta__label">Категория</div>
-            <div class="onec-detail-meta__value">Поставщик</div>
-          </div>
-        {% endif %}
-        {% if counterparty.bin_number %}
-          <div>
-            <div class="onec-detail-meta__label">БИН</div>
-            <div class="onec-detail-meta__value">{{ counterparty.bin_number }}</div>
-          </div>
-        {% endif %}
-        {% if counterparty.iin %}
-          <div>
-            <div class="onec-detail-meta__label">ИИН</div>
-            <div class="onec-detail-meta__value">{{ counterparty.iin }}</div>
-          </div>
-        {% endif %}
-        {% if counterparty.id_1c %}
-          <div>
-            <div class="onec-detail-meta__label">ID 1C</div>
-            <div class="onec-detail-meta__value">{{ counterparty.id_1c }}</div>
-          </div>
-        {% endif %}
+        <div>
+          <div class="onec-detail-meta__label">База</div>
+          <div class="onec-detail-meta__value">{% if counterparty.is_customer %}Клиенты{% else %}—{% endif %}</div>
+        </div>
+        <div>
+          <div class="onec-detail-meta__label">Категория</div>
+          <div class="onec-detail-meta__value">{% if counterparty.is_supplier %}Поставщик{% else %}—{% endif %}</div>
+        </div>
+        <div>
+          <div class="onec-detail-meta__label">Тип</div>
+          <div class="onec-detail-meta__value">{{ counterparty.legal_form_display|default:"—" }}</div>
+        </div>
       </div>
 
-      {% if counterparty.full_name %}
-        <div class="onec-detail-description">{{ counterparty.full_name }}</div>
+      {% if counterparty.description or counterparty.full_name %}
+        <div class="onec-detail-description">{{ counterparty.description|default:counterparty.full_name }}</div>
       {% endif %}
     </section>
 
@@ -75,13 +65,14 @@
           <b class="onec-tab-create" data-create="Заявки">+</b>
         </button>
         <button type="button" class="onec-tab" data-tab="tasks">
-          <span>0</span>
+          <span>{{ tasks_count|default:"0" }}</span>
           Задачи
           <b class="onec-tab-create" data-create="Задачи">+</b>
         </button>
         <button type="button" class="onec-tab" data-tab="invoices">
-          <span>{{ counterparty.invoices.count|default:"0" }}</span>
+          <span>{{ invoices_count|default:"0" }}</span>
           Счета
+          <b class="onec-tab-create" data-create="Счета">+</b>
         </button>
         <button type="button" class="onec-tab" data-tab="processes">
           <span>0</span>
@@ -91,16 +82,7 @@
       </div>
 
       <div class="onec-tab-panel is-active" id="requests">
-        <div class="onec-mini-table">
-          <div class="onec-mini-table__head onec-mini-table__head--tasks">
-            <div>Название</div>
-            <div>Исполнитель</div>
-            <div>Дедлайн</div>
-            <div>Приоритет</div>
-            <div>Статус</div>
-          </div>
-          <div class="onec-empty-small">Данные появятся после подключения backend endpoint.</div>
-        </div>
+        <div class="onec-empty-small">Заявок пока нет.</div>
       </div>
 
       <div class="onec-tab-panel" id="tasks" hidden>
@@ -112,14 +94,21 @@
             <div>Приоритет</div>
             <div>Статус</div>
           </div>
-          <div class="onec-empty-small">Данные появятся после подключения backend endpoint.</div>
+          {% for task in counterparty.tasks.all %}
+            <a href="{% url 'tasks:task' task.id %}" class="onec-mini-table__row onec-mini-table__row--tasks">
+              <div>{{ task.title }}</div>
+              <div>{% if task.executor %}{{ task.executor.get_name }}{% else %}—{% endif %}</div>
+              <div>{{ task.deadline|date:"d.m.Y" }}</div>
+              <div>{{ task.get_priority_display }}</div>
+              <div class="onec-status onec-status--{{ task.status_info.color|default:'info' }}">{{ task.status_info.title }}</div>
+            </a>
+          {% empty %}
+            <div class="onec-empty-small">Задач пока нет.</div>
+          {% endfor %}
         </div>
       </div>
 
       <div class="onec-tab-panel" id="invoices" hidden>
-        <div class="onec-invoice-hint">
-          <i class="bi bi-box-arrow-in-down"></i>
-      
         <div class="onec-invoice-list">
           {% for invoice in counterparty.invoices.all %}
             <div class="onec-invoice-file">
@@ -128,37 +117,25 @@
               </div>
               <div class="onec-file-info">
                 <div class="onec-file-title">Счёт №{{ invoice.number|default:invoice.id }}</div>
-                <div class="onec-file-meta">{{ invoice.total_amount|floatformat:0 }} ₸ · {{ invoice.get_status_display }}</div>
-              </div>
-              <div class="onec-file-actions">
-                <a href="{% url 'finances:invoice_detail' invoice.pk %}"
-                   class="onec-btn onec-btn--light onec-btn--sm" title="Просмотр">
-                  <i class="bi bi-eye"></i>
-                </a>
+                <div class="onec-file-meta">{{ invoice.Sum|floatformat:0 }} ₸{% if invoice.Date %} · {{ invoice.Date|date:"d.m.Y" }}{% endif %}</div>
               </div>
             </div>
           {% empty %}
-            <div class="onec-empty-small">Счетов пока нет</div>
+            <div class="onec-empty-small">Счетов пока нет.</div>
           {% endfor %}
         </div>
       </div>
-      
+
       <div class="onec-tab-panel" id="processes" hidden>
-        <div class="onec-mini-table">
-          <div class="onec-mini-table__head onec-mini-table__head--processes">
-            <div>Номер</div>
-            <div>Автор</div>
-            <div>Дата</div>
-            <div>Статус</div>
-            <div>Подпись</div>
-          </div>
-          <div class="onec-empty-small">Данные появятся после подключения backend endpoint.</div>
-        </div>
+        <div class="onec-empty-small">Процессов пока нет.</div>
       </div>
     </section>
 
     <section class="onec-messages-card">
-      <div class="onec-messages-title"><span>Сообщения</span></div>
+      <div class="onec-messages-title">
+        <span>Сообщения</span>
+        <span>Письма</span>
+      </div>
       <div class="onec-messages-list" id="onecMessagesList">
         <div class="onec-messages-empty">
           <i class="bi bi-chat-dots"></i>
@@ -174,24 +151,48 @@
   </main>
 
   <aside class="onec-detail-aside">
-    {% if counterparty.phone %}
-      <section class="onec-aside-card">
-        <div class="onec-aside-card__head"><h2>Телефоны</h2></div>
-        <div class="onec-info-list"><p>{{ counterparty.phone }}</p></div>
-      </section>
-    {% endif %}
-    {% if counterparty.email %}
-      <section class="onec-aside-card">
-        <div class="onec-aside-card__head"><h2>Почта</h2></div>
-        <div class="onec-info-list"><p>{{ counterparty.email }}</p></div>
-      </section>
-    {% endif %}
-    {% if counterparty.address %}
-      <section class="onec-aside-card">
-        <div class="onec-aside-card__head"><h2>Адрес</h2></div>
-        <div class="onec-info-list"><p>{{ counterparty.address }}</p></div>
-      </section>
-    {% endif %}
+
+    <section class="onec-aside-card">
+      <div class="onec-aside-card__head">
+        <h2>Телефоны</h2>
+        <button type="button" title="Добавить"><i class="bi bi-plus-lg"></i></button>
+      </div>
+      <div class="onec-info-list">
+        {% if counterparty.phone %}<p>{{ counterparty.phone }}</p>{% else %}<p class="onec-muted">—</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="onec-aside-card">
+      <div class="onec-aside-card__head">
+        <h2>Почта</h2>
+        <button type="button" title="Добавить"><i class="bi bi-plus-lg"></i></button>
+      </div>
+      <div class="onec-info-list">
+        {% if counterparty.email %}<p>{{ counterparty.email }}</p>{% else %}<p class="onec-muted">—</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="onec-aside-card">
+      <div class="onec-aside-card__head">
+        <h2>Ссылки</h2>
+        <button type="button" title="Добавить"><i class="bi bi-plus-lg"></i></button>
+      </div>
+      <div class="onec-info-list">
+        {% if counterparty.website %}
+          <a href="{{ counterparty.website_url }}" target="_blank" rel="noopener">{{ counterparty.website }}</a>
+        {% else %}<p class="onec-muted">—</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="onec-aside-card">
+      <div class="onec-aside-card__head">
+        <h2>Адреса</h2>
+        <button type="button" title="Добавить"><i class="bi bi-plus-lg"></i></button>
+      </div>
+      <div class="onec-info-list">
+        {% if counterparty.address %}<p>{{ counterparty.address }}</p>{% else %}<p class="onec-muted">—</p>{% endif %}
+      </div>
+    </section>
 
     <section class="onec-aside-card">
       <div class="onec-aside-card__head"><h2>Дополнительно</h2></div>
@@ -202,18 +203,25 @@
         {% if counterparty.bin_number %}
           <span>БИН</span><p>{{ counterparty.bin_number }}</p>
         {% endif %}
+        {% if counterparty.activity_type %}
+          <span>Вид деятельности</span><p>{{ counterparty.activity_type }}</p>
+        {% endif %}
+        {% if counterparty.founded_date %}
+          <span>Дата основания</span><p>{{ counterparty.founded_date }}</p>
+        {% endif %}
         {% if counterparty.id_1c %}
           <span>ID 1C</span><p>{{ counterparty.id_1c }}</p>
         {% endif %}
-        {% if counterparty.synced_at %}
-          <span>Дата синхронизации</span>
-          <p>{{ counterparty.synced_at|date:"d.m.Y H:i" }}</p>
-        {% endif %}
       </div>
     </section>
+
   </aside>
 
 </div>
+
+<form method="post" action="{% url 'onec:counterparty_delete' counterparty.pk %}" id="cpDeleteForm" style="display:none;">
+  {% csrf_token %}
+</form>
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
@@ -222,7 +230,9 @@
       if (createBtn) {
         e.preventDefault();
         e.stopPropagation();
-        alert('Создание "' + createBtn.dataset.create + '" будет подключено после backend endpoint.');
+        if (window.bpmModal) {
+          window.bpmModal.alert('Создание «' + createBtn.dataset.create + '» будет подключено позже.', { title: 'В разработке' });
+        }
         return;
       }
 
@@ -237,6 +247,37 @@
       if (panel) { panel.hidden = false; panel.classList.add('is-active'); }
     });
 
+    // Избранное (визуальное состояние)
+    const favBtn = document.getElementById('cpFavoriteBtn');
+    if (favBtn) {
+      favBtn.addEventListener('click', function () {
+        const active = favBtn.getAttribute('aria-pressed') === 'true';
+        favBtn.setAttribute('aria-pressed', String(!active));
+        const icon = favBtn.querySelector('i');
+        icon.classList.toggle('bi-star', active);
+        icon.classList.toggle('bi-star-fill', !active);
+      });
+    }
+
+    // Удаление
+    const delBtn = document.getElementById('cpDeleteBtn');
+    const delForm = document.getElementById('cpDeleteForm');
+    if (delBtn && delForm) {
+      delBtn.addEventListener('click', async function () {
+        let ok;
+        if (window.bpmModal) {
+          ok = await window.bpmModal.confirm(
+            'Удалить контрагента? Действие необратимо.',
+            { title: 'Удаление контрагента', confirmText: 'Удалить', variant: 'danger' }
+          );
+        } else {
+          ok = window.confirm('Удалить контрагента?');
+        }
+        if (ok) delForm.submit();
+      });
+    }
+
+    // Сообщения (локальный черновик)
     const list = document.getElementById('onecMessagesList');
     const form = document.getElementById('onecMessageForm');
     const input = document.getElementById('onecMessageInput');
@@ -248,8 +289,9 @@
         return;
       }
       list.innerHTML = messages.map(m =>
-        '<div class="onec-message-item"><div>' + m.text + '</div><span>' + m.date + '</span></div>'
+        '<div class="onec-message-item"><div></div><span>' + m.date + '</span></div>'
       ).join('');
+      list.querySelectorAll('.onec-message-item > div').forEach((el, i) => { el.textContent = messages[i].text; });
     }
 
     if (form) {

@@ -22,6 +22,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from django.conf.urls import handler403, handler404, handler500
 
+from account.views import global_search
+
 handler403 = 'addits.views.custom_permission_denied_view'
 handler404 = 'addits.views.custom_page_not_found_view'
 handler500 = 'addits.views.custom_error_view'
@@ -48,6 +50,7 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/v1/', include('project.api_urls')),
+    path('api/search/', global_search, name='global_search'),
     path('', include(('dashboard.urls', 'dashboard'))),
 ]
 

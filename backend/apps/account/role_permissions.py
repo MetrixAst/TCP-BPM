@@ -107,6 +107,9 @@ class RolePermissions:
             PermissionEnums.FINANCE_INVOICES,
             PermissionEnums.FINANCE_REGISTERS,
             PermissionEnums.REPORTS,
+            PermissionEnums.TASKS,
+            PermissionEnums.EDIT_TASK,
+            PermissionEnums.COMMENT,
         ],
         RoleEnums.CFO.value: [
             PermissionEnums.PROFILE,
@@ -117,6 +120,9 @@ class RolePermissions:
             PermissionEnums.FINANCE_REPORTS,
             PermissionEnums.FINANCE_INVOICES,
             PermissionEnums.FINANCE_REGISTERS,
+            PermissionEnums.TASKS,
+            PermissionEnums.EDIT_TASK,
+            PermissionEnums.COMMENT,
         ],
         RoleEnums.CHIEF_ACCOUNTANT.value: [
             PermissionEnums.PROFILE,
@@ -128,6 +134,9 @@ class RolePermissions:
             PermissionEnums.FINANCE_INVOICES,
             PermissionEnums.FINANCE_REGISTERS,
             PermissionEnums.FINANCE_BUDGET,
+            PermissionEnums.TASKS,
+            PermissionEnums.EDIT_TASK,
+            PermissionEnums.COMMENT,
         ],
         RoleEnums.HR.value: [
             PermissionEnums.PROFILE,
@@ -140,6 +149,8 @@ class RolePermissions:
             PermissionEnums.HR_JOURNAL,
             PermissionEnums.USERS_LIST,
             PermissionEnums.COMMENT,
+            PermissionEnums.TASKS,
+            PermissionEnums.EDIT_TASK,
         ],
         RoleEnums.STAFF.value: [
             PermissionEnums.PROFILE,
@@ -154,11 +165,13 @@ class RolePermissions:
             PermissionEnums.COMMENT,
         ],
         RoleEnums.GUEST.value: [
+            PermissionEnums.PROFILE,
             PermissionEnums.DASHBOARD,
             PermissionEnums.REQUISTIONS,
             PermissionEnums.SERVICE_REQUESTS,
         ],
         RoleEnums.TENANT.value: [
+            PermissionEnums.PROFILE,
             PermissionEnums.DASHBOARD,
             PermissionEnums.REQUISTIONS,
             PermissionEnums.SERVICE_REQUESTS,
@@ -268,7 +281,6 @@ class MenuItem:
     def generate_menu(user):
         finance_common_submenu = [
             MenuItem('fin_dash', 'finances:dashboard', '', 'Финансовый дашборд'),
-            MenuItem('fin_reports', 'reports:home', '', 'Финансовые отчеты'),
             MenuItem('fin_reg', 'finances:reg', '', 'Реестр оплат'),
             MenuItem('fin_calendar', 'finances:payment_calendar', '', 'Календарь платежей'),
             MenuItem('fin_invoices', 'finances:invoice_list', '', 'Счета'),
@@ -284,7 +296,6 @@ class MenuItem:
 
         finance_readonly_submenu = [
             MenuItem('fin_dash', 'finances:dashboard', '', 'Финансовый дашборд'),
-            MenuItem('fin_reports', 'reports:home', '', 'Финансовые отчеты'),
             MenuItem('fin_opiu', 'finances:opiu', '', 'ОПиУ'),
             MenuItem('fin_cashflow', 'finances:cashflow', '', 'ДДС'),
             MenuItem('fin_invoices', 'finances:invoice_list', '', 'Счета'),
@@ -307,7 +318,7 @@ class MenuItem:
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu + [
                     MenuItem('bill', 'finances:bill', '', 'Счет компании'),
                 ]),
-                MenuItem('hr', '#hr', 'people', 'HR', always_expanded=True, submenu=[
+                MenuItem('hr', '#hr', 'people', 'HR', submenu=[
                     MenuItem('my_profile', 'hr:my_profile', '', 'Личный профиль'),
                     MenuItem('org', 'hr:org', '', 'Орг. структура'),
                     MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
@@ -330,25 +341,27 @@ class MenuItem:
                     MenuItem('onec_counterparties', 'onec:counterparty_list', '', 'Контрагенты'),
                 ]),
                 MenuItem('ecopark', 'ecopark:home', 'water', 'Эксплуатация'),
-                MenuItem('requistions', 'requistions:home', 'notebook-1', 'Заявки от арендаторов'),
-                MenuItem('tickets', 'tickets:kanban', 'tools', 'Сервисные заявки', indicator_alias='ticket'),
+                MenuItem('tickets', 'tickets:kanban', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket'),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
             RoleEnums.OWNER.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
+                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
             RoleEnums.CFO.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
+                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
             RoleEnums.CHIEF_ACCOUNTANT.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
+                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
                 MenuItem('hr', '#hr', 'people', 'HR', submenu=[
                     MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
                     MenuItem('hr_documents', 'hr:documents_list', '', 'Кадровые документы'),
@@ -359,7 +372,8 @@ class MenuItem:
             ],
 
             RoleEnums.HR.value: [
-                MenuItem('hr', '#hr', 'people', 'HR', always_expanded=True, submenu=[
+                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
+                MenuItem('hr', '#hr', 'people', 'HR', submenu=[
                     MenuItem('my_profile', 'hr:my_profile', '', 'Личный профиль'),
                     MenuItem('org', 'hr:org', '', 'Орг. структура'),
                     MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
@@ -379,12 +393,11 @@ class MenuItem:
 
             RoleEnums.STAFF.value: [
                 MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
-                MenuItem('tickets', 'tickets:kanban', 'tools', 'Сервисные заявки', indicator_alias='ticket'),
+                MenuItem('tickets', 'tickets:kanban', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket'),
             ],
 
             RoleEnums.GUEST.value: [
-                MenuItem('requistions', 'requistions:home', 'inbox', 'Заявки'),
-                MenuItem('tickets', 'tickets:home', 'tools', 'Сервисные заявки', indicator_alias='ticket'),
+                MenuItem('tickets', 'tickets:home', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket'),
             ],
 
             RoleEnums.TENANT.value: [
@@ -412,7 +425,7 @@ class MenuItem:
                     MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
                 ]
             menu.append(
-                MenuItem('hr', '#hr', 'user', 'HR', always_expanded=True, submenu=hr_submenu)
+                MenuItem('hr', '#hr', 'user', 'HR', submenu=hr_submenu)
             )
 
         return menu

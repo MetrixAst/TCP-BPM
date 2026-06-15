@@ -182,7 +182,32 @@ def counterparty_detail(request, pk):
     )
     return render(request, 'site/onec/counterparty_detail.html', {
         'counterparty': counterparty,
+        'tasks_count': counterparty.tasks.count(),
+        'invoices_count': counterparty.invoices.count(),
     })
+
+
+@login_required
+def counterparty_delete(request, pk):
+    counterparty = get_object_or_404(Counterparty, pk=pk)
+    if not user_can_view_counterparty(request.user, counterparty):
+        raise Http404
+
+    if request.method != 'POST':
+        return redirect('onec:counterparty_detail', pk=pk)
+
+    name = counterparty.short_name or counterparty.full_name
+    try:
+        counterparty.delete()
+    except models.ProtectedError:
+        messages.error(
+            request,
+            f'Нельзя удалить «{name}»: с контрагентом связаны счета или операции.',
+        )
+        return redirect('onec:counterparty_detail', pk=pk)
+
+    messages.success(request, f'Контрагент «{name}» удалён.')
+    return redirect('onec:counterparty_list')
 
 
 @login_required

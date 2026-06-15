@@ -5,128 +5,123 @@
 {% block title %}Контрагенты — metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/purchases.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
 {% endblock %}
 
 {% block content %}
-<div class="purch-page">
+<div class="onec-page onec-page--counterparties">
 
-  <div class="purch-header">
-    <div class="purch-header__row">
-      <div class="purch-header__left">
-        <h1 class="purch-title">Контрагенты</h1>
-        <ol class="purch-breadcrumb">
-          <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-          <li>Контрагенты</li>
-        </ol>
-      </div>
-
-      <form method="get" class="purch-toolbar" action="{% if status and status != 'all' %}{% url 'purchases:suppliers_by_status' status %}{% else %}{% url 'purchases:suppliers' %}{% endif %}">
-        <div class="purch-search">
-          <i class="bi bi-search"></i>
-          <input type="search"
-                 name="search"
-                 value="{{ request.GET.search|default:'' }}"
-                 placeholder="Поиск по названию или БИН"
-                 autocomplete="off" />
-        </div>
-
-        <button type="submit" class="purch-btn purch-btn--ghost">
-          <i class="bi bi-search"></i>
-          Найти
-        </button>
-
-        {% if request.GET.search %}
-          <a href="{% if status and status != 'all' %}{% url 'purchases:suppliers_by_status' status %}{% else %}{% url 'purchases:suppliers' %}{% endif %}"
-             class="purch-btn purch-btn--ghost">
-            <i class="bi bi-x"></i>
-            Сбросить
-          </a>
-        {% endif %}
-
-        <a href="{% url 'purchases:edit_supplier' 0 %}" class="purch-btn purch-btn--primary">
-          <i class="bi bi-plus-lg"></i>
-          Добавить контрагента
-        </a>
-      </form>
+  <div class="onec-page-header-card">
+    <div class="onec-page-header__left">
+      <h1 class="onec-page-title">Контрагенты</h1>
+      {% if paginator.count %}
+        <p class="onec-page-sub">Всего в базе: {{ paginator.count }}</p>
+      {% endif %}
+    </div>
+    <div class="onec-page-header__actions">
+      <a href="{% url 'purchases:edit_supplier' 0 %}" class="onec-btn onec-btn--primary">
+        <i class="bi bi-plus-lg"></i> Добавить
+      </a>
     </div>
   </div>
 
-  <div class="purch-panel">
-
-    <nav class="purch-tabs" aria-label="Фильтр по статусу">
-      {% for current in statuses %}
-        {% if current.0 == 'all' %}
-          <a href="{% url 'purchases:suppliers' %}{% if request.GET.search %}?search={{ request.GET.search|urlencode }}{% endif %}"
-             class="purch-tabs__item {% if not status or status == 'all' %}is-active{% endif %}">
-            {{ current.1 }}
-          </a>
-        {% else %}
-          <a href="{% url 'purchases:suppliers_by_status' current.0 %}{% if request.GET.search %}?search={{ request.GET.search|urlencode }}{% endif %}"
-             class="purch-tabs__item {% if status == current.0 %}is-active{% endif %}">
-            {{ current.1 }}
+  <section class="onec-filter-card">
+    <form method="get" class="onec-filter-form"
+          action="{% if status and status != 'all' %}{% url 'purchases:suppliers_by_status' status %}{% else %}{% url 'purchases:suppliers' %}{% endif %}">
+      <div class="onec-field">
+        <label class="onec-label">Поиск контрагента</label>
+        <div class="onec-search">
+          <i class="bi bi-search"></i>
+          <input type="text" name="search" value="{{ request.GET.search|default:'' }}"
+                 placeholder="Название, БИН…" autocomplete="off">
+        </div>
+      </div>
+      <div class="onec-field">
+        <label class="onec-label">Статус</label>
+        <select class="onec-input" style="min-width:180px;height:36px;border-radius:999px;border:0;background:#f5f3fa;padding:0 14px;color:#25233f;font-size:13px;"
+                onchange="location.href=this.value{% if request.GET.search %}+'?search={{ request.GET.search|urlencode }}'{% endif %}">
+          {% for current in statuses %}
+            {% if current.0 == 'all' %}
+              <option value="{% url 'purchases:suppliers' %}" {% if not status or status == 'all' %}selected{% endif %}>{{ current.1 }}</option>
+            {% else %}
+              <option value="{% url 'purchases:suppliers_by_status' current.0 %}" {% if status == current.0 %}selected{% endif %}>{{ current.1 }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+      <div class="onec-filter-actions">
+        <button type="submit" class="onec-btn onec-btn--primary">
+          <i class="bi bi-search"></i> Найти
+        </button>
+        {% if request.GET.search %}
+          <a href="{% if status and status != 'all' %}{% url 'purchases:suppliers_by_status' status %}{% else %}{% url 'purchases:suppliers' %}{% endif %}"
+             class="onec-btn onec-btn--light">
+            <i class="bi bi-x"></i> Сбросить
           </a>
         {% endif %}
-      {% endfor %}
-    </nav>
+      </div>
+    </form>
+  </section>
 
-    <div class="purch-table-wrap">
-      <table class="purch-table">
+  <section class="onec-table-card">
+    <div class="onec-table-head">
+      <div class="onec-table-title">
+        Список контрагентов
+        {% if paginator.items %}
+          <span class="onec-table-count">{{ paginator.count }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="onec-table-wrap">
+      <table class="onec-table">
         <thead>
           <tr>
             <th>Наименование</th>
-            <th>БИН</th>
-            <th>Дата обновления</th>
-            <th class="purch-table__status">Статус контрагента</th>
+            <th>БИН / ИИН</th>
+            <th>Тип</th>
+            <th>Обновлён</th>
+            <th>Статус</th>
           </tr>
         </thead>
         <tbody>
           {% for current in paginator.items %}
-            <tr>
-              <td>
-                <a href="{% url 'purchases:supplier' current.id %}" class="purch-table__name">
-                  {{ current.name }}
-                </a>
-                <span class="purch-table__sub">
-                  {{ current.get_supplier_type_display }}
-                  {% if current.onec_id %}
-                    <span class="purch-badge purch-badge--neutral" style="margin-left:6px;font-size:11px">1С</span>
-                  {% endif %}
-                </span>
-              </td>
-              <td>
-                <span class="purch-table__mono">{{ current.identifier|default:"—" }}</span>
-              </td>
-              <td class="purch-table__date">{{ current.updated_at|date:"d.m.Y H:i" }}</td>
-              <td class="purch-table__status">
-                <span class="purch-badge purch-badge--{{ current.status_color|default:'neutral' }}">
-                  {{ current.get_status_display }}
-                </span>
-              </td>
-            </tr>
+          <tr>
+            <td>
+              <a href="{% url 'purchases:supplier' current.id %}" class="onec-name">
+                {{ current.name }}
+              </a>
+              {% if current.onec_id %}
+                <span class="onec-type-badge onec-type-badge--scope" style="margin-left:6px;">1С</span>
+              {% endif %}
+            </td>
+            <td><span class="onec-mono">{{ current.identifier|default:"—" }}</span></td>
+            <td>{{ current.get_supplier_type_display|default:"—" }}</td>
+            <td><span class="onec-mono">{{ current.updated_at|date:"d.m.Y H:i" }}</span></td>
+            <td>
+              <span class="onec-type-badge onec-type-badge--{{ current.status_color|default:'' }}">
+                {{ current.get_status_display }}
+              </span>
+            </td>
+          </tr>
           {% empty %}
-            <tr>
-              <td colspan="4" class="purch-table__empty">
-                <i class="bi bi-building-x" style="font-size:28px;display:block;margin-bottom:8px;opacity:.35"></i>
-                {% if request.GET.search %}
-                  Контрагенты не найдены
-                {% else %}
-                  Список пуст
-                {% endif %}
-              </td>
-            </tr>
+          <tr>
+            <td colspan="5" class="onec-empty">
+              <i class="bi bi-building-x" style="font-size:28px;display:block;margin-bottom:8px;opacity:.35"></i>
+              {% if request.GET.search %}Контрагенты не найдены{% else %}Список пуст{% endif %}
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
     {% if paginator.count > 0 %}
-      <div class="purch-pagination">
+      <div class="onec-pagination" style="margin-top:16px;">
         {% show_paginator paginator %}
       </div>
     {% endif %}
-
-  </div>
+  </section>
 
 </div>
 {% endblock %}

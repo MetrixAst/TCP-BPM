@@ -10,7 +10,7 @@
         <div class="bpm-sidebar__group{% if item.always_expanded %} bpm-sidebar__group--expanded{% endif %}">
           {% if item.always_expanded %}
           <div class="bpm-sidebar__item bpm-sidebar__item--parent bpm-sidebar__item--static is-open">
-            <i class="bi bi-{{ item.icon|default:'circle' }} bpm-sidebar__icon"></i>
+            {% nav_icon item.id %}
             <span class="bpm-sidebar__label">{% menu_t item.id item.title %}</span>
           </div>
           <div class="bpm-sidebar__submenu bpm-sidebar__submenu--open" id="bpm-sg-{{ forloop.counter }}">
@@ -20,7 +20,7 @@
                   data-bs-toggle="collapse"
                   data-bs-target="#bpm-sg-{{ forloop.counter }}"
                   aria-expanded="{{ item.is_active|yesno:'true,false' }}">
-            <i class="bi bi-{{ item.icon|default:'circle' }} bpm-sidebar__icon"></i>
+            {% nav_icon item.id %}
             <span class="bpm-sidebar__label">{% menu_t item.id item.title %}</span>
             <span class="bpm-sidebar__chevron" aria-hidden="true"></span>
           </button>
@@ -46,7 +46,7 @@
            class="bpm-sidebar__item indicator_counter {% if item.is_active %}is-active{% endif %}"
            data-type="{{ item.indicator_alias }}"
            {% if item.is_active %}aria-current="page"{% endif %}>
-          <i class="bi bi-{{ item.icon|default:'circle' }} bpm-sidebar__icon"></i>
+          {% nav_icon item.id %}
           <span class="bpm-sidebar__label">{% menu_t item.id item.title %}</span>
         </a>
       {% endif %}

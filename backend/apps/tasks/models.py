@@ -124,13 +124,32 @@ class Task(models.Model):
         if getattr(user, 'is_superuser', False) or role == RoleEnums.ADMINISTRATOR.value:
             return Task.objects.all()
 
-        queryset = Task.objects.filter(
+        filters = (
             Q(author=user) |
             Q(executor=user) |
             Q(co_executors=user) |
             Q(observers=user)
         )
-        return queryset.distinct()
+
+        # Руководитель отдела видит все задачи сотрудников своего отдела
+        # (и подотделов), где они автор/исполнитель/соисполнитель.
+        employee = getattr(user, 'employee_info', None)
+        if employee is not None and getattr(employee, 'head', False) and employee.department_id:
+            from account.models import Employee
+            dept_ids = list(
+                employee.department.get_descendants(include_self=True).values_list('id', flat=True)
+            )
+            member_ids = list(
+                Employee.objects.filter(department_id__in=dept_ids).values_list('user_id', flat=True)
+            )
+            if member_ids:
+                filters |= (
+                    Q(author_id__in=member_ids) |
+                    Q(executor_id__in=member_ids) |
+                    Q(co_executors__in=member_ids)
+                )
+
+        return Task.objects.filter(filters).distinct()
 
     @staticmethod
     def get_by_id(request, id, exception=True):

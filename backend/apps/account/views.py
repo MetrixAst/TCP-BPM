@@ -103,6 +103,72 @@ def structure_csv(request, get):
     return response
 
 
+@login_required
+def global_search(request):
+    """Глобальный поиск по шапке: разделы меню + сотрудники (имя/должность)."""
+    from django.urls import reverse
+    from account.role_permissions import MenuItem, RoleEnums
+    from account.models import Employee
+
+    query = (request.GET.get('q') or '').strip()
+    if len(query) < 2:
+        return JsonResponse({'results': []})
+
+    ql = query.lower()
+    results = []
+
+    # 1) Разделы из доступного пользователю меню (включая подпункты).
+    def _walk(items):
+        for item in items:
+            url = getattr(item, 'url', None)
+            title = getattr(item, 'title', None)
+            if title and ql in title.lower() and url and url != '#' and not str(url).startswith('#'):
+                results.append({'title': title, 'subtitle': 'Раздел', 'url': url})
+            if getattr(item, 'submenu', None):
+                _walk(item.submenu)
+
+    try:
+        _walk(MenuItem.generate_menu(request.user))
+    except Exception:
+        pass
+
+    # 2) Сотрудники — только для внутренних ролей (не портал-арендаторов/гостей).
+    role = getattr(request.user, 'role', None)
+    viewer_is_admin = bool(getattr(request.user, 'is_superuser', False)) or role == RoleEnums.ADMINISTRATOR.value
+    if role not in RoleEnums.portal_roles():
+        employees = (
+            Employee.objects
+            .select_related('user', 'position', 'department')
+            .filter(
+                Q(user__first_name__icontains=query)
+                | Q(user__last_name__icontains=query)
+                | Q(user__username__icontains=query)
+                | Q(position__title__icontains=query)
+            )
+            .exclude(user__role=RoleEnums.ADMINISTRATOR.value)
+            .exclude(user__is_superuser=True)
+            .order_by('user__last_name', 'user__first_name')[:8]
+        )
+        for emp in employees:
+            name = (emp.user.get_name or '').strip() or emp.user.username
+            if emp.position_id:
+                subtitle = emp.position.title
+            elif emp.department_id:
+                subtitle = emp.department.name
+            else:
+                subtitle = 'Сотрудник'
+            # Админу показываем логин сотрудника.
+            if viewer_is_admin:
+                subtitle = f'{subtitle} · логин: {emp.user.username}'
+            results.append({
+                'title': name,
+                'subtitle': subtitle,
+                'url': reverse('hr:employee_detail', args=[emp.pk]),
+            })
+
+    return JsonResponse({'results': results[:12]})
+
+
 @need_permission(PermissionEnums.USERS_LIST)
 def users_ajax(request, selection):
     queryset = UserAccount.objects.all()
@@ -114,6 +180,17 @@ def users_ajax(request, selection):
             | Q(last_name__icontains=query)
             | Q(username__icontains=query)
         )
+
+    # Фильтр по отделу: только сотрудники выбранного отдела (с подотделами).
+    department_id = request.GET.get('department')
+    if department_id:
+        from account.models import Department
+        department = Department.objects.filter(pk=department_id).first()
+        if department is not None:
+            dept_ids = department.get_descendants(include_self=True).values_list('id', flat=True)
+            queryset = queryset.filter(employee_info__department_id__in=list(dept_ids))
+        else:
+            queryset = queryset.none()
 
     page_number = request.GET.get('page', 1)
     paginator = Paginator(queryset, 25)

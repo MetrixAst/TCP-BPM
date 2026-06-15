@@ -100,10 +100,16 @@ $(document).ready(function(){
           dataType: 'json',
           delay: 250,
           data: function(params) {
-              return {
+              var data = {
                   term: params.term || '',
                   page: params.page || 1
+              };
+              var deptSel = $this.attr('data-dept-source');
+              if (deptSel) {
+                var deptVal = $(deptSel).val();
+                if (deptVal) { data.department = deptVal; }
               }
+              return data;
             }
           },
         escapeMarkup: function (markup) {
@@ -126,6 +132,17 @@ $(document).ready(function(){
 
       $(this).val(values).trigger('change');
 
+    });
+
+    // При смене отдела — сбрасываем зависящий от него select (например, «Ответственный»),
+    // чтобы список подгрузился заново уже по новому отделу.
+    $('.select2_ajax[data-dept-source]').each(function(){
+      var $dependent = $(this);
+      var $source = $($dependent.attr('data-dept-source'));
+      if (!$source.length) return;
+      $source.on('change.deptfilter', function(){
+        $dependent.val(null).trigger('change');
+      });
     });
 
     init_dep_struct();

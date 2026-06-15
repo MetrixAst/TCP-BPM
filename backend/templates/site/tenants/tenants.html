@@ -2,397 +2,225 @@
 {% load static %}
 {% load site_tags %}
 
+{% block title %}Арендаторы — metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/tenants.css' %}?v={{ static_version|default:'1' }}&t=2">
+<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/tenants.css' %}?v={{ static_version|default:'1' }}&t=3">
 {% endblock styles %}
 
 {% block content %}
-<div class="tenant-page">
+<div class="onec-page onec-page--tenants">
 
-  <header class="tenant-hero">
-    <div>
-      <span class="tenant-hero__eyebrow"><i class="bi bi-building"></i> Компании</span>
-      <h1 class="tenant-page-title">Арендаторы</h1>
-      <ol class="tenant-breadcrumb">
-        <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-        <li>Арендаторы</li>
-      </ol>
+  <div class="onec-page-header-card">
+    <div class="onec-page-header__left">
+      <h1 class="onec-page-title">Арендаторы</h1>
+      {% if stats.total %}
+        <p class="onec-page-sub">Всего в базе: {{ stats.total }}</p>
+      {% endif %}
     </div>
-    <div class="tenant-hero__actions">
-      <button type="button" class="tenant-btn tenant-btn--primary" data-bs-toggle="modal" data-bs-target="#createTenantModal">
-        <i class="bi bi-plus-lg"></i>
-        Добавить арендатора
+    <div class="onec-page-header__actions">
+      <button type="button" class="onec-btn onec-btn--primary" data-bs-toggle="modal" data-bs-target="#createTenantModal">
+        <i class="bi bi-plus-lg"></i> Добавить
       </button>
-    </div>
-  </header>
-
-  <div class="tenant-kpi-grid">
-    <div class="tenant-kpi-card">
-      <span class="tenant-kpi-card__label">Всего арендаторов</span>
-      <span class="tenant-kpi-card__value">{{ stats.total }}</span>
-    </div>
-    <div class="tenant-kpi-card tenant-kpi-card--warn">
-      <span class="tenant-kpi-card__label">Срок &lt; 90 дней</span>
-      <span class="tenant-kpi-card__value">{{ stats.warning }}</span>
-    </div>
-    <div class="tenant-kpi-card tenant-kpi-card--danger">
-      <span class="tenant-kpi-card__label">Срочно продлить</span>
-      <span class="tenant-kpi-card__value">{{ stats.expiring }}</span>
     </div>
   </div>
 
-  <form method="get" class="tenant-toolbar">
-    <div class="tenant-search">
-      <i class="bi bi-search"></i>
-      <input type="search" name="search" value="{{ search }}" placeholder="Название или № помещения" autocomplete="off">
-    </div>
-    <button type="submit" class="tenant-btn tenant-btn--light">
-      <i class="bi bi-search"></i> Найти
-    </button>
-    {% if search %}
-      <a href="{% url 'tenants:list' %}" class="tenant-btn tenant-btn--light">
-        <i class="bi bi-x"></i> Сбросить
-      </a>
-    {% endif %}
-  </form>
-
-  <section class="tenant-panel">
-    <div class="tenant-table-card">
-          <div class="tenant-table-head">
-            <div>
-              <div class="tenant-table-title">Реестр арендаторов</div>
-              <div class="tenant-table-sub">
-                {% if paginator.items %}{{ paginator.count }} запис{{ paginator.count|pluralize:"ь,и,ей" }}{% else %}Нет данных{% endif %}
-              </div>
-            </div>
-          </div>
-
-          {% if paginator.items %}
-          <div class="tenant-table-wrap">
-            <table class="tenant-table">
-              <thead>
-                <tr>
-                  <th>Помещение</th>
-                  <th>Арендатор</th>
-                  <th>Категория</th>
-                  <th>Площадь</th>
-                  <th>Ставка / м²</th>
-                  <th>Окончание</th>
-                  <th>Скидка</th>
-                  <th>Статус</th>
-                  <th>Портал</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for current in paginator.items %}
-                <tr>
-                  <td>
-                    <a href="javascript:showTenant({{ current.id }})" class="tenant-table__link">
-                      <span class="tenant-table__room">{{ current.number }}</span>
-                    </a>
-                  </td>
-                  <td>
-                    <a href="javascript:showTenant({{ current.id }})" class="tenant-table__link">{{ current.name }}</a>
-                  </td>
-                  <td>{% if current.category %}{{ current.category.title }}{% else %}—{% endif %}</td>
-                  <td>{{ current.area|floatformat:0 }} м²</td>
-                  <td class="tenant-table__money">{{ current.price|floatformat:0 }} ₸</td>
-                  <td>{{ current.end_date|date:"d.m.Y" }}</td>
-                  <td>{% if current.discount %}{{ current.discount }}%{% else %}—{% endif %}</td>
-                  <td>
-                    <span class="tenant-status tenant-status--{{ current.status }}">
-                      {% if current.status == 'green' %}Стабильно{% elif current.status == 'yellow' %}Внимание{% else %}Срочно{% endif %}
-                    </span>
-                  </td>
-                  <td>
-                    <button type="button" class="btn btn-sm btn-outline-primary"
-                            onclick="grantPortalAccess({{ current.id }}, '{{ current.name|escapejs }}')">
-                      <i class="bi bi-key"></i> Доступ
-                    </button>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% else %}
-          <div class="tenant-empty">
-            <i class="bi bi-shop"></i>
-            <strong>Арендаторы не найдены</strong>
-            <p style="margin:8px 0 0;font-size:13px;">Измените поиск или добавьте нового арендатора</p>
-          </div>
-          {% endif %}
+  <section class="onec-filter-card">
+    <form method="get" class="onec-filter-form">
+      <div class="onec-field">
+        <label class="onec-label">Поиск арендатора</label>
+        <div class="onec-search">
+          <i class="bi bi-search"></i>
+          <input type="text" name="search" value="{{ search }}" placeholder="Название или № помещения" autocomplete="off">
         </div>
+      </div>
+      <div class="onec-filter-actions">
+        <button type="submit" class="onec-btn onec-btn--primary">
+          <i class="bi bi-search"></i> Найти
+        </button>
+        {% if search %}
+          <a href="{% url 'tenants:list' %}" class="onec-btn onec-btn--light">
+            <i class="bi bi-x"></i> Сбросить
+          </a>
+        {% endif %}
+      </div>
+    </form>
+  </section>
+
+  <section class="onec-table-card">
+    <div class="onec-table-head">
+      <div class="onec-table-title">
+        Реестр арендаторов
+        {% if paginator.items %}<span class="onec-table-count">{{ paginator.count }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="onec-table-wrap">
+      <table class="onec-table">
+        <thead>
+          <tr>
+            <th>Помещение</th>
+            <th>Арендатор</th>
+            <th>Категория</th>
+            <th>Площадь</th>
+            <th>Ставка / м²</th>
+            <th>Окончание</th>
+            <th>Статус</th>
+            <th>Портал</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for current in paginator.items %}
+          <tr>
+            <td><span class="onec-mono">{{ current.number }}</span></td>
+            <td>
+              <a href="{% url 'tenants:detail' current.id %}" class="onec-name">{{ current.name }}</a>
+            </td>
+            <td>{% if current.category %}{{ current.category.title }}{% else %}—{% endif %}</td>
+            <td>{{ current.area|floatformat:0 }} м²</td>
+            <td>{{ current.price|floatformat:0 }} ₸</td>
+            <td><span class="onec-mono">{{ current.end_date|date:"d.m.Y" }}</span></td>
+            <td>
+              {% if current.status == 'green' %}
+                <span class="onec-type-badge onec-type-badge--success">Стабильно</span>
+              {% elif current.status == 'yellow' %}
+                <span class="onec-type-badge onec-type-badge--warning">Внимание</span>
+              {% else %}
+                <span class="onec-type-badge onec-type-badge--danger">Срочно</span>
+              {% endif %}
+            </td>
+            <td>
+              <button type="button" class="onec-btn onec-btn--light onec-btn--sm"
+                      onclick="grantPortalAccess({{ current.id }}, '{{ current.name|escapejs }}')">
+                <i class="bi bi-key"></i> Доступ
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="onec-empty">
+              <i class="bi bi-shop" style="font-size:28px;display:block;margin-bottom:8px;opacity:.35"></i>
+              {% if search %}Арендаторы не найдены{% else %}Список пуст{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
     {% if paginator.count > 0 %}
-      <div class="mt-3">{% show_paginator paginator %}</div>
+      <div class="onec-pagination" style="margin-top:16px;">{% show_paginator paginator %}</div>
     {% endif %}
   </section>
 
 </div>
 
-    <!-- Modal: добавление арендатора -->
-    <div class="modal fade tenant-modal" id="createTenantModal" tabindex="-1" aria-labelledby="createTenantModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <form id="createTenantForm" method="post" action="{% url 'tenants:create' %}" novalidate>
-                    {% csrf_token %}
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="createTenantModalLabel">Добавить арендатора</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div id="tenantFormAlert" class="tenant-form-alert tenant-form-alert--error" hidden></div>
-
-                        <div class="tenant-form-section">
-                            <div class="tenant-form-section__title">Основное</div>
-                            <div class="tenant-form-grid">
-                                <div class="tenant-form-field tenant-form-grid--full">
-                                    <label class="tenant-form-label" for="id_name">Название <span>*</span></label>
-                                    {{ tenant_form.name }}
-                                </div>
-                                <div class="tenant-form-field">
-                                    <label class="tenant-form-label" for="id_category">Категория</label>
-                                    {{ tenant_form.category }}
-                                </div>
-                                <div class="tenant-form-field">
-                                    <label class="tenant-form-label" for="id_room">Помещение</label>
-                                    {{ tenant_form.room }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="tenant-form-section">
-                            <div class="tenant-form-section__title">Условия аренды</div>
-                            <div class="tenant-form-grid">
-                                <div class="tenant-form-field">
-                                    <label class="tenant-form-label" for="id_area">Площадь, м² <span>*</span></label>
-                                    {{ tenant_form.area }}
-                                </div>
-                                <div class="tenant-form-field">
-                                    <label class="tenant-form-label" for="id_price">Ставка за м², ₸ <span>*</span></label>
-                                    {{ tenant_form.price }}
-                                </div>
-                                <div class="tenant-form-field">
-                                    <label class="tenant-form-label" for="id_discount">Скидка, %</label>
-                                    {{ tenant_form.discount }}
-                                </div>
-                                <div class="tenant-form-field">
-                                    <label class="tenant-form-label" for="id_percent">Процент с оборота, %</label>
-                                    {{ tenant_form.percent }}
-                                </div>
-                                <div class="tenant-form-field">
-                                    <label class="tenant-form-label" for="id_start_date">Начало аренды <span>*</span></label>
-                                    {{ tenant_form.start_date }}
-                                </div>
-                                <div class="tenant-form-field">
-                                    <label class="tenant-form-label" for="id_end_date">Завершение аренды <span>*</span></label>
-                                    {{ tenant_form.end_date }}
-                                </div>
-                                <div class="tenant-form-field">
-                                    <label class="tenant-form-label" for="id_discount_date">Срок скидки <span>*</span></label>
-                                    {{ tenant_form.discount_date }}
-                                </div>
-                                <div class="tenant-form-field">
-                                    <label class="tenant-form-label" for="id_increase_type">Повышение ставки <span>*</span></label>
-                                    {{ tenant_form.increase_type }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="tenant-form-section">
-                            <div class="tenant-form-section__title">Контакты</div>
-                            <div class="tenant-form-grid">
-                                <div class="tenant-form-field">
-                                    <label class="tenant-form-label" for="id_contact">Ответственное лицо <span>*</span></label>
-                                    {{ tenant_form.contact }}
-                                </div>
-                                <div class="tenant-form-field">
-                                    <label class="tenant-form-label" for="id_phone">Телефон <span>*</span></label>
-                                    {{ tenant_form.phone }}
-                                </div>
-                                <div class="tenant-form-field">
-                                    <label class="tenant-form-label" for="id_email">Email <span>*</span></label>
-                                    {{ tenant_form.email }}
-                                </div>
-                                <div class="tenant-form-field tenant-form-grid--full">
-                                    <label class="tenant-form-label" for="id_address">Адрес <span>*</span></label>
-                                    {{ tenant_form.address }}
-                                </div>
-                                <div class="tenant-form-field tenant-form-grid--full">
-                                    <label class="tenant-form-label" for="id_note">Примечание</label>
-                                    {{ tenant_form.note }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="tenant-btn tenant-btn--light" data-bs-dismiss="modal">Отмена</button>
-                        <button type="submit" class="tenant-btn tenant-btn--primary" id="tenantFormSubmit">Добавить</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-
-    <div class="modal fade modal-right scroll-out-negative" id="rightModalScrollExample" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable full">
-            <div class="modal-content">
+<!-- Modal: добавление арендатора -->
+<div class="modal fade tenant-modal" id="createTenantModal" tabindex="-1" aria-labelledby="createTenantModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <form id="createTenantForm" method="post" action="{% url 'tenants:create' %}" novalidate>
+                {% csrf_token %}
                 <div class="modal-header">
-                    <h5 class="modal-title" id="tenant_name"></h5>
+                    <h5 class="modal-title" id="createTenantModalLabel">Добавить арендатора</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="scroll-track-visible">
-                        <div class="" id="tenant_content">
-                            
+                    <div id="tenantFormAlert" class="tenant-form-alert tenant-form-alert--error" hidden></div>
+
+                    <div class="tenant-form-section">
+                        <div class="tenant-form-section__title">Основное</div>
+                        <div class="tenant-form-grid">
+                            <div class="tenant-form-field tenant-form-grid--full">
+                                <label class="tenant-form-label" for="id_name">Название <span>*</span></label>
+                                {{ tenant_form.name }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_category">Категория</label>
+                                {{ tenant_form.category }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_room">Помещение</label>
+                                {{ tenant_form.room }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tenant-form-section">
+                        <div class="tenant-form-section__title">Условия аренды</div>
+                        <div class="tenant-form-grid">
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_area">Площадь, м² <span>*</span></label>
+                                {{ tenant_form.area }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_price">Ставка за м², ₸ <span>*</span></label>
+                                {{ tenant_form.price }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_discount">Скидка, %</label>
+                                {{ tenant_form.discount }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_percent">Процент с оборота, %</label>
+                                {{ tenant_form.percent }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_start_date">Начало аренды <span>*</span></label>
+                                {{ tenant_form.start_date }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_end_date">Завершение аренды <span>*</span></label>
+                                {{ tenant_form.end_date }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_discount_date">Срок скидки <span>*</span></label>
+                                {{ tenant_form.discount_date }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_increase_type">Повышение ставки <span>*</span></label>
+                                {{ tenant_form.increase_type }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tenant-form-section">
+                        <div class="tenant-form-section__title">Контакты</div>
+                        <div class="tenant-form-grid">
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_contact">Ответственное лицо <span>*</span></label>
+                                {{ tenant_form.contact }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_phone">Телефон <span>*</span></label>
+                                {{ tenant_form.phone }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_email">Email <span>*</span></label>
+                                {{ tenant_form.email }}
+                            </div>
+                            <div class="tenant-form-field tenant-form-grid--full">
+                                <label class="tenant-form-label" for="id_address">Адрес <span>*</span></label>
+                                {{ tenant_form.address }}
+                            </div>
+                            <div class="tenant-form-field tenant-form-grid--full">
+                                <label class="tenant-form-label" for="id_note">Примечание</label>
+                                {{ tenant_form.note }}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+                <div class="modal-footer">
+                    <button type="button" class="tenant-btn tenant-btn--light" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="tenant-btn tenant-btn--primary" id="tenantFormSubmit">Добавить</button>
+                </div>
+            </form>
         </div>
     </div>
-
-    <script>
-        var tenants = {{tenants|safe}};
-    </script>
-
-    {% verbatim %}
-        <script id="tenant_template" type="x-tmpl-mustache">
-            <div class="d-flex align-items-center flex-column mb-4">
-                <div class="d-flex align-items-center flex-column">
-                    <div class="sw-13 position-relative mb-3">
-                        <img id="tenant_img" src="{{image}}" class="img-fluid rounded-xl" alt="thumb" />
-                    </div>
-                    <div class="h5 mb-0">{{name}}</div>
-                    <div class="text-muted">{{category}}</div>
-                </div>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-                <div class="text-center">
-                    <p class="text-small text-muted mb-1">№ ПОМЕЩЕНИЯ</p>
-                    <p>{{number}}</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-small text-muted mb-1">ПЛОЩАДЬ</p>
-                    <p>{{area}}</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-small text-muted mb-1">СКИДКА</p>
-                    <p>{{discount}}%</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-small text-muted mb-1">СТАВКА</p>
-                    <p>{{price}}</p>
-                </div>
-            </div>
-
-            <div class="mb-5">
-                <p class="text-small text-muted mb-2">ИНФОРМАЦИЯ</p>
-
-                <div class="row g-0 mb-2">
-                    <div class="col">
-                        <div class="sh-2 d-flex align-items-center lh-1-25 text-alternate">Начало аренды</div>
-                    </div>
-                    <div class="col-auto">
-                        <div class="sh-2 d-flex align-items-center justify-content-end text-muted">{{start_date}}</div>
-                    </div>
-                </div>
-
-                <div class="row g-0 mb-2">
-                    <div class="col">
-                        <div class="sh-2 d-flex align-items-center lh-1-25 text-alternate">Завершение аренды</div>
-                    </div>
-                    <div class="col-auto">
-                        <div class="sh-2 d-flex align-items-center justify-content-end text-muted">{{end_date}}</div>
-                    </div>
-                </div>
-
-                <div class="row g-0 mb-2">
-                    <div class="col">
-                        <div class="sh-2 d-flex align-items-center lh-1-25 text-alternate">Срок скидки</div>
-                    </div>
-                    <div class="col-auto">
-                        <div class="sh-2 d-flex align-items-center justify-content-end text-muted">{{discount_date}}</div>
-                    </div>
-                </div>
-
-                <div class="row g-0 mb-2">
-                    <div class="col">
-                        <div class="sh-2 d-flex align-items-center lh-1-25 text-alternate">Процент с оборота</div>
-                    </div>
-                    <div class="col-auto">
-                        <div class="sh-2 d-flex align-items-center justify-content-end text-muted">{{percent}}%</div>
-                    </div>
-                </div>
-
-                <div class="row g-0 mb-2">
-                    <div class="col">
-                        <div class="sh-2 d-flex align-items-center lh-1-25 text-alternate">Повышение ставки</div>
-                    </div>
-                    <div class="col-auto">
-                        <div class="sh-2 d-flex align-items-center justify-content-end text-muted">{{increase_type}}</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mb-5">
-                <p class="text-small text-muted mb-2">КОНТАКТЫ</p>
-                <div class="row g-0 mb-2">
-                    <div class="col-auto">
-                        <div class="sw-3 me-1">
-                            <i data-acorn-icon="phone" class="text-primary" data-acorn-size="17"></i>
-                        </div>
-                    </div>
-                    <div class="col text-alternate">{{phone}}</div>
-                </div>
-                <div class="row g-0 mb-2">
-                    <div class="col-auto">
-                        <div class="sw-3 me-1">
-                            <i data-acorn-icon="email" class="text-primary" data-acorn-size="17"></i>
-                        </div>
-                    </div>
-                    <div class="col text-alternate">{{email}}</div>
-                </div>
-                <div class="row g-0 mb-2">
-                    <div class="col-auto">
-                        <div class="sw-3 me-1">
-                            <i data-acorn-icon="pin" class="text-primary" data-acorn-size="17"></i>
-                        </div>
-                    </div>
-                    <div class="col text-alternate">{{address}}</div>
-                </div>
-            </div>
-            <div class="mb-4">
-                <p class="text-small text-muted mb-2">ОТВЕТСТВЕННОЕ ЛИЦО</p>
-                <div class="row g-0 mb-2">
-                    <div class="col-auto">
-                        <div class="sw-3 me-1">
-                            <i data-acorn-icon="user" class="text-primary" data-acorn-size="17"></i>
-                        </div>
-                    </div>
-                    <div class="col text-alternate align-middle">{{contact}}</div>
-                </div>
-            </div>
-            <div>
-                <p class="text-small text-muted mb-2">ПРИМЕЧАНИЕ</p>
-                <div class="row g-0">
-                    <div class="col-auto">
-                        <div class="sw-3 me-1">
-                            <i data-acorn-icon="warning-hexagon" class="text-primary" data-acorn-size="17"></i>
-                        </div>
-                    </div>
-                    <div class="col text-alternate align-middle">{{note}}</div>
-                </div>
-            </div>
-        </script>
-    {% endverbatim %}
-
+</div>
 
 {% endblock %}
-
 
 {% block scripts %}
     <script src="{% static 'site/js/apps/tenants.js' %}?v={{ static_version|default:'1' }}"></script>

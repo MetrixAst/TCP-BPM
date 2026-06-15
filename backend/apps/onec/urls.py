@@ -16,6 +16,7 @@ urlpatterns = [
     path('counterparties/', views.CounterpartyListView.as_view(), name='counterparty_list'),
     path('counterparties/create/', views.counterparty_create, name='counterparty_create'),
     path('counterparties/<int:pk>/edit/', views.counterparty_edit, name='counterparty_edit'),
+    path('counterparties/<int:pk>/delete/', views.counterparty_delete, name='counterparty_delete'),
     path('counterparties/sync/', views.counterparty_sync, name='counterparty_sync'),
     path('counterparties/seed-demo/', views.counterparty_seed_demo, name='counterparty_seed_demo'),
     path('counterparties/<int:pk>/', views.counterparty_detail, name='counterparty_detail'),

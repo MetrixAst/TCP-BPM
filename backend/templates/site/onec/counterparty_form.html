@@ -60,6 +60,17 @@
         >
       </div>
 
+      <div class="onec-form-field onec-form-field--full">
+        <label class="onec-label">Описание</label>
+        <input
+          type="text"
+          name="description"
+          value="{{ form.description.value|default:'' }}"
+          class="onec-input"
+          placeholder="Короткое описание (например: Поставщик салфеток и бумаги)"
+        >
+      </div>
+
       <div class="onec-form-field">
         <label class="onec-label">БИН</label>
         <input
@@ -112,6 +123,39 @@
           value="{{ form.email.value|default:'' }}"
           class="onec-input"
           placeholder="email@example.com"
+        >
+      </div>
+
+      <div class="onec-form-field onec-form-field--full">
+        <label class="onec-label">Сайт / ссылка</label>
+        <input
+          type="text"
+          name="website"
+          value="{{ form.website.value|default:'' }}"
+          class="onec-input"
+          placeholder="example.kz"
+        >
+      </div>
+
+      <div class="onec-form-field">
+        <label class="onec-label">Вид деятельности</label>
+        <input
+          type="text"
+          name="activity_type"
+          value="{{ form.activity_type.value|default:'' }}"
+          class="onec-input"
+          placeholder="Вид деятельности"
+        >
+      </div>
+
+      <div class="onec-form-field">
+        <label class="onec-label">Дата основания</label>
+        <input
+          type="text"
+          name="founded_date"
+          value="{{ form.founded_date.value|default:'' }}"
+          class="onec-input"
+          placeholder="Например: 12.05.2010"
         >
       </div>
 

@@ -1,123 +1,215 @@
-{% extends 'site/base.html' %}
+{% extends "site/base.html" %}
 {% load static %}
 
+{% block title %}{{ supplier.name }} — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
+
 {% block content %}
+<div class="onec-page onec-detail-page" data-supplier-id="{{ supplier.id }}">
 
-    <!-- Title and Top Buttons Start -->
-    <div class="page-title-container">
-        <div class="row">
-            <!-- Title Start -->
-            <div class="col-12 col-md-7">
-                <h1 class="mb-0 pb-0 display-4" id="title">{{supplier.name}}</h1>
-                <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
-                    <ul class="breadcrumb pt-0">
-                        <li class="breadcrumb-item">
-                            <a href="{% url 'dashboard:dashboard' %}">Главная</a>
-                        </li>
-                        <li class="breadcrumb-item">
-                            <a href="{% url 'purchases:suppliers' %}">Контрагенты</a>
-                        </li>
-                        <li class="breadcrumb-item">
-                            <a>{{supplier.name}}</a>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
-            <!-- Title End -->
+  <main class="onec-detail-main">
+
+    <section class="onec-detail-card">
+      <div class="onec-detail-card__top">
+        <div class="onec-detail-breadcrumb">
+          <a href="{% url 'purchases:suppliers' %}" class="onec-detail-back" aria-label="Назад">
+            <i class="bi bi-arrow-left"></i>
+          </a>
+          <span>Контрагенты / {{ supplier.name }}</span>
         </div>
-    </div>
-    <!-- Title and Top Buttons End -->
-    <div class="row gx-4 gy-5">
-        <!-- Left Side Start -->
-        <div class="col-12 col-xl-4 col-xxl-3">
-            <!-- Biography Start -->
-            <h2 class="small-title">Информация</h2>
-            <div class="card">
-                <div class="card-body mb-n5">
-                    <div class="d-flex align-items-center flex-column mb-5 text-center">
-                        <div class="mb-5 d-flex align-items-center flex-column">
-                            <div class="h5 mb-2">{{supplier.name}}</div>
-                            <span class="badge bg-{{supplier.status_color}}">{{supplier.get_status_display}}</span>
-                        </div>
-                        <div class="d-flex flex-row justify-content-between w-100 w-sm-50 w-xl-100 gap-2">
-                            <a href="{% url 'purchases:edit_supplier' supplier.id %}" type="button" class="btn btn-primary w-100 me-2 mobile_link" attr-title="{{supplier.name}}">Редактировать</a>
-                            {% if supplier.onec_counterparty_pk %}
-                            <a href="{% url 'onec:counterparty_detail' supplier.onec_counterparty_pk %}" type="button" class="btn btn-outline-secondary w-100">Карточка 1С</a>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="mb-5">
 
-                        <div class="row g-0 align-items-center mb-2">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Дата добавления</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center">{{supplier.created_at}}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row g-0 align-items-center mb-2">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Дата обновления</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center">{{supplier.updated_at}}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row g-0 align-items-center mb-2">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Добавил</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center">{{supplier.author.get_name}}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-
-
-                </div>
-            </div>
-            <!-- Biography End -->
+        <div class="onec-detail-actions">
+          <button type="button" class="onec-icon-btn" id="cpFavoriteBtn" title="В избранное" aria-pressed="false">
+            <i class="bi bi-star"></i>
+          </button>
+          {% if supplier.onec_counterparty_pk %}
+          <a href="{% url 'onec:counterparty_detail' supplier.onec_counterparty_pk %}" class="onec-icon-btn" title="Карточка 1С">
+            <i class="bi bi-box-arrow-in-down"></i>
+          </a>
+          {% endif %}
+          <a href="{% url 'purchases:edit_supplier' supplier.id %}" class="onec-icon-btn" title="Редактировать">
+            <i class="bi bi-pencil"></i>
+          </a>
         </div>
-        <!-- Left Side End -->
-        <!-- Right Side Start -->
-        <div class="col-12 col-xl-8 col-xxl-9">
-            <h2 class="small-title">Детали</h2>
-            <div class="card">
-                <div class="card-body row">
+      </div>
 
-                    {% for title, value in info.items %}
-                        {% if value %}
-                            <div class="col-12 col-xxl-6 mb-2">
-                                <div class="title_with_value">
-                                    <span>{{title}}</span>
-                                    <span>{{value}}</span>
-                                </div>
-                            </div>
-                        {% endif %}
-                    {% endfor %}
+      <h1 class="onec-detail-title">{{ supplier.name }}</h1>
 
-                    
-                    
-                </div>
-            </div>
+      <div class="onec-detail-meta">
+        <div>
+          <div class="onec-detail-meta__label">Статус</div>
+          <div class="onec-detail-meta__value">
+            <span class="onec-type-badge onec-type-badge--{{ supplier.status_color|default:'neutral' }}">{{ supplier.get_status_display }}</span>
+          </div>
         </div>
-        <!-- Right Side End -->
-    </div>
+        <div>
+          <div class="onec-detail-meta__label">Форма собственности</div>
+          <div class="onec-detail-meta__value">{{ supplier.get_form_display|default:"—" }}</div>
+        </div>
+        <div>
+          <div class="onec-detail-meta__label">Тип</div>
+          <div class="onec-detail-meta__value">{{ supplier.get_supplier_type_display|default:"—" }}</div>
+        </div>
+      </div>
 
+      {% if supplier.problems %}
+        <div class="onec-detail-description">{{ supplier.problems }}</div>
+      {% endif %}
+    </section>
+
+    <section class="onec-tabs-card">
+      <div class="onec-tabs">
+        <button type="button" class="onec-tab is-active" data-tab="req">Реквизиты</button>
+        <button type="button" class="onec-tab" data-tab="docs">Документы</button>
+        <button type="button" class="onec-tab" data-tab="requests">Заявки</button>
+        <button type="button" class="onec-tab" data-tab="history">История</button>
+      </div>
+
+      <div class="onec-tab-panel is-active" id="req">
+        <div class="onec-req-grid">
+          {% for title, value in info.items %}
+            {% if value %}
+              <div>
+                <div class="onec-req__label">{{ title }}</div>
+                <div class="onec-req__value">{{ value }}</div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="onec-tab-panel" id="docs" hidden>
+        <div class="onec-empty-small">Документов пока нет.</div>
+      </div>
+
+      <div class="onec-tab-panel" id="requests" hidden>
+        <div class="onec-empty-small">Заявок пока нет.</div>
+      </div>
+
+      <div class="onec-tab-panel" id="history" hidden>
+        <div class="onec-empty-small">История изменений пока недоступна.</div>
+      </div>
+    </section>
+
+    <section class="onec-messages-card">
+      <div class="onec-messages-title">
+        <span>Сообщения</span>
+        <span>Письма</span>
+      </div>
+      <div class="onec-messages-list" id="onecMessagesList">
+        <div class="onec-messages-empty">
+          <i class="bi bi-chat-dots"></i>
+          <p>Сообщений пока нет</p>
+        </div>
+      </div>
+      <form class="onec-message-input" id="onecMessageForm">
+        <input type="text" id="onecMessageInput" placeholder="Сообщение">
+        <button type="submit">Отправить</button>
+      </form>
+    </section>
+
+  </main>
+
+  <aside class="onec-detail-aside">
+
+    <section class="onec-aside-card">
+      <div class="onec-aside-card__head"><h2>Телефоны</h2></div>
+      <div class="onec-info-list">
+        {% if supplier.phone %}<p>{{ supplier.phone }}</p>{% else %}<p class="onec-muted">—</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="onec-aside-card">
+      <div class="onec-aside-card__head"><h2>Почта</h2></div>
+      <div class="onec-info-list">
+        {% if supplier.email %}<p>{{ supplier.email }}</p>{% else %}<p class="onec-muted">—</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="onec-aside-card">
+      <div class="onec-aside-card__head"><h2>Ссылки</h2></div>
+      <div class="onec-info-list">
+        {% if supplier.adata_link %}
+          <a href="{{ supplier.adata_link }}" target="_blank" rel="noopener">Карточка в adata.kz</a>
+        {% else %}<p class="onec-muted">—</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="onec-aside-card">
+      <div class="onec-aside-card__head"><h2>Адреса</h2></div>
+      <div class="onec-info-list">
+        {% if supplier.address1 %}<p>{{ supplier.address1 }}</p>{% endif %}
+        {% if supplier.address2 %}<p>{{ supplier.address2 }}</p>{% endif %}
+        {% if not supplier.address1 and not supplier.address2 %}<p class="onec-muted">—</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="onec-aside-card">
+      <div class="onec-aside-card__head"><h2>Дополнительно</h2></div>
+      <div class="onec-extra">
+        {% if supplier.identifier %}<span>БИН / ИИН</span><p>{{ supplier.identifier }}</p>{% endif %}
+        {% if supplier.kbe %}<span>КБЕ</span><p>{{ supplier.kbe }}</p>{% endif %}
+        {% if supplier.oked %}<span>ОКЭД</span><p>{{ supplier.oked }}</p>{% endif %}
+        {% if supplier.city %}<span>Город</span><p>{{ supplier.city }}</p>{% endif %}
+        {% if supplier.country %}<span>Страна резидентства</span><p>{{ supplier.country }}</p>{% endif %}
+        {% if supplier.size %}<span>Размер предприятия</span><p>{{ supplier.size }}</p>{% endif %}
+        {% if supplier.author %}<span>Добавил</span><p>{{ supplier.author.get_name }}</p>{% endif %}
+      </div>
+    </section>
+
+  </aside>
+
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('click', function (e) {
+      const tab = e.target.closest('.onec-tab');
+      if (!tab) return;
+      document.querySelectorAll('.onec-tab').forEach(t => t.classList.remove('is-active'));
+      document.querySelectorAll('.onec-tab-panel').forEach(p => { p.hidden = true; p.classList.remove('is-active'); });
+      tab.classList.add('is-active');
+      const panel = document.getElementById(tab.dataset.tab);
+      if (panel) { panel.hidden = false; panel.classList.add('is-active'); }
+    });
+
+    const favBtn = document.getElementById('cpFavoriteBtn');
+    if (favBtn) {
+      favBtn.addEventListener('click', function () {
+        const active = favBtn.getAttribute('aria-pressed') === 'true';
+        favBtn.setAttribute('aria-pressed', String(!active));
+        const icon = favBtn.querySelector('i');
+        icon.classList.toggle('bi-star', active);
+        icon.classList.toggle('bi-star-fill', !active);
+      });
+    }
+
+    const list = document.getElementById('onecMessagesList');
+    const form = document.getElementById('onecMessageForm');
+    const input = document.getElementById('onecMessageInput');
+    let msgs = [];
+    function render() {
+      if (!msgs.length) {
+        list.innerHTML = '<div class="onec-messages-empty"><i class="bi bi-chat-dots"></i><p>Сообщений пока нет</p></div>';
+        return;
+      }
+      list.innerHTML = msgs.map(m => '<div class="onec-message-item"><div></div><span>' + m.date + '</span></div>').join('');
+      list.querySelectorAll('.onec-message-item > div').forEach((el, i) => { el.textContent = msgs[i].text; });
+    }
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const v = input.value.trim();
+        if (!v) return;
+        msgs.push({ text: v, date: new Date().toLocaleString('ru-RU') });
+        input.value = '';
+        render();
+      });
+    }
+    render();
+  });
+</script>
 {% endblock %}

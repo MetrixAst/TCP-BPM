@@ -1,31 +1,116 @@
 {% load static %}
 
-{% for current in comments %}
-  <div class="task-history__item task-history__item--comment">
-    <div class="task-history__avatar">
-      {% if current.user and current.user.get_avatar_url %}
-        <img src="{{ current.user.get_avatar_url }}" alt="{{ current.user }}">
-      {% else %}
-        <i class="bi bi-person-fill"></i>
-      {% endif %}
-    </div>
-
-    <div class="task-history__content">
-      <div class="task-history__name">
-        {% if current.user %}
-          {{ current.user }}
-        {% else %}
-          User
-        {% endif %}
+<div class="doc-chat" id="docChat-{{ target_type }}-{{ target_id }}">
+  <div class="doc-chat__list" id="docChatList">
+    {% for current in comments %}
+      <div class="doc-chat__item">
+        <div class="doc-chat__avatar">
+          {% if current.user and current.user.get_avatar_url %}
+            <img src="{{ current.user.get_avatar_url }}" alt="{{ current.user }}">
+          {% else %}
+            <i class="bi bi-person-fill"></i>
+          {% endif %}
+        </div>
+        <div class="doc-chat__content">
+          <div class="doc-chat__meta">
+            <span class="doc-chat__name">{% if current.user %}{{ current.user }}{% else %}User{% endif %}</span>
+            <span class="doc-chat__time">{{ current.formatted_date }}</span>
+          </div>
+          <div class="doc-chat__text">{{ current.text }}</div>
+        </div>
       </div>
-
-      <div class="task-history__text">
-        {{ current.text }}
-      </div>
-    </div>
-
-    <div class="task-history__time">
-      {{ current.formatted_date }}
-    </div>
+    {% empty %}
+      <div class="doc-chat__empty" data-chat-empty>Пока нет сообщений. Напишите первое — например, правки к документу.</div>
+    {% endfor %}
   </div>
-{% endfor %}
+
+  <form method="post" action="{% url 'addits:comment' target_type target_id %}"
+        class="doc-chat__composer" id="docChatForm">
+    {% csrf_token %}
+    <textarea name="text" rows="1" class="doc-chat__input"
+              placeholder="Сообщение, правка к документу…"></textarea>
+    <button type="submit" class="doc-btn doc-btn--primary doc-chat__send">
+      <i class="bi bi-send"></i><span>Отправить</span>
+    </button>
+  </form>
+</div>
+
+<script>
+(function () {
+  var form = document.getElementById('docChatForm');
+  var list = document.getElementById('docChatList');
+  if (!form || !list || form.dataset.bound) return;
+  form.dataset.bound = '1';
+
+  var input = form.querySelector('textarea[name="text"]');
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function autoGrow() {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+  }
+  input && input.addEventListener('input', autoGrow);
+
+  input && input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true }));
+    }
+  });
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var text = (input.value || '').trim();
+    if (!text) return;
+
+    var sendBtn = form.querySelector('.doc-chat__send');
+    sendBtn && (sendBtn.disabled = true);
+
+    try {
+      var response = await fetch(form.action, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+        body: new FormData(form),
+      });
+      if (!response.ok) throw new Error('comment failed');
+      var data = await response.json();
+
+      var empty = list.querySelector('[data-chat-empty]');
+      if (empty) empty.remove();
+
+      var avatar = data.avatar
+        ? '<img src="' + data.avatar + '" alt="">'
+        : '<i class="bi bi-person-fill"></i>';
+
+      var html =
+        '<div class="doc-chat__item">' +
+          '<div class="doc-chat__avatar">' + avatar + '</div>' +
+          '<div class="doc-chat__content">' +
+            '<div class="doc-chat__meta">' +
+              '<span class="doc-chat__name">' + escapeHtml(data.name) + '</span>' +
+              '<span class="doc-chat__time">' + escapeHtml(data.date) + '</span>' +
+            '</div>' +
+            '<div class="doc-chat__text">' + escapeHtml(data.text) + '</div>' +
+          '</div>' +
+        '</div>';
+
+      list.insertAdjacentHTML('beforeend', html);
+      list.scrollTop = list.scrollHeight;
+      input.value = '';
+      autoGrow();
+    } catch (err) {
+      console.error(err);
+      if (window.notifyError) { notifyError('Не удалось отправить сообщение.'); }
+      else { alert('Не удалось отправить сообщение.'); }
+    } finally {
+      sendBtn && (sendBtn.disabled = false);
+    }
+  });
+})();
+</script>

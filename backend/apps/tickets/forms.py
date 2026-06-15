@@ -23,7 +23,7 @@ class StaffTicketForm(CustomModelForm):
 
     tenant = Select2FieldDefault(queryset=Tenant.objects.all(), required=False, placeholder='Арендатор')
     department = TreeField(queryset=Department.objects.all(), required=False)
-    assignee = UserSelect2Field(required=False, all=True, placeholder='Ответственный')
+    assignee = UserSelect2Field(required=False, all=True, placeholder='Сначала выберите отдел')
 
     class Meta:
         model = ServiceRequest
@@ -33,13 +33,23 @@ class StaffTicketForm(CustomModelForm):
             'description': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Опишите проблему'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # «Ответственный» подгружает только людей выбранного отдела.
+        self.fields['assignee'].widget.attrs['data-dept-source'] = '#id_department'
+
 
 class TicketAssignForm(CustomModelForm):
     """Маршрутизация заявки сотрудником: отдел / ответственный / приоритет."""
 
     department = TreeField(queryset=Department.objects.all(), required=False)
-    assignee = UserSelect2Field(required=False, all=True, placeholder='Ответственный')
+    assignee = UserSelect2Field(required=False, all=True, placeholder='Сначала выберите отдел')
 
     class Meta:
         model = ServiceRequest
         fields = ('department', 'assignee', 'priority')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # «Ответственный» подгружает только людей выбранного отдела.
+        self.fields['assignee'].widget.attrs['data-dept-source'] = '#id_department'
