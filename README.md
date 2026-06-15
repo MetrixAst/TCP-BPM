@@ -363,8 +363,5 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 ## Дополнительные материалы
 
-- `ТЗ.md`, `BRD.md` — продуктовые и бизнес-требования.
-- `PLAN.md` — план разработки и архитектурные заметки.
-- `SPRINT.md` — статус спринтов.
 - `backend/I18N.md` — детали локализации.
 - Swagger: `/api/docs/`.
