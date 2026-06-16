@@ -2874,7 +2874,7 @@ body.task-edit-body .bpm-content {
 }
 .tasks-page__toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
   flex-wrap: wrap;
 }
@@ -2912,6 +2912,7 @@ body.task-edit-body .bpm-content {
   color: #25233f;
   font-size: 13px;
   outline: none;
+  box-sizing: border-box;
 }
 .tasks-page__search-input::placeholder {
   color: #9a98aa;
@@ -2922,6 +2923,7 @@ body.task-edit-body .bpm-content {
 .tasks-page__state-control {
   display: flex;
   align-items: center;
+  height: 36px;
 }
 .tasks-page__select {
   min-width: 130px;
@@ -2936,6 +2938,7 @@ body.task-edit-body .bpm-content {
   outline: none;
   appearance: none;
   cursor: pointer;
+  box-sizing: border-box;
   background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B6880' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
@@ -2956,9 +2959,10 @@ body.task-edit-body .bpm-content {
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+  align-self: flex-end;
 }
 .tasks-page__btn i {
-  font-size: 14px;
+  font-size: 12px;
 }
 .tasks-page__btn--primary {
   background: #2f6bed;
@@ -2983,20 +2987,24 @@ body.task-edit-body .bpm-content {
 
 #tasksPage .tasks-page__state-control {
   min-width: 130px;
+  height: 36px;
 }
 #tasksPage .select2-container {
   width: 130px !important;
+  height: 36px !important;
 }
 #tasksPage .select2-container--default .select2-selection--single,
 #tasksPage .select2-container--bootstrap4 .select2-selection--single {
   height: 36px !important;
   min-height: 36px !important;
+  max-height: 36px !important;
   border: 0 !important;
   border-radius: 999px !important;
   background: #f5f3fa !important;
   box-shadow: none !important;
   display: flex !important;
   align-items: center !important;
+  box-sizing: border-box !important;
 }
 #tasksPage .select2-selection__rendered {
   height: 36px !important;
@@ -3006,9 +3014,11 @@ body.task-edit-body .bpm-content {
   color: #25233f !important;
   font-size: 13px !important;
   font-weight: 500 !important;
+  box-sizing: border-box !important;
 }
 #tasksPage .select2-selection__arrow {
   height: 36px !important;
+  top: 0 !important;
   right: 8px !important;
 }
 
@@ -3021,6 +3031,7 @@ body.task-edit-body .bpm-content {
   height: 36px;
   align-items: center;
   flex-shrink: 0;
+  align-self: flex-end;
 }
 .tasks-view-switch__btn {
   padding: 0 14px;
