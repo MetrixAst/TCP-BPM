@@ -6,7 +6,7 @@
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
-<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'3' }}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'5' }}" />
 {% endblock %}
 
 {% block content %}
@@ -15,6 +15,10 @@
 
   <div class="task-deal__main">
 
+    {# ── Верхний белый блок: крошки + заголовок + мета + описание ── #}
+    <div class="task-deal__top-block">
+
+    {# ---- Хлебные крошки ---- #}
     <header class="task-deal__head">
       <div class="task-deal__crumbs">
         <a href="{% url 'tasks:list' %}" class="task-deal__back" aria-label="{% t 'common.back' 'Назад' %}">
@@ -26,9 +30,11 @@
       </div>
 
       <div class="task-deal__head-actions">
-        <button type="button" class="task-deal__icon-btn task-deal__icon-btn--star{% if is_favorite %} is-active{% endif %}"
+        <button type="button"
+                class="task-deal__icon-btn task-deal__icon-btn--star{% if is_favorite %} is-active{% endif %}"
                 title="{% t 'tasks.favorite' 'В избранное' %}"
-                data-task-toggle="favorite" data-task-id="{{ task.id }}"
+                data-task-toggle="favorite"
+                data-task-id="{{ task.id }}"
                 data-flag-url="{% url 'tasks:task_flag' task.id %}"
                 aria-pressed="{{ is_favorite|yesno:'true,false' }}">
           <i class="bi {% if is_favorite %}bi-star-fill{% else %}bi-star{% endif %}"></i>
@@ -38,11 +44,14 @@
           <i class="bi bi-link-45deg"></i>
         </button>
         {% if user_role == 'author' %}
-          <a href="{% url 'tasks:edit' task.id %}" class="task-deal__icon-btn" title="{% t 'common.edit' 'Редактировать' %}">
+          <a href="{% url 'tasks:edit' task.id %}" class="task-deal__icon-btn"
+             title="{% t 'common.edit' 'Редактировать' %}">
             <i class="bi bi-pencil"></i>
           </a>
-          <button type="button" class="task-deal__icon-btn task-deal__icon-btn--danger"
-                  title="{% t 'common.delete' 'Удалить' %}" data-task-delete
+          <button type="button"
+                  class="task-deal__icon-btn task-deal__icon-btn--danger"
+                  title="{% t 'common.delete' 'Удалить' %}"
+                  data-task-delete
                   data-url="{% url 'tasks:task_action' task.id 'cancel' %}">
             <i class="bi bi-trash"></i>
           </button>
@@ -50,8 +59,10 @@
       </div>
     </header>
 
+    {# ---- Заголовок ---- #}
     <h1 class="task-deal__title">{{ task.title }}</h1>
 
+    {# ---- Мета-строка ---- #}
     <div class="task-deal__meta">
       <div class="task-deal__meta-item">
         <div class="task-deal__meta-label">{% t 'tasks.created' 'Создано' %}</div>
@@ -72,22 +83,24 @@
       <div class="task-deal__meta-item">
         <div class="task-deal__meta-label">{% t 'tasks.priority' 'Приоритет' %}</div>
         <div class="task-deal__meta-value">
-          <select class="task-deal__priority-select" data-task-id="{{ task.id }}"
+          <select class="task-deal__priority-select"
+                  data-task-id="{{ task.id }}"
                   {% if user_role == 'observer' %}disabled{% endif %}>
             <option value="" {% if not task.priority %}selected{% endif %}>{% t 'tasks.priority_placeholder' 'Приоритет задачи' %}</option>
-            <option value="low" {% if task.priority == 'low' %}selected{% endif %}>{% t 'tasks.priority_low' 'Низкий' %}</option>
-            <option value="medium" {% if task.priority == 'medium' %}selected{% endif %}>{% t 'tasks.priority_medium' 'Средний' %}</option>
-            <option value="high" {% if task.priority == 'high' %}selected{% endif %}>{% t 'tasks.priority_high' 'Высокий' %}</option>
+            <option value="low"      {% if task.priority == 'low'      %}selected{% endif %}>{% t 'tasks.priority_low'      'Низкий'      %}</option>
+            <option value="medium"   {% if task.priority == 'medium'   %}selected{% endif %}>{% t 'tasks.priority_medium'   'Средний'     %}</option>
+            <option value="high"     {% if task.priority == 'high'     %}selected{% endif %}>{% t 'tasks.priority_high'     'Высокий'     %}</option>
             <option value="critical" {% if task.priority == 'critical' %}selected{% endif %}>{% t 'tasks.priority_critical' 'Критический' %}</option>
           </select>
         </div>
       </div>
     </div>
 
+    {# ---- Описание ---- #}
     <div class="task-deal__description" id="taskDescription"
          data-url="{{ request.path }}"
          data-can-edit="{% if can_edit_checklist %}1{% else %}0{% endif %}">
-      <div class="task-deal__description-label">{% t 'tasks.description' 'Описание сделки' %}</div>
+      <div class="task-deal__description-label">{% t 'tasks.description' 'Описание' %}</div>
       <div class="task-deal__description-body">
         {% if task.text %}
           <div class="task-deal__description-text" data-description-text>{{ task.text|linebreaksbr }}</div>
@@ -97,16 +110,18 @@
       </div>
     </div>
 
+    {# ---- Кнопки workflow — в конце верхнего блока ---- #}
     {% if actions %}
       <div class="task-deal__actions" id="taskWorkflow">
         {% for current in actions %}
           {% if current.action != 'cancel' %}
             <button type="button"
                     class="task-deal__action-btn task-deal__action-btn--{{ current.color|default:'primary' }}"
-                    data-task-action data-action="{{ current.action }}"
+                    data-task-action
+                    data-action="{{ current.action }}"
                     data-url="{% url 'tasks:task_action' task.id current.action %}"
                     data-task-id="{{ task.id }}">
-              {% if current.action == 'reject' %}<i class="bi bi-x-circle"></i>{% endif %}
+              {% if current.action == 'reject'   %}<i class="bi bi-x-circle"></i>{% endif %}
               {% if current.action == 'revision' %}<i class="bi bi-arrow-counterclockwise"></i>{% endif %}
               {% if current.action == 'complete' %}<i class="bi bi-check-circle"></i>{% endif %}
               {{ current.title }}
@@ -116,136 +131,129 @@
       </div>
     {% endif %}
 
-    <div class="task-accordions">
+    </div>{# /task-deal__top-block #}
 
-      {% comment %} Заявки — заглушка / контрагент {% endcomment %}
-      <div class="task-acc" data-acc>
-        <button type="button" class="task-acc__head" data-acc-toggle>
-          <span class="task-acc__name">
-            {% if task.counterparty %}<span class="task-acc__count">1</span>{% endif %}
-            {% t 'tasks.acc_requests' 'Заявки' %}
-          </span>
-          <i class="bi bi-plus task-acc__icon"></i>
-        </button>
-        <div class="task-acc__body">
+    {# ── Белый блок: только табы ── #}
+    <div class="task-deal__card-block">
+
+    {# Табы: Заявки / Задачи / Счета #}
+    <div class="task-tabs-bar">
+
+      {# Кнопки-табы #}
+      <div class="task-tablist" id="taskTabList">
+
+        <button type="button" class="task-tab is-active" data-tab="requests">
           {% if task.counterparty %}
-            <div class="task-acc__row">{{ task.counterparty }}</div>
+            <span class="task-tab__count">1</span>
           {% else %}
-            <div class="task-acc__empty">{% t 'tasks.acc_empty' 'Пусто' %}</div>
+            <span class="task-tab__count task-tab__count--zero">0</span>
           {% endif %}
-        </div>
-      </div>
-
-      {% comment %} Задачи — чеклист {% endcomment %}
-      <div class="task-acc" data-acc id="taskChecklist" data-task-id="{{ task.id }}">
-        <button type="button" class="task-acc__head" data-acc-toggle>
-          <span class="task-acc__name">
-            {% if checklist_count %}<span class="task-acc__count">{{ checklist_count }}</span>{% endif %}
-            {% t 'tasks.acc_subtasks' 'Задачи' %}
-          </span>
-          <i class="bi bi-plus task-acc__icon"></i>
+          {% t 'tasks.acc_requests' 'Заявки' %}
+          <span class="task-tab__add" title="Добавить"><i class="bi bi-plus"></i></span>
         </button>
-        <div class="task-acc__body">
-          <ul class="task-acc__list" id="taskChecklistList">
-            {% for item in task.checklist_items.all %}
-              <li class="task-acc__check {% if item.is_done %}is-done{% endif %}" data-item-id="{{ item.id }}">
-                <button type="button" class="task-acc__check-toggle" data-checklist-toggle
-                        data-url="{% url 'tasks:checklist_toggle' task.id item.id %}">
-                  <i class="bi {% if item.is_done %}bi-check-circle-fill{% else %}bi-circle{% endif %}"></i>
-                </button>
-                <span>{{ item.title }}</span>
-              </li>
-            {% empty %}
-              <li class="task-acc__empty">{% t 'tasks.acc_empty' 'Пусто' %}</li>
-            {% endfor %}
-          </ul>
+
+        <button type="button" class="task-tab" data-tab="checklist">
+          <span class="task-tab__count {% if not checklist_count %}task-tab__count--zero{% endif %}">{{ checklist_count|default:0 }}</span>
+          {% t 'tasks.acc_subtasks' 'Задачи' %}
           {% if can_edit_checklist %}
-            <form class="task-acc__add" id="taskChecklistForm" data-url="{% url 'tasks:checklist_add' task.id %}">
-              {% csrf_token %}
-              <input type="text" name="title" class="task-acc__input" placeholder="{% t 'tasks.checklist_new' 'Новый пункт' %}" />
-              <button type="submit" class="task-acc__add-btn"><i class="bi bi-plus-lg"></i></button>
-            </form>
+            <span class="task-tab__add" title="Добавить" data-open-checklist-form><i class="bi bi-plus"></i></span>
           {% endif %}
-        </div>
+        </button>
+
+        <button type="button" class="task-tab" data-tab="invoices">
+          <span class="task-tab__count {% if not line_items_count %}task-tab__count--zero{% endif %}">{{ line_items_count|default:0 }}</span>
+          {% t 'tasks.acc_invoices' 'Счета' %}
+          {% if can_edit_checklist %}
+            <span class="task-tab__add" title="Добавить" data-open-invoice-form><i class="bi bi-plus"></i></span>
+          {% endif %}
+        </button>
+
       </div>
 
-      {% comment %} Счета — позиции {% endcomment %}
-      <div class="task-acc" data-acc id="taskLineItems" data-task-id="{{ task.id }}">
-        <button type="button" class="task-acc__head" data-acc-toggle>
-          <span class="task-acc__name">
-            {% if line_items_count %}<span class="task-acc__count">{{ line_items_count }}</span>{% endif %}
-            {% t 'tasks.acc_invoices' 'Счета' %}
-          </span>
-          <i class="bi bi-plus task-acc__icon"></i>
-        </button>
-        <div class="task-acc__body">
-          <div class="task-acc__table-wrap">
-            <table class="task-acc__table">
-              <thead>
+      {# Панели табов #}
+
+      {# Заявки #}
+      <div class="task-tab-panel is-active" id="tabRequests">
+        {% if task.counterparty %}
+          <div class="task-tab-panel__row">{{ task.counterparty }}</div>
+        {% else %}
+          <div class="task-tab-panel__empty">{% t 'tasks.acc_empty' 'Пусто' %}</div>
+        {% endif %}
+      </div>
+
+      {# Задачи / чеклист #}
+      <div class="task-tab-panel" id="tabChecklist" data-task-id="{{ task.id }}">
+        <ul class="task-acc__list" id="taskChecklistList">
+          {% for item in task.checklist_items.all %}
+            <li class="task-acc__check {% if item.is_done %}is-done{% endif %}" data-item-id="{{ item.id }}">
+              <button type="button" class="task-acc__check-toggle" data-checklist-toggle
+                      data-url="{% url 'tasks:checklist_toggle' task.id item.id %}">
+                <i class="bi {% if item.is_done %}bi-check-circle-fill{% else %}bi-circle{% endif %}"></i>
+              </button>
+              <span>{{ item.title }}</span>
+            </li>
+          {% empty %}
+            <li class="task-tab-panel__empty">{% t 'tasks.acc_empty' 'Пусто' %}</li>
+          {% endfor %}
+        </ul>
+        {% if can_edit_checklist %}
+          <form class="task-acc__add" id="taskChecklistForm" data-url="{% url 'tasks:checklist_add' task.id %}">
+            {% csrf_token %}
+            <input type="text" name="title" class="task-acc__input"
+                   placeholder="{% t 'tasks.checklist_new' 'Новый пункт' %}" />
+            <button type="submit" class="task-acc__add-btn"><i class="bi bi-plus-lg"></i></button>
+          </form>
+        {% endif %}
+      </div>
+
+      {# Счета / позиции #}
+      <div class="task-tab-panel" id="tabInvoices" data-task-id="{{ task.id }}">
+        <div class="task-acc__table-wrap">
+          <table class="task-acc__table">
+            <thead>
+              <tr>
+                <th>{% t 'tasks.li_name'  'Наименование' %}</th>
+                <th>{% t 'tasks.li_qty'   'Кол-во'       %}</th>
+                <th>{% t 'tasks.li_unit'  'Ед.'          %}</th>
+                <th>{% t 'tasks.li_price' 'Цена'         %}</th>
+                <th>{% t 'tasks.li_total' 'Сумма'        %}</th>
+              </tr>
+            </thead>
+            <tbody id="taskLineItemsBody">
+              {% for row in task.line_items.all %}
                 <tr>
-                  <th>{% t 'tasks.li_name' 'Наименование' %}</th>
-                  <th>{% t 'tasks.li_qty' 'Кол-во' %}</th>
-                  <th>{% t 'tasks.li_unit' 'Ед.' %}</th>
-                  <th>{% t 'tasks.li_price' 'Цена' %}</th>
-                  <th>{% t 'tasks.li_total' 'Сумма' %}</th>
+                  <td>{{ row.name }}</td>
+                  <td>{{ row.quantity }}</td>
+                  <td>{{ row.unit }}</td>
+                  <td>{{ row.price }}</td>
+                  <td>{{ row.total }}</td>
                 </tr>
-              </thead>
-              <tbody id="taskLineItemsBody">
-                {% for row in task.line_items.all %}
-                  <tr>
-                    <td>{{ row.name }}</td>
-                    <td>{{ row.quantity }}</td>
-                    <td>{{ row.unit }}</td>
-                    <td>{{ row.price }}</td>
-                    <td>{{ row.total }}</td>
-                  </tr>
-                {% empty %}
-                  <tr><td colspan="5" class="task-acc__td-empty">{% t 'tasks.acc_empty' 'Пусто' %}</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% if can_edit_checklist %}
-            <form class="task-acc__add" id="taskLineItemForm" data-url="{% url 'tasks:line_item_add' task.id %}">
-              {% csrf_token %}
-              <input type="text" name="name" placeholder="{% t 'tasks.li_name' 'Наименование' %}" class="task-acc__input" required />
-              <input type="number" name="quantity" value="1" step="0.01" class="task-acc__input task-acc__input--sm" />
-              <input type="text" name="unit" value="шт" class="task-acc__input task-acc__input--sm" />
-              <input type="number" name="price" value="0" step="0.01" class="task-acc__input task-acc__input--sm" />
-              <button type="submit" class="task-acc__add-btn"><i class="bi bi-plus-lg"></i></button>
-            </form>
-          {% endif %}
+              {% empty %}
+                <tr><td colspan="5" class="task-tab-panel__empty">{% t 'tasks.acc_empty' 'Пусто' %}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
+        {% if can_edit_checklist %}
+          <form class="task-acc__add" id="taskLineItemForm" data-url="{% url 'tasks:line_item_add' task.id %}">
+            {% csrf_token %}
+            <input type="text"   name="name"     placeholder="{% t 'tasks.li_name' 'Наименование' %}" class="task-acc__input" required />
+            <input type="number" name="quantity"  value="1"   step="0.01" class="task-acc__input task-acc__input--sm" />
+            <input type="text"   name="unit"      value="шт"              class="task-acc__input task-acc__input--sm" />
+            <input type="number" name="price"     value="0"   step="0.01" class="task-acc__input task-acc__input--sm" />
+            <button type="submit" class="task-acc__add-btn"><i class="bi bi-plus-lg"></i></button>
+          </form>
+        {% endif %}
       </div>
 
-      {% comment %} Процессы — история {% endcomment %}
-      <div class="task-acc" data-acc>
-        <button type="button" class="task-acc__head" data-acc-toggle>
-          <span class="task-acc__name">
-            {% if history_count %}<span class="task-acc__count">{{ history_count }}</span>{% endif %}
-            {% t 'tasks.acc_processes' 'Процессы' %}
-          </span>
-          <i class="bi bi-plus task-acc__icon"></i>
-        </button>
-        <div class="task-acc__body">
-          <ul class="task-acc__list">
-            {% for h in task.history.all %}
-              <li class="task-acc__process">
-                <span class="task-acc__process-dot tasks-status--{{ h.status_info.color|default:'neutral' }}"></span>
-                <span class="task-acc__process-text">{{ h.title }}</span>
-                <span class="task-acc__process-date">{{ h.date|date:"d.m.Y H:i" }}</span>
-              </li>
-            {% empty %}
-              <li class="task-acc__empty">{% t 'tasks.acc_empty' 'Пусто' %}</li>
-            {% endfor %}
-          </ul>
-        </div>
-      </div>
+    </div>{# /task-tabs-bar #}
 
-    </div>
+    </div>{# /task-deal__card-block #}
 
+    {# ---- Лента обновлений — отдельная карточка ---- #}
+    <div class="task-deal__card-block">
     <section class="task-feed">
-      <h2 class="task-feed__title">{% t 'tasks.updates' 'Обновления' %}</h2>
+      <h2 class="task-feed__title">{% t 'tasks.updates' 'История' %}</h2>
 
       <div class="task-feed__list" id="taskFeedList">
         {% for u in updates %}
@@ -275,85 +283,133 @@
       </div>
     </section>
 
+    {# ---- Форма комментария (стиль как у контрагентов) ---- #}
     <form method="post" action="{% url 'addits:comment' 'task' task.id %}"
-          class="task-composer" id="taskCommentForm">
+          class="task-comment-composer" id="taskCommentForm">
       {% csrf_token %}
-      <input type="text" name="text" class="task-composer__input"
+      <input type="text" name="text" class="task-comment-composer__input"
              placeholder="{% t 'tasks.comment_placeholder' 'Прокомментировать...' %}" />
-      <button type="button" class="task-composer__attach" title="{% t 'tasks.attach' 'Прикрепить файл' %}"
-              data-composer-attach>
+      <button type="button" class="task-comment-composer__attach"
+              title="{% t 'tasks.attach' 'Прикрепить файл' %}" data-composer-attach>
         <i class="bi bi-paperclip"></i>
       </button>
-      <button type="submit" class="task-composer__submit">{% t 'tasks.send' 'Отправить' %}</button>
+      <button type="submit" class="task-comment-composer__submit">{% t 'tasks.send' 'Отправить' %}</button>
     </form>
 
-  </div>
+    </div>{# /task-deal__card-block (feed+composer) #}
 
+  </div>{# /task-deal__main #}
+
+  {# ======== ПРАВЫЙ САЙДБАР ======== #}
   <aside class="task-deal__aside">
 
+    {# ---- Маршрут (как в Figma: Автор / Исполнитель / Соисполнители / Согласующий / Наблюдатель) ---- #}
     <section class="task-panel">
       <div class="task-panel__head">
-        <h3 class="task-panel__title">{% t 'tasks.participants' 'Участники' %}</h3>
+        <h3 class="task-panel__title">{% t 'tasks.route' 'Маршрут' %}</h3>
         {% if user_role == 'author' %}
-          <a href="{% url 'tasks:edit' task.id %}" class="task-panel__add" title="{% t 'tasks.add_participant' 'Добавить участника' %}">
-            <i class="bi bi-plus"></i>
+          <a href="{% url 'tasks:edit' task.id %}" class="task-panel__add"
+             title="{% t 'common.edit' 'Редактировать' %}">
+            <i class="bi bi-pencil"></i>
           </a>
         {% endif %}
       </div>
 
-      <div class="task-people">
+      <div class="task-route">
+
+        {# Автор #}
         {% if task.author %}
-          <div class="task-people__item">
-            <div class="task-people__avatar task-people__avatar--author">
-              {% if task.author.get_avatar_url %}<img src="{{ task.author.get_avatar_url }}" alt="">{% else %}{{ task.author.get_name|first|upper }}{% endif %}
+          <div class="task-route__item">
+            <div class="task-route__avatar">
+              {% if task.author.get_avatar_url %}
+                <img src="{{ task.author.get_avatar_url }}" alt="">
+              {% else %}
+                <span class="task-route__avatar-letter">{{ task.author.get_name|first|upper }}</span>
+              {% endif %}
             </div>
-            <div class="task-people__info">
-              <div class="task-people__role">{% t 'tasks.role_author' 'Автор' %}</div>
-              <div class="task-people__name">{{ task.author.get_name }}</div>
+            <div class="task-route__content">
+              <div class="task-route__role">{% t 'tasks.role_author' 'Автор' %}</div>
+              <div class="task-route__name">{{ task.author.get_name }}</div>
+            </div>
+            <div class="task-route__status task-route__status--done">
+              <i class="bi bi-check-circle-fill"></i>
+              <span class="task-route__date">{{ task.date|date:"d.m.Y H:i" }}</span>
             </div>
           </div>
         {% endif %}
+
+        {# Исполнитель #}
         {% if task.executor %}
-          <div class="task-people__item">
-            <div class="task-people__avatar">
-              {% if task.executor.get_avatar_url %}<img src="{{ task.executor.get_avatar_url }}" alt="">{% else %}{{ task.executor.get_name|first|upper }}{% endif %}
+          <div class="task-route__item">
+            <div class="task-route__avatar">
+              {% if task.executor.get_avatar_url %}
+                <img src="{{ task.executor.get_avatar_url }}" alt="">
+              {% else %}
+                <span class="task-route__avatar-letter">{{ task.executor.get_name|first|upper }}</span>
+              {% endif %}
             </div>
-            <div class="task-people__info">
-              <div class="task-people__role">{% t 'tasks.role_executor' 'Ответственный' %}</div>
-              <div class="task-people__name">{{ task.executor.get_name }}</div>
+            <div class="task-route__content">
+              <div class="task-route__role">{% t 'tasks.role_executor' 'Исполнитель' %}</div>
+              <div class="task-route__name">{{ task.executor.get_name }}</div>
+            </div>
+            <div class="task-route__status task-route__status--in-progress">
+              <i class="bi bi-clock"></i>
+              <span>{% t 'tasks.route_in_progress' 'На исполнении' %}</span>
             </div>
           </div>
         {% endif %}
+
+        {# Соисполнители #}
         {% for u in task.co_executors.all %}
-          <div class="task-people__item">
-            <div class="task-people__avatar">
-              {% if u.get_avatar_url %}<img src="{{ u.get_avatar_url }}" alt="">{% else %}{{ u.get_name|first|upper }}{% endif %}
+          <div class="task-route__item">
+            <div class="task-route__avatar">
+              {% if u.get_avatar_url %}
+                <img src="{{ u.get_avatar_url }}" alt="">
+              {% else %}
+                <span class="task-route__avatar-letter">{{ u.get_name|first|upper }}</span>
+              {% endif %}
             </div>
-            <div class="task-people__info">
-              <div class="task-people__role">{% t 'tasks.role_co_executor' 'Соисполнитель' %}</div>
-              <div class="task-people__name">{{ u.get_name }}</div>
+            <div class="task-route__content">
+              <div class="task-route__role">{% t 'tasks.role_co_executor' 'Соисполнитель' %}</div>
+              <div class="task-route__name">{{ u.get_name }}</div>
+            </div>
+            <div class="task-route__status task-route__status--in-progress">
+              <i class="bi bi-clock"></i>
+              <span>{% t 'tasks.route_in_progress' 'На исполнении' %}</span>
             </div>
           </div>
         {% endfor %}
+
+        {# Наблюдатели #}
         {% for u in task.observers.all %}
-          <div class="task-people__item">
-            <div class="task-people__avatar">
-              {% if u.get_avatar_url %}<img src="{{ u.get_avatar_url }}" alt="">{% else %}{{ u.get_name|first|upper }}{% endif %}
+          <div class="task-route__item">
+            <div class="task-route__avatar">
+              {% if u.get_avatar_url %}
+                <img src="{{ u.get_avatar_url }}" alt="">
+              {% else %}
+                <span class="task-route__avatar-letter">{{ u.get_name|first|upper }}</span>
+              {% endif %}
             </div>
-            <div class="task-people__info">
-              <div class="task-people__role">{% t 'tasks.role_observer' 'Наблюдатель' %}</div>
-              <div class="task-people__name">{{ u.get_name }}</div>
+            <div class="task-route__content">
+              <div class="task-route__role">{% t 'tasks.role_observer' 'Наблюдатель' %}</div>
+              <div class="task-route__name">{{ u.get_name }}</div>
+            </div>
+            <div class="task-route__status">
+              <i class="bi bi-eye"></i>
             </div>
           </div>
         {% endfor %}
+
       </div>
     </section>
 
+    {# ---- Клиент ---- #}
     <section class="task-panel">
       <div class="task-panel__head">
         <h3 class="task-panel__title">{% t 'tasks.client' 'Клиент' %}</h3>
         {% if user_role == 'author' %}
-          <a href="{% url 'tasks:edit' task.id %}" class="task-panel__add" title="{% t 'common.edit' 'Редактировать' %}">
+          <a href="{% url 'tasks:edit' task.id %}" class="task-panel__add"
+             title="{% t 'common.edit' 'Редактировать' %}">
             <i class="bi bi-pencil"></i>
           </a>
         {% endif %}
@@ -374,11 +430,13 @@
       {% endif %}
     </section>
 
+    {# ---- Файлы ---- #}
     <section class="task-panel">
       <div class="task-panel__head">
         <h3 class="task-panel__title">{% t 'tasks.files' 'Файлы' %}</h3>
         {% if user_role != 'observer' %}
-          <button type="button" class="task-panel__add" title="{% t 'tasks.add_file' 'Добавить файл' %}" data-file-add>
+          <button type="button" class="task-panel__add"
+                  title="{% t 'tasks.add_file' 'Добавить файл' %}" data-file-add>
             <i class="bi bi-plus"></i>
           </button>
           <input type="file" id="taskFileInput" multiple hidden
@@ -389,7 +447,7 @@
       <div class="task-files" id="taskFilesList">
         {% for f in task.files.all %}
           <div class="task-files__item" data-file-id="{{ f.id }}">
-            <div class="task-files__icon"><i class="bi bi-file-earmark-text"></i></div>
+            <div class="task-files__icon"><i class="bi bi-file-earmark-pdf"></i></div>
             <div class="task-files__info">
               <a href="{{ f.file.url }}" target="_blank" class="task-files__name">{{ f.filename }}</a>
               <div class="task-files__meta">
@@ -397,12 +455,15 @@
               </div>
             </div>
             <div class="task-files__actions">
-              <a href="{{ f.file.url }}" download class="task-files__action" title="{% t 'common.download' 'Скачать' %}">
+              <a href="{{ f.file.url }}" download class="task-files__action"
+                 title="{% t 'common.download' 'Скачать' %}">
                 <i class="bi bi-download"></i>
               </a>
               {% if user_role != 'observer' %}
-                <button type="button" class="task-files__action task-files__action--danger"
-                        data-file-delete data-url="{% url 'tasks:file_delete' task.id f.id %}"
+                <button type="button"
+                        class="task-files__action task-files__action--danger"
+                        data-file-delete
+                        data-url="{% url 'tasks:file_delete' task.id f.id %}"
                         title="{% t 'common.delete' 'Удалить' %}">
                   <i class="bi bi-trash"></i>
                 </button>
@@ -417,11 +478,57 @@
 
   </aside>
 
-</div>
+</div>{# /task-deal #}
 
 {% endblock %}
 
 {% block scripts %}
 <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
-<script src="{% static 'site/js/apps/tasks.js' %}?v={{ static_version|default:'10' }}"></script>
+<script src="{% static 'site/js/apps/tasks.js' %}?v={{ static_version|default:'5' }}"></script>
+<script>
+// ── Переключатель табов Заявки / Задачи / Счета ──
+(function () {
+  var tablist = document.getElementById('taskTabList');
+  if (!tablist) return;
+  var panels = {
+    requests: document.getElementById('tabRequests'),
+    checklist: document.getElementById('tabChecklist'),
+    invoices: document.getElementById('tabInvoices'),
+  };
+  tablist.querySelectorAll('.task-tab').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      if (e.target.closest('.task-tab__add')) return;
+      var key = btn.dataset.tab;
+      tablist.querySelectorAll('.task-tab').forEach(function (b) { b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+      Object.values(panels).forEach(function (p) { if (p) p.classList.remove('is-active'); });
+      if (panels[key]) panels[key].classList.add('is-active');
+    });
+  });
+})();
+
+// ── Select2 для поля Приоритет (стиль как у «Состояния») ──
+(function () {
+  if (typeof jQuery === 'undefined' || !jQuery.fn.select2) return;
+  var $sel = jQuery('.task-deal__priority-select');
+  if (!$sel.length || $sel.hasClass('select2-hidden-accessible')) return;
+  $sel.select2({
+    width: '180px',
+    minimumResultsForSearch: Infinity,
+    dropdownCssClass: 'task-deal__priority-dropdown',
+    dropdownParent: jQuery('.task-deal__main'),
+  });
+  // Сохраняем приоритет при смене через Select2
+  $sel.on('change', function () {
+    var formData = new FormData();
+    formData.append('priority', $sel.val());
+    fetch(window.location.pathname, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '' },
+      credentials: 'same-origin',
+      body: formData,
+    }).catch(function (e) { console.error(e); });
+  });
+})();
+</script>
 {% endblock %}
