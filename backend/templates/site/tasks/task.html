@@ -488,19 +488,40 @@
 (function () {
   var tablist = document.getElementById('taskTabList');
   if (!tablist) return;
+
   var panels = {
     requests: document.getElementById('tabRequests'),
     checklist: document.getElementById('tabChecklist'),
     invoices: document.getElementById('tabInvoices'),
   };
+
+  function activateTab(key) {
+    tablist.querySelectorAll('.task-tab').forEach(function (b) {
+      b.classList.remove('is-active');
+    });
+
+    Object.values(panels).forEach(function (p) {
+      if (p) p.classList.remove('is-active');
+    });
+
+    var btn = tablist.querySelector('.task-tab[data-tab="' + key + '"]');
+
+    if (btn) btn.classList.add('is-active');
+    if (panels[key]) panels[key].classList.add('is-active');
+
+    localStorage.setItem('activeTaskTab', key);
+  }
+
+  var savedTab = localStorage.getItem('activeTaskTab');
+  if (savedTab && panels[savedTab]) {
+    activateTab(savedTab);
+  }
+
   tablist.querySelectorAll('.task-tab').forEach(function (btn) {
     btn.addEventListener('click', function (e) {
       if (e.target.closest('.task-tab__add')) return;
-      var key = btn.dataset.tab;
-      tablist.querySelectorAll('.task-tab').forEach(function (b) { b.classList.remove('is-active'); });
-      btn.classList.add('is-active');
-      Object.values(panels).forEach(function (p) { if (p) p.classList.remove('is-active'); });
-      if (panels[key]) panels[key].classList.add('is-active');
+
+      activateTab(btn.dataset.tab);
     });
   });
 })();
