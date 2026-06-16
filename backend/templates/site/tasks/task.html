@@ -212,7 +212,7 @@
                     <tr class="task-invoices__total-row">
                       <td colspan="4" class="task-invoices__total-label">{% t 'tasks.li_grand_total' 'Итого' %}</td>
                       <td class="task-invoices__total-value" id="invoicesTotalAmount">
-                        {{ task.line_items_total|default:"0.00"|floatformat:2 }}
+                        {{ line_items_total|default:"0.00"|floatformat:2 }}
                       </td>
                     </tr>
                   </tfoot>
@@ -488,6 +488,19 @@
 <script>
 (function () {
   'use strict';
+
+  // ── Пересчёт итога при загрузке (на случай если view не передаёт line_items_total) ──
+  function recalcTotal() {
+    var tbody   = document.getElementById('invoicesTableBody');
+    var totalEl = document.getElementById('invoicesTotalAmount');
+    if (!tbody || !totalEl) return;
+    var sum = 0;
+    tbody.querySelectorAll('.task-invoices__td--total').forEach(function (td) {
+      sum += parseFloat(td.textContent.replace(',', '.')) || 0;
+    });
+    totalEl.textContent = sum.toFixed(2);
+  }
+  recalcTotal();
 
   // ── Табы ──
   var tablist = document.getElementById('taskTabList');
