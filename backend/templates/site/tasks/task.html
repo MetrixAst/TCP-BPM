@@ -149,7 +149,6 @@
             <span class="task-tab__count task-tab__count--zero">0</span>
           {% endif %}
           {% t 'tasks.acc_requests' 'Заявки' %}
-          <span class="task-tab__add" title="Добавить"><i class="bi bi-plus"></i></span>
         </button>
 
         <button type="button" class="task-tab" data-tab="checklist">
@@ -164,7 +163,6 @@
           <span class="task-tab__count {% if not line_items_count %}task-tab__count--zero{% endif %}">{{ line_items_count|default:0 }}</span>
           {% t 'tasks.acc_invoices' 'Счета' %}
           {% if can_edit_checklist %}
-            <span class="task-tab__add" title="Добавить" data-open-invoice-form><i class="bi bi-plus"></i></span>
           {% endif %}
         </button>
 

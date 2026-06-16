@@ -3109,25 +3109,34 @@ body.task-edit-body {
     }
   }
 }
+ // ============================================================================
+// PATCH PP-01-FE v3  —  дополнения к tasks.css
+// Вставить В КОНЕЦ файла backend/static/site/css/apps/tasks.css
+// ============================================================================
+
+
+// ============================================================================
+// ШАПКА СПИСКА ЗАДАЧ — одна строка без разрыва
+// ============================================================================
 
 .tasks-page {
- 
+
   &__top {
     background: #fff;
     border-radius: 18px;
     padding: 18px 22px;
     margin-bottom: 18px;
   }
- 
+
   &__header {
     display: flex;
     align-items: center;
     gap: 16px;
     flex-wrap: nowrap;
- 
+
     @media (max-width: 1000px) { flex-wrap: wrap; }
   }
- 
+
   &__title {
     margin: 0;
     font-size: 22px;
@@ -3136,7 +3145,7 @@ body.task-edit-body {
     white-space: nowrap;
     flex-shrink: 0;
   }
- 
+
   // Тулбар — все элементы в ряд, прижаты к центру по высоте
   &__toolbar {
     display: flex;
@@ -3145,25 +3154,25 @@ body.task-edit-body {
     flex-wrap: wrap;
     // margin-left: auto задаётся inline в шаблоне
   }
- 
+
   &__field {
     display: flex;
     flex-direction: column;
     gap: 4px;
   }
- 
+
   &__label {
     font-size: 11px;
     color: #74728a;
     font-weight: 500;
     line-height: 1;
   }
- 
+
   &__search {
     position: relative;
     width: 210px;
   }
- 
+
   &__search-icon {
     position: absolute;
     left: 12px;
@@ -3173,7 +3182,7 @@ body.task-edit-body {
     font-size: 14px;
     pointer-events: none;
   }
- 
+
   &__search-input {
     width: 100%;
     height: 36px;
@@ -3184,16 +3193,16 @@ body.task-edit-body {
     color: #25233f;
     font-size: 13px;
     outline: none;
- 
+
     &::placeholder { color: #9a98aa; }
     &:focus { box-shadow: 0 0 0 2px rgba(47,107,237,.14); }
   }
- 
+
   &__state-control {
     display: flex;
     align-items: center;
   }
- 
+
   &__select {
     min-width: 130px;
     height: 36px;
@@ -3212,7 +3221,7 @@ body.task-edit-body {
     background-position: right 12px center;
     background-size: 12px 8px;
   }
- 
+
   &__btn {
     height: 36px;
     padding: 0 16px;
@@ -3228,15 +3237,15 @@ body.task-edit-body {
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
- 
+
     i { font-size: 14px; }
- 
+
     &--primary {
       background: #2f6bed;
       color: #fff;
       &:hover { background: #2458c7; color: #fff; }
     }
- 
+
     &--outline,
     &--ghost {
       background: #f5f3fa;
@@ -3244,20 +3253,20 @@ body.task-edit-body {
       &:hover { background: #ece9f4; }
     }
   }
- 
+
   &__pagination {
     display: flex;
     justify-content: flex-end;
     padding: 18px 4px 0;
   }
 }
- 
+
 // Select2 в тулбаре — выровнен по высоте 36px
 #tasksPage {
   .tasks-page__state-control { min-width: 130px; }
- 
+
   .select2-container { width: 130px !important; }
- 
+
   .select2-container--default .select2-selection--single,
   .select2-container--bootstrap4 .select2-selection--single {
     height: 36px !important;
@@ -3269,7 +3278,7 @@ body.task-edit-body {
     display: flex !important;
     align-items: center !important;
   }
- 
+
   .select2-selection__rendered {
     height: 36px !important;
     line-height: 36px !important;
@@ -3279,13 +3288,13 @@ body.task-edit-body {
     font-size: 13px !important;
     font-weight: 500 !important;
   }
- 
+
   .select2-selection__arrow {
     height: 36px !important;
     right: 8px !important;
   }
 }
- 
+
 // Переключатель Список / Канбан — 36px высота, без разрыва от «Настроить»
 .tasks-view-switch {
   display: inline-flex;
@@ -3296,7 +3305,7 @@ body.task-edit-body {
   height: 36px;
   align-items: center;
   flex-shrink: 0;
- 
+
   &__btn {
     padding: 0 14px;
     height: 30px;
@@ -3307,9 +3316,9 @@ body.task-edit-body {
     text-decoration: none;
     display: inline-flex;
     align-items: center;
- 
+
     &:hover { color: #25233f; text-decoration: none; }
- 
+
     &.is-active {
       background: #fff;
       color: #2f6bed;
@@ -3318,12 +3327,12 @@ body.task-edit-body {
     }
   }
 }
- 
- 
+
+
 // ============================================================================
 // ПРИОРИТЕТЫ — точка + текст, БЕЗ цветовой раскраски текста
 // ============================================================================
- 
+
 .tasks-priority {
   display: inline-flex;
   align-items: center;
@@ -3331,7 +3340,7 @@ body.task-edit-body {
   font-size: 13px;
   font-weight: 500;
   color: #25233f;
- 
+
   // Убираем псевдоэлемент — точки теперь только у нас через ::before
   &::before {
     content: '';
@@ -3340,22 +3349,22 @@ body.task-edit-body {
     border-radius: 50%;
     flex-shrink: 0;
   }
- 
+
   // Разные цвета точек (но не текста)
   &--low::before      { background: #c8c7d3; }
   &--medium::before   { background: #2f6bed; }
   &--high::before     { background: #f59e0b; }
   &--critical::before { background: #ef4444; }
- 
+
   // Текст у всех одинаковый тёмный
   &--low, &--medium, &--high, &--critical { color: #25233f; }
 }
- 
- 
+
+
 // ============================================================================
 // СТАТУСНЫЕ БЕЙДЖИ (таблица задач)
 // ============================================================================
- 
+
 .tasks-status-badge {
   display: inline-flex;
   align-items: center;
@@ -3365,7 +3374,7 @@ body.task-edit-body {
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
- 
+
   &--neutral  { background: #f0eff6; color: #25233f; }
   &--info     { background: #e8f0fe; color: #2563eb; }
   &--warning  { background: #fff4e5; color: #d97706; }
@@ -3373,12 +3382,12 @@ body.task-edit-body {
   &--danger   { background: #feecec; color: #ef4444; }
   &--paused   { background: #f3f4f6; color: #6b7280; }
 }
- 
- 
+
+
 // ============================================================================
 // ТАБЛИЦА ЗАДАЧ
 // ============================================================================
- 
+
 .tasks-table {
   &__th {
     height: 40px;
@@ -3388,41 +3397,41 @@ body.task-edit-body {
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
- 
+
   &__td { height: 48px; font-size: 13px; }
   &__td--title { font-weight: 600; }
   &__td--date  { color: #74728a; white-space: nowrap; }
 }
- 
- 
+
+
 // ============================================================================
 // КАРТОЧКА ЗАДАЧИ — мета-строка
 // ============================================================================
- 
+
 .task-deal__description {
   border-top-color: #eceaf3 !important;
 }
- 
+
 .task-deal__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 40px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
   margin-bottom: 20px;
   align-items: flex-start;
 }
- 
+
 .task-deal__meta-label {
   font-size: 11px;
   color: #74728a;
   margin-bottom: 6px;
 }
- 
+
 .task-deal__meta-value {
   font-size: 14px;
   font-weight: 600;
   color: #25233f;
 }
- 
+
 // Приоритет-селект через Select2 — стиль как у дропдауна «Состояние»
 .task-deal__priority-select {
   min-width: 160px;
@@ -3441,14 +3450,14 @@ body.task-edit-body {
   background-repeat: no-repeat;
   background-position: right 12px center;
   background-size: 12px 8px;
- 
+
   &:disabled { opacity: .65; cursor: not-allowed; }
 }
- 
+
 // Select2 для поля приоритета — те же стили что у «Состояния»
 .task-deal__main {
   .select2-container { display: inline-block !important; width: auto !important; min-width: 160px !important; }
- 
+
   .select2-container--default .select2-selection--single,
   .select2-container--bootstrap4 .select2-selection--single {
     height: 36px !important;
@@ -3460,7 +3469,7 @@ body.task-edit-body {
     display: flex !important;
     align-items: center !important;
   }
- 
+
   .select2-selection__rendered {
     height: 36px !important;
     line-height: 36px !important;
@@ -3470,13 +3479,13 @@ body.task-edit-body {
     font-size: 13px !important;
     font-weight: 600 !important;
   }
- 
+
   .select2-selection__arrow {
     height: 36px !important;
     right: 10px !important;
   }
 }
- 
+
 // Дропдаун приоритета — тот же стиль что у Состояния
 .task-deal__priority-dropdown {
   border: 0 !important;
@@ -3484,12 +3493,12 @@ body.task-edit-body {
   box-shadow: 0 16px 40px rgba(15,23,42,.14) !important;
   overflow: hidden !important;
   background: #fff !important;
- 
+
   .select2-results__options {
     padding: 6px !important;
     max-height: 240px !important;
   }
- 
+
   .select2-results__option {
     min-height: 36px !important;
     padding: 8px 12px !important;
@@ -3499,32 +3508,32 @@ body.task-edit-body {
     display: flex !important;
     align-items: center !important;
   }
- 
+
   .select2-results__option--highlighted {
     background: #2f6bed !important;
     color: #fff !important;
   }
- 
+
   .select2-results__option[aria-selected="true"] {
     background: #eef2ff !important;
     color: #2f6bed !important;
     font-weight: 600 !important;
   }
 }
- 
- 
+
+
 // ============================================================================
 // КНОПКИ WORKFLOW — по Figma
 // ============================================================================
- 
+
 .task-deal__actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
- 
+
 .task-deal__action-btn {
   height: 40px;
   padding: 0 22px;
@@ -3538,16 +3547,16 @@ body.task-edit-body {
   cursor: pointer;
   text-decoration: none;
   transition: background .15s, color .15s;
- 
+
   i { font-size: 15px; }
- 
+
   // Синяя — Принять, Исполнено, Согласовать
   &--primary, &--success, &--info {
     background: #2f6bed;
     color: #fff;
     &:hover { background: #2458c7; }
   }
- 
+
   // Видимая ghost — На доработку, Отправить (серый фон, тёмный текст)
   &--warning, &--secondary, &--ghost, &--neutral {
     background: #f5f3fa;
@@ -3555,7 +3564,7 @@ body.task-edit-body {
     border: 0;
     &:hover { background: #ece9f4; }
   }
- 
+
   // Красный текст — Отклонить
   &--danger {
     background: transparent;
@@ -3563,19 +3572,19 @@ body.task-edit-body {
     padding-left: 4px;
     &:hover { background: #feecec; border-radius: 12px; }
   }
- 
+
   &.is-loading { opacity: .65; pointer-events: none; }
 }
- 
- 
+
+
 // ============================================================================
 // ТАБЫ: ЗАЯВКИ / ЗАДАЧИ / СЧЕТА — стиль как у контрагентов
 // ============================================================================
- 
+
 .task-tabs-bar {
   margin-bottom: 20px;
 }
- 
+
 .task-tablist {
   display: flex;
   align-items: center;
@@ -3585,7 +3594,7 @@ body.task-edit-body {
   border-bottom: 1px solid #eceaf3;
   padding-bottom: 0;
 }
- 
+
 .task-tab {
   display: inline-flex;
   align-items: center;
@@ -3604,16 +3613,16 @@ body.task-edit-body {
   letter-spacing: 0.04em;
   transition: color .15s, border-color .15s;
   white-space: nowrap;
- 
+
   &:hover {
     color: #25233f;
   }
- 
+
   &.is-active {
     color: #2f6bed;
     border-bottom-color: #2f6bed;
   }
- 
+
   &__count {
     display: inline-flex;
     align-items: center;
@@ -3626,13 +3635,13 @@ body.task-edit-body {
     color: #fff;
     font-size: 11px;
     font-weight: 700;
- 
+
     &--zero {
       background: #eceaf3;
       color: #9a98aa;
     }
   }
- 
+
   &__add {
     display: inline-flex;
     align-items: center;
@@ -3645,41 +3654,41 @@ body.task-edit-body {
     margin-left: 2px;
     font-size: 14px;
     transition: background .15s;
- 
+
     &:hover {
       background: #ece9f4;
       color: #25233f;
     }
   }
 }
- 
+
 .task-tab-panel {
   display: none;
   padding: 16px 0;
- 
+
   &.is-active {
     display: block;
   }
- 
+
   &__empty {
     font-size: 13px;
     color: #9a98aa;
     padding: 12px 0;
     text-align: center;
   }
- 
+
   &__row {
     font-size: 13px;
     color: #25233f;
     padding: 8px 0;
   }
 }
- 
- 
+
+
 // ============================================================================
 // ПОЛЕ КОММЕНТАРИЯ — стиль как у контрагентов
 // ============================================================================
- 
+
 .task-comment-composer {
   display: flex;
   align-items: center;
@@ -3690,7 +3699,7 @@ body.task-edit-body {
   border-radius: 999px;
   background: #fff;
   margin-top: 16px;
- 
+
   &__input {
     flex: 1;
     min-width: 0;
@@ -3699,10 +3708,10 @@ body.task-edit-body {
     outline: none;
     font-size: 13px;
     color: #25233f;
- 
+
     &::placeholder { color: #9a98aa; }
   }
- 
+
   &__attach {
     width: 34px;
     height: 34px;
@@ -3716,10 +3725,10 @@ body.task-edit-body {
     justify-content: center;
     font-size: 16px;
     flex-shrink: 0;
- 
+
     &:hover { background: #f5f3fa; color: #25233f; }
   }
- 
+
   &__submit {
     height: 36px;
     padding: 0 20px;
@@ -3731,27 +3740,27 @@ body.task-edit-body {
     font-weight: 600;
     cursor: pointer;
     flex-shrink: 0;
- 
+
     &:hover { background: #2458c7; }
   }
 }
- 
- 
+
+
 // ============================================================================
 // МАРШРУТ В САЙДБАРЕ
 // ============================================================================
- 
+
 .task-route {
   display: flex;
   flex-direction: column;
   gap: 14px;
- 
+
   &__item {
     display: flex;
     align-items: center;
     gap: 10px;
   }
- 
+
   &__avatar {
     width: 34px;
     height: 34px;
@@ -3762,25 +3771,25 @@ body.task-edit-body {
     justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
- 
+
     img { width: 100%; height: 100%; object-fit: cover; }
   }
- 
+
   &__avatar-letter {
     font-size: 12px;
     font-weight: 700;
     color: #2f6bed;
     text-transform: uppercase;
   }
- 
+
   &__content { flex: 1; min-width: 0; }
- 
+
   &__role {
     font-size: 11px;
     color: #74728a;
     margin-bottom: 2px;
   }
- 
+
   &__name {
     font-size: 13px;
     font-weight: 600;
@@ -3789,7 +3798,7 @@ body.task-edit-body {
     overflow: hidden;
     text-overflow: ellipsis;
   }
- 
+
   &__status {
     display: flex;
     flex-direction: column;
@@ -3799,38 +3808,38 @@ body.task-edit-body {
     color: #74728a;
     flex-shrink: 0;
     text-align: right;
- 
+
     i { font-size: 14px; }
     span { white-space: nowrap; }
- 
+
     &--done   { color: #16a34a; i { color: #16a34a; } }
     &--in-progress { color: #74728a; }
   }
- 
+
   &__date {
     font-size: 11px;
     color: #74728a;
     white-space: nowrap;
   }
 }
- 
- 
+
+
 // ============================================================================
 // ПАНЕЛИ САЙДБАРА
 // ============================================================================
- 
+
 .task-panel {
   background: #fff;
   border-radius: 16px;
   padding: 18px;
- 
+
   &__head {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-bottom: 14px;
   }
- 
+
   &__title {
     margin: 0;
     margin-right: auto;
@@ -3838,7 +3847,7 @@ body.task-edit-body {
     font-weight: 700;
     color: #25233f;
   }
- 
+
   &__add {
     width: 28px;
     height: 28px;
@@ -3854,29 +3863,29 @@ body.task-edit-body {
     i { font-size: 16px; }
     &:hover { background: #ece9f4; color: #25233f; }
   }
- 
+
   &__empty { font-size: 13px; color: #9a98aa; }
 }
- 
- 
+
+
 // ============================================================================
 // ПУСТЫЕ СОСТОЯНИЯ
 // ============================================================================
- 
+
 .tasks-empty {
   padding: 40px 0;
   text-align: center;
- 
+
   &__icon { font-size: 40px; margin-bottom: 14px; color: #d0cee0; display: block; }
   &__title { font-size: 15px; font-weight: 700; color: #25233f; margin-bottom: 6px; }
   &__text { font-size: 13px; color: #9a98aa; max-width: 260px; margin: 0 auto; line-height: 1.5; }
 }
- 
- 
+
+
 // ============================================================================
 // ФАЙЛЫ — иконки по типу
 // ============================================================================
- 
+
 .task-files__icon {
   width: 34px;
   height: 34px;
@@ -3886,7 +3895,7 @@ body.task-edit-body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
- 
+
   i { font-size: 17px; }
   i.bi-file-earmark-pdf         { color: #ef4444; }
   i.bi-file-earmark-text        { color: #2f6bed; }
@@ -3896,16 +3905,16 @@ body.task-edit-body {
   i.bi-file-earmark-image       { color: #f59e0b; }
   i.bi-file-earmark             { color: #74728a; }
 }
- 
- 
+
+
 // ============================================================================
 // КАНБАН — точки статусов
 // ============================================================================
- 
+
 .tasks-kanban__dot {
   width: 9px; height: 9px; border-radius: 50%;
   display: inline-block; background: currentColor; flex-shrink: 0;
- 
+
   &.tasks-status--neutral { color: #9ca3af; }
   &.tasks-status--info    { color: #2563eb; }
   &.tasks-status--warning { color: #f59e0b; }
@@ -3913,12 +3922,12 @@ body.task-edit-body {
   &.tasks-status--danger  { color: #ef4444; }
   &.tasks-status--paused  { color: #6b7280; }
 }
- 
- 
+
+
 // ============================================================================
 // МОБИЛЬНАЯ АДАПТАЦИЯ
 // ============================================================================
- 
+
 @media (max-width: 900px) {
   .task-deal { grid-template-columns: 1fr; }
   .task-deal__aside { position: static; }
@@ -3926,35 +3935,35 @@ body.task-edit-body {
   .tasks-page__header { flex-wrap: wrap; }
   .tasks-page__toolbar { width: 100%; }
 }
- 
- 
+
+
 // ============================================================================
 // КАРТОЧКА-БЛОК — белая карточка с тенью (как секции у контрагентов)
 // Используется для: кнопки+табы, обновления+комментарий
 // ============================================================================
- 
+
 .task-deal__card-block {
   background: #fff;
   border-radius: 16px;
   padding: 20px 22px;
- 
-  // Кнопки workflow — отступ сверху от описания
+
+  // Кнопки workflow — небольшой отступ от описания
   .task-deal__actions {
-    margin-top: 16px;
+    margin-top: 8px;
     margin-bottom: 0;
     &:empty { display: none; }
   }
- 
+
   // Табы без нижнего отступа блока (border уже есть)
   .task-tabs-bar {
     margin-bottom: 0;
   }
- 
+
   // Лента обновлений внутри блока
   .task-feed {
     margin-top: 0;
   }
- 
+
   // Заголовок «Обновления» / «История»
   .task-feed__title {
     font-size: 18px;
@@ -3962,26 +3971,26 @@ body.task-edit-body {
     color: #25233f;
     margin: 0 0 16px;
   }
- 
+
   // Форма комментария прилипает к низу блока
   .task-comment-composer {
     margin-top: 16px;
   }
 }
- 
- 
+
+
 // ============================================================================
 // ПЕРЕОПРЕДЕЛЕНИЕ: task-deal__main без белого фона — фон у каждого блока свой
 // ============================================================================
- 
+
 .task-deal__main {
   background: transparent !important;
   padding: 0 !important;
-  gap: 9px;
+  gap: 8px;
   display: flex !important;
   flex-direction: column !important;
 }
- 
+
 // Оборачиваем верхнюю часть (head+title+meta+description) в белый блок
 .task-deal__top-block {
   background: #fff;
@@ -3989,5 +3998,74 @@ body.task-edit-body {
   padding: 20px 22px;
   display: flex;
   flex-direction: column;
+
+  // Кнопки — минимальный отступ сверху, снизу 0 (padding блока уже даёт отступ)
+  .task-deal__actions {
+    margin-top: 8px;
+    margin-bottom: 0;
+    &:empty { display: none; }
+  }
 }
- 
+
+
+// ============================================================================
+// ИСТОРИЯ СТАТУСОВ В МАРШРУТЕ — под списком участников
+// ============================================================================
+
+.task-route__history {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f0eef6;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  &-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #f0eef6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: #74728a;
+
+    img { width: 100%; height: 100%; object-fit: cover; }
+  }
+
+  &-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &-name {
+    font-size: 11px;
+    color: #74728a;
+    margin-bottom: 1px;
+  }
+
+  &-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: #25233f;
+  }
+
+  &-time {
+    font-size: 10px;
+    color: #9a98aa;
+    text-align: right;
+    white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1.4;
+  }
+}

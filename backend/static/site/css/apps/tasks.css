@@ -3135,9 +3135,9 @@ body.task-edit-body .bpm-content {
 }
 
 .task-deal__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 40px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
   margin-bottom: 20px;
   align-items: flex-start;
 }
@@ -3242,7 +3242,7 @@ body.task-edit-body .bpm-content {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .task-deal__action-btn {
@@ -3672,7 +3672,7 @@ body.task-edit-body .bpm-content {
   padding: 20px 22px;
 }
 .task-deal__card-block .task-deal__actions {
-  margin-top: 16px;
+  margin-top: 8px;
   margin-bottom: 0;
 }
 .task-deal__card-block .task-deal__actions:empty {
@@ -3697,7 +3697,7 @@ body.task-edit-body .bpm-content {
 .task-deal__main {
   background: transparent !important;
   padding: 0 !important;
-  gap: 6px;
+  gap: 8px;
   display: flex !important;
   flex-direction: column !important;
 }
@@ -3708,6 +3708,68 @@ body.task-edit-body .bpm-content {
   padding: 20px 22px;
   display: flex;
   flex-direction: column;
+}
+.task-deal__top-block .task-deal__actions {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+.task-deal__top-block .task-deal__actions:empty {
+  display: none;
+}
+
+.task-route__history {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f0eef6;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.task-route__history-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.task-route__history-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f0eef6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #74728a;
+}
+.task-route__history-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.task-route__history-content {
+  flex: 1;
+  min-width: 0;
+}
+.task-route__history-name {
+  font-size: 11px;
+  color: #74728a;
+  margin-bottom: 1px;
+}
+.task-route__history-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #25233f;
+}
+.task-route__history-time {
+  font-size: 10px;
+  color: #9a98aa;
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.4;
 }
 
 /*# sourceMappingURL=tasks.css.map */
