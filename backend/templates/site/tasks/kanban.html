@@ -16,7 +16,7 @@
     <div class="tasks-page__header">
       <h1 class="tasks-page__title">{% t 'tasks.kanban_title' 'Канбан задач' %}</h1>
 
-      <div class="tasks-view-switch">
+      <div class="tasks-view-switch" style="margin-left:auto">
         <a href="{% url 'tasks:list' %}" class="tasks-view-switch__btn">{% t 'tasks.list_view' 'Список' %}</a>
         <a href="{% url 'tasks:kanban' %}" class="tasks-view-switch__btn is-active">{% t 'tasks.kanban_view' 'Канбан' %}</a>
       </div>
@@ -30,12 +30,14 @@
     </div>
   </div>
 
-  <div class="tasks-kanban" id="tasksKanbanBoard">
+  <div class="tasks-kanban tasks-kanban--board" id="tasksKanbanBoard">
     <div class="tasks-kanban__loading">Загрузка…</div>
   </div>
+
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script src="{% static 'site/js/apps/tasks-kanban.js' %}?v=3"></script>
+<script src="{% static 'site/js/apps/tasks-kanban-fix.js' %}?v=1"></script>
 {% endblock %}

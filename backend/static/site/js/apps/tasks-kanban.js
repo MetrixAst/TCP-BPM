@@ -77,13 +77,6 @@
     return { statuses: statuses, rows: rows };
   }
 
-  function managerTasksUrl(executorId) {
-    if (executorId) {
-      return '/tasks/?executor=' + encodeURIComponent(executorId);
-    }
-    return '/tasks/';
-  }
-
   function renderBoard(data) {
     const swim = buildSwimlaneData(data);
     const statuses = swim.statuses;
@@ -96,8 +89,12 @@
     }
 
     const colCount = statuses.length;
-    const gridCols =
-      '200px repeat(' + colCount + ', minmax(200px, 1fr)) 160px';
+
+    // Считаем доступную ширину и делим поровну между колонками
+    const boardWidth = board.offsetWidth || 1000;
+    const executorColW = 130;
+    const statusColW = Math.floor((boardWidth - executorColW) / colCount);
+    const gridCols = executorColW + 'px repeat(' + colCount + ', ' + statusColW + 'px)';
 
     let html = '<div class="tasks-kanban-swim" style="--kanban-cols:' + colCount + '">';
 
@@ -110,7 +107,7 @@
           escapeHtml(st.title) +
         '</div>';
     });
-    html += '<div class="tasks-kanban-swim__head-cell tasks-kanban-swim__head-cell--link">Менеджер задач</div>';
+    // ── ИЗМЕНЕНО: убрана ячейка «Менеджер задач» из шапки
     html += '</div>';
 
     if (!rows.length) {
@@ -143,10 +140,7 @@
           html += '</div>';
         });
 
-        html +=
-          '<a class="tasks-kanban-swim__lane-link" href="' + managerTasksUrl(row.executor_id) + '">' +
-            '<i class="bi bi-kanban"></i> Менеджер задач' +
-          '</a>';
+        // ── ИЗМЕНЕНО: убрана ссылка «Менеджер задач» из каждой строки
 
         html += '</div>';
       });
@@ -156,21 +150,18 @@
     board.innerHTML = html;
 
     board.querySelectorAll('[data-drop-zone]').forEach(function (zone) {
-      const lane = zone.closest('.tasks-kanban-swim__lane');
-      const col = zone;
-
       zone.addEventListener('dragover', function (e) {
         e.preventDefault();
-        col.classList.add('is-drag-over');
+        zone.classList.add('is-drag-over');
       });
 
       zone.addEventListener('dragleave', function () {
-        col.classList.remove('is-drag-over');
+        zone.classList.remove('is-drag-over');
       });
 
       zone.addEventListener('drop', function (e) {
         e.preventDefault();
-        col.classList.remove('is-drag-over');
+        zone.classList.remove('is-drag-over');
         if (!dragTaskId || moveInFlight) return;
         const newStatus = zone.getAttribute('data-status');
         if (newStatus === dragFromStatus) { dragTaskId = null; return; }
@@ -239,8 +230,6 @@
   }
 
   function statusTitle(status) {
-    const head = board.querySelector('.tasks-kanban-swim__head');
-    void head;
     const map = {};
     (board.__statuses || []).forEach(function (s) { map[s.status] = s.title; });
     return map[status] || status;
