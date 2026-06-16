@@ -3783,4 +3783,321 @@ body.task-edit-body .bpm-content {
   line-height: 1.4;
 }
 
+.tasks-kanban-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tasks-kanban--paged {
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px 18px 12px;
+  overflow-x: auto;
+  min-height: 300px;
+  display: block !important;
+}
+.tasks-kanban--paged .tasks-kanban-swim {
+  width: 100%;
+  min-width: max-content;
+}
+
+.task-invoices {
+  padding-top: 4px;
+}
+.task-invoices__table-wrap {
+  border: 1px solid #eceaf3;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  overflow-x: auto;
+}
+.task-invoices__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.task-invoices__table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #74728a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #faf9fd;
+  border-bottom: 1px solid #eceaf3;
+  white-space: nowrap;
+}
+.task-invoices__table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f5f3fa;
+  color: #25233f;
+  vertical-align: middle;
+}
+.task-invoices__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.task-invoices__table tbody tr:hover {
+  background: #faf9fd;
+}
+.task-invoices__th--num {
+  text-align: right;
+  width: 100px;
+}
+.task-invoices__th--sm {
+  width: 60px;
+}
+.task-invoices__td--name {
+  font-weight: 500;
+}
+.task-invoices__td--num {
+  text-align: right;
+  color: #74728a;
+}
+.task-invoices__td--sm {
+  color: #74728a;
+}
+.task-invoices__td--total {
+  text-align: right;
+  font-weight: 600;
+  color: #25233f;
+}
+.task-invoices__total-row {
+  background: #f5f3fa;
+}
+.task-invoices__total-row td {
+  border-bottom: 0;
+  padding: 12px 14px;
+}
+.task-invoices__total-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #74728a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: right;
+}
+.task-invoices__total-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #25233f;
+  text-align: right;
+  white-space: nowrap;
+}
+.task-invoices__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 20px;
+  text-align: center;
+  color: #9a98aa;
+  font-size: 13px;
+}
+.task-invoices__empty i {
+  font-size: 36px;
+  color: #d0cee0;
+}
+.task-invoices__empty-btn {
+  height: 36px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #2f6bed;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+.task-invoices__empty-btn:hover {
+  background: #2458c7;
+}
+
+.task-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1090;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease, visibility 0.18s ease;
+}
+.task-modal-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.task-modal {
+  width: 100%;
+  max-width: 480px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.22);
+  transform: translateY(10px) scale(0.98);
+  transition: transform 0.18s ease;
+}
+.task-modal-overlay.is-open .task-modal {
+  transform: none;
+}
+.task-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 0;
+  margin-bottom: 20px;
+}
+.task-modal__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #25233f;
+}
+.task-modal__close {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: #f5f3fa;
+  color: #74728a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+}
+.task-modal__close:hover {
+  background: #ece9f4;
+  color: #25233f;
+}
+.task-modal__body {
+  padding: 0 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.task-modal__row {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr;
+  gap: 12px;
+}
+.task-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.task-modal__field--wide {
+  grid-column: 1/-1;
+}
+.task-modal__field--sm {
+  min-width: 0;
+}
+.task-modal__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #74728a;
+}
+.task-modal__label span {
+  color: #ef4444;
+}
+.task-modal__input {
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid #eceaf3;
+  border-radius: 10px;
+  background: #fff;
+  color: #25233f;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.task-modal__input:focus {
+  border-color: #2f6bed;
+  box-shadow: 0 0 0 3px rgba(47, 107, 237, 0.12);
+}
+.task-modal__input::placeholder {
+  color: #9a98aa;
+}
+.task-modal__error {
+  font-size: 12px;
+  color: #ef4444;
+  min-height: 16px;
+}
+.task-modal__preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #f5f3fa;
+  border-radius: 12px;
+}
+.task-modal__preview-label {
+  font-size: 13px;
+  color: #74728a;
+  font-weight: 500;
+}
+.task-modal__preview-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #25233f;
+}
+.task-modal__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+.task-modal__btn {
+  height: 40px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s;
+}
+.task-modal__btn--cancel {
+  background: #f5f3fa;
+  color: #25233f;
+}
+.task-modal__btn--cancel:hover {
+  background: #ece9f4;
+}
+.task-modal__btn--save {
+  background: #2f6bed;
+  color: #fff;
+}
+.task-modal__btn--save:hover {
+  background: #2458c7;
+}
+.task-modal__btn--save:disabled {
+  opacity: 0.65;
+  pointer-events: none;
+}
+.task-modal__btn-spinner i {
+  animation: task-spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes task-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /*# sourceMappingURL=tasks.css.map */
