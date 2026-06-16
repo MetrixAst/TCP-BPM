@@ -2745,108 +2745,6 @@ body.task-edit-body .bpm-content {
   color: #ff3b30;
 }
 
-.bpm-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 1080;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(15, 23, 42, 0.45);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.18s ease, visibility 0.18s ease;
-}
-.bpm-modal.is-open {
-  opacity: 1;
-  visibility: visible;
-}
-.bpm-modal__dialog {
-  width: 100%;
-  max-width: 380px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
-  padding: 24px;
-  transform: translateY(8px) scale(0.98);
-  transition: transform 0.18s ease;
-}
-.bpm-modal.is-open .bpm-modal__dialog {
-  transform: none;
-}
-.bpm-modal__icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 14px;
-  font-size: 24px;
-  background: #e8ecfb;
-  color: #2f6bed;
-}
-.bpm-modal__icon--danger {
-  background: #feecec;
-  color: #ff3b30;
-}
-.bpm-modal__icon--success {
-  background: #e6f7ee;
-  color: #22a85a;
-}
-.bpm-modal__icon--warning {
-  background: #fff4e5;
-  color: #ff9500;
-}
-.bpm-modal__title {
-  margin: 0 0 6px;
-  font-size: 17px;
-  font-weight: 700;
-  color: #25233f;
-}
-.bpm-modal__text {
-  margin: 0 0 20px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #74728a;
-}
-.bpm-modal__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-.bpm-modal__btn {
-  height: 38px;
-  padding: 0 18px;
-  border: 0;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.bpm-modal__btn--ghost {
-  background: #f5f3fa;
-  color: #25233f;
-}
-.bpm-modal__btn--ghost:hover {
-  background: #ece9f4;
-}
-.bpm-modal__btn--primary {
-  background: #2f6bed;
-  color: #fff;
-}
-.bpm-modal__btn--primary:hover {
-  background: #2458c7;
-}
-.bpm-modal__btn--danger {
-  background: #ff3b30;
-  color: #fff;
-}
-.bpm-modal__btn--danger:hover {
-  filter: brightness(0.95);
-}
-
 .tasks-page__top {
   background: #fff;
   border-radius: 18px;
@@ -4098,6 +3996,21 @@ body.task-edit-body .bpm-content {
   to {
     transform: rotate(360deg);
   }
+}
+.task-modal__row {
+  grid-template-columns: 1fr 70px 130px;
+}
+
+.task-invoices__table td.task-invoices__td--name,
+.task-invoices__table th:first-child {
+  width: auto;
+  min-width: 160px;
+}
+.task-invoices__table .task-invoices__th--num {
+  width: 90px;
+}
+.task-invoices__table .task-invoices__th--sm {
+  width: 56px;
 }
 
 /*# sourceMappingURL=tasks.css.map */

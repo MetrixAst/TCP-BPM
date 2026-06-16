@@ -3012,104 +3012,6 @@ body.task-edit-body {
   }
 }
 
-// ============================================================================
-// MODAL (замена браузерных alert/confirm)
-// ============================================================================
-
-.bpm-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 1080;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(15, 23, 42, .45);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity .18s ease, visibility .18s ease;
-
-  &.is-open { opacity: 1; visibility: visible; }
-
-  &__dialog {
-    width: 100%;
-    max-width: 380px;
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 24px 60px rgba(15, 23, 42, .25);
-    padding: 24px;
-    transform: translateY(8px) scale(.98);
-    transition: transform .18s ease;
-  }
-
-  &.is-open &__dialog { transform: none; }
-
-  &__icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 14px;
-    font-size: 24px;
-    background: #e8ecfb;
-    color: $task-primary;
-
-    &--danger { background: #feecec; color: $task-danger; }
-    &--success { background: #e6f7ee; color: $task-success; }
-    &--warning { background: #fff4e5; color: $task-warning; }
-  }
-
-  &__title {
-    margin: 0 0 6px;
-    font-size: 17px;
-    font-weight: 700;
-    color: $task-text;
-  }
-
-  &__text {
-    margin: 0 0 20px;
-    font-size: 14px;
-    line-height: 1.5;
-    color: $task-muted;
-  }
-
-  &__actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-  }
-
-  &__btn {
-    height: 38px;
-    padding: 0 18px;
-    border: 0;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-
-    &--ghost {
-      background: $task-field-bg;
-      color: $task-text;
-      &:hover { background: #ece9f4; }
-    }
-
-    &--primary {
-      background: $task-primary;
-      color: #fff;
-      &:hover { background: $task-primary-hover; }
-    }
-
-    &--danger {
-      background: $task-danger;
-      color: #fff;
-      &:hover { filter: brightness(.95); }
-    }
-  }
-}
- 
 .tasks-page {
  
   &__top {
@@ -4399,4 +4301,23 @@ body.task-edit-body {
 @keyframes task-spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
+}
+ 
+ 
+// ── Фикс модалки: поле Цена не обрезается ──
+.task-modal__row {
+  grid-template-columns: 1fr 70px 130px;
+}
+ 
+// ── Фикс таблицы: Наименование растягивается ──
+.task-invoices__table {
+  td.task-invoices__td--name,
+  th:first-child {
+    width: auto;
+    min-width: 160px;
+  }
+ 
+  // Числовые колонки фиксированные
+  .task-invoices__th--num { width: 90px; }
+  .task-invoices__th--sm  { width: 56px; }
 }
