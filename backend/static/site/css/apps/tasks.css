@@ -3287,6 +3287,7 @@ body.task-edit-body .bpm-content {
   display: inline-flex;
   gap: 2px;
   background: #f5f3fa;
+  padding: 2px 8px;
   border-radius: 999px;
   padding: 3px;
   height: 36px;
@@ -3372,21 +3373,24 @@ body.task-edit-body .bpm-content {
 .task-deal__main .select2-container--bootstrap4 .select2-selection--single {
   height: 36px !important;
   min-height: 36px !important;
+  max-height: 36px !important;
   border: 0 !important;
   border-radius: 999px !important;
   background: #f5f3fa !important;
   box-shadow: none !important;
   display: flex !important;
   align-items: center !important;
+  box-sizing: border-box !important;
 }
 .task-deal__main .select2-selection__rendered {
   height: 36px !important;
   line-height: 36px !important;
   padding-left: 14px !important;
-  padding-right: 36px !important;
+  padding-right: 30px !important;
   color: #25233f !important;
   font-size: 13px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
+  box-sizing: border-box !important;
 }
 .task-deal__main .select2-selection__arrow {
   height: 36px !important;

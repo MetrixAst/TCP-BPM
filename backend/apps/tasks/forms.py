@@ -6,6 +6,8 @@ from onec.models import Counterparty
 from .models import Task
 from .enums import TaskTypeEnum
 
+from decimal import Decimal, InvalidOperation
+
 
 class TaskForm(forms.ModelForm):
     title = forms.CharField(
@@ -97,3 +99,38 @@ class TaskForm(forms.ModelForm):
                 "class": "task-edit-select",
                 "data-placeholder": placeholder,
             })
+
+class TaskLineItemForm(forms.Form):
+    name = forms.CharField(
+        max_length=200,
+        error_messages={'required': 'Укажите наименование'}
+    )
+    quantity = forms.DecimalField(
+        min_value=Decimal('0.01'),
+        initial=Decimal('1'),
+        error_messages={
+            'required': 'Укажите количество',
+            'min_value': 'Количество должно быть больше 0',
+            'invalid': 'Некорректное количество',
+        }
+    )
+    price = forms.DecimalField(
+        min_value=Decimal('0'),
+        initial=Decimal('0'),
+        error_messages={
+            'required': 'Укажите цену',
+            'min_value': 'Цена не может быть отрицательной',
+            'invalid': 'Некорректная цена',
+        }
+    )
+    unit = forms.CharField(
+        max_length=20,
+        required=False,
+        initial='шт'
+    )
+
+    def clean_name(self):
+        return self.cleaned_data['name'].strip()
+
+    def clean_unit(self):
+        return (self.cleaned_data.get('unit') or 'шт').strip()
