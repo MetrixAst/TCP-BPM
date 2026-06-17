@@ -1,0 +1,63 @@
+
+<div class="oo-file-item">
+ 
+    <div class="oo-file-item__icon">
+      {% with ext=filename|lower %}
+        {% if '.pdf' in ext %}
+          <i class="bi bi-file-earmark-pdf" style="color:#ef4444"></i>
+        {% elif '.doc' in ext %}
+          <i class="bi bi-file-earmark-word" style="color:#2563eb"></i>
+        {% elif '.xls' in ext %}
+          <i class="bi bi-file-earmark-excel" style="color:#16a34a"></i>
+        {% elif '.ppt' in ext %}
+          <i class="bi bi-file-earmark-ppt" style="color:#f59e0b"></i>
+        {% elif '.png' in ext or '.jpg' in ext or '.jpeg' in ext or '.gif' in ext %}
+          <i class="bi bi-file-earmark-image" style="color:#0ea5e9"></i>
+        {% else %}
+          <i class="bi bi-file-earmark" style="color:#74728a"></i>
+        {% endif %}
+      {% endwith %}
+    </div>
+   
+    <div class="oo-file-item__info">
+      {% if oo_supported and oo_editor_url %}
+        <a href="{{ oo_editor_url }}" target="_blank" rel="noopener" class="oo-file-item__name">
+          {{ filename }}
+        </a>
+      {% else %}
+        <a href="{{ file_url }}" target="_blank" class="oo-file-item__name">
+          {{ filename }}
+        </a>
+      {% endif %}
+      <div class="oo-file-item__meta">
+        {% if filesize %}{{ filesize }}{% endif %}
+        {% if uploader %}{% if filesize %} · {% endif %}{{ uploader }}{% endif %}
+      </div>
+    </div>
+   
+    <div class="oo-file-item__actions">
+   
+      {% if oo_supported and oo_editor_url %}
+        <a href="{{ oo_editor_url }}" target="_blank" rel="noopener"
+           class="oo-file-item__btn oo-file-item__btn--oo"
+           title="{% if oo_editable %}Редактировать в ONLYOFFICE{% else %}Открыть в ONLYOFFICE{% endif %}">
+          <i class="bi {% if oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
+        </a>
+      {% endif %}
+   
+      <a href="{{ file_url }}" download
+         class="oo-file-item__btn" title="Скачать">
+        <i class="bi bi-download"></i>
+      </a>
+   
+      {% if can_delete and delete_url %}
+        <button type="button"
+                class="oo-file-item__btn oo-file-item__btn--danger"
+                data-file-delete data-url="{{ delete_url }}"
+                title="Удалить">
+          <i class="bi bi-trash"></i>
+        </button>
+      {% endif %}
+   
+    </div>
+  </div>

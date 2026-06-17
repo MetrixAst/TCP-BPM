@@ -1,5 +1,6 @@
 {% extends 'site/base.html' %}
 {% load static %}
+{% load static site_tags %}
 
 {% block title %}
   {% if is_own_profile %}Мой профиль{% else %}{{ user.get_name|default:user.username }}{% endif %} — metriX BPM
@@ -300,12 +301,27 @@
               <td>
                 <div class="emp-table__actions">
                   {% if doc.file %}
+ 
+                    {# Кнопка ONLYOFFICE — если сервер включён и формат поддерживается #}
+                    {% if doc.file.name|oo_supported %}
+                      <a href="{{ doc.pk|oo_editor_url:'hr_document' }}"
+                         target="_blank" rel="noopener"
+                         class="hr-oo-btn"
+                         title="{% if doc.file.name|oo_editable %}Редактировать в ONLYOFFICE{% else %}Открыть в ONLYOFFICE{% endif %}">
+                        <i class="bi {% if doc.file.name|oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
+                        <span>{% if doc.file.name|oo_editable %}Редактировать{% else %}Открыть{% endif %}</span>
+                      </a>
+                    {% endif %}
+ 
+                    {# Скачать — всегда #}
                     <a href="{{ doc.file.url }}" target="_blank" download
                        class="hr-download-btn" title="Скачать документ">
                       <i class="bi bi-download"></i>
-                      <span>Скачать документ</span>
+                      <span>Скачать</span>
                     </a>
+ 
                   {% endif %}
+ 
                   {% if can_manage %}
                     <a href="{% url 'hr:documents_edit' doc.pk %}"
                        class="emp-icon-btn" title="Редактировать">
@@ -387,8 +403,16 @@
               <td>
                 <div class="emp-table__actions">
                   {% if cert.scan %}
-                    <a href="{{ cert.scan.url }}" target="_blank" class="emp-icon-btn">
-                      <i class="bi bi-file-earmark"></i>
+                    {% if cert.scan.name|oo_supported %}
+                      <a href="{{ cert.pk|oo_editor_url:'hr_cert' }}" target="_blank" rel="noopener"
+                        class="hr-oo-btn"
+                        title="{% if cert.scan.name|oo_editable %}Редактировать{% else %}Открыть{% endif %} в ONLYOFFICE">
+                        <i class="bi {% if cert.scan.name|oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
+                        <span>{% if cert.scan.name|oo_editable %}Редактировать{% else %}Открыть{% endif %}</span>
+                      </a>
+                    {% endif %}
+                    <a href="{{ cert.scan.url }}" target="_blank" download class="emp-icon-btn" title="Скачать">
+                      <i class="bi bi-download"></i>
                     </a>
                   {% endif %}
                   {% if can_manage %}
@@ -449,8 +473,16 @@
               <td>
                 <div class="emp-table__actions">
                   {% if p.scan %}
-                    <a href="{{ p.scan.url }}" target="_blank" class="emp-icon-btn">
-                      <i class="bi bi-file-earmark"></i>
+                    {% if p.scan.name|oo_supported %}
+                      <a href="{{ p.pk|oo_editor_url:'hr_permit' }}" target="_blank" rel="noopener"
+                        class="hr-oo-btn"
+                        title="{% if p.scan.name|oo_editable %}Редактировать{% else %}Открыть{% endif %} в ONLYOFFICE">
+                        <i class="bi {% if p.scan.name|oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
+                        <span>{% if p.scan.name|oo_editable %}Редактировать{% else %}Открыть{% endif %}</span>
+                      </a>
+                    {% endif %}
+                    <a href="{{ p.scan.url }}" target="_blank" download class="emp-icon-btn" title="Скачать">
+                      <i class="bi bi-download"></i>
                     </a>
                   {% endif %}
                   {% if can_manage %}

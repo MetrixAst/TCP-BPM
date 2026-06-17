@@ -17,17 +17,13 @@
       <h1>Реестр допусков</h1>
       <p>Категории работ, номера документов и сроки действия</p>
     </div>
-
     <div class="hr-registry-top__actions">
       <a href="{% url 'hr:permits_export' %}?{{ request.GET.urlencode }}" class="hr-registry-btn hr-registry-btn--light">
-        <i class="bi bi-file-earmark-excel"></i>
-        Экспорт Excel
+        <i class="bi bi-file-earmark-excel"></i> Экспорт Excel
       </a>
-
       {% if is_hr %}
         <a href="{% url 'hr:permits_create' %}" class="hr-registry-btn hr-registry-btn--primary">
-          <i class="bi bi-plus-lg"></i>
-          Добавить допуск
+          <i class="bi bi-plus-lg"></i> Добавить допуск
         </a>
       {% endif %}
     </div>
@@ -36,41 +32,25 @@
   <form method="get" class="hr-registry-filters">
     <div class="hr-registry-field hr-registry-field--search">
       <label>Поиск</label>
-      <div class="hr-registry-search">
-        <i class="bi bi-search"></i>
-        {{ filter_form.search }}
-      </div>
+      <div class="hr-registry-search"><i class="bi bi-search"></i>{{ filter_form.search }}</div>
     </div>
-
     <div class="hr-registry-field">
-      <label>Отдел</label>
-      {{ filter_form.department }}
+      <label>Отдел</label>{{ filter_form.department }}
     </div>
-
     <div class="hr-registry-field">
-      <label>Категория</label>
-      {{ filter_form.category }}
+      <label>Категория</label>{{ filter_form.category }}
     </div>
-
-    <button type="submit" class="hr-registry-btn hr-registry-btn--primary">
-      Найти
-    </button>
+    <button type="submit" class="hr-registry-btn hr-registry-btn--primary">Найти</button>
   </form>
 
   <div class="hr-registry-panel">
     <div class="hr-registry-tabs">
       <a href="{% url 'hr:permits_list' %}"
-         class="hr-registry-tab {% if not request.GET.expiring_soon and not request.GET.expired %}is-active{% endif %}">
-        Все
-      </a>
+         class="hr-registry-tab {% if not request.GET.expiring_soon and not request.GET.expired %}is-active{% endif %}">Все</a>
       <a href="{% url 'hr:permits_list' %}?expiring_soon=on"
-         class="hr-registry-tab {% if request.GET.expiring_soon %}is-active{% endif %}">
-        Истекающие
-      </a>
+         class="hr-registry-tab {% if request.GET.expiring_soon %}is-active{% endif %}">Истекающие</a>
       <a href="{% url 'hr:permits_list' %}?expired=on"
-         class="hr-registry-tab {% if request.GET.expired %}is-active{% endif %}">
-        Просроченные
-      </a>
+         class="hr-registry-tab {% if request.GET.expired %}is-active{% endif %}">Просроченные</a>
     </div>
 
     <div class="hr-registry-table-wrap">
@@ -85,76 +65,80 @@
             <th class="hr-registry-table__actions">Действия</th>
           </tr>
         </thead>
-
         <tbody>
           {% for permit in paginator.items %}
-            <tr>
-              <td>
-                <strong>{{ permit.employee.get_display_name }}</strong>
-                <span>{{ permit.employee.department|default:"—" }}</span>
-              </td>
-
-              <td>
-                <strong>{{ permit.category.name }}</strong>
-                <span>№ {{ permit.document_number|default:"—" }}</span>
-              </td>
-
-              <td>{{ permit.issue_date|date:"d.m.Y" }}</td>
-
-              <td>{{ permit.expiry_date|date:"d.m.Y" }}</td>
-
-              <td>
-                {% if permit.expiry_date < date_today %}
-                  <span class="hr-registry-status hr-registry-status--expired">Просрочен</span>
-                {% elif permit.expiry_date <= expiration_threshold %}
-                  <span class="hr-registry-status hr-registry-status--expiring">Истекает</span>
-                {% else %}
-                  <span class="hr-registry-status hr-registry-status--active">Действует</span>
+          <tr>
+            <td>
+              <strong>{{ permit.employee.get_display_name }}</strong>
+              <span>{{ permit.employee.department|default:"—" }}</span>
+            </td>
+            <td>
+              <strong>{{ permit.category.name }}</strong>
+              <span>№ {{ permit.document_number|default:"—" }}</span>
+            </td>
+            <td>{{ permit.issue_date|date:"d.m.Y" }}</td>
+            <td>{{ permit.expiry_date|date:"d.m.Y" }}</td>
+            <td>
+              {% if permit.expiry_date < date_today %}
+                <span class="hr-registry-status hr-registry-status--expired">Просрочен</span>
+              {% elif permit.expiry_date <= expiration_threshold %}
+                <span class="hr-registry-status hr-registry-status--expiring">Истекает</span>
+              {% else %}
+                <span class="hr-registry-status hr-registry-status--active">Действует</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="hr-registry-actions">
+                {% if permit.scan %}
+                  {# Кнопка ONLYOFFICE #}
+                  {% if permit.scan.name|oo_supported %}
+                    <a href="{{ permit.pk|oo_editor_url:'hr_permit' }}"
+                       target="_blank" rel="noopener"
+                       class="hr-oo-btn"
+                       title="{% if permit.scan.name|oo_editable %}Редактировать{% else %}Открыть{% endif %} в ONLYOFFICE">
+                      <i class="bi {% if permit.scan.name|oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
+                      <span>{% if permit.scan.name|oo_editable %}Редактировать{% else %}Открыть{% endif %}</span>
+                    </a>
+                  {% endif %}
+                  {# Скачать #}
+                  <a href="{{ permit.scan.url }}" target="_blank" download
+                     class="hr-download-btn" title="Скачать">
+                    <i class="bi bi-download"></i>
+                    <span>Скачать</span>
+                  </a>
                 {% endif %}
-              </td>
 
-              <td>
-                <div class="hr-registry-actions">
-                  {% if permit.scan %}
-                    <a href="{{ permit.scan.url }}" target="_blank" class="hr-registry-icon" title="Скан">
-                      <i class="bi bi-file-earmark-text"></i>
-                    </a>
-                  {% endif %}
-
-                  {% if is_hr %}
-                    <a href="{% url 'hr:permits_edit' permit.pk %}" class="hr-registry-icon" title="Редактировать">
-                      <i class="bi bi-pencil"></i>
-                    </a>
-
-                    <form action="{% url 'hr:permits_delete' permit.pk %}" method="post"
-                          onsubmit="return confirm('Удалить допуск?');">
-                      {% csrf_token %}
-                      <button type="submit" class="hr-registry-icon hr-registry-icon--danger" title="Удалить">
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </form>
-                  {% endif %}
-                </div>
-              </td>
-            </tr>
+                {% if is_hr %}
+                  <a href="{% url 'hr:permits_edit' permit.pk %}" class="hr-registry-icon" title="Редактировать">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <form action="{% url 'hr:permits_delete' permit.pk %}" method="post"
+                        onsubmit="return confirm('Удалить допуск?');">
+                    {% csrf_token %}
+                    <button type="submit" class="hr-registry-icon hr-registry-icon--danger" title="Удалить">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
           {% empty %}
-            <tr>
-              <td colspan="6">
-                <div class="hr-registry-empty">
-                  <i class="bi bi-shield-check"></i>
-                  <strong>Допусков не найдено</strong>
-                  <span>Попробуйте изменить фильтры или добавить новый допуск.</span>
-                </div>
-              </td>
-            </tr>
+          <tr>
+            <td colspan="6">
+              <div class="hr-registry-empty">
+                <i class="bi bi-shield-check"></i>
+                <strong>Допусков не найдено</strong>
+                <span>Попробуйте изменить фильтры или добавить новый допуск.</span>
+              </div>
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% if paginator.pages_count > 1 %}
-    <div class="hr-pagination">
-      {% show_paginator paginator %}
-    </div>
+    <div class="hr-pagination">{% show_paginator paginator %}</div>
     {% endif %}
   </div>
 
@@ -163,5 +147,5 @@
 
 {% block scripts %}
 <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
-<script src="{% static 'site/js/apps/hr-registries.js' %}?v={{ static_version|default:'1' }}"></script>
+<script src="{% static 'site/js/apps/hr-registries.js' %}?v={{ static_version|default:'1'}}"></script>
 {% endblock scripts %}
