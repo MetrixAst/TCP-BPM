@@ -20,8 +20,14 @@
            id="bpmSearch"
            class="bpm-topbar__search-input"
            placeholder="{% t 'topbar.search' 'Поиск...' %}"
-           autocomplete="off" />
-    <div class="bpm-topbar__search-results" id="bpmSearchResults" hidden></div>
+           autocomplete="off"
+           aria-label="{% t 'topbar.search' 'Поиск' %}"
+           aria-expanded="false"
+           aria-haspopup="listbox"
+           aria-controls="bpmSearchResults" />
+    <div class="bpm-topbar__search-results" id="bpmSearchResults" role="listbox" hidden>
+      {# Содержимое генерируется через layout.js — renderGroupedResults() #}
+    </div>
   </div>
 
   <div class="bpm-topbar__spacer"></div>
