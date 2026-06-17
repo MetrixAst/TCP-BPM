@@ -280,3 +280,72 @@ def message_send(request, pk):
             'created_at': message.created_at.strftime('%d.%m.%Y %H:%M'),
         },
     })
+
+@need_permission(PermissionEnums.SERVICE_REQUESTS)
+@require_http_methods(['POST'])
+def attachment_upload(request, pk):
+    ticket = ServiceRequest.get_by_id(request, pk)
+    from .models import TicketAttachment
+    if not TicketAttachment.can_view(ticket, request.user):
+        return JsonResponse({'ok': False, 'message': 'Нет доступа'}, status=403)
+
+    uploaded = request.FILES.get('file')
+    if not uploaded:
+        return JsonResponse({'ok': False, 'message': 'Файл не выбран'}, status=400)
+
+    attachment = TicketAttachment.objects.create(
+        request=ticket, file=uploaded, uploaded_by=request.user,
+    )
+    return JsonResponse({
+        'ok': True,
+        'attachment': {
+            'id': attachment.id,
+            'filename': attachment.filename,
+            'url': attachment.file.url,
+            'is_image': attachment.is_image,
+            'uploaded_by': attachment.uploaded_by.get_name if attachment.uploaded_by else None,
+            'created_at': attachment.created_at.strftime('%d.%m.%Y %H:%M'),
+        },
+    })
+
+
+@need_permission(PermissionEnums.SERVICE_REQUESTS)
+def attachments_list(request, pk):
+    ticket = ServiceRequest.get_by_id(request, pk)
+    from .models import TicketAttachment
+    if not TicketAttachment.can_view(ticket, request.user):
+        return JsonResponse({'ok': False, 'message': 'Нет доступа'}, status=403)
+
+    items = ticket.attachments.select_related('uploaded_by').all()
+    return JsonResponse({
+        'ok': True,
+        'attachments': [
+            {
+                'id': a.id,
+                'filename': a.filename,
+                'url': a.file.url,
+                'is_image': a.is_image,
+                'uploaded_by': a.uploaded_by.get_name if a.uploaded_by else None,
+                'created_at': a.created_at.strftime('%d.%m.%Y %H:%M'),
+            }
+            for a in items
+        ],
+    })
+
+
+@need_permission(PermissionEnums.SERVICE_REQUESTS)
+@require_http_methods(['POST'])
+def attachment_delete(request, pk, attachment_pk):
+    ticket = ServiceRequest.get_by_id(request, pk)
+    from .models import TicketAttachment
+    attachment = TicketAttachment.objects.filter(pk=attachment_pk, request=ticket).first()
+    if attachment is None:
+        return JsonResponse({'ok': False, 'message': 'Не найдено'}, status=404)
+
+    is_owner = attachment.uploaded_by_id == request.user.id
+    if not (is_owner or user_is_manager(request.user)):
+        return JsonResponse({'ok': False, 'message': 'Недостаточно прав'}, status=403)
+
+    attachment.file.delete(save=False)
+    attachment.delete()
+    return JsonResponse({'ok': True})
