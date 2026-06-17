@@ -97,15 +97,11 @@ def _backend_url(request, relative_url):
     return request.build_absolute_uri(relative_url)
 
 
-def build_key(document):
-    """Уникальный ключ версии документа.
-
-    Меняется при изменении файла, чтобы Document Server перечитал содержимое.
-    """
-    parts = [str(document.pk), document.document.name or '']
+def build_key(pk, file_field):
+    parts = [str(pk), file_field.name or '']
     try:
-        storage = document.document.storage
-        name = document.document.name
+        storage = file_field.storage
+        name = file_field.name
         parts.append(str(storage.size(name)))
         try:
             parts.append(storage.get_modified_time(name).isoformat())
@@ -114,7 +110,7 @@ def build_key(document):
     except Exception:
         pass
     digest = hashlib.md5('|'.join(parts).encode('utf-8')).hexdigest()
-    return f'{document.pk}-{digest}'[:128]
+    return f'{pk}-{digest}'[:128]
 
 
 def sign(payload):
@@ -142,14 +138,8 @@ def _user_image(request, user):
     return request.build_absolute_uri('/static/site/img/profile/profile-11.webp')
 
 
-def build_config(request, document, can_edit, callback_relative_url):
-    """Сборка конфигурации редактора ONLYOFFICE.
-
-    Структура повторяет рабочий конфиг проекта (см. backend/ONLYOFFICE.html и
-    generateTokenJWT.txt): events / document / documentType / editorConfig,
-    весь объект подписывается JWT (HS256).
-    """
-    filename = os.path.basename(document.document.name)
+def build_config(request, pk, file_field, title, can_edit, callback_relative_url):
+    filename = os.path.basename(file_field.name)
     ext = get_extension(filename)
     editable = can_edit and is_editable(filename)
 
@@ -158,9 +148,9 @@ def build_config(request, document, can_edit, callback_relative_url):
         'events': {},
         'document': {
             'fileType': ext,
-            'key': build_key(document),
-            'title': document.title or filename,
-            'url': _backend_url(request, document.document.url),
+            'key': build_key(pk, file_field),
+            'title': title or filename,
+            'url': _backend_url(request, file_field.url),
             'permissions': {
                 'edit': editable,
                 'download': True,
