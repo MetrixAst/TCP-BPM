@@ -1,38 +1,40 @@
 {% extends 'site/base.html' %}
 {% load static %}
 
-{% block title %}Заявки от арендаторов — metriX BPM{% endblock %}
+{% block title %}Канбан заявок — metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v={{ static_version|default:'1' }}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v=tk6" />
 {% endblock %}
 
 {% block content %}
-<div class="tk-page" id="ticketsKanbanPage"
+<div class="tk-page tasks-kanban-page" id="ticketsKanbanPage"
      data-kanban-api="{% url 'tickets:kanban_api' %}"
      data-status-url-tpl="{% url 'tickets:kanban_status' 0 %}">
 
-  <div class="tk-head">
-    <div>
-      <h1 class="tk-head__title">Заявки от арендаторов</h1>
-      <p class="tk-head__sub">Заявки арендаторов на обслуживание и ремонт</p>
+  <div class="tk-page__top">
+    <div class="tk-page__header">
+      <h1 class="tk-page__title">Заявки от арендаторов</h1>
+
+      <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+        <div class="tk-view-switch">
+          <a href="{% url 'tickets:home' %}" class="tk-view-switch__btn">Список</a>
+          <a href="{% url 'tickets:kanban' %}" class="tk-view-switch__btn is-active">Канбан</a>
+        </div>
+        <a href="{% url 'tickets:create' %}" class="tk-page__btn tk-page__btn--primary">
+          <i class="bi bi-plus-lg"></i> Создать
+        </a>
+      </div>
     </div>
-    <div class="tk-head__spacer"></div>
-    <div class="tk-switch">
-      <a href="{% url 'tickets:home' %}" class="tk-switch__btn">Список</a>
-      <a href="{% url 'tickets:kanban' %}" class="tk-switch__btn is-active">Канбан</a>
-    </div>
-    <a href="{% url 'tickets:create' %}" class="tk-btn tk-btn--primary">
-      <i class="bi bi-plus-lg"></i> Создать
-    </a>
   </div>
 
-  <div class="tk-board" id="ticketsKanbanBoard">
-    <div class="tk-list__empty">Загрузка…</div>
+  <div class="tk-kanban-board" id="ticketsKanbanBoard">
+    <div class="tk-kanban-loading">Загрузка…</div>
   </div>
+
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'site/js/apps/tickets-kanban.js' %}?v={{ static_version|default:'1' }}"></script>
+<script src="{% static 'site/js/apps/tickets-kanban.js' %}?v=tk6"></script>
 {% endblock %}

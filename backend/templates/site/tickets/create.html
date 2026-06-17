@@ -3,49 +3,180 @@
 
 {% block title %}Новая заявка — metriX BPM{% endblock %}
 
+{% block body_classes %}task-edit-body{% endblock %}
+
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v={{ static_version|default:'1' }}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=tk6" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v=tk6" />
 {% endblock %}
 
 {% block content %}
-<div class="tk-page">
 
-  {% include 'site/tenants/portal_banner.html' %}
+<div class="task-edit-page">
+  <div class="task-edit-card">
 
-  <div class="tk-head">
-    <div>
-      <h1 class="tk-head__title">Новая сервисная заявка</h1>
-      <p class="tk-head__sub">Опишите проблему — мы примем заявку в работу</p>
+    <div class="task-edit-card__header">
+      <h1 class="task-edit-card__title">Новая сервисная заявка</h1>
+      <a href="{% url 'tickets:home' %}" class="task-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
     </div>
-  </div>
 
-  <div style="max-width:680px;">
-    <div class="tk-panel">
-      <form method="POST" enctype="multipart/form-data" class="tk-form">
-        {% csrf_token %}
+    <form method="POST" enctype="multipart/form-data" id="taskEditForm">
+      {% csrf_token %}
 
-        {% if form.non_field_errors %}
-          <div class="tk-badge tk-badge--danger" style="margin-bottom:14px;">{{ form.non_field_errors }}</div>
-        {% endif %}
+      {% if form.non_field_errors %}
+        <div class="task-edit-field__error" style="margin-bottom:14px;">{{ form.non_field_errors }}</div>
+      {% endif %}
 
-        {% for field in form %}
-          <div class="tk-field">
-            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% if field.errors %}
-              <div class="tk-row__muted" style="color:var(--tk-danger);">{{ field.errors|striptags }}</div>
+      <div class="task-edit-card__body">
+
+        {# ── Данные заявки ── #}
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Данные заявки</h2>
+
+          <div class="task-edit-grid task-edit-grid--2">
+            {% if form.tenant %}
+            <div class="task-edit-field {% if form.tenant.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">{{ form.tenant.label }}</label>
+              {{ form.tenant }}
+              {% if form.tenant.errors %}<div class="task-edit-field__error">{{ form.tenant.errors.0 }}</div>{% endif %}
+            </div>
+            {% endif %}
+
+            <div class="task-edit-field {% if form.category.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">{{ form.category.label }}<span>*</span></label>
+              {{ form.category }}
+              {% if form.category.errors %}<div class="task-edit-field__error">{{ form.category.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="task-edit-field {% if form.title.errors %}is-invalid{% endif %}">
+            <label class="task-edit-field__label">{{ form.title.label }}<span>*</span></label>
+            {{ form.title }}
+            {% if form.title.errors %}<div class="task-edit-field__error">{{ form.title.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="task-edit-field {% if form.description.errors %}is-invalid{% endif %}">
+            <label class="task-edit-field__label">{{ form.description.label }}<span>*</span></label>
+            {{ form.description }}
+            {% if form.description.errors %}<div class="task-edit-field__error">{{ form.description.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="task-edit-grid task-edit-grid--2">
+            {% if form.room %}
+            <div class="task-edit-field {% if form.room.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">{{ form.room.label }}</label>
+              {{ form.room }}
+              {% if form.room.errors %}<div class="task-edit-field__error">{{ form.room.errors.0 }}</div>{% endif %}
+            </div>
+            {% endif %}
+
+            <div class="task-edit-field {% if form.priority.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">{{ form.priority.label }}</label>
+              {{ form.priority }}
+              {% if form.priority.errors %}<div class="task-edit-field__error">{{ form.priority.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+        </section>
+
+        {# ── Маршрутизация ── #}
+        {% if form.department or form.assignee %}
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Маршрутизация</h2>
+          <div class="task-edit-grid task-edit-grid--2">
+            {% if form.department %}
+            <div class="task-edit-field {% if form.department.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">{{ form.department.label }}</label>
+              {{ form.department }}
+              {% if form.department.errors %}<div class="task-edit-field__error">{{ form.department.errors.0 }}</div>{% endif %}
+            </div>
+            {% endif %}
+            {% if form.assignee %}
+            <div class="task-edit-field {% if form.assignee.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">{{ form.assignee.label }}</label>
+              {{ form.assignee }}
+              {% if form.assignee.errors %}<div class="task-edit-field__error">{{ form.assignee.errors.0 }}</div>{% endif %}
+            </div>
             {% endif %}
           </div>
+        </section>
+        {% endif %}
+
+        {# ── Фото ── #}
+        {% if form.photo %}
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Фото</h2>
+          <div class="task-edit-field">
+            <label class="task-edit-field__label">{{ form.photo.label }}</label>
+            <label class="tk-upload" for="{{ form.photo.id_for_label }}">
+              {{ form.photo }}
+              <div class="tk-upload__inner">
+                <i class="bi bi-image tk-upload__icon"></i>
+                <span class="tk-upload__text">Выберите файл или перетащите сюда</span>
+                <span class="tk-upload__hint" id="tkUploadName">Файл не выбран</span>
+              </div>
+            </label>
+            {% if form.photo.errors %}<div class="task-edit-field__error">{{ form.photo.errors.0 }}</div>{% endif %}
+          </div>
+        </section>
+        {% endif %}
+
+        {# Прочие поля #}
+        {% for field in form %}
+          {% if field.name not in 'tenant,category,title,description,room,priority,department,assignee,photo' %}
+          <div class="task-edit-field {% if field.errors %}is-invalid{% endif %}">
+            <label class="task-edit-field__label">{{ field.label }}{% if field.field.required %}<span>*</span>{% endif %}</label>
+            {{ field }}
+            {% if field.errors %}<div class="task-edit-field__error">{{ field.errors.0 }}</div>{% endif %}
+          </div>
+          {% endif %}
         {% endfor %}
 
-        <div class="tk-actions">
-          <a href="{% url 'tickets:home' %}" class="tk-btn tk-btn--ghost">Отмена</a>
-          <button type="submit" class="tk-btn tk-btn--primary">
-            <i class="bi bi-send"></i> Отправить заявку
-          </button>
-        </div>
-      </form>
-    </div>
+      </div>
+
+      <div class="task-edit-card__footer">
+        <a href="{% url 'tickets:home' %}" class="task-edit-btn task-edit-btn--cancel">Отменить</a>
+        <button type="submit" class="task-edit-btn task-edit-btn--save">Создать заявку</button>
+      </div>
+
+    </form>
   </div>
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script>
+(function () {
+  'use strict';
+
+  // Select2 для всех select внутри формы
+  if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
+    jQuery('#taskEditForm select').each(function () {
+      var $sel = jQuery(this);
+      if ($sel.hasClass('select2-hidden-accessible')) return;
+      $sel.select2({
+        width: '100%',
+        placeholder: $sel.find('option[value=""]').text() || 'Выберите...',
+        allowClear: true,
+        dropdownParent: jQuery('.task-edit-card'),
+      });
+    });
+  }
+
+  // File input — показываем имя файла
+  var photoInput = document.getElementById('{{ form.photo.id_for_label }}');
+  var uploadName = document.getElementById('tkUploadName');
+  if (photoInput && uploadName) {
+    photoInput.addEventListener('change', function () {
+      var f = this.files && this.files[0];
+      uploadName.textContent = f ? f.name : 'Файл не выбран';
+    });
+  }
+})();
+</script>
 {% endblock %}
