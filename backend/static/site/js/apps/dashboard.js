@@ -358,3 +358,55 @@ document.addEventListener('DOMContentLoaded', () => {
   /* KPI auto-refresh every 5 min */
   setInterval(refreshKPIs, 5 * 60 * 1000);
 });
+
+
+(function () {
+  'use strict';
+ 
+  function getCsrf() {
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (el) return el.value;
+    const m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+  }
+ 
+  document.querySelectorAll('[data-checkin-action]').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      const action = btn.dataset.checkinAction;
+      const url    = btn.dataset.checkinUrl;
+ 
+      btn.disabled = true;
+      const origHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:task-spin .7s linear infinite;display:inline-block"></i> Загрузка...';
+ 
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrf(),
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({ action: action }),
+        });
+ 
+        const data = await res.json();
+ 
+        if (res.ok && data.ok !== false) {
+          // Перезагружаем страницу чтобы обновить статус
+          window.location.reload();
+        } else {
+          alert(data.message || 'Ошибка отметки');
+          btn.disabled = false;
+          btn.innerHTML = origHtml;
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Ошибка сети');
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
+    });
+  });
+})();
