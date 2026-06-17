@@ -96,11 +96,15 @@ class TicketWorkflowTest(TicketsBaseTest):
         ticket = self._new_ticket()
         self.client.force_login(self.manager)
 
-        # new -> accepted
-        resp = self.client.post(reverse('tickets:action', args=[ticket.id]), {'action': 'accept'})
+        # new -> accepted (теперь требует исполнителя)
+        resp = self.client.post(reverse('tickets:action', args=[ticket.id]), {
+            'action': 'accept',
+            'assignee_id': self.manager.id,
+        })
         self.assertEqual(resp.status_code, 302)
         ticket.refresh_from_db()
         self.assertEqual(ticket.status, TicketStatusEnum.ACCEPTED.value[0])
+        self.assertEqual(ticket.assignee_id, self.manager.id)
 
         # accepted -> in_progress
         self.client.post(reverse('tickets:action', args=[ticket.id]), {'action': 'start'})
@@ -134,7 +138,7 @@ class TicketWorkflowTest(TicketsBaseTest):
         self.client.force_login(self.manager)
         resp = self.client.post(
             reverse('tickets:kanban_status', args=[ticket.id]),
-            data={'status': TicketStatusEnum.ACCEPTED.value[0]},
+            data={'status': TicketStatusEnum.ACCEPTED.value[0], 'assignee_id': self.manager.id},
             content_type='application/json',
         )
         self.assertEqual(resp.status_code, 200)
@@ -183,3 +187,112 @@ class TicketAssignTest(TicketsBaseTest):
         self.assertEqual(ticket.department_id, dept.id)
         self.assertEqual(ticket.assignee_id, self.manager.id)
         self.assertEqual(ticket.priority, 'high')
+
+class TicketAssigneeRequiredTest(TicketsBaseTest):
+    def test_accept_without_assignee_fails(self):
+        ticket = self._new_ticket()
+        self.client.force_login(self.manager)
+        resp = self.client.post(reverse('tickets:action', args=[ticket.id]), {
+            'action': 'accept',
+        })
+        self.assertEqual(resp.status_code, 400)
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.status, TicketStatusEnum.NEW.value[0])
+
+    def test_accept_with_assignee_succeeds(self):
+        ticket = self._new_ticket()
+        self.client.force_login(self.manager)
+        resp = self.client.post(reverse('tickets:action', args=[ticket.id]), {
+            'action': 'accept',
+            'assignee_id': self.manager.id,
+        })
+        self.assertEqual(resp.status_code, 302)
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.status, TicketStatusEnum.ACCEPTED.value[0])
+        self.assertEqual(ticket.assignee_id, self.manager.id)
+
+    def test_assignee_gets_notification(self):
+        from account.models import Notification
+        executor = UserAccount.objects.create_user(
+            username='notif_executor', email='ne@test.kz', password='pass',
+            role=RoleEnums.STAFF.value,
+        )
+        ticket = self._new_ticket()
+        self.client.force_login(self.manager)
+        self.client.post(reverse('tickets:action', args=[ticket.id]), {
+            'action': 'accept',
+            'assignee_id': executor.id,
+        })
+        notif = Notification.objects.filter(
+            target_type='ticket', target_id=ticket.id, title__icontains='назначена',
+        ).order_by('-id').first()
+        self.assertIsNotNone(notif)
+        self.assertIn(executor, notif.users.all())
+
+
+class TicketReassignTest(TicketsBaseTest):
+    def test_reassign_changes_assignee(self):
+        ticket = self._new_ticket(status=TicketStatusEnum.ACCEPTED.value[0])
+        ticket.assignee = self.manager
+        ticket.save()
+
+        new_executor = UserAccount.objects.create_user(
+            username='new_exec', email='ne@test.kz', password='pass',
+            role=RoleEnums.STAFF.value,
+        )
+        self.client.force_login(self.manager)
+        resp = self.client.post(reverse('tickets:assign', args=[ticket.id]), {
+            'assignee': new_executor.id,
+            'priority': ticket.priority,
+        })
+        self.assertEqual(resp.status_code, 302)
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.assignee_id, new_executor.id)
+
+
+class TicketChatTest(TicketsBaseTest):
+    def test_author_can_send_and_view_message(self):
+        ticket = self._new_ticket()
+        ticket.assignee = self.manager
+        ticket.save()
+
+        self.client.force_login(self.tenant_user)
+        resp = self.client.post(reverse('tickets:message_send', args=[ticket.id]), {
+            'text': 'Когда придёте?',
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(ticket.messages.count(), 1)
+
+    def test_assignee_can_view_author_message(self):
+        from tickets.models import TicketMessage
+        ticket = self._new_ticket()
+        ticket.assignee = self.manager
+        ticket.save()
+        TicketMessage.objects.create(request=ticket, author=self.tenant_user, text='Привет')
+
+        self.client.force_login(self.manager)
+        resp = self.client.get(reverse('tickets:messages_list', args=[ticket.id]))
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(len(data['messages']), 1)
+        self.assertEqual(data['messages'][0]['text'], 'Привет')
+
+    def test_outsider_cannot_view_chat(self):
+        ticket = self._new_ticket()
+        ticket.assignee = self.manager
+        ticket.save()
+
+        self.client.force_login(self.other_tenant_user)
+        resp = self.client.get(reverse('tickets:messages_list', args=[ticket.id]))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_outsider_cannot_send_message(self):
+        ticket = self._new_ticket()
+        ticket.assignee = self.manager
+        ticket.save()
+
+        self.client.force_login(self.other_tenant_user)
+        resp = self.client.post(reverse('tickets:message_send', args=[ticket.id]), {
+            'text': 'Попытка написать',
+        })
+        self.assertEqual(resp.status_code, 404)
