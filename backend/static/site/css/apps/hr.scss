@@ -3642,3 +3642,145 @@ body.hr-registry-edit-body {
   color: #ef4444;
 }
  
+
+/* Контейнер кнопок файла в таблице */
+.hr-file-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+ 
+/* Базовая иконка-кнопка */
+.hr-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 0;
+  background: #f5f3fa;
+  color: #74728a;
+  font-size: 15px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s, color .15s;
+  flex-shrink: 0;
+}
+.hr-icon-btn:hover {
+  background: #ece9f4;
+  color: #25233f;
+  text-decoration: none;
+}
+ 
+/* ONLYOFFICE — синяя */
+.hr-icon-btn--oo {
+  background: #eef2ff;
+  color: #2f6bed;
+}
+.hr-icon-btn--oo:hover {
+  background: #2f6bed;
+  color: #fff;
+}
+ 
+/* Удалить — красная */
+.hr-icon-btn--danger {
+  background: transparent;
+  color: #ef4444;
+}
+.hr-icon-btn--danger:hover {
+  background: #feecec;
+  color: #ef4444;
+}
+ 
+/* Действия в строке — flex */
+.hr-registry-actions,
+.emp-table__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+ 
+/* Скрываем старые несогласованные кнопки */
+.hr-oo-btn,
+.hr-download-btn,
+.hr-download-btn--compact {
+  display: none !important;
+}
+ 
+/* OO FILE ITEM в менеджере задач — оставляем как есть */
+.oo-file-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f5f3fa;
+  transition: background .15s;
+}
+.oo-file-item:hover { background: #ece9f4; }
+ 
+.oo-file-item__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+}
+ 
+.oo-file-item__info {
+  flex: 1;
+  min-width: 0;
+}
+ 
+.oo-file-item__name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #25233f;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.oo-file-item__name:hover { color: #2f6bed; }
+ 
+.oo-file-item__meta {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #74728a;
+}
+ 
+.oo-file-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+ 
+.oo-file-item__btn {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #74728a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 14px;
+  transition: background .15s, color .15s;
+}
+.oo-file-item__btn:hover { background: #fff; color: #25233f; text-decoration: none; }
+.oo-file-item__btn--oo { background: #eef2ff; color: #2f6bed; }
+.oo-file-item__btn--oo:hover { background: #2f6bed; color: #fff; }
+.oo-file-item__btn--danger { color: #ef4444; }
+.oo-file-item__btn--danger:hover { background: #feecec; color: #ef4444; }
+ 

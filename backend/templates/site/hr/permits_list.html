@@ -6,7 +6,7 @@
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
-<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&t=7">
 {% endblock styles %}
 
 {% block content %}
@@ -34,12 +34,8 @@
       <label>Поиск</label>
       <div class="hr-registry-search"><i class="bi bi-search"></i>{{ filter_form.search }}</div>
     </div>
-    <div class="hr-registry-field">
-      <label>Отдел</label>{{ filter_form.department }}
-    </div>
-    <div class="hr-registry-field">
-      <label>Категория</label>{{ filter_form.category }}
-    </div>
+    <div class="hr-registry-field"><label>Отдел</label>{{ filter_form.department }}</div>
+    <div class="hr-registry-field"><label>Категория</label>{{ filter_form.category }}</div>
     <button type="submit" class="hr-registry-btn hr-registry-btn--primary">Найти</button>
   </form>
 
@@ -90,32 +86,27 @@
             <td>
               <div class="hr-registry-actions">
                 {% if permit.scan %}
-                  {# Кнопка ONLYOFFICE #}
-                  {% if permit.scan.name|oo_supported %}
-                    <a href="{{ permit.pk|oo_editor_url:'hr_permit' }}"
-                       target="_blank" rel="noopener"
-                       class="hr-oo-btn"
-                       title="{% if permit.scan.name|oo_editable %}Редактировать{% else %}Открыть{% endif %} в ONLYOFFICE">
-                      <i class="bi {% if permit.scan.name|oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
-                      <span>{% if permit.scan.name|oo_editable %}Редактировать{% else %}Открыть{% endif %}</span>
+                  {% with fname=permit.scan.name furl=permit.scan.url fpk=permit.pk %}
+                    {% if fname|oo_supported %}
+                      <a href="{{ fpk|oo_editor_url:'hr_permit' }}" target="_blank" rel="noopener"
+                         class="hr-icon-btn hr-icon-btn--oo"
+                         title="{% if fname|oo_editable %}Редактировать в ONLYOFFICE{% else %}Открыть в ONLYOFFICE{% endif %}">
+                        <i class="bi {% if fname|oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
+                      </a>
+                    {% endif %}
+                    <a href="{{ furl }}" download class="hr-icon-btn" title="Скачать">
+                      <i class="bi bi-download"></i>
                     </a>
-                  {% endif %}
-                  {# Скачать #}
-                  <a href="{{ permit.scan.url }}" target="_blank" download
-                     class="hr-download-btn" title="Скачать">
-                    <i class="bi bi-download"></i>
-                    <span>Скачать</span>
-                  </a>
+                  {% endwith %}
                 {% endif %}
-
                 {% if is_hr %}
-                  <a href="{% url 'hr:permits_edit' permit.pk %}" class="hr-registry-icon" title="Редактировать">
+                  <a href="{% url 'hr:permits_edit' permit.pk %}" class="hr-icon-btn" title="Редактировать">
                     <i class="bi bi-pencil"></i>
                   </a>
                   <form action="{% url 'hr:permits_delete' permit.pk %}" method="post"
-                        onsubmit="return confirm('Удалить допуск?');">
+                        onsubmit="return confirm('Удалить допуск?');" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit" class="hr-registry-icon hr-registry-icon--danger" title="Удалить">
+                    <button type="submit" class="hr-icon-btn hr-icon-btn--danger" title="Удалить">
                       <i class="bi bi-trash"></i>
                     </button>
                   </form>

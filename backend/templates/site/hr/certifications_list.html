@@ -6,7 +6,7 @@
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
-<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&t=7">
 {% endblock styles %}
 
 {% block content %}
@@ -83,32 +83,27 @@
             <td>
               <div class="hr-registry-actions">
                 {% if cert.scan %}
-                  {# Кнопка ONLYOFFICE #}
-                  {% if cert.scan.name|oo_supported %}
-                    <a href="{{ cert.pk|oo_editor_url:'hr_cert' }}"
-                       target="_blank" rel="noopener"
-                       class="hr-oo-btn"
-                       title="{% if cert.scan.name|oo_editable %}Редактировать{% else %}Открыть{% endif %} в ONLYOFFICE">
-                      <i class="bi {% if cert.scan.name|oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
-                      <span>{% if cert.scan.name|oo_editable %}Редактировать{% else %}Открыть{% endif %}</span>
+                  {% with fname=cert.scan.name furl=cert.scan.url fpk=cert.pk %}
+                    {% if fname|oo_supported %}
+                      <a href="{{ fpk|oo_editor_url:'hr_cert' }}" target="_blank" rel="noopener"
+                         class="hr-icon-btn hr-icon-btn--oo"
+                         title="{% if fname|oo_editable %}Редактировать в ONLYOFFICE{% else %}Открыть в ONLYOFFICE{% endif %}">
+                        <i class="bi {% if fname|oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
+                      </a>
+                    {% endif %}
+                    <a href="{{ furl }}" download class="hr-icon-btn" title="Скачать">
+                      <i class="bi bi-download"></i>
                     </a>
-                  {% endif %}
-                  {# Скачать #}
-                  <a href="{{ cert.scan.url }}" target="_blank" download
-                     class="hr-download-btn" title="Скачать">
-                    <i class="bi bi-download"></i>
-                    <span>Скачать</span>
-                  </a>
+                  {% endwith %}
                 {% endif %}
-
                 {% if is_hr %}
-                  <a href="{% url 'hr:certifications_edit' cert.pk %}" class="hr-registry-icon" title="Редактировать">
+                  <a href="{% url 'hr:certifications_edit' cert.pk %}" class="hr-icon-btn" title="Редактировать">
                     <i class="bi bi-pencil"></i>
                   </a>
                   <form action="{% url 'hr:certifications_delete' cert.pk %}" method="post"
-                        onsubmit="return confirm('Удалить сертификацию?');">
+                        onsubmit="return confirm('Удалить сертификацию?');" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit" class="hr-registry-icon hr-registry-icon--danger" title="Удалить">
+                    <button type="submit" class="hr-icon-btn hr-icon-btn--danger" title="Удалить">
                       <i class="bi bi-trash"></i>
                     </button>
                   </form>
