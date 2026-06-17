@@ -269,3 +269,34 @@ class TicketMessage(models.Model):
         if user_is_manager(user):
             return True
         return False
+
+class TicketAttachment(models.Model):
+    request = models.ForeignKey(
+        ServiceRequest, on_delete=models.CASCADE, related_name='attachments', verbose_name='Заявка',
+    )
+    file = models.FileField('Файл', upload_to=PathAndRename('tickets/attachments/'))
+    uploaded_by = models.ForeignKey(
+        UserAccount, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Загрузил',
+    )
+    created_at = models.DateTimeField('Дата', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Вложение заявки'
+        verbose_name_plural = 'Вложения заявок'
+        ordering = ['id']
+
+    def __str__(self):
+        return self.filename
+
+    @property
+    def filename(self):
+        return self.file.name.split('/')[-1] if self.file else ''
+
+    @property
+    def is_image(self):
+        ext = self.filename.rsplit('.', 1)[-1].lower() if '.' in self.filename else ''
+        return ext in ('jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp')
+
+    @staticmethod
+    def can_view(ticket, user):
+        return TicketMessage.can_view(ticket, user)
