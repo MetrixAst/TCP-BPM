@@ -10,10 +10,51 @@
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=tk6" />
 <link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v=tk6" />
+<style>
+.tk-upload {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 28px 20px;
+  border: 1.5px dashed #d8d5e6; border-radius: 16px;
+  background: #fff; cursor: pointer; text-align: center;
+  transition: border-color .15s, background .15s; position: relative;
+}
+.tk-upload:hover { border-color: #2f6bed; background: #faf9fd; }
+.tk-upload input[type="file"] {
+  position: absolute; width: 100%; height: 100%;
+  opacity: 0; cursor: pointer; top: 0; left: 0;
+}
+.tk-upload__icon { font-size: 28px; color: #74728a; }
+.tk-upload__text { font-size: 13px; color: #74728a; font-weight: 500; }
+.tk-upload__hint { font-size: 12px; color: #9a98aa; }
+.tk-upload__types { font-size: 11px; color: #b0adc0; }
+
+.tk-file-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.tk-file-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 10px; background: #f5f3fa;
+}
+.tk-file-item__icon {
+  width: 32px; height: 32px; border-radius: 8px; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: #2f6bed; flex-shrink: 0;
+}
+.tk-file-item__name {
+  flex: 1; min-width: 0; font-size: 13px; font-weight: 500; color: #25233f;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tk-file-item__size { font-size: 11px; color: #9a98aa; flex-shrink: 0; }
+.tk-file-item__remove {
+  width: 24px; height: 24px; border: 0; border-radius: 6px;
+  background: transparent; color: #9a98aa;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px; flex-shrink: 0;
+  transition: background .15s, color .15s;
+}
+.tk-file-item__remove:hover { background: #feecec; color: #ef4444; }
+</style>
 {% endblock %}
 
 {% block content %}
-
 <div class="task-edit-page">
   <div class="task-edit-card">
 
@@ -45,7 +86,6 @@
               {% if form.tenant.errors %}<div class="task-edit-field__error">{{ form.tenant.errors.0 }}</div>{% endif %}
             </div>
             {% endif %}
-
             <div class="task-edit-field {% if form.category.errors %}is-invalid{% endif %}">
               <label class="task-edit-field__label">{{ form.category.label }}<span>*</span></label>
               {{ form.category }}
@@ -73,7 +113,6 @@
               {% if form.room.errors %}<div class="task-edit-field__error">{{ form.room.errors.0 }}</div>{% endif %}
             </div>
             {% endif %}
-
             <div class="task-edit-field {% if form.priority.errors %}is-invalid{% endif %}">
               <label class="task-edit-field__label">{{ form.priority.label }}</label>
               {{ form.priority }}
@@ -105,26 +144,26 @@
         </section>
         {% endif %}
 
-        {# ── Фото ── #}
-        {% if form.photo %}
+        {# ── Вложения ── #}
         <section class="task-edit-section">
-          <h2 class="task-edit-section__title">Фото</h2>
+          <h2 class="task-edit-section__title">Вложения</h2>
           <div class="task-edit-field">
-            <label class="task-edit-field__label">{{ form.photo.label }}</label>
-            <label class="tk-upload" for="{{ form.photo.id_for_label }}">
-              {{ form.photo }}
-              <div class="tk-upload__inner">
-                <i class="bi bi-image tk-upload__icon"></i>
-                <span class="tk-upload__text">Выберите файл или перетащите сюда</span>
-                <span class="tk-upload__hint" id="tkUploadName">Файл не выбран</span>
-              </div>
+            <label class="tk-upload" id="tkUploadZone">
+              <input type="file"
+                     name="attachments"
+                     id="tkFileInput"
+                     accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.7z"
+                     multiple>
+              <i class="bi bi-cloud-arrow-up tk-upload__icon"></i>
+              <span class="tk-upload__text">Выберите файлы или перетащите сюда</span>
+              <span class="tk-upload__hint" id="tkUploadHint">Файлы не выбраны</span>
+              <span class="tk-upload__types">Фото, PDF, Word, Excel, PowerPoint, архивы</span>
             </label>
-            {% if form.photo.errors %}<div class="task-edit-field__error">{{ form.photo.errors.0 }}</div>{% endif %}
+            <div class="tk-file-list" id="tkFileList"></div>
           </div>
         </section>
-        {% endif %}
 
-        {# Прочие поля #}
+        {# Прочие поля формы #}
         {% for field in form %}
           {% if field.name not in 'tenant,category,title,description,room,priority,department,assignee,photo' %}
           <div class="task-edit-field {% if field.errors %}is-invalid{% endif %}">
@@ -145,7 +184,6 @@
     </form>
   </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
@@ -154,7 +192,7 @@
 (function () {
   'use strict';
 
-  // Select2 для всех select внутри формы
+  // Select2
   if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
     jQuery('#taskEditForm select').each(function () {
       var $sel = jQuery(this);
@@ -168,13 +206,75 @@
     });
   }
 
-  // File input — показываем имя файла
-  var photoInput = document.getElementById('{{ form.photo.id_for_label }}');
-  var uploadName = document.getElementById('tkUploadName');
-  if (photoInput && uploadName) {
-    photoInput.addEventListener('change', function () {
-      var f = this.files && this.files[0];
-      uploadName.textContent = f ? f.name : 'Файл не выбран';
+  // File upload UI
+  var input = document.getElementById('tkFileInput');
+  var list  = document.getElementById('tkFileList');
+  var hint  = document.getElementById('tkUploadHint');
+  var zone  = document.getElementById('tkUploadZone');
+
+  function fileIcon(name) {
+    var ext = (name.split('.').pop() || '').toLowerCase();
+    var map = {
+      pdf: 'bi-file-earmark-pdf',
+      doc: 'bi-file-earmark-word', docx: 'bi-file-earmark-word',
+      xls: 'bi-file-earmark-excel', xlsx: 'bi-file-earmark-excel',
+      ppt: 'bi-file-earmark-ppt', pptx: 'bi-file-earmark-ppt',
+      zip: 'bi-file-earmark-zip', rar: 'bi-file-earmark-zip', '7z': 'bi-file-earmark-zip',
+      txt: 'bi-file-earmark-text',
+      jpg: 'bi-file-earmark-image', jpeg: 'bi-file-earmark-image',
+      png: 'bi-file-earmark-image', gif: 'bi-file-earmark-image', webp: 'bi-file-earmark-image',
+    };
+    return 'bi ' + (map[ext] || 'bi-file-earmark');
+  }
+
+  function formatSize(b) {
+    if (b < 1024) return b + ' Б';
+    if (b < 1048576) return (b/1024).toFixed(1) + ' КБ';
+    return (b/1048576).toFixed(1) + ' МБ';
+  }
+
+  function renderFiles(files) {
+    list.innerHTML = '';
+    if (!files || !files.length) { hint.textContent = 'Файлы не выбраны'; return; }
+    hint.textContent = files.length === 1 ? files[0].name : files.length + ' файла(-ов)';
+    Array.from(files).forEach(function(f, i) {
+      var el = document.createElement('div');
+      el.className = 'tk-file-item';
+      el.innerHTML =
+        '<div class="tk-file-item__icon"><i class="' + fileIcon(f.name) + '"></i></div>' +
+        '<span class="tk-file-item__name">' + f.name + '</span>' +
+        '<span class="tk-file-item__size">' + formatSize(f.size) + '</span>' +
+        '<button type="button" class="tk-file-item__remove" data-idx="' + i + '"><i class="bi bi-x"></i></button>';
+      list.appendChild(el);
+    });
+  }
+
+  if (input) {
+    input.addEventListener('change', function() { renderFiles(this.files); });
+
+    list.addEventListener('click', function(e) {
+      var btn = e.target.closest('.tk-file-item__remove');
+      if (!btn) return;
+      var idx = parseInt(btn.dataset.idx, 10);
+      var dt = new DataTransfer();
+      Array.from(input.files).forEach(function(f, i) { if (i !== idx) dt.items.add(f); });
+      input.files = dt.files;
+      renderFiles(input.files);
+    });
+
+    zone.addEventListener('dragover', function(e) {
+      e.preventDefault(); zone.style.borderColor = '#2f6bed'; zone.style.background = '#f0f4ff';
+    });
+    zone.addEventListener('dragleave', function() {
+      zone.style.borderColor = ''; zone.style.background = '';
+    });
+    zone.addEventListener('drop', function(e) {
+      e.preventDefault(); zone.style.borderColor = ''; zone.style.background = '';
+      var dt = new DataTransfer();
+      Array.from(input.files).forEach(function(f) { dt.items.add(f); });
+      Array.from(e.dataTransfer.files).forEach(function(f) { dt.items.add(f); });
+      input.files = dt.files;
+      renderFiles(input.files);
     });
   }
 })();
