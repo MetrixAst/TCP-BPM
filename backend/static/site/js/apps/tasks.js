@@ -54,6 +54,11 @@
           dropdownParent: jQuery('#tasksPage')
         });
       }
+
+      if (window.BPM && window.BPM.applyTranslations) {
+        window.BPM.applyTranslations();
+      }
+    }
     
       $stateSel.on('change', updateFiltersWithoutReload);
     } else {

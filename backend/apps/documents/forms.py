@@ -119,10 +119,14 @@ class BudgetForm(forms.ModelForm):
         return res
 
 
-
 class DocumentsForm(PaginatorForm):
     
-    search = forms.CharField(widget=forms.TextInput(attrs={'class':'form-control', 'placeholder': 'Поиск'}), required=False)
+    search = forms.CharField(widget=forms.TextInput(attrs={'class':'form-control',}), required=False)
     supplier = Select2FieldDefault(queryset=Supplier.objects.all(), placeholder='Контрагент', required=False)
-    date = forms.DateField(widget=forms.TextInput(attrs={'class':'form-control single_date_picker', 'placeholder': 'Дата'}), required=False)
+    date = forms.DateField(widget=forms.TextInput(attrs={'class':'form-control single_date_picker', }), required=False)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['search'].label = 'Поиск'
+        self.fields['supplier'].label = 'Контрагент'
+        self.fields['date'].label = 'Дата'
