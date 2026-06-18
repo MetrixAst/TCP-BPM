@@ -9,6 +9,23 @@
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999" />
+<style>
+  .select2-container--default .select2-selection--multiple{
+      position:relative;
+  }
+  
+  .select2-container--default .select2-selection--multiple::after{
+      content:"";
+      position:absolute;
+      right:14px;
+      top:50%;
+      transform:translateY(-50%);
+      border-left:5px solid transparent;
+      border-right:5px solid transparent;
+      border-top:5px solid #8d8d99;
+      pointer-events:none;
+  }
+  </style>
 {% endblock %}
 
 {% block content %}

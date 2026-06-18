@@ -10,31 +10,28 @@
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr-modal-patch.css' %}?v={{ static_version|default:'1' }}">
 {% endblock styles %}
 
 {% block content %}
-
 <div class="hr-edit-page">
 
+  {# ── Карточка 1: Рабочая информация ── #}
   <div class="hr-edit-card">
-
     <div class="hr-edit-card__header">
       <h1 class="hr-edit-card__title">
         {% if employee.user.get_name %}{{ employee.user.get_name }}{% else %}{{ employee.user.username }}{% endif %}
       </h1>
-
       <div class="hr-edit-card__header-actions">
         <form method="post" action="{% url 'hr:delete_employee' employee.pk %}" class="d-inline"
               onsubmit="return confirm('Удалить сотрудника без возможности восстановления?');">
           {% csrf_token %}
           <button type="submit" class="hr-btn hr-btn--danger hr-btn--sm" title="Удалить сотрудника">
-            <i class="bi bi-trash"></i>
-            Удалить
+            <i class="bi bi-trash"></i> Удалить
           </button>
         </form>
         <a href="{% url 'hr:employee_detail' employee.pk %}" class="hr-btn hr-btn--light hr-btn--sm">
-          <i class="bi bi-arrow-left"></i>
-          Профиль
+          <i class="bi bi-arrow-left"></i> Профиль
         </a>
         <a href="{% url 'hr:employees' %}" class="hr-edit-card__close" aria-label="Закрыть">
           <i class="bi bi-x"></i>
@@ -48,52 +45,34 @@
       {% check_form form %}
 
       <div class="hr-edit-card__body">
-
         <section class="hr-edit-section">
           <h2 class="hr-edit-section__title">Рабочая информация</h2>
-
           <div class="hr-edit-grid hr-edit-grid--2">
-
             <div class="hr-edit-field">
               <label class="hr-edit-field__label">Отдел</label>
               {{ form.department }}
-              {% if form.department.errors %}
-                <div class="hr-edit-field__error">{{ form.department.errors.0 }}</div>
-              {% endif %}
+              {% if form.department.errors %}<div class="hr-edit-field__error">{{ form.department.errors.0 }}</div>{% endif %}
             </div>
-
             <div class="hr-edit-field">
               <label class="hr-edit-field__label">Должность</label>
               {{ form.position }}
-              {% if form.position.errors %}
-                <div class="hr-edit-field__error">{{ form.position.errors.0 }}</div>
-              {% endif %}
+              {% if form.position.errors %}<div class="hr-edit-field__error">{{ form.position.errors.0 }}</div>{% endif %}
             </div>
-
             <div class="hr-edit-field">
               <label class="hr-edit-field__label">Статус</label>
               {{ form.status }}
-              {% if form.status.errors %}
-                <div class="hr-edit-field__error">{{ form.status.errors.0 }}</div>
-              {% endif %}
+              {% if form.status.errors %}<div class="hr-edit-field__error">{{ form.status.errors.0 }}</div>{% endif %}
             </div>
-
             <div class="hr-edit-field">
               <label class="hr-edit-field__label">Руководитель</label>
               {{ form.supervisor }}
-              {% if form.supervisor.errors %}
-                <div class="hr-edit-field__error">{{ form.supervisor.errors.0 }}</div>
-              {% endif %}
+              {% if form.supervisor.errors %}<div class="hr-edit-field__error">{{ form.supervisor.errors.0 }}</div>{% endif %}
             </div>
-
             <div class="hr-edit-field">
               <label class="hr-edit-field__label">ИИН</label>
               {{ form.iin }}
-              {% if form.iin.errors %}
-                <div class="hr-edit-field__error">{{ form.iin.errors.0 }}</div>
-              {% endif %}
+              {% if form.iin.errors %}<div class="hr-edit-field__error">{{ form.iin.errors.0 }}</div>{% endif %}
             </div>
-
             <div class="hr-edit-field">
               <label class="hr-edit-field__label">Дата приема</label>
               <input type="text"
@@ -101,57 +80,38 @@
                      id="{{ form.hire_date.id_for_label }}"
                      value="{{ form.hire_date.value|date:'d.m.Y' }}"
                      class="hr-edit-date"
-                     placeholder="дд.мм.гггг">
-              {% if form.hire_date.errors %}
-                <div class="hr-edit-field__error">{{ form.hire_date.errors.0 }}</div>
-              {% endif %}
+                     placeholder="дд.мм.гггг"
+                     autocomplete="off">
+              {% if form.hire_date.errors %}<div class="hr-edit-field__error">{{ form.hire_date.errors.0 }}</div>{% endif %}
             </div>
-
             <div class="hr-edit-field">
               <label class="hr-edit-field__label">Телефон</label>
               {{ form.phone }}
-              {% if form.phone.errors %}
-                <div class="hr-edit-field__error">{{ form.phone.errors.0 }}</div>
-              {% endif %}
+              {% if form.phone.errors %}<div class="hr-edit-field__error">{{ form.phone.errors.0 }}</div>{% endif %}
             </div>
-
             <div class="hr-edit-field">
               <label class="hr-edit-field__label">Личная почта</label>
               {{ form.personal_email }}
-              {% if form.personal_email.errors %}
-                <div class="hr-edit-field__error">{{ form.personal_email.errors.0 }}</div>
-              {% endif %}
+              {% if form.personal_email.errors %}<div class="hr-edit-field__error">{{ form.personal_email.errors.0 }}</div>{% endif %}
             </div>
-
           </div>
-
           <label class="hr-edit-switch">
             {{ form.head }}
             <span></span>
             <strong>Руководитель отдела</strong>
           </label>
-
-          {% if form.head.errors %}
-            <div class="hr-edit-field__error">{{ form.head.errors.0 }}</div>
-          {% endif %}
+          {% if form.head.errors %}<div class="hr-edit-field__error">{{ form.head.errors.0 }}</div>{% endif %}
         </section>
-
       </div>
 
       <div class="hr-edit-card__footer">
-        <a href="{% url 'hr:employee_detail' employee.pk %}" class="hr-edit-btn hr-edit-btn--cancel">
-          Отменить
-        </a>
-
-        <button type="submit" class="hr-edit-btn hr-edit-btn--save">
-          Сохранить
-        </button>
+        <a href="{% url 'hr:employee_detail' employee.pk %}" class="hr-edit-btn hr-edit-btn--cancel">Отменить</a>
+        <button type="submit" class="hr-edit-btn hr-edit-btn--save">Сохранить</button>
       </div>
-
     </form>
-
   </div>
 
+  {# ── Карточка 2: График работы ── #}
   <div class="hr-edit-card">
     <div class="hr-edit-card__header">
       <h1 class="hr-edit-card__title">График работы</h1>
@@ -164,7 +124,6 @@
           <p class="hr-edit-section__hint">
             Индивидуальное время начала дня используется при расчёте опозданий в журнале посещаемости.
           </p>
-
           <div class="hr-edit-grid hr-edit-grid--2">
             <div class="hr-edit-field">
               <label class="hr-edit-field__label">Начало рабочего дня</label>
@@ -190,12 +149,9 @@
               {% if schedule_form.grace_minutes.errors %}<div class="hr-edit-field__error">{{ schedule_form.grace_minutes.errors.0 }}</div>{% endif %}
             </div>
           </div>
-
-          <div class="hr-edit-field">
+          <div class="hr-edit-field" style="margin-top:4px;">
             <label class="hr-edit-field__label">Рабочие дни</label>
-            <div class="hr-edit-weekdays">
-              {{ schedule_form.workdays }}
-            </div>
+            <div class="hr-edit-weekdays">{{ schedule_form.workdays }}</div>
           </div>
         </section>
       </div>
@@ -207,11 +163,23 @@
   </div>
 
 </div>
-
 {% endblock %}
 
 {% block scripts %}
 <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
 <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
 <script src="{% static 'site/js/apps/hr.js' %}?v={{ static_version|default:'1' }}"></script>
+<script>
+(function($) {
+  $(function() {
+    // Datepicker
+    if ($.fn.datepicker) {
+      $('.hr-edit-date').datepicker({
+        format: 'dd.mm.yyyy', autoclose: true,
+        todayHighlight: true, orientation: 'bottom auto'
+      });
+    }
+  });
+})(window.jQuery);
+</script>
 {% endblock scripts %}

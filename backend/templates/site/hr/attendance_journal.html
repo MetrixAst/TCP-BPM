@@ -4,7 +4,10 @@
 {% block title %}Журнал посещаемости — metriX BPM{% endblock %}
 
 {% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&t=5">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr-modal-patch.css' %}?v={{ static_version|default:'1' }}">
 {% endblock %}
 
 {% block content %}
@@ -55,7 +58,6 @@
             <th style="width:32px;"></th>
           </tr>
         </thead>
-
         <tbody>
           {% for item in journal %}
           <tr class="attendance-table__row attendance-table__row--clickable{% if item.no_record %} attendance-table__row--empty{% endif %}"
@@ -80,7 +82,6 @@
               data-departure-lng="{{ item.departure_lng }}"
               data-departure-address="{{ item.departure_address }}"
               style="cursor:pointer;">
-
             <td>
               <div class="attendance-table__emp-name">
                 <a href="{% url 'hr:employee_detail' item.employee.pk %}">
@@ -91,19 +92,16 @@
                 {{ item.employee.department|default:"Без отдела" }}
               </div>
             </td>
-
             <td>
               <span class="{% if item.late %}attendance-table__late{% endif %}">
                 {{ item.day_start|date:"H:i"|default:"—" }}
               </span>
             </td>
-
             <td>
               <span class="{% if item.early_leave %}attendance-table__warning{% endif %}">
                 {{ item.day_end|date:"H:i"|default:"—" }}
               </span>
             </td>
-
             <td>
               {% if item.total_hours > 0 %}
                 <strong>{{ item.total_hours|floatformat:1 }} ч.</strong>
@@ -111,7 +109,6 @@
                 <span class="attendance-table__empty">—</span>
               {% endif %}
             </td>
-
             <td>
               {% if item.no_record %}
                 <span class="attendance-status attendance-status--empty">Нет данных</span>
@@ -125,7 +122,6 @@
                 <span class="attendance-status attendance-status--success">Вовремя</span>
               {% endif %}
             </td>
-
             <td class="attendance-table__chevron">
               <i class="bi bi-chevron-right"></i>
             </td>
@@ -153,14 +149,26 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
 <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
 <script src="{% static 'site/js/apps/attendance-modal.js' %}?v={{ static_version|default:'1' }}&t=7"></script>
 <script>
-(function () {
-  var input = document.querySelector('.js-attendance-datepicker');
-  if (input && window.jQuery && jQuery.fn.datepicker) {
-    jQuery(input).datepicker({ format: 'yyyy-mm-dd', autoclose: true, todayHighlight: true, orientation: 'bottom auto' });
-  }
-})();
+(function($) {
+  $(function() {
+    var $dp = $('.js-attendance-datepicker');
+    if ($dp.length && $.fn.datepicker) {
+      $dp.datepicker({ format: 'yyyy-mm-dd', autoclose: true, todayHighlight: true, orientation: 'bottom auto' });
+    }
+    if ($.fn.select2) {
+      $.fn.select2.defaults.set('theme', 'bootstrap4');
+      $('.attendance-page__select').select2({
+        width: '200px',
+        theme: 'bootstrap4',
+        allowClear: false,
+        minimumResultsForSearch: 6
+      });
+    }
+  });
+})(window.jQuery);
 </script>
 {% endblock %}

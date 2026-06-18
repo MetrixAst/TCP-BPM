@@ -155,7 +155,7 @@
     <div class="emp-profile__grid emp-profile__grid--2">
 
       <section class="emp-card">
-        <h2 class="emp-card__title">Контакты и данные</h2>
+        <h2 class="emp-card__title" style="margin-bottom:16px;">Контакты и данные</h2>
         <dl class="emp-dl">
           <div><dt>Логин</dt><dd>@{{ user.username }}</dd></div>
           <div><dt>Email</dt><dd>{{ user.email|default:"—" }}</dd></div>
@@ -184,7 +184,7 @@
       </section>
 
       <section class="emp-card">
-        <h2 class="emp-card__title">График работы</h2>
+        <h2 class="emp-card__title" style="margin-bottom:16px;">График работы</h2>
         <dl class="emp-dl">
           {% if work_schedule %}
             <div><dt>Рабочий день</dt><dd>{{ work_schedule.work_start|time:"H:i" }} – {{ work_schedule.work_end|time:"H:i" }}</dd></div>
@@ -220,7 +220,7 @@
 
       {% elif is_own_profile %}
         <section class="emp-card">
-          <h2 class="emp-card__title">Быстрые действия</h2>
+          <h2 class="emp-card__title" style="margin-bottom:16px;">Быстрые действия</h2>
           <div class="emp-profile__quick-actions">
             <a href="{% url 'hr:leave_create' %}" class="emp-profile__quick-btn">
               <i class="bi bi-calendar-plus"></i>

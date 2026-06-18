@@ -3,205 +3,269 @@
 {% load mptt_tags %}
 {% load site_tags %}
 
+{% block title %}{{ type_config.title }} — metriX BPM{% endblock %}
+
 {% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap-datepicker3.standalone.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/apps/docs.css' %}?v={{ static_version|default:'1' }}">
 {% endblock %}
 
 {% block content %}
 
-    <!-- Page Header Start -->
-    <div class="doc-page-header">
-        <div class="doc-page-header__left">
-            <h1 class="doc-page-title">{{ type_config.title }}</h1>
-            <nav aria-label="breadcrumb">
-                <ol class="doc-breadcrumb">
-                    <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-                    <li><a href="{% url 'documents:list' document_type %}">{{ type_config.title }}</a></li>
-                    {% if current_folder %}
-                        <li>{{ current_folder.short_name }}</li>
-                    {% endif %}
-                </ol>
-            </nav>
+<div class="doc-page-header">
+  <div class="doc-page-header__left">
+    <h1 class="doc-page-title">{{ type_config.title }}</h1>
+  </div>
+
+  {% if form %}
+  <form method="POST" class="doc-filter-form" id="filter_form">
+    {% csrf_token %}
+    {% for field in form %}
+      {% if field.field.widget.input_type == "hidden" %}
+        {{ field }}
+      {% elif field.field.widget.input_type == "text" or field.field.widget.input_type == "search" %}
+        <div class="doc-filter-field doc-filter-field--search">
+          <span class="doc-filter-label">{{ field.label }}</span>
+          <div class="doc-filter-search-wrap">{{ field }}</div>
         </div>
-        <div class="doc-page-header__right">
-            <a href="{% url 'documents:edit' document_type 0 %}" class="doc-btn doc-btn--primary" id="mobile_button">
-                <i class="bi bi-plus-lg"></i>
-                <span>{{ type_config.add_button }}</span>
-            </a>
+      {% elif field.field.widget.input_type == "date" %}
+        <div class="doc-filter-field doc-filter-field--date">
+          <span class="doc-filter-label">{{ field.label }}</span>
+          {{ field }}
         </div>
-    </div>
-    <!-- Page Header End -->
+      {% else %}
+        <div class="doc-filter-field doc-filter-field--select">
+          <span class="doc-filter-label">{{ field.label }}</span>
+          {{ field }}
+        </div>
+      {% endif %}
+    {% endfor %}
+    <button class="doc-btn doc-btn--ghost" type="submit" style="align-self:flex-end;">
+      <i class="bi bi-search"></i> Найти
+    </button>
+    <a href="{% url 'documents:edit' document_type 0 %}"
+       class="doc-btn doc-btn--primary" style="align-self:flex-end;">
+      <i class="bi bi-plus-lg"></i>
+      <span>{{ type_config.add_button }}</span>
+    </a>
+  </form>
+  {% else %}
+  <div class="doc-page-header__right">
+    <a href="{% url 'documents:edit' document_type 0 %}" class="doc-btn doc-btn--primary">
+      <i class="bi bi-plus-lg"></i>
+      <span>{{ type_config.add_button }}</span>
+    </a>
+  </div>
+  {% endif %}
+</div>
 
-    {% if form %}
-    <div class="doc-filter-card">
-        <form method="POST" class="doc-filter-form" id="filter_form">
-            {% csrf_token %}
-            {% for field in form %}
-                {% if field.field.widget.input_type == "hidden" %}
-                    {{ field }}
-                {% else %}
-                    <div class="doc-filter-field">
-                        {% if field.label %}<label class="doc-filter-label">{{ field.label }}</label>{% endif %}
-                        {{ field }}
-                    </div>
-                {% endif %}
-            {% endfor %}
-            <button class="doc-btn doc-btn--primary" type="submit">
-                <i class="bi bi-search"></i>
-                <span>Найти</span>
-            </button>
-        </form>
-    </div>
-    {% endif %}
+<div class="doc-layout">
 
-    <div class="doc-layout">
+  {% if not type_config.hide_left %}
+  <aside class="doc-sidebar">
+    <nav class="doc-nav">
+      <a class="doc-nav__link {% if status == 'all' %}doc-nav__link--active{% endif %}"
+         href="{% url 'documents:by_status' document_type 'all' %}">
+        <i class="bi bi-collection"></i> Все
+      </a>
 
-        {% if not type_config.hide_left %}
-            <aside class="doc-sidebar d-none d-lg-flex">
-                <nav class="doc-nav">
-                    <a class="doc-nav__link {% if status == 'all' %}doc-nav__link--active{% endif %}"
-                       href="{% url 'documents:by_status' document_type 'all' %}">
-                        <i class="bi bi-collection"></i>
-                        <span>Все</span>
-                    </a>
+      {% if type_config.statuses %}
+        {% for key, current in statuses.items %}
+          <a class="doc-nav__link {% if status == key %}doc-nav__link--active{% endif %}"
+             href="{% url 'documents:by_status' document_type key %}">
+            <i class="bi bi-circle-fill doc-nav__dot"></i>
+            <span>{{ current.title }}</span>
+          </a>
+        {% endfor %}
+      {% endif %}
 
-                    {% if type_config.statuses %}
-                        {% for key, current in statuses.items %}
-                            <a class="doc-nav__link {% if status == key %}doc-nav__link--active{% endif %}"
-                               href="{% url 'documents:by_status' document_type key %}">
-                                <i class="bi bi-circle-fill doc-nav__dot"></i>
-                                <span>{{ current.title }}</span>
-                            </a>
-                        {% endfor %}
-                    {% endif %}
+      {% if type_config.tree %}
+        <div class="doc-nav__divider"></div>
+        <span class="doc-nav__section-label">Папки</span>
 
-                    {% if type_config.tree %}
-                        <div class="doc-nav__divider"></div>
-                        <span class="doc-nav__section-label">Папки</span>
-                        {% if can_manage_folder_acl %}
-                        <a class="doc-nav__link doc-nav__link--sub"
-                           href="{% url 'documents:folder_access_list' document_type %}"
-                           title="Настройка доступа к папкам">
-                            <i class="bi bi-shield-lock"></i>
-                            <span>Доступ к папкам</span>
-                        </a>
-                        {% endif %}
-                        {% if can_create %}
-                        <details class="doc-folder-create">
-                            <summary class="doc-folder-create__toggle">
-                                <span class="doc-folder-create__toggle-icon">
-                                    <i class="bi bi-folder-plus"></i>
-                                </span>
-                                <span class="doc-folder-create__toggle-text">Создать папку</span>
-                                <i class="bi bi-chevron-down doc-folder-create__chevron"></i>
-                            </summary>
-                            <form method="POST" action="{% url 'documents:folder_create' document_type %}"
-                                  class="doc-folder-create__form">
-                                {% csrf_token %}
-                                <label class="doc-folder-create__field">
-                                    <span class="doc-folder-create__label">Название</span>
-                                    <input type="text" name="name" class="doc-folder-create__input"
-                                           placeholder="Например: Договоры" maxlength="40" required>
-                                </label>
-                                <label class="doc-folder-create__field">
-                                    <span class="doc-folder-create__label">Расположение</span>
-                                    <select name="parent" class="doc-folder-create__select">
-                                        <option value="">Корневой уровень</option>
-                                        {% for node in tree %}
-                                            <option value="{{ node.id }}">{{ node.short_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </label>
-                                <button type="submit" class="doc-folder-create__btn">
-                                    <i class="bi bi-plus-lg"></i>
-                                    <span>Создать папку</span>
-                                </button>
-                            </form>
-                        </details>
-                        {% endif %}
-                        <a class="doc-nav__link {% if folder == 'all' or not folder %}doc-nav__link--active{% endif %}"
-                           href="{% url 'documents:list' document_type %}">
-                            <i class="bi bi-folder2-open"></i>
-                            <span>Все документы</span>
-                        </a>
-                        {% recursetree tree %}
-                            <a class="doc-nav__link {% if node.id in active_folder_ids %}doc-nav__link--active{% endif %} {% if node.level > 1 %}doc-nav__link--sub{% endif %}"
-                               href="{% url 'documents:by_folder' document_type node.id %}"
-                               title="{{ node.name }}">
-                                <i class="bi bi-{% if node.is_leaf_node %}folder2{% else %}folder2-open{% endif %}"></i>
-                                <span>{{ node.short_name }}</span>
-                            </a>
-                            {% if not node.is_leaf_node %}
-                                <div class="doc-nav__children">
-                                    {{ children }}
-                                </div>
-                            {% endif %}
-                        {% endrecursetree %}
-                    {% endif %}
-                </nav>
-            </aside>
+        {% if can_manage_folder_acl %}
+          <a class="doc-nav__link doc-nav__link--sub"
+             href="{% url 'documents:folder_access_list' document_type %}">
+            <i class="bi bi-shield-lock"></i> Доступ к папкам
+          </a>
         {% endif %}
 
-        <div class="doc-content">
+        {% if can_create %}
+          <details class="doc-folder-create">
+            <summary class="doc-folder-create__toggle">
+              <span class="doc-folder-create__toggle-icon"><i class="bi bi-folder-plus"></i></span>
+              <span class="doc-folder-create__toggle-text">Создать папку</span>
+              <i class="bi bi-chevron-down doc-folder-create__chevron"></i>
+            </summary>
+            <form method="POST" action="{% url 'documents:folder_create' document_type %}"
+                  class="doc-folder-create__form">
+              {% csrf_token %}
+              <div class="doc-folder-create__field">
+                <span class="doc-folder-create__label">Название</span>
+                <input type="text" name="name" class="doc-folder-create__input"
+                       placeholder="Например: Договоры" maxlength="40" required>
+              </div>
+              <div class="doc-folder-create__field">
+                <span class="doc-folder-create__label">Расположение</span>
+                <select name="parent" class="doc-folder-create__select">
+                  <option value="">Корневой уровень</option>
+                  {% for node in tree %}
+                    <option value="{{ node.id }}">{{ node.short_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <button type="submit" class="doc-folder-create__btn">
+                <i class="bi bi-plus-lg"></i> Создать папку
+              </button>
+            </form>
+          </details>
+        {% endif %}
 
-            <div class="doc-table-card">
+        <a class="doc-nav__link {% if folder == 'all' or not folder %}doc-nav__link--active{% endif %}"
+           href="{% url 'documents:list' document_type %}">
+          <i class="bi bi-folder2-open"></i> Все документы
+        </a>
 
-                {% if paginator.items %}
-                <div class="doc-list-header d-none d-md-flex">
-                    <span class="doc-list-col doc-list-col--name">Документ</span>
-                    <span class="doc-list-col doc-list-col--date">Дата</span>
-                    <span class="doc-list-col doc-list-col--status">Статус</span>
-                </div>
-                {% endif %}
+        {% recursetree tree %}
+          <a class="doc-nav__link {% if node.id in active_folder_ids %}doc-nav__link--active{% endif %} {% if node.level > 1 %}doc-nav__link--sub{% endif %}"
+             href="{% url 'documents:by_folder' document_type node.id %}"
+             title="{{ node.name }}">
+            <i class="bi bi-{% if node.is_leaf_node %}folder2{% else %}folder2-open{% endif %}"></i>
+            <span>{{ node.short_name }}</span>
+          </a>
+          {% if not node.is_leaf_node %}
+            <div class="doc-nav__children">{{ children }}</div>
+          {% endif %}
+        {% endrecursetree %}
+      {% endif %}
+    </nav>
+  </aside>
+  {% endif %}
 
-                <div class="doc-list">
-                    {% for current in paginator.items %}
-                        <div class="doc-list-row">
-                        <a href="{% url 'documents:document' current.id %}"
-                           class="doc-list-item indicator_item"
-                           data-type="{{ current.document_type }}"
-                           data-id="{{ current.id }}">
+  <div class="doc-content">
+    <div class="doc-table-card">
 
-                            <div class="doc-list-col doc-list-col--name">
-                                <span class="doc-list-number">{{ current.number }}</span>
-                                <span class="doc-list-title">{{ current.title }}</span>
-                            </div>
+      {% if paginator.items %}
+      <div class="doc-list-header d-none d-md-flex" style="padding-left:20px;padding-right:20px;">
+        <span class="doc-list-col doc-list-col--name">Документ</span>
+        <span class="doc-list-col doc-list-col--date">Дата</span>
+        <span class="doc-list-col doc-list-col--status">Статус</span>
+      </div>
+      {% endif %}
 
-                            <div class="doc-list-col doc-list-col--date">
-                                <span class="d-flex align-items-center gap-1">
-                                    <i class="bi bi-calendar3"></i>
-                                    {{ current.date }}
-                                </span>
-                            </div>
+      <div class="doc-list">
+        {% for current in paginator.items %}
+          <div class="doc-list-row">
+            <a href="{% url 'documents:document' current.id %}"
+               class="doc-list-item indicator_item"
+               data-type="{{ current.document_type }}"
+               data-id="{{ current.id }}">
+              <div class="doc-list-col doc-list-col--name" style="display:flex;flex-direction:column;gap:2px;">
+                <span class="doc-list-number">{{ current.number }}</span>
+                <span class="doc-list-title">{{ current.title }}</span>
+              </div>
+              <div class="doc-list-col doc-list-col--date">
+                <i class="bi bi-calendar3"></i> {{ current.date }}
+              </div>
+              <div class="doc-list-col doc-list-col--status">
+                <span class="doc-status-badge">{{ current.status_info.title }}</span>
+              </div>
+            </a>
 
-                            <div class="doc-list-col doc-list-col--status">
-                                <span class="doc-status-badge">{{ current.status_info.title }}</span>
-                            </div>
+          </div>
+        {% empty %}
+          <div class="doc-empty">
+            <i class="bi bi-inbox"></i>
+            <div class="doc-empty__title">Список пуст</div>
+            <div class="doc-empty__text">В этом списке пока ничего нет</div>
+          </div>
+        {% endfor %}
+      </div>
 
-                        </a>
-                        {% if current.document %}
-                            <a href="{{ current.document.url }}" target="_blank" download
-                               class="doc-download-btn" title="Скачать документ">
-                                <i class="bi bi-download"></i>
-                                <span>Скачать документ</span>
-                            </a>
-                        {% endif %}
-                        </div>
-                    {% empty %}
-                        <div class="doc-empty">
-                            <i class="bi bi-inbox"></i>
-                            <div class="doc-empty__title">Список пуст</div>
-                            <div class="doc-empty__text">В этом списке пока ничего нет</div>
-                        </div>
-                    {% endfor %}
-                </div>
+      {% if paginator.count > 0 %}
+        {% show_paginator paginator True %}
+      {% endif %}
 
-                {% if paginator.count > 0 %}
-                    {% show_paginator paginator True %}
-                {% endif %}
-
-            </div>
-        </div>
     </div>
+  </div>
+</div>
 
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
+<script>
+(function($) {
+  $(function() {
+
+    // ── Select2 на все <select> внутри фильтра ──
+    if ($.fn.select2) {
+      $.fn.select2.defaults.set('theme', 'bootstrap4');
+      $('#filter_form select').each(function() {
+        var $el = $(this);
+        if ($el.hasClass('select2-hidden-accessible')) return;
+
+        var isAjax = $el.attr('data-url');
+        var placeholder = $el.attr('placeholder')
+                       || $el.find('option[value=""]').first().text()
+                       || '—';
+
+        var opts = {
+          width: '100%',
+          theme: 'bootstrap4',
+          allowClear: true,
+          placeholder: placeholder
+        };
+
+        if (isAjax) {
+          if (!$el.parent().hasClass('position-relative')) {
+            $el.wrap('<div class="position-relative"></div>');
+          }
+          opts.dropdownParent = $el.parent();
+          opts.ajax = {
+            url: isAjax,
+            dataType: 'json',
+            delay: 250,
+            data: function(p) { return { term: p.term || '', page: p.page || 1 }; }
+          };
+          opts.escapeMarkup = function(m) { return m; };
+          opts.templateResult = function(r) {
+            if (r.loading) return r.text;
+            return r.addit
+              ? '<div>' + r.text + '<div class="text-muted small">' + r.addit + '</div></div>'
+              : r.text;
+          };
+        }
+
+        $el.select2(opts);
+      });
+    }
+
+    // ── Датепикер на поля с датой ──
+    var $dateInputs = $('#filter_form .doc-filter-field--date input');
+    $dateInputs.closest('.input-group')
+      .css('display', 'block')
+      .find('.input-group-prepend, .input-group-append').hide();
+
+    $dateInputs.datepicker({
+      autoclose: true,
+      language: 'ru',
+      format: 'dd.mm.yyyy',
+      todayHighlight: true
+    });
+
+    $dateInputs.each(function() {
+      var v = $(this).val();
+      if (v && v.indexOf('-') > 0 && v.length === 10) {
+        $(this).val(v.split('-').reverse().join('.'));
+      }
+    });
+
+  });
+})(window.jQuery);
+</script>
 {% endblock %}
