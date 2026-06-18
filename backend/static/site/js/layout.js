@@ -11,6 +11,18 @@
   const STORAGE_KEY = 'bpm_sidebar_collapsed';
   const SEARCH_DEBOUNCE = 250;
 
+  // Иконки для каждой группы результатов
+  const GROUP_ICONS = {
+    menu:            'bi-layout-sidebar',
+    employees:       'bi-person',
+    documents:       'bi-file-text',
+    tasks:           'bi-check2-square',
+    tickets:         'bi-ticket',
+    counterparties:  'bi-building',
+    suppliers:       'bi-truck',
+    tenants:         'bi-house',
+  };
+
   function isMobile() {
     return window.innerWidth < BP_LG;
   }
@@ -141,45 +153,75 @@
   }
 
   function getLocalMenuResults(query) {
-    if (!sidebar) return [];
+    if (!sidebar) return { results: [], groups: {} };
 
-    return Array.from(sidebar.querySelectorAll('a.bpm-sidebar__item'))
+    const items = Array.from(sidebar.querySelectorAll('a.bpm-sidebar__item'))
       .map(function (link) {
         return {
           title: link.textContent.trim(),
           url: link.getAttribute('href') || '#',
-          subtitle: 'Раздел меню'
+          subtitle: 'Раздел',
+          group: 'menu',
         };
       })
       .filter(function (item) {
         return item.title.toLowerCase().includes(query.toLowerCase());
       })
-      .slice(0, 8);
+      .slice(0, 6);
+
+    const groups = {};
+    if (items.length) {
+      groups['menu'] = { label: 'Разделы', items: items };
+    }
+
+    return { results: items, groups: groups };
   }
 
-  function renderSearchResults(items) {
+  /**
+   * Рендерит выпадашку поиска с группировкой по типам.
+   * @param {Object} groups — объект вида { key: { label, items: [{title, subtitle, url}] } }
+   */
+  function renderGroupedResults(groups) {
     if (!searchRes) return;
 
-    if (!items.length) {
-      searchRes.innerHTML = '<div class="bpm-topbar__search-empty">Ничего не найдено</div>';
+    const keys = Object.keys(groups);
+
+    if (!keys.length) {
+      searchRes.innerHTML = '<div class="bpm-search-empty">Ничего не найдено</div>';
       showSearchResults();
       return;
     }
 
-    searchRes.innerHTML = items.map(function (item) {
+    const html = keys.map(function (key) {
+      const group = groups[key];
+      const icon = GROUP_ICONS[key] || 'bi-circle';
+
+      const itemsHtml = group.items.map(function (item) {
+        return (
+          '<a class="bpm-search-item" href="' + escapeHtml(item.url) + '">' +
+            '<div class="bpm-search-item__title">' + escapeHtml(item.title) + '</div>' +
+            '<div class="bpm-search-item__sub">' + escapeHtml(item.subtitle || '') + '</div>' +
+          '</a>'
+        );
+      }).join('');
+
       return (
-        '<a class="bpm-topbar__search-result-item" href="' + escapeHtml(item.url) + '">' +
-          '<div>' + escapeHtml(item.title) + '</div>' +
-          '<div class="text-muted">' + escapeHtml(item.subtitle || '') + '</div>' +
-        '</a>'
+        '<div class="bpm-search-group">' +
+          '<div class="bpm-search-group__header">' +
+            '<i class="bi ' + escapeHtml(icon) + ' bpm-search-group__icon"></i>' +
+            '<span class="bpm-search-group__label">' + escapeHtml(group.label) + '</span>' +
+          '</div>' +
+          '<div class="bpm-search-group__items">' + itemsHtml + '</div>' +
+        '</div>'
       );
     }).join('');
 
+    searchRes.innerHTML = html;
     showSearchResults();
   }
 
   async function doSearch(query) {
-    const localResults = getLocalMenuResults(query);
+    const local = getLocalMenuResults(query);
 
     try {
       const response = await fetch('/api/search/?q=' + encodeURIComponent(query), {
@@ -188,14 +230,36 @@
       });
 
       if (!response.ok) {
-        renderSearchResults(localResults);
+        renderGroupedResults(local.groups);
         return;
       }
 
       const data = await response.json();
-      renderSearchResults((data.results || localResults).slice(0, 8));
+
+      // Если бекенд вернул сгруппированные данные — используем их
+      if (data.groups && Object.keys(data.groups).length) {
+        renderGroupedResults(data.groups);
+        return;
+      }
+
+      // Фоллбек: плоский массив results — группируем сами
+      if (data.results && data.results.length) {
+        const groups = {};
+        data.results.forEach(function (item) {
+          const key = item.group || 'other';
+          if (!groups[key]) {
+            groups[key] = { label: item.subtitle || key, items: [] };
+          }
+          groups[key].items.push(item);
+        });
+        renderGroupedResults(groups);
+        return;
+      }
+
+      // Ничего от API — показываем локальные разделы меню
+      renderGroupedResults(local.groups);
     } catch (error) {
-      renderSearchResults(localResults);
+      renderGroupedResults(local.groups);
     }
   }
 
