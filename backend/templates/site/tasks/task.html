@@ -403,19 +403,46 @@
           <input type="file" id="taskFileInput" multiple hidden data-url="{% url 'tasks:file_add' task.id %}" />
         {% endif %}
       </div>
+     
       <div class="task-files" id="taskFilesList">
         {% for f in task.files.all %}
-          <div class="task-files__item" data-file-id="{{ f.id }}">
-            <div class="task-files__icon"><i class="bi bi-file-earmark-pdf"></i></div>
-            <div class="task-files__info">
-              <a href="{{ f.file.url }}" target="_blank" class="task-files__name">{{ f.filename }}</a>
-              <div class="task-files__meta">{{ f.file.size|filesizeformat }}{% if f.uploaded_by %} · {{ f.uploaded_by.get_name }}{% endif %}</div>
+          {% url 'tasks:file_delete' task.id f.id as f_delete_url %}
+          <div class="oo-file-item">
+            <div class="oo-file-item__icon">
+              {% with ext=f.filename|lower %}
+                {% if '.pdf' in ext %}<i class="bi bi-file-earmark-pdf" style="color:#ef4444"></i>
+                {% elif '.doc' in ext %}<i class="bi bi-file-earmark-word" style="color:#2563eb"></i>
+                {% elif '.xls' in ext %}<i class="bi bi-file-earmark-excel" style="color:#16a34a"></i>
+                {% elif '.ppt' in ext %}<i class="bi bi-file-earmark-ppt" style="color:#f59e0b"></i>
+                {% elif '.png' in ext or '.jpg' in ext or '.jpeg' in ext %}<i class="bi bi-file-earmark-image" style="color:#0ea5e9"></i>
+                {% else %}<i class="bi bi-file-earmark" style="color:#74728a"></i>
+                {% endif %}
+              {% endwith %}
             </div>
-            <div class="task-files__actions">
-              <a href="{{ f.file.url }}" download class="task-files__action"><i class="bi bi-download"></i></a>
+            <div class="oo-file-item__info">
+              {% if f.filename|oo_supported %}
+                <a href="{{ f.id|oo_editor_url:'task_file' }}" target="_blank" rel="noopener" class="oo-file-item__name">{{ f.filename }}</a>
+              {% else %}
+                <a href="{{ f.file.url }}" target="_blank" class="oo-file-item__name">{{ f.filename }}</a>
+              {% endif %}
+              <div class="oo-file-item__meta">
+                {{ f.file.size|filesizeformat }}{% if f.uploaded_by %} · {{ f.uploaded_by.get_name }}{% endif %}
+              </div>
+            </div>
+            <div class="oo-file-item__actions">
+              {% if f.filename|oo_supported %}
+                <a href="{{ f.id|oo_editor_url:'task_file' }}" target="_blank" rel="noopener"
+                   class="oo-file-item__btn oo-file-item__btn--oo"
+                   title="{% if f.filename|oo_editable %}Редактировать в ONLYOFFICE{% else %}Открыть в ONLYOFFICE{% endif %}">
+                  <i class="bi {% if f.filename|oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
+                </a>
+              {% endif %}
+              <a href="{{ f.file.url }}" download class="oo-file-item__btn" title="Скачать">
+                <i class="bi bi-download"></i>
+              </a>
               {% if user_role != 'observer' %}
-                <button type="button" class="task-files__action task-files__action--danger"
-                        data-file-delete data-url="{% url 'tasks:file_delete' task.id f.id %}">
+                <button type="button" class="oo-file-item__btn oo-file-item__btn--danger"
+                        data-file-delete data-url="{{ f_delete_url }}" title="Удалить">
                   <i class="bi bi-trash"></i>
                 </button>
               {% endif %}

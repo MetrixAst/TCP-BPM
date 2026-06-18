@@ -107,3 +107,129 @@ def _hr_document_spec():
 register(_document_spec())
 register(_task_file_spec())
 register(_hr_document_spec())
+
+
+def _hr_cert_spec():
+    from hr.models import EmployeeCertification
+    from account.role_permissions import RolePermissions, PermissionEnums
+ 
+    def get_object(request, pk):
+        return EmployeeCertification.objects.select_related('employee').filter(pk=pk).first()
+ 
+    def get_file(obj):
+        return obj.scan  # ImageField/FileField со сканом сертификата
+ 
+    def get_title(obj):
+        return obj.cert_type or (obj.scan.name.split('/')[-1] if obj.scan else '')
+ 
+    def can_view(request, obj):
+        if obj is None:
+            return False
+        employee = getattr(request.user, 'employee_info', None)
+        if employee and obj.employee_id == employee.id:
+            return True
+        return RolePermissions.checkPermission(request.user.role, PermissionEnums.HR)
+ 
+    def can_edit(request, obj):
+        if obj is None:
+            return False
+        return RolePermissions.checkPermission(request.user.role, PermissionEnums.HR)
+ 
+    return AttachmentSpec('hr_cert', get_object, get_file, get_title, can_view, can_edit)
+ 
+ 
+def _hr_permit_spec():
+    from hr.models import EmployeeWorkPermit
+    from account.role_permissions import RolePermissions, PermissionEnums
+ 
+    def get_object(request, pk):
+        return EmployeeWorkPermit.objects.select_related('employee', 'category').filter(pk=pk).first()
+ 
+    def get_file(obj):
+        return obj.scan  # скан допуска
+ 
+    def get_title(obj):
+        cat = obj.category.name if obj.category else ''
+        return cat or (obj.scan.name.split('/')[-1] if obj.scan else '')
+ 
+    def can_view(request, obj):
+        if obj is None:
+            return False
+        employee = getattr(request.user, 'employee_info', None)
+        if employee and obj.employee_id == employee.id:
+            return True
+        return RolePermissions.checkPermission(request.user.role, PermissionEnums.HR)
+ 
+    def can_edit(request, obj):
+        if obj is None:
+            return False
+        return RolePermissions.checkPermission(request.user.role, PermissionEnums.HR)
+ 
+    return AttachmentSpec('hr_permit', get_object, get_file, get_title, can_view, can_edit)
+ 
+ 
+register(_hr_cert_spec())
+register(_hr_permit_spec())
+
+
+def _hr_cert_spec():
+    from hr.models import EmployeeCertification
+    from account.role_permissions import RolePermissions, PermissionEnums
+ 
+    def get_object(request, pk):
+        return EmployeeCertification.objects.select_related('employee').filter(pk=pk).first()
+ 
+    def get_file(obj):
+        return obj.scan  # ImageField/FileField со сканом сертификата
+ 
+    def get_title(obj):
+        return obj.cert_type or (obj.scan.name.split('/')[-1] if obj.scan else '')
+ 
+    def can_view(request, obj):
+        if obj is None:
+            return False
+        employee = getattr(request.user, 'employee_info', None)
+        if employee and obj.employee_id == employee.id:
+            return True
+        return RolePermissions.checkPermission(request.user.role, PermissionEnums.HR)
+ 
+    def can_edit(request, obj):
+        if obj is None:
+            return False
+        return RolePermissions.checkPermission(request.user.role, PermissionEnums.HR)
+ 
+    return AttachmentSpec('hr_cert', get_object, get_file, get_title, can_view, can_edit)
+ 
+ 
+def _hr_permit_spec():
+    from hr.models import EmployeeWorkPermit
+    from account.role_permissions import RolePermissions, PermissionEnums
+ 
+    def get_object(request, pk):
+        return EmployeeWorkPermit.objects.select_related('employee', 'category').filter(pk=pk).first()
+ 
+    def get_file(obj):
+        return obj.scan  # скан допуска
+ 
+    def get_title(obj):
+        cat = obj.category.name if obj.category else ''
+        return cat or (obj.scan.name.split('/')[-1] if obj.scan else '')
+ 
+    def can_view(request, obj):
+        if obj is None:
+            return False
+        employee = getattr(request.user, 'employee_info', None)
+        if employee and obj.employee_id == employee.id:
+            return True
+        return RolePermissions.checkPermission(request.user.role, PermissionEnums.HR)
+ 
+    def can_edit(request, obj):
+        if obj is None:
+            return False
+        return RolePermissions.checkPermission(request.user.role, PermissionEnums.HR)
+ 
+    return AttachmentSpec('hr_permit', get_object, get_file, get_title, can_view, can_edit)
+ 
+ 
+register(_hr_cert_spec())
+register(_hr_permit_spec())
