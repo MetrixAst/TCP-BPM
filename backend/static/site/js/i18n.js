@@ -14,7 +14,7 @@
     TEXTAREA: 1,
   };
 
-  var ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
+  var ATTRS = ['placeholder', 'title', 'aria-label', 'alt', 'data-placeholder'];
 
   window.BPM_I18N = window.BPM_I18N || { lang: 'ru' };
   window.BPM = window.BPM || {};

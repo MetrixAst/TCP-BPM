@@ -155,3 +155,13 @@ def filter_suppliers_queryset(queryset, user):
 
     return queryset.exclude(onec_id__in=hidden_onec_ids)
 
+def user_can_view_supplier(user, supplier) -> bool:
+    if user_has_full_access(user):
+        return True
+    if not supplier.onec_id:
+        return True
+    from onec.models import Counterparty
+    counterparty = Counterparty.objects.filter(id_1c=supplier.onec_id).first()
+    if counterparty is None:
+        return True
+    return user_can_view_counterparty(user, counterparty)
