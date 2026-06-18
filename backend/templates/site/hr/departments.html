@@ -6,6 +6,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&dept=1">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr-modal-patch.css' %}?v={{ static_version|default:'1' }}">
 {% endblock styles %}
 
 {% block content %}
@@ -14,12 +15,7 @@
   <div class="hr-list-top">
     <div>
       <h1>Отделы</h1>
-      <p class="hr-departments-top__subtitle">
-        Структура по компаниям · {{ departments|length }}
-        {% if departments|length == 1 %}отдел{% elif departments|length < 5 %}отдела{% else %}отделов{% endif %}
-      </p>
     </div>
-
     <div class="hr-list-top__actions">
       {% if request.user|has_permission:"hr_companies" %}
       <button type="button" class="hr-btn hr-btn--primary" data-bs-toggle="modal" data-bs-target="#createDepartmentModal">
@@ -39,25 +35,16 @@
           <div>Родительский отдел</div>
           <div>Сотрудники</div>
         </div>
-
         <div class="hr-table__body">
           {% for department in departments %}
           <div class="hr-table__row">
             <div class="hr-employee">
-              <div class="hr-avatar hr-avatar--dept">
-                {{ department.name|slice:":1"|upper }}
-              </div>
-              <div>
-                <div class="hr-employee__name">{{ department.name }}</div>
-              </div>
+              <div class="hr-avatar hr-avatar--dept">{{ department.name|slice:":1"|upper }}</div>
+              <div><div class="hr-employee__name">{{ department.name }}</div></div>
             </div>
             <div class="hr-muted">{{ department.company.name|default:"—" }}</div>
-            <div class="hr-muted">
-              {% if department.parent %}{{ department.parent.name }}{% else %}—{% endif %}
-            </div>
-            <div>
-              <span class="hr-badge hr-badge--neutral">{{ department.employees.count }}</span>
-            </div>
+            <div class="hr-muted">{% if department.parent %}{{ department.parent.name }}{% else %}—{% endif %}</div>
+            <div><span class="hr-badge hr-badge--neutral">{{ department.employees.count }}</span></div>
           </div>
           {% endfor %}
         </div>
@@ -69,8 +56,7 @@
         <p>Сначала добавьте компанию, затем создайте первый отдел.</p>
         {% if request.user|has_permission:"hr_companies" %}
         <button type="button" class="hr-btn hr-btn--primary" data-bs-toggle="modal" data-bs-target="#createDepartmentModal">
-          <i class="bi bi-plus-lg"></i>
-          Новый отдел
+          <i class="bi bi-plus-lg"></i> Новый отдел
         </button>
         {% endif %}
       </div>
@@ -79,7 +65,9 @@
 
 </div>
 
-<div class="modal fade" id="createDepartmentModal" tabindex="-1" aria-labelledby="createDepartmentModalLabel" aria-hidden="true">
+{# ── Modal: Новый отдел ── #}
+<div class="modal fade" id="createDepartmentModal" tabindex="-1"
+     aria-labelledby="createDepartmentModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content hr-dept-modal">
       <form method="post" action="{% url 'hr:create_department' %}">
@@ -118,8 +106,7 @@
         <div class="modal-footer hr-dept-modal__footer">
           <button type="button" class="hr-btn hr-btn--light" data-bs-dismiss="modal">Отмена</button>
           <button type="submit" class="hr-btn hr-btn--primary">
-            <i class="bi bi-check-lg"></i>
-            Создать
+            <i class="bi bi-check-lg"></i> Создать
           </button>
         </div>
       </form>

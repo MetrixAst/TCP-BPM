@@ -50,15 +50,35 @@ def profile_view(request):
     if request.method == 'POST':
         form_type = request.POST.get('form_type')
 
-        if form_type == 'profile':
-            profile_form = EditProfileForm(request.POST, instance=request.user, prefix="profile")
+        if form_type == 'avatar':
+            avatar = request.FILES.get('avatar')
+
+            if avatar:
+                request.user.avatar = avatar
+                request.user.save(update_fields=['avatar'])
+
+            return redirect('account:profile')
+
+        elif form_type == 'profile':
+            profile_form = EditProfileForm(
+                request.POST,
+                request.FILES,
+                instance=request.user,
+                prefix="profile"
+            )
             if profile_form.is_valid():
                 profile_form.save()
+                return redirect('account:profile')
 
         elif form_type == 'password':
-            password_form = CustomPasswordChangeForm(request.user, data=request.POST or None, prefix="password")
+            password_form = CustomPasswordChangeForm(
+                request.user,
+                data=request.POST or None,
+                prefix="password"
+            )
             if password_form.is_valid():
                 password_form.save()
+                return redirect('account:profile')
 
     _apply_profile_labels(request, profile_form, password_form)
 
@@ -69,7 +89,6 @@ def profile_view(request):
     }
 
     return render(request, 'site/account/profile.html', context)
-
 
 def _apply_profile_labels(request, profile_form, password_form):
     from .i18n import translate, DEFAULT_LANG
@@ -426,3 +445,4 @@ def indicator_readed(request, target_id, target_type):
         return JsonResponse({'success': True})
     
     return JsonResponse({'success': False})
+

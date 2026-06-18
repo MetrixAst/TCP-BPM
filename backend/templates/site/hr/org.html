@@ -5,6 +5,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&org=3">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr-modal-patch.css' %}?v={{ static_version|default:'1' }}">
 {% endblock styles %}
 
 {% block content %}
@@ -98,26 +99,26 @@
       <input type="hidden" name="id" id="hrOrgDeptId" value="">
       <div class="hr-org-field">
         <label for="hrOrgDeptName">Название</label>
-        <input type="text" id="hrOrgDeptName" name="name" class="form-control" required maxlength="50">
+        <input type="text" id="hrOrgDeptName" name="name" required maxlength="50">
       </div>
       <div class="hr-org-field">
         <label for="hrOrgDeptCompany">Компания</label>
-        <select id="hrOrgDeptCompany" name="company" class="form-control" required></select>
+        <select id="hrOrgDeptCompany" name="company" required></select>
       </div>
       <div class="hr-org-field">
         <label for="hrOrgDeptParent">Родительский отдел</label>
-        <select id="hrOrgDeptParent" name="parent" class="form-control">
+        <select id="hrOrgDeptParent" name="parent">
           <option value="">— корневой отдел компании —</option>
         </select>
       </div>
       <div class="hr-org-field">
         <label for="hrOrgDeptLevel">Тип уровня</label>
-        <select id="hrOrgDeptLevel" name="level_type" class="form-control">
+        <select id="hrOrgDeptLevel" name="level_type">
           <option value="department">Отдел</option>
           <option value="division">Дивизион</option>
         </select>
       </div>
-      <p class="hr-org-modal__error text-danger small" id="hrOrgDeptError" hidden></p>
+      <p class="hr-org-modal__error" id="hrOrgDeptError" hidden style="color:#ef4444;font-size:12px;margin:0;"></p>
       <div class="hr-org-modal__footer">
         <button type="button" class="hr-org-btn hr-org-btn--danger" id="hrOrgDeptDelete" hidden>Удалить</button>
         <span class="hr-org-modal__spacer"></span>

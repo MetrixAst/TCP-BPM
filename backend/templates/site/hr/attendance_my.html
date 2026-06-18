@@ -3,6 +3,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&att=1">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr-modal-patch.css' %}?v={{ static_version|default:'1' }}">
 {% endblock %}
 
 {% block content %}
@@ -30,7 +31,6 @@
           <i class="bi bi-chevron-left"></i>
           {{ prev_month|date:"F" }}
         </a>
-
         {% if next_month %}
         <a href="?month={{ next_month.month }}&year={{ next_month.year }}"
            class="attendance-page__month-btn">
@@ -56,10 +56,9 @@
             <th>Обед</th>
             <th>Уход</th>
             <th>Отработано</th>
-            <th aria-hidden="true"></th>
+            <th aria-hidden="true" style="width:32px;"></th>
           </tr>
         </thead>
-
         <tbody>
           {% for item in attendance_list %}
           <tr class="attendance-table__row attendance-table__row--clickable{% if item.no_record %} attendance-table__row--empty{% endif %}"
@@ -87,18 +86,15 @@
               data-departure-lat="{{ item.departure_lat }}"
               data-departure-lng="{{ item.departure_lng }}"
               data-departure-address="{{ item.departure_address }}">
-
             <td>
               <strong>{{ item.date|date:"d.m.Y" }}</strong>
               <div class="attendance-table__department">{{ item.date|date:"l" }}</div>
             </td>
-
             <td>
               <span class="{% if item.late %}attendance-table__late{% endif %}">
                 {{ item.day_start|date:"H:i"|default:"—" }}
               </span>
             </td>
-
             <td>
               {% if item.lunch_start or item.lunch_end %}
                 {{ item.lunch_start|date:"H:i"|default:"—" }} / {{ item.lunch_end|date:"H:i"|default:"—" }}
@@ -106,13 +102,11 @@
                 <span class="attendance-table__empty">—</span>
               {% endif %}
             </td>
-
             <td>
               <span class="{% if item.early_leave %}attendance-table__warning{% endif %}">
                 {{ item.day_end|date:"H:i"|default:"—" }}
               </span>
             </td>
-
             <td>
               {% if item.no_record %}
                 <span class="attendance-table__empty">Нет данных</span>
@@ -123,14 +117,13 @@
                 {% endif %}
               {% endif %}
             </td>
-
             <td class="attendance-table__chevron">
               <i class="bi bi-chevron-right"></i>
             </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6">
+            <td colspan="6" class="attendance-table__empty-state">
               <div class="attendance-empty">
                 <i class="bi bi-calendar-x"></i>
                 <strong>Нет данных за выбранный месяц</strong>
@@ -142,6 +135,7 @@
       </table>
     </div>
   </div>
+
 </div>
 
 {% include 'site/hr/_attendance_modal.html' with modal_id="attModal" %}

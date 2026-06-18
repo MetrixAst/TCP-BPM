@@ -1,16 +1,183 @@
-{% extends 'site/base.html' %}
+{% extends 'site/base_modal.html' %}
 {% load static %}
 
 {% block title %}{% if is_edit %}Редактирование{% else %}Новая{% endif %} командировка — metriX BPM{% endblock %}
-
-{% block body_classes %}cal-form-body{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap-datepicker3.standalone.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}" />
-<link rel="stylesheet" href="{% static 'site/css/apps/hr-calendar.css' %}?v=3" />
+<link rel="stylesheet" href="{% static 'site/css/apps/hr-modal-patch.css' %}?v={{ static_version|default:'1' }}" />
+<style>
+/* ── Overlay ── */
+.cal-form-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 24px;
+  box-sizing: border-box;
+}
+
+/* ── Card ── */
+.cal-form-card {
+  width: 560px;
+  max-width: calc(100vw - 48px);
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(15,23,42,.22);
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* ── Header ── */
+.cal-form-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.cal-form-card__eyebrow {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #2f6bed;
+}
+.cal-form-card__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #25233f;
+  line-height: 1.2;
+}
+.cal-form-card__close {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: #f5f3fa;
+  color: #74728a;
+  display: inline-flex; align-items: center; justify-content: center;
+  text-decoration: none; flex-shrink: 0; font-size: 14px;
+  transition: background .15s, color .15s;
+}
+.cal-form-card__close:hover { background: #ece9f4; color: #25233f; text-decoration: none; }
+
+/* ── Body ── */
+.cal-form-card__body { display: flex; flex-direction: column; gap: 20px; }
+
+/* ── Section ── */
+.cal-form-section__title {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #25233f;
+}
+
+/* ── Grid ── */
+.cal-form-grid--2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+.cal-form-field--wide { grid-column: 1 / -1; }
+
+/* ── Field ── */
+.cal-form-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cal-form-field__label {
+  font-size: 11px; font-weight: 500; color: #74728a;
+}
+.cal-form-field__label span { color: #ef4444; }
+.cal-form-field__hint { font-size: 11px; color: #9a98aa; margin: 0; }
+.cal-form-field__error { font-size: 11px; color: #ef4444; }
+
+/* ── Inputs — pill style ── */
+.cal-form input:not([type="hidden"]),
+.cal-form select,
+.cal-form textarea {
+  width: 100% !important;
+  height: 38px !important;
+  padding: 0 16px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f5f3fa !important;
+  color: #25233f !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  font-family: inherit !important;
+}
+.cal-form input::placeholder,
+.cal-form textarea::placeholder { color: #9a98aa !important; }
+.cal-form input:focus,
+.cal-form select:focus,
+.cal-form textarea:focus { box-shadow: 0 0 0 2px rgba(47,107,237,.18) !important; }
+
+.cal-form select {
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B6880' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 12px 8px !important;
+  padding-right: 36px !important;
+  cursor: pointer !important;
+}
+
+.cal-form textarea {
+  height: 100px !important;
+  border-radius: 14px !important;
+  padding: 10px 16px !important;
+  resize: none !important;
+  line-height: 1.5 !important;
+}
+
+/* Select2 */
+.cal-form .select2-container { width: 100% !important; }
+.cal-form .select2-container--default .select2-selection--single,
+.cal-form .select2-container--bootstrap4 .select2-selection--single {
+  height: 38px !important; border: 0 !important; border-radius: 999px !important;
+  background: #f5f3fa !important; box-shadow: none !important;
+  display: flex !important; align-items: center !important;
+}
+.cal-form .select2-selection__rendered {
+  height: 38px !important; line-height: 38px !important;
+  padding-left: 16px !important; padding-right: 34px !important;
+  color: #25233f !important; font-size: 13px !important; font-weight: 500 !important;
+}
+.cal-form .select2-selection__arrow { height: 38px !important; right: 10px !important; }
+
+/* ── Footer ── */
+.cal-form-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #eceaf3;
+}
+
+/* ── Alert ── */
+.cal-form-alert {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #feecec;
+  color: #ef4444;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .cal-form-page { padding: 24px 12px; }
+  .cal-form-card { width: 100%; }
+  .cal-form-grid--2 { grid-template-columns: 1fr; }
+  .cal-form-field--wide { grid-column: auto; }
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -19,7 +186,6 @@
 
     <div class="cal-form-card__header">
       <div>
-        <p class="cal-form-card__eyebrow">{{ category_title }}</p>
         <h1 class="cal-form-card__title">
           {% if is_edit %}Редактирование командировки{% else %}Новая командировка{% endif %}
         </h1>
@@ -34,12 +200,15 @@
       {{ form.category }}
 
       <div class="cal-form-card__body">
-        <section class="cal-form-section">
-          <h2 class="cal-form-section__title">Сотрудник и период</h2>
 
+        <section>
+          <div class="cal-form-section__title">Сотрудник и период</div>
           <div class="cal-form-grid cal-form-grid--2">
+
             <div class="cal-form-field cal-form-field--wide {% if form.user.errors %}is-invalid{% endif %}">
-              <label class="cal-form-field__label" for="{{ form.user.id_for_label }}">Сотрудник<span>*</span></label>
+              <label class="cal-form-field__label" for="{{ form.user.id_for_label }}">
+                Сотрудник <span>*</span>
+              </label>
               {{ form.user }}
               {% if form.user.errors %}
                 <div class="cal-form-field__error">{{ form.user.errors.0 }}</div>
@@ -47,7 +216,9 @@
             </div>
 
             <div class="cal-form-field {% if form.start_date.errors %}is-invalid{% endif %}">
-              <label class="cal-form-field__label" for="{{ form.start_date.id_for_label }}">Дата начала<span>*</span></label>
+              <label class="cal-form-field__label" for="{{ form.start_date.id_for_label }}">
+                Дата начала <span>*</span>
+              </label>
               {{ form.start_date }}
               {% if form.start_date.errors %}
                 <div class="cal-form-field__error">{{ form.start_date.errors.0 }}</div>
@@ -55,17 +226,20 @@
             </div>
 
             <div class="cal-form-field {% if form.end_date.errors %}is-invalid{% endif %}">
-              <label class="cal-form-field__label" for="{{ form.end_date.id_for_label }}">Дата окончания<span>*</span></label>
+              <label class="cal-form-field__label" for="{{ form.end_date.id_for_label }}">
+                Дата окончания <span>*</span>
+              </label>
               {{ form.end_date }}
               {% if form.end_date.errors %}
                 <div class="cal-form-field__error">{{ form.end_date.errors.0 }}</div>
               {% endif %}
             </div>
+
           </div>
         </section>
 
-        <section class="cal-form-section">
-          <h2 class="cal-form-section__title">Дополнительно</h2>
+        <section>
+          <div class="cal-form-section__title">Дополнительно</div>
           <div class="cal-form-field {% if form.title.errors %}is-invalid{% endif %}">
             <label class="cal-form-field__label" for="{{ form.title.id_for_label }}">Описание</label>
             {{ form.title }}
@@ -77,38 +251,52 @@
         </section>
 
         {% if form.non_field_errors %}
-        <div class="cal-form-alert">
-          {% for err in form.non_field_errors %}{{ err }}{% endfor %}
-        </div>
+          <div class="cal-form-alert">
+            {% for err in form.non_field_errors %}{{ err }}{% endfor %}
+          </div>
         {% endif %}
+
       </div>
 
       <div class="cal-form-card__footer">
         <a href="{{ back_url }}" class="hr-btn hr-btn--light">Отмена</a>
         <button type="submit" class="hr-btn hr-btn--primary">
-          <i class="bi bi-check-lg"></i>
-          Сохранить
+          <i class="bi bi-check-lg"></i> Сохранить
         </button>
       </div>
+
     </form>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'site/js/vendor/select2.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
 <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
 <script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
 <script src="{% static 'site/js/apps/calendar-form.js' %}?v=1"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  if (typeof $ !== 'undefined' && $.fn.select2) {
-    $('#calendarItemForm select.select2').select2({
-      width: '100%',
-      placeholder: 'Выберите сотрудника',
-      allowClear: false,
-    });
-  }
-});
+(function($) {
+  $(function() {
+    // Select2
+    if ($.fn.select2) {
+      $.fn.select2.defaults.set('theme', 'bootstrap4');
+      $('#calendarItemForm select.select2').select2({
+        width: '100%',
+        placeholder: 'Выберите сотрудника',
+        allowClear: false,
+      });
+    }
+
+    // Datepicker
+    $('#calendarItemForm input[name="start_date"], #calendarItemForm input[name="end_date"]')
+      .datepicker({
+        autoclose: true,
+        language: 'ru',
+        format: 'dd.mm.yyyy',
+        todayHighlight: true,
+      });
+  });
+})(window.jQuery);
 </script>
 {% endblock %}

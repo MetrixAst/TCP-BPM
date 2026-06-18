@@ -1,8 +1,9 @@
-{% extends 'site/base.html' %}
+{% extends 'site/base_modal.html' %}
 {% load static %}
 {% load site_tags %}
 
 {% block title %}{{ type_config.add_button }} — metriX BPM{% endblock %}
+{% block body_classes %}task-edit-body{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
@@ -12,128 +13,130 @@
 {% endblock %}
 
 {% block content %}
-<div class="doc-form-page">
+<div class="doc-form-page" style="background:transparent;">
+  <div class="doc-form-card">
 
     <div class="doc-page-header doc-page-header--form">
-        <div class="doc-page-header__left">
-            <a href="{% url 'documents:list' document_type %}" class="doc-form-back" aria-label="Назад к списку">
-                <i class="bi bi-arrow-left"></i>
-            </a>
-            <div>
-                <h1 class="doc-page-title">{{ type_config.add_button }}</h1>
-                <nav aria-label="breadcrumb">
-                    <ol class="doc-breadcrumb">
-                        <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-                        <li><a href="{% url 'documents:list' document_type %}">{{ type_config.title }}</a></li>
-                        <li>{{ type_config.add_button }}</li>
-                    </ol>
-                </nav>
-            </div>
-        </div>
+      <div class="doc-page-header__left">
+        <a href="{% url 'documents:list' document_type %}" class="doc-form-back" aria-label="Закрыть">
+          <i class="bi bi-x"></i>
+        </a>
+        <span class="doc-page-title--form">{{ type_config.add_button }}</span>
+      </div>
     </div>
 
-    <form method="POST" enctype="multipart/form-data" class="doc-form" id="docEditForm">
-        {% check_form form %}
-        {% csrf_token %}
+    <form method="POST" enctype="multipart/form-data" id="docEditForm">
+      {% check_form form %}
+      {% csrf_token %}
 
-        <div class="doc-form-card">
-            <section class="doc-form-section">
-                <h2 class="doc-form-section__title">{% if document_type == 'documents' %}Файл и папка{% else %}Основные данные{% endif %}</h2>
-                <div class="doc-form-grid">
-                    {% if form.folder %}
-                    <div class="doc-form-field doc-form-field--full">
-                        <label class="doc-form-label" for="{{ form.folder.id_for_label }}">Папка</label>
-                        {{ form.folder }}
-                    </div>
-                    {% endif %}
-                    <div class="doc-form-field doc-form-field--full">
-                        <label class="doc-form-label" for="{{ form.title.id_for_label }}">Название</label>
-                        {{ form.title }}
-                    </div>
-                    <div class="doc-form-field doc-form-field--full">
-                        <label class="doc-form-label" for="{{ form.document.id_for_label }}">Файл</label>
-                        <label class="doc-form-upload" for="{{ form.document.id_for_label }}">
-                            {{ form.document }}
-                            <span class="doc-form-upload__icon"><i class="bi bi-file-earmark-arrow-up"></i></span>
-                            <span class="doc-form-upload__text">Перетащите файл или нажмите для выбора</span>
-                            <span class="doc-form-upload__name" data-upload-name>Файл не выбран</span>
-                        </label>
-                    </div>
-                    {% if form.number %}
-                    <div class="doc-form-field">
-                        <label class="doc-form-label" for="{{ form.number.id_for_label }}">№ документа</label>
-                        {{ form.number }}
-                    </div>
-                    {% endif %}
-                    {% if form.reg_date %}
-                    <div class="doc-form-field">
-                        <label class="doc-form-label" for="{{ form.reg_date.id_for_label }}">Дата</label>
-                        {{ form.reg_date }}
-                    </div>
-                    {% endif %}
-                    {% if form.days %}
-                    <div class="doc-form-field">
-                        <label class="doc-form-label" for="{{ form.days.id_for_label }}">Срок выполнения (дней)</label>
-                        {{ form.days }}
-                    </div>
-                    {% endif %}
-                    {% if form.text %}
-                    <div class="doc-form-field doc-form-field--full">
-                        <label class="doc-form-label" for="{{ form.text.id_for_label }}">Комментарий</label>
-                        {{ form.text }}
-                    </div>
-                    {% endif %}
-                    {% if form.supplier %}
-                    <div class="doc-form-field">
-                        <label class="doc-form-label" for="{{ form.supplier.id_for_label }}">Контрагент</label>
-                        {{ form.supplier }}
-                    </div>
-                    {% endif %}
-                </div>
-            </section>
-
-            {% if form.coordinators %}
-            <section class="doc-form-section">
-                <h2 class="doc-form-section__title">Согласование</h2>
-                <div class="doc-form-grid">
-                    <div class="doc-form-field">
-                        <label class="doc-form-label" for="{{ form.coordinators.id_for_label }}">Согласующие</label>
-                        {{ form.coordinators }}
-                    </div>
-                    <div class="doc-form-field">
-                        <label class="doc-form-label" for="{{ form.observers.id_for_label }}">Наблюдатели</label>
-                        {{ form.observers }}
-                    </div>
-                </div>
-
-                {% if form.need_all or form.need_head %}
-                <div class="doc-form-checks">
-                    {% if form.need_all %}
-                    <label class="doc-form-check">
-                        {{ form.need_all }}
-                        <span>Все согласующие должны согласовать</span>
-                    </label>
-                    {% endif %}
-                    {% if form.need_head %}
-                    <label class="doc-form-check">
-                        {{ form.need_head }}
-                        <span>Требуется подпись руководителя</span>
-                    </label>
-                    {% endif %}
-                </div>
-                {% endif %}
-            </section>
-            {% endif %}
-
-            <div class="doc-form-footer">
-                <a href="{% url 'documents:list' document_type %}" class="doc-btn doc-btn--ghost">Отмена</a>
-                <button class="doc-btn doc-btn--primary" type="submit">
-                    <i class="bi bi-check-lg"></i>
-                    <span>Сохранить</span>
-                </button>
-            </div>
+      <div class="doc-form-section">
+        <div class="doc-form-section__title">
+          {% if document_type == 'documents' %}Файл и папка{% else %}Основные данные{% endif %}
         </div>
+        <div class="doc-form-grid">
+
+          {% if form.folder %}
+            <div class="doc-form-field doc-form-field--full">
+              <label class="doc-form-label" for="{{ form.folder.id_for_label }}">Папка</label>
+              {{ form.folder }}
+            </div>
+          {% endif %}
+
+          <div class="doc-form-field doc-form-field--full">
+            <label class="doc-form-label" for="{{ form.title.id_for_label }}">Название *</label>
+            {{ form.title }}
+          </div>
+
+          <div class="doc-form-field doc-form-field--full">
+            <label class="doc-form-label" for="{{ form.document.id_for_label }}">Файл</label>
+            <label class="doc-form-upload" for="{{ form.document.id_for_label }}">
+              {{ form.document }}
+              <span class="doc-form-upload__icon"><i class="bi bi-cloud-upload"></i></span>
+              <span class="doc-form-upload__text">Перетащите файл или нажмите для выбора</span>
+              <span class="doc-form-upload__name" data-upload-name>Файл не выбран</span>
+            </label>
+          </div>
+
+          {% if form.number %}
+            <div class="doc-form-field">
+              <label class="doc-form-label" for="{{ form.number.id_for_label }}">№ документа</label>
+              {{ form.number }}
+            </div>
+          {% endif %}
+
+          {% if form.reg_date %}
+            <div class="doc-form-field">
+              <label class="doc-form-label" for="{{ form.reg_date.id_for_label }}">Дата</label>
+              {{ form.reg_date }}
+            </div>
+          {% endif %}
+
+          {% if form.days %}
+            <div class="doc-form-field">
+              <label class="doc-form-label" for="{{ form.days.id_for_label }}">Срок (дней)</label>
+              {{ form.days }}
+            </div>
+          {% endif %}
+
+          {% if form.supplier %}
+            <div class="doc-form-field">
+              <label class="doc-form-label" for="{{ form.supplier.id_for_label }}">Контрагент</label>
+              {{ form.supplier }}
+            </div>
+          {% endif %}
+
+          {% if form.text %}
+            <div class="doc-form-field doc-form-field--full">
+              <label class="doc-form-label" for="{{ form.text.id_for_label }}">Комментарий</label>
+              {{ form.text }}
+            </div>
+          {% endif %}
+
+        </div>
+      </div>
+
+      {% if form.coordinators %}
+        <div class="doc-form-divider"></div>
+        <div class="doc-form-section">
+          <div class="doc-form-section__title">Согласование</div>
+          <div class="doc-form-grid">
+            <div class="doc-form-field">
+              <label class="doc-form-label" for="{{ form.coordinators.id_for_label }}">Согласующие</label>
+              {{ form.coordinators }}
+            </div>
+            <div class="doc-form-field">
+              <label class="doc-form-label" for="{{ form.observers.id_for_label }}">Наблюдатели</label>
+              {{ form.observers }}
+            </div>
+          </div>
+          {% if form.need_all or form.need_head %}
+            <div class="doc-form-checks">
+              {% if form.need_all %}
+                <label class="doc-form-check">
+                  {{ form.need_all }}
+                  <span>Все согласующие должны согласовать</span>
+                </label>
+              {% endif %}
+              {% if form.need_head %}
+                <label class="doc-form-check">
+                  {{ form.need_head }}
+                  <span>Требуется подпись руководителя</span>
+                </label>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <div class="doc-form-footer">
+        <a href="{% url 'documents:list' document_type %}" class="doc-btn doc-btn--ghost">Отмена</a>
+        <button class="doc-btn doc-btn--primary" type="submit">
+          <i class="bi bi-check-lg"></i> Сохранить
+        </button>
+      </div>
+
     </form>
+  </div>
 </div>
 {% endblock %}
 

@@ -4,106 +4,273 @@
 
 {% block content %}
 
-    <!-- Title and Top Buttons Start -->
-    <div class="page-title-container">
-        <div class="row">
-            <!-- Title Start -->
-            <div class="col-12 col-md-7">
-                <h1 class="mb-0 pb-0 display-4" id="title">{% t 'profile.title' 'Профиль' %}</h1>
-                <nav class="breadcrumb-container d-inline-block" aria-label="breadcrumb">
-                    <ul class="breadcrumb pt-0">
-                        <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">{% t 'common.home' 'Главная' %}</a></li>
-                        <li class="breadcrumb-item">{{user.get_name}}</li>
-                    </ul>
-                </nav>
-            </div>
-            <!-- Title End -->
-        </div>
+<div class="account-profile-page">
+
+  <div class="account-profile-hero">
+    <div>
+      <h1>{% t 'profile.title' 'Профиль' %}</h1>
+      <div class="account-profile-breadcrumb">
+        <a href="{% url 'dashboard:dashboard' %}">{% t 'common.home' 'Главная' %}</a>
+        <span>/</span>
+        <span>{{ user.username }}</span>
+      </div>
     </div>
-    <!-- Title and Top Buttons End -->
-    
-    <div class="row">
-        <!-- Left Side Start -->
-        <div class="col-12 col-xl-4 col-xxl-3">
-            <!-- Biography Start -->
-            <h2 class="small-title">{% t 'profile.title' 'Профиль' %}</h2>
-            <div class="card mb-5">
-                <div class="card-body">
-                    <div class="d-flex align-items-center flex-column mb-4">
-                        <div class="d-flex align-items-center flex-column">
-                            <div class="sw-13 position-relative mb-3">
-                                <img src="{{user.get_avatar_url}}" class="img-fluid rounded-xl" alt="thumb" />
-                            </div>
-                            <div class="h5 mb-0">{{user.get_name}}</div>
-                            {% if info %}
-                                <div class="text-muted">{{user.employee_info.job_title}}</div>
-                                <div class="text-muted">
-                                    <i data-acorn-icon="pin" class="me-1"></i>
-                                    <span class="align-middle">{{user.employee_info.department}}</span>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="nav flex-column" role="tablist">
-                        <a class="nav-link active px-0 border-bottom border-separator-light" data-bs-toggle="tab" href="#overviewTab" role="tab">
-                            <i data-acorn-icon="activity" class="me-2" data-acorn-size="17"></i>
-                            <span class="align-middle">{% t 'profile.account' 'Аккаунт' %}</span>
-                        </a>
-                        {% if info %}
-                            <a class="nav-link px-0 border-bottom border-separator-light" data-bs-toggle="tab" href="#projectsTab" role="tab">
-                                <i data-acorn-icon="office" class="me-2" data-acorn-size="17"></i>
-                                <span class="align-middle">{% t 'profile.team' 'Команда' %}</span>
-                            </a>
-                        {% endif %}
-                        <a class="nav-link px-0" href="/">
-                            <i data-acorn-icon="lock-off" class="me-2" data-acorn-size="17"></i>
-                            <span class="align-middle">{% t 'profile.logout' 'Выйти' %}</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <!-- Biography End -->
-        </div>
-        <!-- Left Side End -->
-        <!-- Right Side Start -->
-        <div class="col-12 col-xl-8 col-xxl-9 mb-5 tab-content">
-            <!-- Overview Tab Start -->
-            <div class="tab-pane fade show active" id="overviewTab" role="tabpanel">
-                <!-- Public Info Start -->
-                <h2 class="small-title">{% t 'profile.account_settings' 'Настройки аккаунта' %}</h2>
-                <div class="card mb-5">
-                    <div class="card-body">
-                        <form method="POST">
-                            <input type="hidden" name="form_type" value="profile">
-                            {% init_form profile_form True %}
-                        </form>
-                    </div>
-                </div>
-                <!-- Public Info End -->
+  </div>
 
+  <div class="account-profile-layout">
 
-                <!-- Private Info Start -->
-                <h2 class="small-title">{% t 'profile.password' 'Пароль' %}</h2>
-                <div class="card mb-5">
-                    <div class="card-body">
-                        <form method="POST">
-                            <input type="hidden" name="form_type" value="password">
-                            {% init_form password_form True %}
-                        </form>
-                    </div>
-                </div>
-                <!-- Private Info End -->
-            </div>
-            <!-- Overview Tab End -->
-            <!-- Projects Tab Start -->
-            <div class="tab-pane fade" id="projectsTab" role="tabpanel">
-                <div class="chart-container" data-url="{% url 'account:structure' 'self' %}" style="height: 90vh;"></div>
-            </div>
-            <!-- Projects Tab End -->
-            
-        </div>
-        <!-- Right Side End -->
-    </div>
+    <aside class="account-profile-sidebar">
+      <form method="POST" enctype="multipart/form-data" class="account-profile-avatar-form">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="avatar">
 
+        <label class="account-profile-avatar">
+          <img src="{{ user.get_avatar_url }}" alt="{{ user.username }}">
+          <input type="file" name="avatar" accept="image/*" onchange="this.form.submit()">
+          <span class="account-profile-avatar__edit">
+            <i class="bi bi-camera"></i>
+          </span>
+        </label>
+      </form>
+
+      <h2>{{ user.get_name|default:user.username }}</h2>
+
+      {% if info %}
+        <p>{{ user.employee_info.job_title }}</p>
+        <p>{{ user.employee_info.department }}</p>
+      {% endif %}
+
+      <nav class="account-profile-menu">
+        <a class="active" data-bs-toggle="tab" href="#overviewTab" role="tab">
+          {% t 'profile.account' 'Аккаунт' %}
+        </a>
+
+        {% if info %}
+          <a data-bs-toggle="tab" href="#projectsTab" role="tab">
+            {% t 'profile.team' 'Команда' %}
+          </a>
+        {% endif %}
+
+        <a href="/">
+          {% t 'profile.logout' 'Выйти' %}
+        </a>
+      </nav>
+    </aside>
+
+    <main class="account-profile-content tab-content">
+
+      <div class="tab-pane fade show active" id="overviewTab" role="tabpanel">
+
+        <section class="account-profile-card">
+          <div class="account-profile-card__head">
+            <div>
+              <h2>{% t 'profile.account_settings' 'Настройки аккаунта' %}</h2>
+              <p>Основные данные пользователя</p>
+            </div>
+          </div>
+
+          <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="profile">
+            {% init_form profile_form True %}
+          </form>
+        </section>
+
+        <section class="account-profile-card">
+          <div class="account-profile-card__head">
+            <div>
+              <h2>{% t 'profile.password' 'Пароль' %}</h2>
+              <p>Изменение пароля аккаунта</p>
+            </div>
+          </div>
+
+          <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="password">
+            {% init_form password_form True %}
+          </form>
+        </section>
+
+      </div>
+
+      <div class="tab-pane fade" id="projectsTab" role="tabpanel">
+        <section class="account-profile-card">
+          <div class="chart-container" data-url="{% url 'account:structure' 'self' %}" style="height: 70vh;"></div>
+        </section>
+      </div>
+
+    </main>
+
+  </div>
+</div>
+
+<style>
+.account-profile-page {
+  padding: 24px 28px 48px;
+}
+
+.account-profile-hero {
+  margin-bottom: 22px;
+}
+
+.account-profile-hero h1 {
+  margin: 0 0 8px;
+  font-size: 44px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #101828;
+}
+
+.account-profile-breadcrumb {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: #8a92a6;
+  font-size: 14px;
+}
+
+.account-profile-breadcrumb a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.account-profile-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 24px;
+}
+
+.account-profile-sidebar,
+.account-profile-card {
+  background: #fff;
+  border: 1px solid #e8ecf4;
+  border-radius: 22px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, .04);
+}
+
+.account-profile-sidebar {
+  padding: 20px;
+  height: fit-content;
+}
+
+.account-profile-avatar-form {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.account-profile-avatar {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #f3f6fb;
+  cursor: pointer;
+}
+
+.account-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-profile-avatar input {
+  display: none;
+}
+
+.account-profile-avatar__edit {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: #2563eb;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, .3);
+}
+
+.account-profile-sidebar h2 {
+  margin: 0;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: #101828;
+}
+
+.account-profile-sidebar p {
+  margin: 6px 0 0;
+  text-align: center;
+  color: #667085;
+}
+
+.account-profile-menu {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.account-profile-menu a {
+  padding: 14px 10px;
+  border-bottom: 1px solid #eef1f6;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.account-profile-menu a.active {
+  color: #101828;
+}
+
+.account-profile-content {
+  min-width: 0;
+}
+
+.account-profile-card {
+  padding: 22px;
+  margin-bottom: 24px;
+}
+
+.account-profile-card__head {
+  margin-bottom: 20px;
+}
+
+.account-profile-card__head h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #101828;
+}
+
+.account-profile-card__head p {
+  margin: 6px 0 0;
+  color: #8a92a6;
+}
+
+.account-profile-card .form-control,
+.account-profile-card select {
+  border-radius: 12px;
+  min-height: 44px;
+}
+
+.account-profile-card button[type="submit"],
+.account-profile-card input[type="submit"] {
+  border-radius: 14px;
+  padding: 12px 24px;
+  background: #2563eb;
+  border: 0;
+  color: #fff;
+  font-weight: 600;
+}
+
+@media (max-width: 992px) {
+  .account-profile-layout {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
 
 {% endblock %}

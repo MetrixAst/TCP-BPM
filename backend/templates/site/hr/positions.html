@@ -6,13 +6,13 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr-modal-patch.css' %}?v={{ static_version|default:'1' }}">
 {% endblock styles %}
 
 {% block content %}
 <div class="hr-page hr-positions-page">
   <div class="hr-list-top">
     <h1>Должности</h1>
-
     <div class="hr-list-top__actions">
       {% if request.user|has_permission:"hr_companies" %}
       <a href="{% url 'hr:departments' %}" class="hr-btn hr-btn--light">
@@ -35,28 +35,15 @@
           <div>Отдел</div>
           <div>Сотрудников</div>
         </div>
-
         <div class="hr-table__body">
           {% for position in positions %}
           <div class="hr-table__row">
             <div class="hr-employee">
-              <div class="hr-avatar hr-avatar--position">
-                {{ position.title|slice:":1" }}
-              </div>
-              <div>
-                <div class="hr-employee__name">{{ position.title }}</div>
-              </div>
+              <div class="hr-avatar hr-avatar--position">{{ position.title|slice:":1" }}</div>
+              <div><div class="hr-employee__name">{{ position.title }}</div></div>
             </div>
-
-            <div class="hr-muted {% if position.department %}{% endif %}">
-              {% if position.department %}{{ position.department.name }}{% else %}—{% endif %}
-            </div>
-
-            <div>
-              <span class="hr-badge hr-badge--neutral">
-                {{ position.employees.count }}
-              </span>
-            </div>
+            <div class="hr-muted">{% if position.department %}{{ position.department.name }}{% else %}—{% endif %}</div>
+            <div><span class="hr-badge hr-badge--neutral">{{ position.employees.count }}</span></div>
           </div>
           {% endfor %}
         </div>
@@ -71,22 +58,27 @@
   </div>
 </div>
 
-<div class="modal fade" id="createPositionModal" tabindex="-1" aria-labelledby="createPositionModalLabel" aria-hidden="true">
+{# ── Modal: Новая должность ── #}
+<div class="modal fade" id="createPositionModal" tabindex="-1"
+     aria-labelledby="createPositionModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius:14px;border:1px solid var(--bpm-border,#e8ebf2);">
+    <div class="modal-content">
       <form method="post" action="{% url 'hr:create_position' %}">
         {% csrf_token %}
-        <div class="modal-header" style="border-bottom:1px solid var(--bpm-border,#e8ebf2);padding:18px 20px;">
-          <h5 class="modal-title" style="font-size:15px;font-weight:600;" id="createPositionModalLabel">Новая должность</h5>
+        <div class="modal-header">
+          <div>
+            <p class="hr-company-modal__eyebrow">Новая запись</p>
+            <h5 class="modal-title" id="createPositionModalLabel">Должность</h5>
+          </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
         </div>
-        <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+        <div class="modal-body">
           <div class="hr-form-field">
-            <label class="hr-form-label">Название <span style="color:#dc2626">*</span></label>
+            <label class="hr-form-label">Название <span class="hr-form-req">*</span></label>
             <input type="text" name="title" class="hr-form-input" placeholder="Менеджер по продажам" required>
           </div>
           <div class="hr-form-field">
-            <label class="hr-form-label">Отдел <span style="color:#dc2626">*</span></label>
+            <label class="hr-form-label">Отдел <span class="hr-form-req">*</span></label>
             <select name="department" class="hr-form-input" required>
               <option value="">— Выберите отдел —</option>
               {% for dept in departments %}
@@ -99,9 +91,11 @@
             <textarea name="description" class="hr-form-input" rows="3" placeholder="Описание обязанностей..."></textarea>
           </div>
         </div>
-        <div class="modal-footer" style="border-top:1px solid var(--bpm-border,#e8ebf2);padding:14px 20px;gap:8px;">
+        <div class="modal-footer">
           <button type="button" class="hr-btn hr-btn--light" data-bs-dismiss="modal">Отмена</button>
-          <button type="submit" class="hr-btn hr-btn--primary">Создать</button>
+          <button type="submit" class="hr-btn hr-btn--primary">
+            <i class="bi bi-check-lg"></i> Создать
+          </button>
         </div>
       </form>
     </div>

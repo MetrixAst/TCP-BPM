@@ -1223,7 +1223,7 @@ body.task-edit-body {
   }
 }
 
-#taskEditForm input,
+#taskEditForm input:not([type="file"]),
 #taskEditForm select,
 #taskEditForm textarea,
 .task-edit-select {
@@ -4340,4 +4340,47 @@ body.task-edit-body {
  
 .oo-file-item__btn--danger { color: #ef4444; }
 .oo-file-item__btn--danger:hover { background: #feecec; color: #ef4444; }
- 
+
+// Загрузка файлов
+.task-edit-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 120px;
+  border: 1px dashed #d8d5e6;
+  border-radius: 16px;
+  background: #fff;
+  color: #646176;
+  cursor: pointer;
+  text-align: center;
+  padding: 20px;
+  box-sizing: border-box;
+
+  &:hover {
+    border-color: $task-primary;
+    background: #faf9fd;
+  }
+
+  &__input {
+    display: none !important;
+  }
+
+  &__icon {
+    font-size: 28px;
+    color: $task-primary;
+  }
+
+  &__text {
+    font-size: 13px;
+    color: $task-muted;
+  }
+
+  &__name {
+    font-size: 12px;
+    font-weight: 600;
+    color: $task-text;
+  }
+}

@@ -6,6 +6,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&co=2">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr-modal-patch.css' %}?v={{ static_version|default:'1' }}">
 {% endblock styles %}
 
 {% block content %}
@@ -14,10 +15,6 @@
   <div class="hr-companies-top">
     <div>
       <h1 class="hr-companies-top__title">Компании</h1>
-      <p class="hr-companies-top__subtitle">
-        Юридические лица группы · {{ companies|length }}
-        {% if companies|length == 1 %}компания{% elif companies|length < 5 %}компании{% else %}компаний{% endif %}
-      </p>
     </div>
 
     <div class="hr-companies-top__actions">
@@ -59,27 +56,17 @@
 
       <ul class="hr-company-card__meta">
         {% if company.address %}
-        <li>
-          <i class="bi bi-geo-alt"></i>
-          <span>{{ company.address }}</span>
-        </li>
+        <li><i class="bi bi-geo-alt"></i><span>{{ company.address }}</span></li>
         {% endif %}
         {% if company.phone %}
-        <li>
-          <i class="bi bi-telephone"></i>
-          <a href="tel:{{ company.phone }}">{{ company.phone }}</a>
-        </li>
+        <li><i class="bi bi-telephone"></i><a href="tel:{{ company.phone }}">{{ company.phone }}</a></li>
         {% endif %}
         {% if company.email %}
-        <li>
-          <i class="bi bi-envelope"></i>
-          <a href="mailto:{{ company.email }}">{{ company.email }}</a>
-        </li>
+        <li><i class="bi bi-envelope"></i><a href="mailto:{{ company.email }}">{{ company.email }}</a></li>
         {% endif %}
         {% if not company.address and not company.phone and not company.email %}
         <li class="hr-company-card__meta--empty">
-          <i class="bi bi-info-circle"></i>
-          <span>Контакты не заполнены</span>
+          <i class="bi bi-info-circle"></i><span>Контакты не заполнены</span>
         </li>
         {% endif %}
       </ul>
@@ -89,24 +76,19 @@
           <span class="hr-company-card__stat-value">{{ company.employee_count }}</span>
           <span class="hr-company-card__stat-label">сотрудников</span>
         </div>
-        <span class="hr-company-card__date">
-          с {{ company.created_at|date:"d.m.Y" }}
-        </span>
+        <span class="hr-company-card__date">с {{ company.created_at|date:"d.m.Y" }}</span>
       </div>
     </article>
     {% endfor %}
   </div>
   {% else %}
   <div class="hr-companies-empty">
-    <div class="hr-companies-empty__icon">
-      <i class="bi bi-buildings"></i>
-    </div>
+    <div class="hr-companies-empty__icon"><i class="bi bi-buildings"></i></div>
     <h3>Компаний пока нет</h3>
     <p>Добавьте первую организацию — она появится в оргструктуре и привязке сотрудников.</p>
     {% if request.user|has_permission:"hr_companies" %}
     <button type="button" class="hr-btn hr-btn--primary" data-bs-toggle="modal" data-bs-target="#createCompanyModal">
-      <i class="bi bi-plus-lg"></i>
-      Добавить компанию
+      <i class="bi bi-plus-lg"></i> Добавить компанию
     </button>
     {% endif %}
   </div>
@@ -114,7 +96,9 @@
 
 </div>
 
-<div class="modal fade" id="createCompanyModal" tabindex="-1" aria-labelledby="createCompanyModalLabel" aria-hidden="true">
+{# ── Modal: Новая компания ── #}
+<div class="modal fade" id="createCompanyModal" tabindex="-1"
+     aria-labelledby="createCompanyModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content hr-company-modal">
       <form method="post" action="{% url 'hr:create_company' %}">
@@ -153,8 +137,7 @@
         <div class="modal-footer hr-company-modal__footer">
           <button type="button" class="hr-btn hr-btn--light" data-bs-dismiss="modal">Отмена</button>
           <button type="submit" class="hr-btn hr-btn--primary">
-            <i class="bi bi-check-lg"></i>
-            Создать
+            <i class="bi bi-check-lg"></i> Создать
           </button>
         </div>
       </form>
