@@ -155,6 +155,7 @@ def filter_suppliers_queryset(queryset, user):
 
     return queryset.exclude(onec_id__in=hidden_onec_ids)
 
+
 def user_can_view_supplier(user, supplier) -> bool:
     if user_has_full_access(user):
         return True

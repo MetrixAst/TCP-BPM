@@ -130,7 +130,6 @@ class SupplierAclMatrixTestCase(TestCase):
         self.assertIn(self.supplier_unlinked, qs_staff)
 
     def test_orphan_supplier_visible_when_counterparty_missing(self):
-        """Если связанный по onec_id контрагент не найден — не блокируем доступ."""
         qs_staff = filter_suppliers_queryset(Supplier.objects.all(), self.staff_user)
         self.assertIn(self.supplier_orphan, qs_staff)
 
