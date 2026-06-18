@@ -18,6 +18,7 @@ from .models import Task, TaskFile, TaskChecklistItem, TaskLineItem, TaskUserFla
 from .forms import TaskForm
 
 
+
 def is_ajax(request):
     return request.headers.get("x-requested-with") == "XMLHttpRequest"
 
@@ -450,22 +451,24 @@ def line_item_add(request, pk):
     task = Task.get_by_id(request, pk)
     if not _can_edit_content(task, request.user):
         return JsonResponse({'ok': False, 'message': 'Недостаточно прав'}, status=403)
-    name = (request.POST.get('name') or '').strip()
-    if not name:
-        return JsonResponse({'ok': False, 'message': 'Укажите наименование'}, status=400)
 
-    from decimal import Decimal
-    quantity = Decimal(request.POST.get('quantity') or '1')
-    price = Decimal(request.POST.get('price') or '0')
-    unit = (request.POST.get('unit') or 'шт').strip()
+    from .forms import TaskLineItemForm
+    form = TaskLineItemForm(request.POST)
+    if not form.is_valid():
+        first_error = next(iter(form.errors.values()))[0]
+        return JsonResponse({'ok': False, 'message': first_error, 'errors': form.errors}, status=400)
 
     item = TaskLineItem.objects.create(
         task=task,
-        name=name,
-        quantity=quantity,
-        price=price,
-        unit=unit,
+        name=form.cleaned_data['name'],
+        quantity=form.cleaned_data['quantity'],
+        price=form.cleaned_data['price'],
+        unit=form.cleaned_data['unit'],
     )
+
+    all_items = task.line_items.all()
+    grand_total = sum(i.total for i in all_items)
+
     return JsonResponse({
         'ok': True,
         'item': {
@@ -476,6 +479,8 @@ def line_item_add(request, pk):
             'price': str(item.price),
             'total': str(item.total),
         },
+        'grand_total': str(grand_total),
+        'items_count': all_items.count(),
     })
 
 

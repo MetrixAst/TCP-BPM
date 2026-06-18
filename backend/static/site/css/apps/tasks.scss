@@ -3012,6 +3012,7 @@ body.task-edit-body {
   }
 }
 
+
 // ============================================================================
 // MODAL (замена браузерных alert/confirm)
 // ============================================================================
@@ -3108,4 +3109,1150 @@ body.task-edit-body {
       &:hover { filter: brightness(.95); }
     }
   }
+}
+ // ============================================================================
+// ADDITIONS — дописать в конец tasks.css
+// ============================================================================
+
+
+// ============================================================================
+// КАНБАН — белый фон + правильный swimlane
+// ============================================================================
+
+.tasks-kanban-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// Модификатор для страницы канбана — белый фон, без горизонтального скролла
+.tasks-kanban--board {
+  background: #fff;
+  border-radius: 18px;
+  overflow-x: auto;
+  min-height: 300px;
+  display: block !important;
+  width: 100%;
+}
+
+.tasks-kanban-swim {
+  width: 100%;
+  min-width: 0;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.tasks-kanban-swim__head,
+.tasks-kanban-swim__lane {
+  display: grid;
+  width: 100%;
+}
+
+.tasks-kanban-swim__head-cell--link,
+.tasks-kanban-swim__lane-link {
+  display: none !important;
+}
+
+// ---- Swimlane (рендерится JS-ом) ----
+.tasks-kanban-swim {
+  width: 100%;
+  min-width: max-content;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.tasks-kanban-swim__head {
+  display: grid;   // grid-template-columns задаёт JS через style=""
+  background: #faf9fd;
+  border-bottom: 2px solid #eceaf3;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.tasks-kanban-swim__head-cell {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #74728a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  border-right: 1px solid #eceaf3;
+
+  &:last-child { border-right: 0; }
+
+  .tasks-kanban__dot {
+    flex-shrink: 0;
+  }
+}
+
+.tasks-kanban-swim__head-cell--corner {
+  color: #25233f;
+  font-weight: 600;
+}
+
+.tasks-kanban-swim__head-cell--link {
+  justify-content: center;
+}
+
+.tasks-kanban-swim__lane {
+  display: grid;   // grid-template-columns задаёт JS через style=""
+  border-bottom: 1px solid #f0eef6;
+
+  &:last-child { border-bottom: 0; }
+}
+
+.tasks-kanban-swim__lane-user {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #faf9fd;
+  border-right: 1px solid #f0eef6;
+  min-width: 0;
+}
+
+.tasks-kanban-swim__lane-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #25233f;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tasks-kanban-swim__cell {
+  padding: 10px;
+  border-right: 1px solid #f0eef6;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: background .15s;
+
+  &:last-child { border-right: 0; }
+
+  &.is-drag-over {
+    background: rgba(47, 107, 237, .06);
+  }
+}
+
+.tasks-kanban-swim__lane-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2f6bed;
+  text-decoration: none;
+  padding: 14px;
+  white-space: nowrap;
+
+  &:hover { text-decoration: underline; color: #2458c7; }
+
+  i { font-size: 14px; }
+}
+
+.tasks-kanban-swim__empty {
+  padding: 40px 24px;
+  text-align: center;
+  color: #9a98aa;
+  font-size: 13px;
+  grid-column: 1 / -1;
+}
+
+// Карточки в swimlane используют те же стили .tasks-kanban__card
+// Приоритет внутри карточки
+.tasks-kanban__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tasks-kanban__card-num {
+  font-size: 11px;
+  color: #74728a;
+  font-weight: 600;
+}
+
+.tasks-kanban__card-type {
+  font-size: 11px;
+  color: #9a98aa;
+  background: #f5f3fa;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.tasks-kanban__card-prio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #74728a;
+  margin-bottom: 8px;
+}
+
+
+// ============================================================================
+// ПРИОРИТЕТЫ — точка + текст, без раскраски текста
+// ============================================================================
+
+.tasks-priority {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #25233f;
+
+  &::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &--low::before      { background: #c8c7d3; }
+  &--medium::before   { background: #2f6bed; }
+  &--high::before     { background: #f59e0b; }
+  &--critical::before { background: #ef4444; }
+
+  &--low, &--medium, &--high, &--critical { color: #25233f; }
+}
+
+
+// ============================================================================
+// СТАТУСНЫЕ БЕЙДЖИ (таблица задач)
+// ============================================================================
+
+.tasks-status-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &--neutral  { background: #f0eff6; color: #25233f; }
+  &--info     { background: #e8f0fe; color: #2563eb; }
+  &--warning  { background: #fff4e5; color: #d97706; }
+  &--success  { background: #e6f7ee; color: #16a34a; }
+  &--danger   { background: #feecec; color: #ef4444; }
+  &--paused   { background: #f3f4f6; color: #6b7280; }
+}
+
+
+// ============================================================================
+// ТАБЛИЦА ЗАДАЧ
+// ============================================================================
+
+.tasks-table {
+  &__th {
+    height: 40px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #74728a;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__td { height: 48px; font-size: 13px; }
+  &__td--title { font-weight: 600; }
+  &__td--date  { color: #74728a; white-space: nowrap; }
+}
+
+
+// ============================================================================
+// ТУЛБАР СПИСОК — переопределения
+// ============================================================================
+
+.tasks-page {
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: nowrap;
+
+    @media (max-width: 1000px) { flex-wrap: wrap; }
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #25233f;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  &__toolbar {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__label {
+    font-size: 11px;
+    color: #74728a;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  &__search {
+    position: relative;
+    width: 210px;
+  }
+
+  &__search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9a98aa;
+    font-size: 14px;
+    pointer-events: none;
+  }
+
+  &__search-input {
+    width: 100%;
+    height: 36px;
+    padding: 0 12px 0 34px;
+    border: 0;
+    border-radius: 999px;
+    background: #f5f3fa;
+    color: #25233f;
+    font-size: 13px;
+    outline: none;
+    box-sizing: border-box;
+
+    &::placeholder { color: #9a98aa; }
+    &:focus { box-shadow: 0 0 0 2px rgba(47,107,237,.14); }
+  }
+
+  &__state-control {
+    display: flex;
+    align-items: center;
+    height: 36px;
+  }
+
+  &__select {
+    min-width: 130px;
+    height: 36px;
+    padding: 0 34px 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background-color: #f5f3fa;
+    color: #25233f;
+    font-size: 13px;
+    font-weight: 500;
+    outline: none;
+    appearance: none;
+    cursor: pointer;
+    box-sizing: border-box;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B6880' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px 8px;
+  }
+
+  &__btn {
+    height: 36px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    align-self: flex-end;
+
+    i { font-size: 12px; }
+
+    &--primary {
+      background: #2f6bed;
+      color: #fff;
+      &:hover { background: #2458c7; color: #fff; }
+    }
+
+    &--outline,
+    &--ghost {
+      background: #f5f3fa;
+      color: #25233f;
+      &:hover { background: #ece9f4; }
+    }
+  }
+
+  &__pagination {
+    display: flex;
+    justify-content: flex-end;
+    padding: 18px 4px 0;
+  }
+}
+
+// Select2 в тулбаре
+#tasksPage {
+  .tasks-page__state-control { min-width: 130px; height: 36px; }
+
+  .select2-container {
+    width: 130px !important;
+    height: 36px !important;
+  }
+
+  .select2-container--default .select2-selection--single,
+  .select2-container--bootstrap4 .select2-selection--single {
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: #f5f3fa !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .select2-selection__rendered {
+    height: 36px !important;
+    line-height: 36px !important;
+    padding-left: 14px !important;
+    padding-right: 30px !important;
+    color: #25233f !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    box-sizing: border-box !important;
+  }
+
+  .select2-selection__arrow {
+    height: 36px !important;
+    top: 0 !important;
+    right: 8px !important;
+  }
+}
+
+// Переключатель Список / Канбан
+.tasks-view-switch {
+  display: inline-flex;
+  gap: 2px;
+  background: #f5f3fa;
+  padding: 2px 8px;
+  border-radius: 999px;
+  padding: 3px;
+  height: 36px;
+  align-items: center;
+  flex-shrink: 0;
+  align-self: flex-end;
+
+  &__btn {
+    padding: 0 14px;
+    height: 30px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #74728a;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+
+    &:hover { color: #25233f; text-decoration: none; }
+
+    &.is-active {
+      background: #fff;
+      color: #2f6bed;
+      font-weight: 600;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+  }
+}
+
+
+// ============================================================================
+// КАРТОЧКА ЗАДАЧИ — патчи
+// ============================================================================
+
+.task-deal__description {
+  border-top-color: #eceaf3 !important;
+}
+
+.task-deal__meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: flex-start;
+}
+
+.task-deal__meta-label {
+  font-size: 11px;
+  color: #74728a;
+  margin-bottom: 6px;
+}
+
+.task-deal__meta-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #25233f;
+}
+
+.task-deal__priority-select {
+  min-width: 160px;
+  height: 36px;
+  padding: 0 34px 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background-color: #f5f3fa;
+  color: #25233f;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B6880' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px 8px;
+
+  &:disabled { opacity: .65; cursor: not-allowed; }
+}
+
+.task-deal__main {
+  // Select2 приоритет
+  .select2-container { display: inline-block !important; width: auto !important; min-width: 160px !important; }
+
+  .select2-container--default .select2-selection--single,
+  .select2-container--bootstrap4 .select2-selection--single {
+    height: 36px !important; min-height: 36px !important; max-height: 36px !important;
+    border: 0 !important; border-radius: 999px !important;
+    background: #f5f3fa !important; box-shadow: none !important;
+    display: flex !important; align-items: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .select2-selection__rendered {
+    height: 36px !important; line-height: 36px !important;
+    padding-left: 14px !important; padding-right: 30px !important;
+    color: #25233f !important; font-size: 13px !important;
+    font-weight: 500 !important; box-sizing: border-box !important;
+  }
+
+  .select2-selection__arrow {
+    height: 36px !important;
+    right: 10px !important;
+  }
+
+  // Убираем белый фон — каждый блок сам белый
+  background: transparent !important;
+  padding: 0 !important;
+  gap: 8px;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.task-deal__priority-dropdown {
+  border: 0 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 40px rgba(15,23,42,.14) !important;
+  overflow: hidden !important;
+  background: #fff !important;
+
+  .select2-results__options { padding: 6px !important; max-height: 240px !important; }
+
+  .select2-results__option {
+    min-height: 36px !important;
+    padding: 8px 12px !important;
+    border-radius: 10px !important;
+    color: #25233f !important;
+    font-size: 13px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .select2-results__option--highlighted { background: #2f6bed !important; color: #fff !important; }
+  .select2-results__option[aria-selected="true"] { background: #eef2ff !important; color: #2f6bed !important; font-weight: 600 !important; }
+}
+
+.task-deal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.task-deal__action-btn {
+  height: 40px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s, color .15s;
+
+  i { font-size: 15px; }
+
+  &--primary, &--success, &--info {
+    background: #2f6bed;
+    color: #fff;
+    &:hover { background: #2458c7; }
+  }
+
+  &--warning, &--secondary, &--ghost, &--neutral {
+    background: #f5f3fa;
+    color: #25233f;
+    &:hover { background: #ece9f4; }
+  }
+
+  &--danger {
+    background: transparent;
+    color: #ef4444;
+    padding-left: 4px;
+    &:hover { background: #feecec; }
+  }
+
+  &.is-loading { opacity: .65; pointer-events: none; }
+}
+
+
+// ============================================================================
+// ТАБЫ: ЗАЯВКИ / ЗАДАЧИ / СЧЕТА
+// ============================================================================
+
+.task-tabs-bar { margin-bottom: 0; }
+
+.task-tablist {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #eceaf3;
+}
+
+.task-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  color: #74728a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: color .15s, border-color .15s;
+  white-space: nowrap;
+
+  &:hover { color: #25233f; }
+  &.is-active { color: #2f6bed; border-bottom-color: #2f6bed; }
+
+  &__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #2f6bed;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+
+    &--zero { background: #eceaf3; color: #9a98aa; }
+  }
+
+  &__add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #f5f3fa;
+    color: #74728a;
+    margin-left: 2px;
+    font-size: 14px;
+    transition: background .15s;
+
+    &:hover { background: #ece9f4; color: #25233f; }
+  }
+}
+
+.task-tab-panel {
+  display: none;
+  padding: 16px 0;
+
+  &.is-active { display: block; }
+  &__empty { font-size: 13px; color: #9a98aa; padding: 12px 0; text-align: center; }
+  &__row { font-size: 13px; color: #25233f; padding: 8px 0; }
+}
+
+
+// ============================================================================
+// КОММЕНТАРИЙ
+// ============================================================================
+
+.task-comment-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 8px 0 16px;
+  border: 1px solid #eceaf3;
+  border-radius: 999px;
+  background: #fff;
+  margin-top: 16px;
+
+  &__input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    outline: none;
+    font-size: 13px;
+    color: #25233f;
+    &::placeholder { color: #9a98aa; }
+  }
+
+  &__attach {
+    width: 34px; height: 34px;
+    border: 0; border-radius: 50%;
+    background: transparent; color: #9a98aa;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+    &:hover { background: #f5f3fa; color: #25233f; }
+  }
+
+  &__submit {
+    height: 36px; padding: 0 20px;
+    border: 0; border-radius: 999px;
+    background: #2f6bed; color: #fff;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; flex-shrink: 0;
+    &:hover { background: #2458c7; }
+  }
+}
+
+
+// ============================================================================
+// БЛОКИ КАРТОЧКИ ЗАДАЧИ
+// ============================================================================
+
+.task-deal__top-block {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+
+  .task-deal__actions {
+    margin-top: 8px;
+    margin-bottom: 0;
+    &:empty { display: none; }
+  }
+}
+
+.task-deal__card-block {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px 22px;
+
+  .task-deal__actions { margin-top: 8px; margin-bottom: 0; &:empty { display: none; } }
+  .task-tabs-bar { margin-bottom: 0; }
+  .task-feed { margin-top: 0; }
+  .task-feed__title { font-size: 18px; font-weight: 700; color: #25233f; margin: 0 0 16px; }
+  .task-comment-composer { margin-top: 16px; }
+}
+
+
+// ============================================================================
+// ПАНЕЛИ САЙДБАРА
+// ============================================================================
+
+.task-panel {
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px;
+
+  &__head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  &__title { margin: 0; margin-right: auto; font-size: 18px; font-weight: 700; color: #25233f; }
+  &__add {
+    width: 28px; height: 28px; border: 0; border-radius: 50%;
+    background: #f5f3fa; color: #74728a;
+    display: inline-flex; align-items: center; justify-content: center;
+    text-decoration: none; cursor: pointer;
+    i { font-size: 16px; }
+    &:hover { background: #ece9f4; color: #25233f; }
+  }
+  &__empty { font-size: 13px; color: #9a98aa; }
+}
+
+.task-route {
+  display: flex; flex-direction: column; gap: 14px;
+
+  &__item { display: flex; align-items: center; gap: 10px; }
+
+  &__avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #e8ecfb;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; flex-shrink: 0;
+    img { width: 100%; height: 100%; object-fit: cover; }
+  }
+
+  &__avatar-letter { font-size: 12px; font-weight: 700; color: #2f6bed; text-transform: uppercase; }
+  &__content { flex: 1; min-width: 0; }
+  &__role { font-size: 11px; color: #74728a; margin-bottom: 2px; }
+  &__name { font-size: 13px; font-weight: 600; color: #25233f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  &__status {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+    font-size: 11px; color: #74728a; flex-shrink: 0; text-align: right;
+    i { font-size: 14px; }
+    span { white-space: nowrap; }
+    &--done { color: #16a34a; i { color: #16a34a; } }
+  }
+
+  &__date { font-size: 11px; color: #74728a; white-space: nowrap; }
+}
+
+
+// ============================================================================
+// ПУСТЫЕ СОСТОЯНИЯ
+// ============================================================================
+
+.tasks-empty {
+  padding: 40px 0; text-align: center;
+  &__icon { font-size: 40px; margin-bottom: 14px; color: #d0cee0; display: block; }
+  &__title { font-size: 15px; font-weight: 700; color: #25233f; margin-bottom: 6px; }
+  &__text { font-size: 13px; color: #9a98aa; max-width: 260px; margin: 0 auto; line-height: 1.5; }
+}
+
+
+// ============================================================================
+// ФАЙЛЫ
+// ============================================================================
+
+.task-files__icon {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: #f5f3fa;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  i { font-size: 17px; }
+  i.bi-file-earmark-pdf         { color: #ef4444; }
+  i.bi-file-earmark-text        { color: #2f6bed; }
+  i.bi-file-earmark-excel,
+  i.bi-file-earmark-spreadsheet { color: #16a34a; }
+  i.bi-file-earmark-word        { color: #2563eb; }
+  i.bi-file-earmark-image       { color: #f59e0b; }
+  i.bi-file-earmark             { color: #74728a; }
+}
+
+
+// ============================================================================
+// СЧЕТА — таблица с итогами
+// ============================================================================
+
+.task-invoices {
+  padding-top: 4px;
+
+  &__table-wrap {
+    border: 1px solid #eceaf3;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    overflow-x: auto;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+
+    th {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: #74728a;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: #faf9fd;
+      border-bottom: 1px solid #eceaf3;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f5f3fa;
+      color: #25233f;
+      vertical-align: middle;
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #faf9fd; }
+  }
+
+  &__th--num { text-align: right; width: 100px; }
+  &__th--sm  { width: 60px; }
+
+  &__td--name  { font-weight: 500; }
+  &__td--num   { text-align: right; color: #74728a; }
+  &__td--sm    { color: #74728a; }
+  &__td--total { text-align: right; font-weight: 600; color: #25233f; }
+
+  &__total-row {
+    background: #f5f3fa;
+    td { border-bottom: 0; padding: 12px 14px; }
+  }
+
+  &__total-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #74728a;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: right;
+  }
+
+  &__total-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #25233f;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 40px 20px;
+    text-align: center;
+    color: #9a98aa;
+    font-size: 13px;
+    i { font-size: 36px; color: #d0cee0; }
+  }
+
+  &__empty-btn {
+    height: 36px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 999px;
+    background: #2f6bed;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    &:hover { background: #2458c7; }
+  }
+}
+
+
+// ============================================================================
+// МОДАЛКА ДОБАВЛЕНИЯ ПОЗИЦИИ
+// ============================================================================
+
+.task-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1090;
+  background: rgba(15, 23, 42, .45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .18s ease, visibility .18s ease;
+
+  &.is-open { opacity: 1; visibility: visible; }
+}
+
+.task-modal {
+  width: 100%;
+  max-width: 480px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, .22);
+  transform: translateY(10px) scale(.98);
+  transition: transform .18s ease;
+
+  .task-modal-overlay.is-open & { transform: none; }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 0;
+    margin-bottom: 20px;
+  }
+
+  &__title { margin: 0; font-size: 18px; font-weight: 700; color: #25233f; }
+
+  &__close {
+    width: 32px; height: 32px;
+    border: 0; border-radius: 50%;
+    background: #f5f3fa; color: #74728a;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px;
+    &:hover { background: #ece9f4; color: #25233f; }
+  }
+
+  &__body { padding: 0 24px 24px; display: flex; flex-direction: column; gap: 14px; }
+
+  &__row { display: grid; grid-template-columns: 1fr 70px 130px; gap: 12px; }
+
+  &__field {
+    display: flex; flex-direction: column; gap: 6px;
+    &--wide { grid-column: 1 / -1; }
+  }
+
+  &__label { font-size: 12px; font-weight: 600; color: #74728a; span { color: #ef4444; } }
+
+  &__input {
+    height: 40px;
+    padding: 0 14px;
+    border: 1px solid #eceaf3;
+    border-radius: 10px;
+    background: #fff;
+    color: #25233f;
+    font-size: 14px;
+    outline: none;
+    transition: border-color .15s;
+    &:focus { border-color: #2f6bed; box-shadow: 0 0 0 3px rgba(47,107,237,.12); }
+    &::placeholder { color: #9a98aa; }
+  }
+
+  &__error { font-size: 12px; color: #ef4444; min-height: 16px; }
+
+  &__preview {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: #f5f3fa; border-radius: 12px;
+  }
+
+  &__preview-label { font-size: 13px; color: #74728a; font-weight: 500; }
+  &__preview-value { font-size: 18px; font-weight: 700; color: #25233f; }
+
+  &__foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+
+  &__btn {
+    height: 40px; padding: 0 22px;
+    border: 0; border-radius: 10px;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: background .15s;
+
+    &--cancel { background: #f5f3fa; color: #25233f; &:hover { background: #ece9f4; } }
+    &--save { background: #2f6bed; color: #fff; &:hover { background: #2458c7; } &:disabled { opacity: .65; pointer-events: none; } }
+  }
+
+  &__btn-spinner i { animation: task-spin .7s linear infinite; display: inline-block; }
+}
+
+@keyframes task-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+
+// ============================================================================
+// МОБИЛЬНАЯ АДАПТАЦИЯ
+// ============================================================================
+
+@media (max-width: 900px) {
+  .task-deal { grid-template-columns: 1fr; }
+  .task-deal__aside { position: static; }
+  .tasks-page__header { flex-wrap: wrap; }
+  .tasks-page__toolbar { width: 100%; }
+}
+
+
+// ============================================================================
+// КАНБАН SWIMLANE — колонки под экран, без колонки «Менеджер задач»
+// ============================================================================
+
+// Скрываем колонку «Менеджер задач» (последняя в grid)
+.tasks-kanban-swim__head-cell--link,
+.tasks-kanban-swim__lane-link {
+  display: none !important;
+}
+
+// Пересчитываем grid — без последней колонки ссылки
+// JS задаёт: "200px repeat(N, minmax(200px, 1fr)) 160px"
+// Мы переопределяем через CSS override на самом контейнере
+.tasks-kanban-swim__head,
+.tasks-kanban-swim__lane {
+  // Убираем последнюю колонку (160px для ссылки) — она скрыта
+  // Первая колонка (Исполнитель) уже 200px, остальные — auto
+}
+
+// Карточки — уменьшаем минимальную ширину колонок
+// чтобы все вмещались на экране
+.tasks-kanban-swim__cell {
+  min-width: 0;
+}
+
+// Исполнитель — чуть уже
+.tasks-kanban-swim__lane-user {
+  min-width: 140px;
+  max-width: 160px;
+}
+
+// Переопределяем grid через JS-хак:
+// подменяем inline style на нужный после рендера
+
+// Карточки канбана — сжимаются под ширину колонки
+.tasks-kanban__card {
+  min-width: 0;
+  word-break: break-word;
+}
+
+// Мета в карточке — переносится
+.tasks-kanban__card-meta {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tasks-kanban__assignee {
+  max-width: 100%;
 }
