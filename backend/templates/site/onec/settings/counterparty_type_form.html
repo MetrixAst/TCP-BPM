@@ -1,24 +1,22 @@
-{% extends "site/base.html" %}
+{% extends "site/base_modal.html" %}
 {% load static %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
-<style>
-  .onec-acl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  @media (max-width: 991px) { .onec-acl-grid { grid-template-columns: 1fr; } }
-  .onec-acl-roles ul { list-style: none; padding: 0; margin: 0; }
-  .onec-acl-roles li { margin-bottom: 8px; }
-  .onec-acl-roles label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-</style>
 {% endblock %}
 
 {% block content %}
-<div class="onec-page onec-create-page">
-  <form method="post" class="onec-create-card">
+<div class="onec-create-page">
+  <form method="post" class="onec-create-card" id="counterpartyTypeForm">
     {% csrf_token %}
 
     <div class="onec-create-card__header">
-      <h1 class="onec-create-card__title">{{ title }}</h1>
+      <div>
+        <a href="{% url 'onec:counterparty_type_list' %}" class="onec-detail-back" style="display:inline-flex;margin-bottom:4px">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h1 class="onec-create-card__title">{{ title }}</h1>
+      </div>
       <a href="{% url 'onec:counterparty_type_list' %}" class="onec-create-card__close" title="Закрыть">×</a>
     </div>
 
@@ -26,69 +24,309 @@
       <div class="onec-form-errors">
         {% for field, errors in form.errors.items %}
           {% for error in errors %}
-            <div class="onec-form-error">{{ field }}: {{ error }}</div>
+            <div class="onec-form-error">
+              <i class="bi bi-exclamation-circle"></i>
+              {% if field == 'name' %}Название{% elif field == 'code' %}Код{% elif field == '__all__' %}{% else %}{{ field }}{% endif %}: {{ error }}
+            </div>
           {% endfor %}
         {% endfor %}
       </div>
     {% endif %}
 
-    <div class="onec-create-card__section-title">Тип</div>
+    {# ── Основная информация ────────────────────────────────────────────── #}
+    <div class="onec-create-card__section-title">Основная информация</div>
     <div class="onec-form-grid">
-      <div class="onec-form-field">
-        <label class="onec-label">Название</label>
-        {{ form.name }}
-      </div>
-      <div class="onec-form-field">
-        <label class="onec-label">Код</label>
-        {{ form.code }}
-      </div>
-      <div class="onec-form-field">
-        <label class="onec-label">Порядок</label>
-        {{ form.sort_order }}
-      </div>
-      <div class="onec-form-field" style="align-self:end">
-        <label class="onec-cp-check">
-          {{ form.is_active }}
-          <span class="onec-cp-check__label">Активен</span>
+
+      <div class="onec-form-field onec-form-field--full">
+        <label class="onec-label" for="{{ form.name.id_for_label }}">
+          Название типа <span>*</span>
         </label>
+        <input
+          type="text"
+          id="{{ form.name.id_for_label }}"
+          name="name"
+          value="{{ form.name.value|default:'' }}"
+          class="onec-input{% if form.name.errors %} onec-input--error{% endif %}"
+          placeholder="Например: Корпоративные клиенты"
+          autocomplete="off"
+          required
+        >
       </div>
-    </div>
 
-    <div class="onec-create-card__section-title">Кто видит контрагентов этого типа</div>
-
-    <div class="onec-form-field onec-form-field--full">
-      <label class="onec-cp-check">
-        {{ form.scope_is_global }}
-        <span class="onec-cp-check__label">Доступен всем авторизованным пользователям</span>
-      </label>
-    </div>
-
-    <div class="onec-acl-grid">
-      <div class="onec-form-field onec-acl-roles">
-        <label class="onec-label">Роли</label>
-        {{ form.scope_roles }}
+      <div class="onec-form-field onec-form-field--full">
+        <label class="onec-label" for="{{ form.code.id_for_label }}">
+          Код <span>*</span>
+          <span class="onec-section-hint">латиница, цифры, дефис — используется в API и фильтрах</span>
+        </label>
+        <input
+          type="text"
+          id="{{ form.code.id_for_label }}"
+          name="code"
+          value="{{ form.code.value|default:'' }}"
+          class="onec-input onec-input--mono{% if form.code.errors %} onec-input--error{% endif %}"
+          placeholder="corporate_clients"
+          autocomplete="off"
+          required
+        >
+        <p class="onec-field-hint">Например: <code>supplier_kz</code>, <code>corp-clients</code>, <code>tenants</code></p>
       </div>
+
       <div class="onec-form-field">
-        <label class="onec-label">Отделы</label>
-        {{ form.scope_departments }}
+        <label class="onec-label" for="{{ form.sort_order.id_for_label }}">Порядок сортировки</label>
+        <input
+          type="number"
+          id="{{ form.sort_order.id_for_label }}"
+          name="sort_order"
+          value="{{ form.sort_order.value|default:'0' }}"
+          class="onec-input"
+          min="0"
+          style="max-width:120px"
+        >
       </div>
-      <div class="onec-form-field onec-form-field--full" style="grid-column: 1 / -1">
-        <label class="onec-label">Отдельные пользователи</label>
-        {{ form.scope_users }}
+
+      <div class="onec-form-field onec-form-field--full">
+        <label class="onec-cp-check">
+          <input type="checkbox" name="is_active"
+                 {% if form.is_active.value %}checked{% endif %}>
+          <span class="onec-cp-check__box"><i class="bi bi-check-lg"></i></span>
+          <span class="onec-cp-check__label">Тип активен</span>
+        </label>
+        <p class="onec-field-hint">Неактивные типы не применяются в фильтрах и скрыты из выбора</p>
       </div>
+
     </div>
 
-    <p class="text-muted small">
-      Если не выбрано ни одной роли, отдела и пользователя и флаг «всем» выключен — тип видят все (как без зоны).
-    </p>
+    {# ── Зона доступа ──────────────────────────────────────────────────── #}
+    <div class="onec-create-card__section-title onec-create-card__section-title--items">
+      Зона доступа
+      <span class="onec-section-hint">Кто может видеть контрагентов этого типа</span>
+    </div>
+
+    <div class="onec-form-grid">
+
+      {# Глобальный / ограниченный #}
+      <div class="onec-form-field onec-form-field--full">
+        <div class="onec-acl-toggle" id="aclToggle">
+          <label class="onec-acl-toggle__option">
+            <input type="radio" name="_acl_mode" value="global"
+                   {% if form.scope_is_global.value %}checked{% endif %}>
+            <span class="onec-acl-toggle__box">
+              <i class="bi bi-globe2"></i>
+              <b>Все пользователи</b>
+              <small>Контрагенты этого типа видны всем, у кого есть доступ к разделу</small>
+            </span>
+          </label>
+          <label class="onec-acl-toggle__option">
+            <input type="radio" name="_acl_mode" value="restricted"
+                   {% if not form.scope_is_global.value %}checked{% endif %}>
+            <span class="onec-acl-toggle__box">
+              <i class="bi bi-shield-lock"></i>
+              <b>Ограниченный доступ</b>
+              <small>Видят только выбранные роли, отделы или пользователи</small>
+            </span>
+          </label>
+        </div>
+        {# Передаём scope_is_global через hidden, JS обновляет его #}
+        <input type="hidden" name="scope_is_global" id="scopeIsGlobalHidden"
+               value="{% if form.scope_is_global.value %}on{% endif %}">
+      </div>
+
+      {# Поля ограниченного доступа — скрываются при "Все пользователи" #}
+      <div id="aclRestrictedFields" class="onec-form-field onec-form-field--full"
+           {% if form.scope_is_global.value %}style="display:none"{% endif %}>
+
+        {# Роли #}
+        <div class="onec-acl-section">
+          <div class="onec-acl-section__title">
+            <i class="bi bi-person-badge"></i> Роли
+          </div>
+          <div class="onec-acl-checkboxes">
+            {% for value, display in form.scope_roles.field.choices %}
+              <label class="onec-acl-check">
+                <input type="checkbox" name="scope_roles" value="{{ value }}"
+                       {% if value in form.scope_roles.value %}checked{% endif %}>
+                <span>{{ display }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        {# Отделы #}
+        <div class="onec-acl-section" style="margin-top:1rem">
+          <div class="onec-acl-section__title">
+            <i class="bi bi-diagram-3"></i> Отделы
+          </div>
+          <select name="scope_departments" multiple class="onec-acl-multiselect">
+            {% for dept in form.scope_departments.field.queryset %}
+              <option value="{{ dept.pk }}"
+                {% if dept in form.scope_departments.value %}selected{% endif %}>
+                {{ dept.name }}{% if dept.company %} — {{ dept.company }}{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+          <p class="onec-field-hint">Удерживайте Ctrl (Cmd) для выбора нескольких</p>
+        </div>
+
+        {# Пользователи #}
+        <div class="onec-acl-section" style="margin-top:1rem">
+          <div class="onec-acl-section__title">
+            <i class="bi bi-person"></i> Конкретные пользователи
+          </div>
+          <select name="scope_users" multiple class="onec-acl-multiselect">
+            {% for user in form.scope_users.field.queryset %}
+              <option value="{{ user.pk }}"
+                {% if user in form.scope_users.value %}selected{% endif %}>
+                {{ user.get_name|default:user.username }} ({{ user.username }})
+              </option>
+            {% endfor %}
+          </select>
+          <p class="onec-field-hint">Удерживайте Ctrl (Cmd) для выбора нескольких</p>
+        </div>
+
+      </div>
+
+    </div>
+
+    {# Инфобокс #}
+    <div class="onec-acl-info-box">
+      <i class="bi bi-info-circle onec-acl-info-box__icon"></i>
+      <div>
+        <b>Как работают зоны доступа</b>
+        <p>
+          Если у типа задана зона — пользователи видят только контрагентов тех типов, к которым им открыт доступ.
+          Администраторы всегда видят всё. Контрагенты без типа видны всем авторизованным пользователям.
+        </p>
+      </div>
+    </div>
 
     <div class="onec-create-footer">
+      <a href="{% url 'onec:counterparty_type_list' %}" class="onec-btn onec-btn--ghost">Отменить</a>
       {% if is_edit %}
-      <a href="{% url 'onec:counterparty_type_delete' counterparty_type.pk %}" class="onec-btn onec-btn--ghost text-danger">Удалить</a>
+        <a href="{% url 'onec:counterparty_type_delete' counterparty_type.pk %}"
+           class="onec-btn onec-btn--danger-ghost">
+          <i class="bi bi-trash"></i> Удалить
+        </a>
       {% endif %}
-      <a href="{% url 'onec:counterparty_type_list' %}" class="onec-btn onec-btn--ghost">Отмена</a>
-      <button type="submit" class="onec-btn onec-btn--primary">Сохранить</button>
+      <button type="submit" class="onec-btn onec-btn--primary">
+        <i class="bi bi-check-lg"></i>
+        {% if is_edit %}Сохранить{% else %}Создать тип{% endif %}
+      </button>
     </div>
   </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const radios        = document.querySelectorAll('input[name="_acl_mode"]');
+  const restricted    = document.getElementById('aclRestrictedFields');
+  const globalHidden  = document.getElementById('scopeIsGlobalHidden');
+  const nameInput     = document.querySelector('input[name="name"]');
+  const codeInput     = document.querySelector('input[name="code"]');
+
+  // ── Переключение режима доступа ──
+  function updateAclMode() {
+    const mode = document.querySelector('input[name="_acl_mode"]:checked')?.value;
+    const isGlobal = mode === 'global';
+    if (restricted) restricted.style.display = isGlobal ? 'none' : '';
+    if (globalHidden) globalHidden.value = isGlobal ? 'on' : '';
+  }
+  radios.forEach(function (r) { r.addEventListener('change', updateAclMode); });
+  updateAclMode();
+
+  // ── Автогенерация кода из названия (только если код пустой) ──
+  function toSlug(str) {
+    return str
+      .toLowerCase()
+      .replace(/[а-яёА-ЯЁ]/g, function(ch) {
+        const map = {
+          'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh',
+          'з':'z','и':'i','й':'j','к':'k','л':'l','м':'m','н':'n','о':'o',
+          'п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts',
+          'ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y','ь':'','э':'e',
+          'ю':'yu','я':'ya'
+        };
+        return map[ch.toLowerCase()] || '';
+      })
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 50);
+  }
+
+  if (nameInput && codeInput && !codeInput.value) {
+    nameInput.addEventListener('input', function () {
+      if (!codeInput.dataset.userEdited) {
+        codeInput.value = toSlug(nameInput.value);
+      }
+    });
+    codeInput.addEventListener('input', function () {
+      codeInput.dataset.userEdited = '1';
+    });
+  }
+});
+</script>
+
+<style>
+/* Дополнительные стили специфичные для этой формы */
+.onec-input--mono { font-family: monospace; letter-spacing: .02em; }
+.onec-input--mono::placeholder { font-family: inherit; letter-spacing: 0; }
+
+.onec-acl-section__title {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--bpm-text-muted, #6c757d);
+  margin-bottom: .5rem;
+}
+
+.onec-acl-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem .75rem;
+}
+
+.onec-acl-check {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .875rem;
+  cursor: pointer;
+  padding: .3rem .6rem;
+  border: 1px solid var(--bpm-border-color, #dee2e6);
+  border-radius: 6px;
+  transition: background-color .1s, border-color .1s;
+}
+
+.onec-acl-check:has(input:checked) {
+  background: #e0e7ff;
+  border-color: #6366f1;
+  color: #3730a3;
+  font-weight: 500;
+}
+
+.onec-acl-check input { display: none; }
+
+.onec-acl-multiselect {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid var(--bpm-border-color, #dee2e6);
+  border-radius: 8px;
+  padding: .375rem;
+  font-size: .875rem;
+  background: #fff;
+}
+
+.onec-acl-multiselect option {
+  padding: .3rem .5rem;
+  border-radius: 4px;
+}
+
+.onec-acl-multiselect option:checked {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+</style>
 {% endblock %}
