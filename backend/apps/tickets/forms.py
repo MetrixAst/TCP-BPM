@@ -12,7 +12,8 @@ class TenantTicketForm(CustomModelForm):
 
     class Meta:
         model = ServiceRequest
-        fields = ('category', 'title', 'description', 'room', 'priority', 'photo')
+        # photo убран — вложения сохраняются через TicketAttachment
+        fields = ('category', 'title', 'description', 'room', 'priority')
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Опишите проблему'}),
         }
@@ -27,15 +28,15 @@ class StaffTicketForm(CustomModelForm):
 
     class Meta:
         model = ServiceRequest
+        # photo убран — вложения сохраняются через TicketAttachment
         fields = ('tenant', 'category', 'title', 'description', 'room',
-                  'priority', 'department', 'assignee', 'photo')
+                  'priority', 'department', 'assignee')
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Опишите проблему'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # «Ответственный» подгружает только людей выбранного отдела.
         self.fields['assignee'].widget.attrs['data-dept-source'] = '#id_department'
 
 
@@ -51,5 +52,4 @@ class TicketAssignForm(CustomModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # «Ответственный» подгружает только людей выбранного отдела.
         self.fields['assignee'].widget.attrs['data-dept-source'] = '#id_department'
