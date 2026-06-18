@@ -6,68 +6,161 @@
 {% endblock %}
 
 {% block content %}
-<div class="onec-page">
+<div class="onec-page onec-page--settings">
 
   <div class="onec-page-header-card">
     <div class="onec-page-header__left">
-      <h1 class="onec-page-title">{{ title }}</h1>
-      <p class="onec-page-sub">Тип определяет зону видимости контрагентов для ролей, отделов и пользователей.</p>
+      <a href="{% url 'onec:counterparty_list' %}" class="onec-detail-back" aria-label="Назад к контрагентам">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <div>
+        <h1 class="onec-page-title">Типы контрагентов и зоны доступа</h1>
+        <p class="onec-page-sub">Определите, кому видны контрагенты каждого типа</p>
+      </div>
     </div>
     <div class="onec-page-header__actions">
       <a href="{% url 'onec:counterparty_type_create' %}" class="onec-btn onec-btn--primary">
-        <i class="bi bi-plus-lg"></i> Новый тип
-      </a>
-      <a href="{% url 'onec:counterparty_list' %}" class="onec-btn onec-btn--light">
-        <i class="bi bi-arrow-left"></i> К контрагентам
+        <i class="bi bi-plus-lg"></i> Добавить тип
       </a>
     </div>
   </div>
 
-  <section class="onec-table-card">
-    <div class="onec-table-wrap">
-      <table class="onec-table">
-        <thead>
-          <tr>
-            <th>Название</th>
-            <th>Код</th>
-            <th>Зона доступа</th>
-            <th>Контрагентов</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for ct in types %}
-          <tr>
-            <td>{{ ct.name }}{% if not ct.is_active %} <span class="onec-type-badge">неактивен</span>{% endif %}</td>
-            <td><span class="onec-mono">{{ ct.code }}</span></td>
-            <td>
-              {% if ct.access_scope %}
-                {% if ct.access_scope.is_global %}
-                  <span class="onec-type-badge onec-type-badge--both">Все пользователи</span>
-                {% else %}
-                  {{ ct.access_scope.name }}
-                  {% if ct.access_scope.roles %}
-                    <div class="text-muted small">Роли: {{ ct.access_scope.roles|join:", " }}</div>
+  {% if messages %}
+    {% for message in messages %}
+      <div class="onec-alert onec-alert--{{ message.tags }}">
+        <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if types %}
+    <section class="onec-table-card">
+      <div class="onec-table-wrap">
+        <table class="onec-table onec-table--acl">
+          <thead>
+            <tr>
+              <th>Тип контрагента</th>
+              <th>Зона доступа</th>
+              <th>Кому видно</th>
+              <th>Контрагентов</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ct in types %}
+            <tr class="onec-acl-row">
+              <td>
+                <div class="onec-acl-type-name">
+                  {% if ct.color %}
+                    <span class="onec-acl-dot" style="background:{{ ct.color }}"></span>
                   {% endif %}
+                  {{ ct.name }}
+                </div>
+                {% if ct.description %}
+                  <div class="onec-acl-type-desc">{{ ct.description }}</div>
                 {% endif %}
-              {% else %}
-                <span class="text-muted">Без ограничений</span>
-              {% endif %}
-            </td>
-            <td>{{ ct.counterparties.count }}</td>
-            <td class="text-end">
-              <a href="{% url 'onec:counterparty_type_edit' ct.pk %}" class="onec-btn onec-btn--light onec-btn--sm">Изменить</a>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="5" class="onec-empty">Типы не созданы. Добавьте первый тип.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+              </td>
+
+              <td>
+                {% if ct.access_scope %}
+                  {% if ct.access_scope.is_global %}
+                    <span class="onec-acl-badge onec-acl-badge--global">
+                      <i class="bi bi-globe2"></i> Все пользователи
+                    </span>
+                  {% else %}
+                    <span class="onec-acl-badge onec-acl-badge--restricted">
+                      <i class="bi bi-shield-lock"></i> Ограниченный
+                    </span>
+                  {% endif %}
+                {% else %}
+                  <span class="onec-acl-badge onec-acl-badge--none">
+                    <i class="bi bi-eye"></i> Без ограничений
+                  </span>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if ct.access_scope and not ct.access_scope.is_global %}
+                  <div class="onec-acl-who">
+                    {% if ct.access_scope.roles %}
+                      {% for role in ct.access_scope.roles %}
+                        <span class="onec-acl-pill onec-acl-pill--role">
+                          <i class="bi bi-person-badge"></i> {{ role }}
+                        </span>
+                      {% endfor %}
+                    {% endif %}
+                    {% for dept in ct.access_scope.departments.all %}
+                      <span class="onec-acl-pill onec-acl-pill--dept">
+                        <i class="bi bi-diagram-3"></i> {{ dept.name }}
+                      </span>
+                    {% endfor %}
+                    {% for user in ct.access_scope.users.all %}
+                      <span class="onec-acl-pill onec-acl-pill--user">
+                        <i class="bi bi-person"></i> {{ user.get_name|default:user.username }}
+                      </span>
+                    {% endfor %}
+                    {% if not ct.access_scope.roles and not ct.access_scope.departments.exists and not ct.access_scope.users.exists %}
+                      <span class="onec-muted">Никто не выбран</span>
+                    {% endif %}
+                  </div>
+                {% else %}
+                  <span class="onec-muted">Все авторизованные</span>
+                {% endif %}
+              </td>
+
+              <td>
+                <span class="onec-acl-count">
+                  {{ ct.counterparties.count }}
+                </span>
+              </td>
+
+              <td class="onec-acl-actions">
+                <a href="{% url 'onec:counterparty_type_edit' ct.pk %}"
+                   class="onec-icon-btn" title="Редактировать">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'onec:counterparty_type_delete' ct.pk %}"
+                   class="onec-icon-btn onec-icon-btn--danger" title="Удалить">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="onec-acl-legend">
+      <div class="onec-acl-legend__item">
+        <span class="onec-acl-badge onec-acl-badge--none"><i class="bi bi-eye"></i> Без ограничений</span>
+        — контрагенты этого типа видят все пользователи системы
+      </div>
+      <div class="onec-acl-legend__item">
+        <span class="onec-acl-badge onec-acl-badge--global"><i class="bi bi-globe2"></i> Все пользователи</span>
+        — зона доступа явно открыта для всех
+      </div>
+      <div class="onec-acl-legend__item">
+        <span class="onec-acl-badge onec-acl-badge--restricted"><i class="bi bi-shield-lock"></i> Ограниченный</span>
+        — видят только указанные роли, отделы или пользователи
+      </div>
     </div>
-  </section>
+
+  {% else %}
+    <section class="onec-table-card">
+      <div class="onec-empty" style="padding: 3rem 1rem;">
+        <i class="bi bi-shield-lock" style="font-size:36px;display:block;margin-bottom:12px;opacity:.35"></i>
+        <div>Типы контрагентов не созданы</div>
+        <p class="onec-muted" style="margin-top:8px;font-size:.875rem">
+          Без типов все контрагенты видны всем пользователям с доступом к разделу.
+        </p>
+        <a href="{% url 'onec:counterparty_type_create' %}" class="onec-btn onec-btn--primary" style="margin-top:16px">
+          <i class="bi bi-plus-lg"></i> Создать первый тип
+        </a>
+      </div>
+    </section>
+  {% endif %}
 
 </div>
 {% endblock %}

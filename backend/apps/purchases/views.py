@@ -18,9 +18,14 @@ def suppliers(request):
 
 
 @need_permission(PermissionEnums.SUPPLIERS)
-def suppliers_by_status(request, status = None):
+def suppliers_by_status(request, status=None):
 
     sync_counterparties_to_suppliers()
+
+    # Статус можно передать и через URL-path (/suppliers/active/),
+    # и через GET-параметр (?status=active) — для кастомного дропдауна.
+    if status is None:
+        status = request.GET.get('status', 'all') or 'all'
 
     queryset = filter_suppliers_queryset(Supplier.objects.all(), request.user)
     search = request.GET.get('search', '')
@@ -29,18 +34,22 @@ def suppliers_by_status(request, status = None):
     statuses = SupplierStatusEnum.list()
     statuses.insert(0, ('all', 'Все'))
 
-    if search != '':
-        queryset = queryset.filter(Q(name__icontains=search) | Q(identifier__icontains=search))
+    if search:
+        queryset = queryset.filter(
+            Q(name__icontains=search) | Q(identifier__icontains=search)
+        )
 
-    if status is not None and status != 'all':
+    if status and status != 'all':
         queryset = queryset.filter(status=status)
 
     paginator = CustomPaginator(queryset, page)
 
+    from account.services.access_scope import user_can_manage_access_scopes
     context = {
         'paginator': paginator,
         'statuses': statuses,
         'status': status,
+        'can_manage_acl': user_can_manage_access_scopes(request.user),
     }
 
     return render(request, 'site/purchases/suppliers/suppliers.html', context)
@@ -92,7 +101,6 @@ def supplier(request, pk):
     }
 
     return render(request, 'site/purchases/suppliers/supplier.html', context)
-
 
 
 @need_permission(PermissionEnums.EDIT_SUPPLIERS)

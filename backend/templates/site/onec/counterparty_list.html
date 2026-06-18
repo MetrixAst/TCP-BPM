@@ -40,35 +40,64 @@
   </div>
 
   <section class="onec-filter-card">
-    <form method="get" class="onec-filter-form">
+    <form method="get" class="onec-filter-form" id="counterpartyFilterForm">
+
+      <input type="hidden" name="type" id="typeHidden" value="{{ f_type|default:'' }}">
+
       <div class="onec-field">
         <label class="onec-label">Поиск контрагента</label>
         <div class="onec-search">
           <i class="bi bi-search"></i>
-          <input
-            type="text"
-            name="search"
-            value="{{ request.GET.search|default:'' }}"
-            placeholder="Название, БИН, телефон…"
-          >
+          <input type="text" name="search"
+                 value="{{ request.GET.search|default:'' }}"
+                 placeholder="Название, БИН, телефон…">
         </div>
       </div>
+
       {% if counterparty_types %}
       <div class="onec-field">
         <label class="onec-label">Тип</label>
-        <select name="type" class="onec-input" style="min-width:180px">
-          <option value="">Все типы</option>
-          {% for ct in counterparty_types %}
-            <option value="{{ ct.pk }}" {% if f_type == ct.pk|stringformat:"s" %}selected{% endif %}>{{ ct.name }}</option>
-          {% endfor %}
-        </select>
+        <div class="bpm-dropdown" id="typeDropdown">
+          <button type="button" class="bpm-dropdown__trigger" id="typeDropdownBtn"
+                  aria-haspopup="listbox" aria-expanded="false">
+            <span id="typeDropdownLabel">
+              {% if f_type %}
+                {% for ct in counterparty_types %}
+                  {% if ct.pk|stringformat:"s" == f_type %}{{ ct.name }}{% endif %}
+                {% endfor %}
+              {% else %}
+                Все типы
+              {% endif %}
+            </span>
+            <i class="bi bi-chevron-down bpm-dropdown__chevron"></i>
+          </button>
+          <ul class="bpm-dropdown__menu" id="typeDropdownMenu" role="listbox" hidden>
+            <li class="bpm-dropdown__item {% if not f_type %}is-active{% endif %}"
+                role="option" data-value="" data-label="Все типы"
+                aria-selected="{% if not f_type %}true{% else %}false{% endif %}">
+              Все типы
+              <i class="bi bi-check bpm-dropdown__check"></i>
+            </li>
+            {% for ct in counterparty_types %}
+              <li class="bpm-dropdown__item {% if f_type == ct.pk|stringformat:"s" %}is-active{% endif %}"
+                  role="option"
+                  data-value="{{ ct.pk }}"
+                  data-label="{{ ct.name }}"
+                  aria-selected="{% if f_type == ct.pk|stringformat:"s" %}true{% else %}false{% endif %}">
+                {{ ct.name }}
+                <i class="bi bi-check bpm-dropdown__check"></i>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
       </div>
       {% endif %}
+
       <div class="onec-filter-actions">
         <button type="submit" class="onec-btn onec-btn--primary">
           <i class="bi bi-search"></i> Найти
         </button>
-        {% if request.GET.search %}
+        {% if request.GET.search or f_type %}
           <a href="{% url 'onec:counterparty_list' %}" class="onec-btn onec-btn--light">
             <i class="bi bi-x"></i> Сбросить
           </a>
@@ -112,7 +141,7 @@
             <td>{{ cp.phone|default:"—" }}</td>
             <td>
               {% if cp.counterparty_type %}
-                <span class="onec-type-badge onec-type-badge--scope" title="Зона доступа">{{ cp.counterparty_type.name }}</span>
+                <span class="onec-type-badge onec-type-badge--scope">{{ cp.counterparty_type.name }}</span>
               {% endif %}
               {% if cp.is_supplier and cp.is_customer %}
                 <span class="onec-type-badge onec-type-badge--both">Поставщик / Клиент</span>
@@ -140,4 +169,39 @@
   </section>
 
 </div>
+
+<script>
+(function () {
+  'use strict';
+  const btn    = document.getElementById('typeDropdownBtn');
+  const menu   = document.getElementById('typeDropdownMenu');
+  const hidden = document.getElementById('typeHidden');
+  const label  = document.getElementById('typeDropdownLabel');
+  const form   = document.getElementById('counterpartyFilterForm');
+  if (!btn || !menu) return;
+
+  function open()  { menu.hidden = false; btn.setAttribute('aria-expanded','true');  btn.classList.add('is-open'); }
+  function close() { menu.hidden = true;  btn.setAttribute('aria-expanded','false'); btn.classList.remove('is-open'); }
+
+  btn.addEventListener('click', function(e){ e.stopPropagation(); menu.hidden ? open() : close(); });
+
+  menu.addEventListener('click', function(e){
+    const item = e.target.closest('.bpm-dropdown__item');
+    if (!item) return;
+    menu.querySelectorAll('.bpm-dropdown__item').forEach(function(el){
+      el.classList.remove('is-active'); el.setAttribute('aria-selected','false');
+    });
+    item.classList.add('is-active'); item.setAttribute('aria-selected','true');
+    hidden.value  = item.dataset.value;
+    label.textContent = item.dataset.label;
+    close();
+    form.submit();
+  });
+
+  document.addEventListener('click', function(e){
+    if (!btn.contains(e.target) && !menu.contains(e.target)) close();
+  });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
+})();
+</script>
 {% endblock %}

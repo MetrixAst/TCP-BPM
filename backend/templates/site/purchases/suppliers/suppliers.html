@@ -19,6 +19,11 @@
       {% endif %}
     </div>
     <div class="onec-page-header__actions">
+      {% if can_manage_acl %}
+      <a href="{% url 'onec:counterparty_type_list' %}" class="onec-btn onec-btn--light">
+        <i class="bi bi-shield-lock"></i> Типы и доступ
+      </a>
+      {% endif %}
       <a href="{% url 'purchases:edit_supplier' 0 %}" class="onec-btn onec-btn--primary">
         <i class="bi bi-plus-lg"></i> Добавить
       </a>
@@ -26,36 +31,75 @@
   </div>
 
   <section class="onec-filter-card">
-    <form method="get" class="onec-filter-form"
-          action="{% if status and status != 'all' %}{% url 'purchases:suppliers_by_status' status %}{% else %}{% url 'purchases:suppliers' %}{% endif %}">
+    <form method="get" id="suppliersFilterForm" class="onec-filter-form"
+          action="{% url 'purchases:suppliers' %}">
+
+      {# Скрытое поле для статуса — управляется кастомным дропдауном #}
+      <input type="hidden" name="status" id="statusHidden"
+             value="{{ status|default:'all' }}">
+
       <div class="onec-field">
         <label class="onec-label">Поиск контрагента</label>
         <div class="onec-search">
           <i class="bi bi-search"></i>
-          <input type="text" name="search" value="{{ request.GET.search|default:'' }}"
-                 placeholder="Название, БИН…" autocomplete="off">
+          <input type="text" name="search"
+                 value="{{ request.GET.search|default:'' }}"
+                 placeholder="Название, БИН…"
+                 autocomplete="off">
         </div>
       </div>
+
       <div class="onec-field">
         <label class="onec-label">Статус</label>
-        <select class="onec-input" style="min-width:180px;height:36px;border-radius:999px;border:0;background:#f5f3fa;padding:0 14px;color:#25233f;font-size:13px;"
-                onchange="location.href=this.value{% if request.GET.search %}+'?search={{ request.GET.search|urlencode }}'{% endif %}">
-          {% for current in statuses %}
-            {% if current.0 == 'all' %}
-              <option value="{% url 'purchases:suppliers' %}" {% if not status or status == 'all' %}selected{% endif %}>{{ current.1 }}</option>
-            {% else %}
-              <option value="{% url 'purchases:suppliers_by_status' current.0 %}" {% if status == current.0 %}selected{% endif %}>{{ current.1 }}</option>
-            {% endif %}
-          {% endfor %}
-        </select>
+        {# ── Кастомный дропдаун ── #}
+        <div class="bpm-dropdown" id="statusDropdown">
+          <button type="button" class="bpm-dropdown__trigger" id="statusDropdownBtn"
+                  aria-haspopup="listbox" aria-expanded="false">
+            <span id="statusDropdownLabel">
+              {% for s in statuses %}
+                {% if s.0 == status %}{{ s.1 }}{% endif %}
+                {% if not status and s.0 == 'all' %}{{ s.1 }}{% endif %}
+              {% endfor %}
+            </span>
+            <i class="bi bi-chevron-down bpm-dropdown__chevron"></i>
+          </button>
+          <ul class="bpm-dropdown__menu" id="statusDropdownMenu" role="listbox" hidden>
+            {% for s in statuses %}
+              {% if s.0 == status %}
+                {% with is_active=True %}
+                <li class="bpm-dropdown__item is-active"
+                    role="option"
+                    data-value="{{ s.0 }}"
+                    data-label="{{ s.1 }}"
+                    aria-selected="true">
+                {% endwith %}
+              {% elif not status and s.0 == 'all' %}
+                <li class="bpm-dropdown__item is-active"
+                    role="option"
+                    data-value="{{ s.0 }}"
+                    data-label="{{ s.1 }}"
+                    aria-selected="true">
+              {% else %}
+                <li class="bpm-dropdown__item"
+                    role="option"
+                    data-value="{{ s.0 }}"
+                    data-label="{{ s.1 }}"
+                    aria-selected="false">
+              {% endif %}
+                {{ s.1 }}
+                <i class="bi bi-check bpm-dropdown__check"></i>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
       </div>
+
       <div class="onec-filter-actions">
         <button type="submit" class="onec-btn onec-btn--primary">
           <i class="bi bi-search"></i> Найти
         </button>
-        {% if request.GET.search %}
-          <a href="{% if status and status != 'all' %}{% url 'purchases:suppliers_by_status' status %}{% else %}{% url 'purchases:suppliers' %}{% endif %}"
-             class="onec-btn onec-btn--light">
+        {% if request.GET.search or status and status != 'all' %}
+          <a href="{% url 'purchases:suppliers' %}" class="onec-btn onec-btn--light">
             <i class="bi bi-x"></i> Сбросить
           </a>
         {% endif %}
@@ -67,7 +111,7 @@
     <div class="onec-table-head">
       <div class="onec-table-title">
         Список контрагентов
-        {% if paginator.items %}
+        {% if paginator.count %}
           <span class="onec-table-count">{{ paginator.count }}</span>
         {% endif %}
       </div>
@@ -124,4 +168,67 @@
   </section>
 
 </div>
+
+<script>
+(function () {
+  'use strict';
+
+  const btn    = document.getElementById('statusDropdownBtn');
+  const menu   = document.getElementById('statusDropdownMenu');
+  const hidden = document.getElementById('statusHidden');
+  const label  = document.getElementById('statusDropdownLabel');
+  const form   = document.getElementById('suppliersFilterForm');
+
+  if (!btn || !menu) return;
+
+  function openMenu() {
+    menu.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+    btn.classList.add('is-open');
+  }
+
+  function closeMenu() {
+    menu.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+    btn.classList.remove('is-open');
+  }
+
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    menu.hidden ? openMenu() : closeMenu();
+  });
+
+  menu.addEventListener('click', function (e) {
+    const item = e.target.closest('.bpm-dropdown__item');
+    if (!item) return;
+
+    // Снять активность с предыдущего
+    menu.querySelectorAll('.bpm-dropdown__item').forEach(function (el) {
+      el.classList.remove('is-active');
+      el.setAttribute('aria-selected', 'false');
+    });
+
+    item.classList.add('is-active');
+    item.setAttribute('aria-selected', 'true');
+
+    hidden.value = item.dataset.value;
+    label.textContent = item.dataset.label;
+
+    closeMenu();
+    form.submit();
+  });
+
+  // Закрыть при клике вне
+  document.addEventListener('click', function (e) {
+    if (!btn.contains(e.target) && !menu.contains(e.target)) {
+      closeMenu();
+    }
+  });
+
+  // Закрыть по Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeMenu();
+  });
+})();
+</script>
 {% endblock %}

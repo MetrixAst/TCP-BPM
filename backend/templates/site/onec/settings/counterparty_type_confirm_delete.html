@@ -1,18 +1,65 @@
-{% extends "site/base.html" %}
+{% extends "site/base_modal.html" %}
 {% load static %}
 
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
+
 {% block content %}
-<div class="onec-page" style="max-width:520px;margin:40px auto">
-  <div class="onec-create-card" style="padding:24px">
-    <h1 class="onec-page-title">Удалить тип «{{ counterparty_type.name }}»?</h1>
-    <p class="onec-page-sub">
-      У {{ counterparty_type.counterparties.count }} контрагентов поле типа будет сброшено.
-    </p>
-    <form method="post" class="onec-create-footer" style="margin-top:24px">
-      {% csrf_token %}
-      <a href="{% url 'onec:counterparty_type_list' %}" class="onec-btn onec-btn--ghost">Отмена</a>
-      <button type="submit" class="onec-btn onec-btn--primary" style="background:#dc3545;border-color:#dc3545">Удалить</button>
-    </form>
+<div class="onec-create-page">
+  <div class="onec-create-card onec-create-card--confirm">
+
+    <div class="onec-create-card__header">
+      <h1 class="onec-create-card__title">Удаление типа</h1>
+      <a href="{% url 'onec:counterparty_type_list' %}" class="onec-create-card__close" title="Закрыть">×</a>
+    </div>
+
+    <div class="onec-confirm-body">
+      <div class="onec-confirm-icon onec-confirm-icon--danger">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </div>
+
+      <h2 class="onec-confirm-title">Удалить тип «{{ counterparty_type.name }}»?</h2>
+
+      {% with count=counterparty_type.counterparties.count %}
+        {% if count %}
+          <div class="onec-confirm-warning">
+            <i class="bi bi-building"></i>
+            С этим типом связано <b>{{ count }}</b>
+            контрагент{{ count|pluralize:",,а,ов" }}.
+            После удаления типа они станут видны всем пользователям с доступом к разделу.
+          </div>
+        {% else %}
+          <p class="onec-confirm-text">
+            Тип не привязан ни к одному контрагенту. Удаление безопасно.
+          </p>
+        {% endif %}
+      {% endwith %}
+
+      {% if counterparty_type.access_scope %}
+        <div class="onec-confirm-note">
+          <i class="bi bi-shield-lock"></i>
+          Зона доступа «{{ counterparty_type.access_scope }}», привязанная к типу, <b>не удаляется</b>
+          и может быть использована в других настройках.
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="onec-create-footer">
+      <a href="{% url 'onec:counterparty_type_list' %}" class="onec-btn onec-btn--ghost">
+        Отменить
+      </a>
+      <a href="{% url 'onec:counterparty_type_edit' counterparty_type.pk %}" class="onec-btn onec-btn--light">
+        <i class="bi bi-pencil"></i> Редактировать
+      </a>
+      <form method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="onec-btn onec-btn--danger">
+          <i class="bi bi-trash"></i> Да, удалить
+        </button>
+      </form>
+    </div>
+
   </div>
 </div>
 {% endblock %}

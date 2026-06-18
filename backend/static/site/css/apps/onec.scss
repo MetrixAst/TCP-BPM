@@ -1520,3 +1520,425 @@ body.onec-invoice-body {
   }
 }
  
+
+/* ── Таблица типов ── */
+.onec-table--acl th:last-child,
+.onec-table--acl td:last-child {
+  width: 80px;
+  text-align: right;
+}
+ 
+.onec-acl-row td { vertical-align: top; padding-top: .75rem; padding-bottom: .75rem; }
+ 
+.onec-acl-type-name {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-weight: 500;
+}
+ 
+.onec-acl-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+ 
+.onec-acl-type-desc {
+  font-size: .75rem;
+  color: var(--bpm-text-muted, #6c757d);
+  margin-top: .2rem;
+}
+ 
+.onec-acl-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: .2rem .5rem;
+  background: var(--bpm-surface-2, #f0f2f5);
+  border-radius: 999px;
+  font-size: .8rem;
+  font-weight: 600;
+}
+ 
+.onec-acl-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .25rem;
+}
+ 
+/* ── Бейджи видимости ── */
+.onec-acl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .25rem .6rem;
+  border-radius: 6px;
+  font-size: .75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+ 
+.onec-acl-badge--none {
+  background: #e9ecef;
+  color: #495057;
+}
+ 
+.onec-acl-badge--global {
+  background: #d1e7dd;
+  color: #0a5234;
+}
+ 
+.onec-acl-badge--restricted {
+  background: #fff3cd;
+  color: #664d03;
+}
+ 
+/* ── Пилюли «кому видно» ── */
+.onec-acl-who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+}
+ 
+.onec-acl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .15rem .5rem;
+  border-radius: 5px;
+  font-size: .7rem;
+  font-weight: 500;
+}
+ 
+.onec-acl-pill--role {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+ 
+.onec-acl-pill--dept {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+ 
+.onec-acl-pill--user {
+  background: #dbeafe;
+  color: #1e40af;
+}
+ 
+/* ── Легенда ── */
+.onec-acl-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem 2rem;
+  padding: 1rem 1.25rem;
+  font-size: .8rem;
+  color: var(--bpm-text-muted, #6c757d);
+}
+ 
+.onec-acl-legend__item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+ 
+/* ── Форма: переключатель режима доступа ── */
+.onec-acl-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+}
+ 
+@media (max-width: 600px) {
+  .onec-acl-toggle { grid-template-columns: 1fr; }
+}
+ 
+.onec-acl-toggle__option {
+  cursor: pointer;
+}
+ 
+.onec-acl-toggle__option input { display: none; }
+ 
+.onec-acl-toggle__box {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  padding: 1rem 1.125rem;
+  border: 2px solid var(--bpm-border-color, #dee2e6);
+  border-radius: 10px;
+  transition: border-color .15s, background-color .15s;
+  cursor: pointer;
+}
+ 
+.onec-acl-toggle__box i {
+  font-size: 1.25rem;
+  opacity: .6;
+  margin-bottom: .25rem;
+}
+ 
+.onec-acl-toggle__box b { font-size: .9rem; }
+ 
+.onec-acl-toggle__box small {
+  font-size: .75rem;
+  color: var(--bpm-text-muted, #6c757d);
+  line-height: 1.4;
+}
+ 
+.onec-acl-toggle__option input:checked + .onec-acl-toggle__box {
+  border-color: var(--bpm-primary, #0d6efd);
+  background-color: rgba(13, 110, 253, .05);
+}
+ 
+.onec-acl-toggle__option input:checked + .onec-acl-toggle__box i { opacity: 1; color: var(--bpm-primary, #0d6efd); }
+ 
+/* ── Инфобокс ── */
+.onec-acl-info-box {
+  display: flex;
+  gap: .875rem;
+  padding: 1rem 1.125rem;
+  background: var(--bpm-surface-2, #f8f9fa);
+  border-left: 3px solid var(--bpm-primary, #0d6efd);
+  border-radius: 0 8px 8px 0;
+  margin: 1.25rem 0;
+  font-size: .85rem;
+}
+ 
+.onec-acl-info-box__icon {
+  font-size: 1.1rem;
+  color: var(--bpm-primary, #0d6efd);
+  flex-shrink: 0;
+  margin-top: .1rem;
+}
+ 
+.onec-acl-info-box p { margin: .25rem 0 0; color: var(--bpm-text-muted, #6c757d); }
+ 
+/* ── Подсказка к полю ── */
+.onec-field-hint {
+  font-size: .75rem;
+  color: var(--bpm-text-muted, #6c757d);
+  margin-top: .375rem;
+  line-height: 1.4;
+}
+ 
+/* ── Заголовок секции с подписью ── */
+.onec-section-hint {
+  font-size: .75rem;
+  font-weight: 400;
+  color: var(--bpm-text-muted, #6c757d);
+  margin-left: .5rem;
+}
+ 
+/* ── Выбор цвета ── */
+.onec-color-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+ 
+.onec-color-picker {
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  border: 1px solid var(--bpm-border-color, #dee2e6);
+  border-radius: 8px;
+  cursor: pointer;
+}
+ 
+.onec-color-preview {
+  font-size: .8rem;
+  color: var(--bpm-text-muted, #6c757d);
+  cursor: pointer;
+}
+ 
+/* ── Страница подтверждения ── */
+.onec-create-card--confirm { max-width: 520px; }
+ 
+.onec-confirm-body {
+  padding: 1.5rem 0 1rem;
+  text-align: center;
+}
+ 
+.onec-confirm-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+ 
+.onec-confirm-icon--danger { color: #dc3545; }
+ 
+.onec-confirm-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: .75rem;
+}
+ 
+.onec-confirm-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  padding: .875rem 1rem;
+  background: #fff3cd;
+  border-radius: 8px;
+  font-size: .875rem;
+  text-align: left;
+  margin-bottom: .75rem;
+}
+ 
+.onec-confirm-warning i { color: #856404; flex-shrink: 0; margin-top: .1rem; }
+ 
+.onec-confirm-text { color: var(--bpm-text-muted, #6c757d); font-size: .875rem; }
+ 
+.onec-confirm-note {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  padding: .75rem 1rem;
+  background: var(--bpm-surface-2, #f8f9fa);
+  border-radius: 8px;
+  font-size: .8rem;
+  color: var(--bpm-text-muted, #6c757d);
+  text-align: left;
+  margin-top: .75rem;
+}
+ 
+.onec-confirm-note i { flex-shrink: 0; margin-top: .1rem; }
+ 
+/* ── Кнопки (доп. варианты) ── */
+.onec-btn--danger {
+  background: #dc3545;
+  color: #fff;
+  border-color: #dc3545;
+}
+.onec-btn--danger:hover { background: #b02a37; border-color: #b02a37; color: #fff; }
+ 
+.onec-btn--danger-ghost {
+  background: transparent;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+}
+.onec-btn--danger-ghost:hover { background: #dc3545; color: #fff; }
+ 
+/* ── Алерты ── */
+.onec-alert {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  padding: .75rem 1rem;
+  border-radius: 8px;
+  font-size: .875rem;
+  margin-bottom: 1rem;
+}
+ 
+.onec-alert--success { background: #d1e7dd; color: #0a5234; }
+.onec-alert--error,
+.onec-alert--danger   { background: #f8d7da; color: #58151c; }
+.onec-alert--warning  { background: #fff3cd; color: #664d03; }
+.onec-alert--info     { background: #cff4fc; color: #055160; }
+ 
+/* ─── Кастомный дропдаун .bpm-dropdown ─────────────────────────────────────
+   Используется в фильтрах вместо нативного <select>.
+   Стиль соответствует пилюлям-кнопкам из макета.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+   .bpm-dropdown {
+    position: relative;
+    display: inline-block;
+  }
+  
+  /* ── Триггер-кнопка ── */
+  .bpm-dropdown__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    height: 36px;
+    padding: 0 14px;
+    background: #f5f3fa;
+    border: 0;
+    border-radius: 999px;
+    color: #25233f;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color .12s, box-shadow .12s;
+    user-select: none;
+    min-width: 130px;
+    justify-content: space-between;
+  }
+  
+  .bpm-dropdown__trigger:hover {
+    background: #ece9f7;
+  }
+  
+  .bpm-dropdown__trigger.is-open {
+    background: #ece9f7;
+    box-shadow: 0 0 0 2px rgba(99, 82, 199, .25);
+  }
+  
+  .bpm-dropdown__chevron {
+    font-size: .7rem;
+    transition: transform .15s;
+    opacity: .6;
+    flex-shrink: 0;
+  }
+  
+  .bpm-dropdown__trigger.is-open .bpm-dropdown__chevron {
+    transform: rotate(180deg);
+  }
+  
+  /* ── Меню ── */
+  .bpm-dropdown__menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 200;
+    min-width: 100%;
+    padding: .375rem 0;
+    background: #fff;
+    border: 1px solid #e0ddf0;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .10);
+    list-style: none;
+    margin: 0;
+    animation: bpmDropFadeIn .1s ease;
+  }
+  
+  @keyframes bpmDropFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* ── Пункт ── */
+  .bpm-dropdown__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .45rem 1rem;
+    font-size: .875rem;
+    color: #25233f;
+    cursor: pointer;
+    transition: background-color .1s;
+  }
+  
+  .bpm-dropdown__item:hover {
+    background: #f5f3fa;
+  }
+  
+  .bpm-dropdown__item.is-active {
+    background: #ece9f7;
+    font-weight: 600;
+    color: #4c3fc1;
+  }
+  
+  /* Галочка — видна только у активного пункта */
+  .bpm-dropdown__check {
+    font-size: .8rem;
+    opacity: 0;
+    flex-shrink: 0;
+  }
+  
+  .bpm-dropdown__item.is-active .bpm-dropdown__check {
+    opacity: 1;
+  }
