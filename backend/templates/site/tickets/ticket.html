@@ -36,6 +36,8 @@
   transition: background .15s, color .15s; border: 0; cursor: pointer;
 }
 .tk-att-item__btn:hover { background: #ece9f4; color: #25233f; text-decoration: none; }
+.tk-att-item__btn--oo { background: #eef2ff; color: #2f6bed; }
+.tk-att-item__btn--oo:hover { background: #2f6bed; color: #fff; }
 </style>
 {% endblock %}
 
@@ -131,6 +133,14 @@
               {% endif %}
             </div>
             <div class="tk-att-item__actions">
+              {% if att.filename|oo_supported %}
+              <a href="/doc/attachment/ticket_att/{{ att.id }}/editor/"
+                 target="_blank" rel="noopener"
+                 class="tk-att-item__btn tk-att-item__btn--oo"
+                 title="Открыть в ONLYOFFICE">
+                <i class="bi bi-eye"></i>
+              </a>
+              {% endif %}
               <a href="{{ att.file.url }}" download class="tk-att-item__btn" title="Скачать">
                 <i class="bi bi-download"></i>
               </a>
