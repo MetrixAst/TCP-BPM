@@ -1,0 +1,41 @@
+# Kazakh
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: kk\n"
+
+msgid "Создана"
+msgstr "Жасалды"
+
+msgid "Принята"
+msgstr "Қабылданды"
+
+msgid "Отклонена"
+msgstr "Қабылданбады"
+
+msgid "На доработке"
+msgstr "Өңдеуде"
+
+msgid "Завершена"
+msgstr "Аяқталды"
+
+msgid "Низкий"
+msgstr "Төмен"
+
+msgid "Средний"
+msgstr "Орташа"
+
+msgid "Высокий"
+msgstr "Жоғары"
+
+msgid "Критический"
+msgstr "Сыни"
+
+msgid "Поручение"
+msgstr "Тапсырма"
+
+msgid "Согласование"
+msgstr "Келісу"
+
+msgid "Документ"
+msgstr "Құжат"
