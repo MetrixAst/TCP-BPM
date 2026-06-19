@@ -2,337 +2,294 @@
 {% load static %}
 {% load site_tags %}
 
+{% block title %}{{ document.number }} — metriX BPM{% endblock %}
+
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/docs.css' %}?v={{ static_version|default:'1' }}">
 {% endblock %}
 
 {% block content %}
 
-    <!-- Page Header -->
-    <div class="doc-page-header">
-        <div class="doc-page-header__left">
-            <h1 class="doc-page-title">{{ document.number }}</h1>
-            <nav aria-label="breadcrumb">
-                <ol class="doc-breadcrumb">
-                    <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-                    <li><a href="{% url 'documents:list' type_config.id %}">{{ type_config.title }}</a></li>
-                    <li>{{ document.number }}</li>
-                </ol>
-            </nav>
-        </div>
-        <div class="doc-page-header__right">
-            {% if document.document %}
-            <a href="{% url 'documents:document_editor' document.id %}" target="_blank" rel="noopener"
-               class="doc-btn doc-btn--outline">
-                <i class="bi bi-pencil-square"></i>
-                <span>Редактировать документ</span>
+<div class="doc-detail-layout" data-type="{{ document.document_type }}" data-id="{{ document.id }}">
+
+  {# ── Main column ── #}
+  <div class="doc-detail-main">
+    <div class="doc-detail-block">
+
+      {# Breadcrumb #}
+      <div class="doc-detail-crumbs">
+        <a href="{% url 'documents:list' type_config.id %}" class="doc-detail-back">
+          <i class="bi bi-chevron-left"></i>
+        </a>
+        <a href="{% url 'documents:list' type_config.id %}" class="doc-detail-crumb">{{ type_config.title }}</a>
+        <span class="doc-detail-crumb-sep">/</span>
+        <span class="doc-detail-crumb doc-detail-crumb--cur">{{ document.number }}</span>
+        <div class="doc-detail-head-actions">
+          {% if document.document %}
+            <a href="{{ document.document.url }}" download class="doc-detail-icon-btn" title="Скачать">
+              <i class="bi bi-download"></i>
             </a>
-            <a target="_blank" href="{{ document.document.url }}" class="doc-btn doc-btn--primary">
-                <i class="bi bi-download"></i>
-                <span>Скачать</span>
-            </a>
-            {% endif %}
+          {% endif %}
+          <a href="{% url 'documents:edit' document.document_type document.id %}"
+             class="doc-detail-icon-btn" title="Редактировать">
+            <i class="bi bi-pencil"></i>
+          </a>
         </div>
-    </div>
-    <div class="row gx-4 gy-5 indicator_item_opened" data-type="{{document.document_type}}" data-id="{{document.id}}">
-        <!-- Left Side Start -->
-        <div class="col-12 col-xl-4 col-xxl-3">
-            <!-- Biography Start -->
-            <h2 class="small-title">Информация</h2>
-            <div class="card">
-                <div class="card-body mb-n5">
-                    <div class="d-flex align-items-center flex-column mb-3 text-center">
-                        <div class="mb-3 d-flex align-items-center flex-column">
-                            <div class="h5 mb-2">{{document.title}}</div>
-                            <span class="badge bg-{{document.status_info.color}}">{{document.status_info.title}}</span>
-                        </div>
-                        <div class="flex-row justify-content-between w-100">
-                            {% if actions %}
-                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#actionModal">Выполнить действие</button>
-                                <div class="modal fade" id="actionModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabelDefault" aria-hidden="true">
-                                    <div class="modal-dialog">
-                                        <form method="POST" action="{% url 'documents:document_action' document.id %}" class="modal-content">
-                                            {% csrf_token %}
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="exampleModalLabelDefault">Задать статус</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
+      </div>
 
-                                            <div class="modal-body text-start">
+      {# Title #}
+      <h1 class="doc-detail-title">{{ document.title }}</h1>
 
-                                                <select class="select2" name="action" data-placeholder="Действие">
-                                                    <option label="&nbsp;"></option>
-                                                    {% for current in actions %}
-                                                        <option value="{{current.action}}">{{current.title}}</option>
-                                                    {% endfor %}
-                                                </select>
-                                                
-                                                <div class="mt-3">
-                                                    <textarea placeholder="Комментарии" class="form-control" name="text" rows="2"></textarea>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-outline-muted" data-bs-dismiss="modal">Закрыть</button>
-                                                <button type="submit" class="btn btn-primary">Отправить</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            {% endif %}
+      {# Meta #}
+      <div class="doc-detail-meta">
+        <div>
+          <div class="doc-detail-meta-label">Дата добавления</div>
+          <div class="doc-detail-meta-value">{% bpm_date document.date %}</div>
+        </div>
+        <div>
+          <div class="doc-detail-meta-label">Срок</div>
+          <div class="doc-detail-meta-value">{% if document.end_date %}{% bpm_date document.end_date %}{% else %}—{% endif %}</div>
+        </div>
+        <div>
+          <div class="doc-detail-meta-label">Дата регистрации</div>
+          <div class="doc-detail-meta-value">{% if document.reg_date %}{% bpm_date document.reg_date %}{% else %}—{% endif %}</div>
+        </div>
+        <div>
+          <div class="doc-detail-meta-label">Статус</div>
+          <div class="doc-detail-meta-value">
+            <span class="doc-status-badge">{{ document.status_info.title }}</span>
+          </div>
+        </div>
+      </div>
 
-                            {% comment %} {% for current in actions %}
-                                <a href="{% url 'documents:document_action' document.id current.action %}" class="btn btn-{{current.color}} w-100 mb-2" data-type="{{current.action}}">{{current.title}}</a>
-                            {% endfor %} {% endcomment %}
-                        </div>
-                    </div>
-                    {% if document.text %}
-                        <div class="mb-5">
-                            <p class="text-small text-muted mb-2">ОПИСАНИЕ</p>
-                            <p>{{document.text}}</p>
-                        </div>
-                    {% endif %}
-                    <div class="mb-5">
+      {# Action button — только Выполнить действие; Ред./Скачать живут в document_frame #}
+      {% if actions %}
+      <div class="doc-detail-actions">
+        <button type="button" class="doc-detail-action-btn doc-detail-action-btn--ghost"
+                id="docActionBtn">
+          <i class="bi bi-play-circle"></i> Выполнить действие
+        </button>
+      </div>
+      {% endif %}
 
-                        <div class="row g-0 align-items-center mb-2">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Дата добавления</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center justify-content-end">{{document.date}}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+      {# Tabs #}
+      <div class="doc-detail-tablist">
+        <button class="doc-detail-tab is-active" data-tab="doc-tab-doc">Документ</button>
+        {% if document.folder.multiple_files %}
+          <button class="doc-detail-tab" data-tab="doc-tab-addit">Доп. документы</button>
+        {% endif %}
+        <button class="doc-detail-tab" data-tab="doc-tab-chat">Обсуждения</button>
+        <button class="doc-detail-tab" data-tab="doc-tab-approval">Лист согласования</button>
+      </div>
 
-                        <div class="row g-0 align-items-center mb-2">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Срок</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center justify-content-end">{{document.end_date}}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+      {# Tab: Document #}
+      <div class="doc-detail-tab-panel is-active" id="doc-tab-doc">
+        {% document_frame request document %}
+      </div>
 
-                        <div class="row g-0 align-items-center mb-2">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Дата регистрации</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center justify-content-end">{{document.reg_date}}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-
-                        <div class="row g-0 align-items-center mb-2">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Инициатор</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center justify-content-end">{{document.author.get_name}}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {% if document.supplier %}
-                            <div class="row g-0 align-items-center mb-2">
-                                <div class="col">
-                                    <div class="row g-0">
-                                        <div class="col">
-                                            <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Контрагент</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <div class="sh-5 d-flex align-items-center justify-content-end">{{document.supplier.name}}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endif %}
-
-                        <div class="row g-0 align-items-center mb-2">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Наблюдатель</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        {% for current in document.observers.all %}
-                                            <div class="sh-5 d-flex align-items-center justify-content-end">{{current.get_name}}</div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row g-0 align-items-center mb-2">
-                            <div class="col">
-                                <div class="row g-0">
-                                    <div class="col">
-                                        <div class="sh-5 d-flex align-items-center text-muted">Участники</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        {% for current in document.coordinators.all %}
-                                            <div class="sh-5 d-flex align-items-center justify-content-end">{{current.get_name}}</div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-
-                    </div>
-
-
-                </div>
+      {# Tab: Additional docs #}
+      {% if document.folder.multiple_files %}
+      <div class="doc-detail-tab-panel" id="doc-tab-addit">
+        <form action="{% url 'documents:upload_addit' document.id %}" method="POST"
+              enctype="multipart/form-data" class="doc-addit-form">
+          {% csrf_token %}
+          {{ addit_form.title }}
+          {{ addit_form.document }}
+          <button type="submit" class="doc-detail-action-btn doc-detail-action-btn--primary"
+                  style="height:36px;padding:0 16px;font-size:13px;">
+            <i class="bi bi-upload"></i> Загрузить
+          </button>
+        </form>
+        {% for addit in document.inner_documents.all %}
+          <div class="doc-addit-item">
+            <div class="doc-addit-icon"><i class="bi bi-file-earmark-text"></i></div>
+            <div class="doc-addit-info">
+              <div class="doc-addit-name">{{ addit.title }}</div>
+              <div class="doc-addit-author">{{ addit.author }}</div>
             </div>
-            <!-- Biography End -->
-        </div>
-        <!-- Left Side End -->
-        <!-- Right Side Start -->
-        <div class="col-12 col-xl-8 col-xxl-9">
-            <!-- Title Tabs Start -->
-            <ul class="nav nav-tabs nav-tabs-title nav-tabs-line-title responsive-tabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link active" data-bs-toggle="tab" href="#projectsTab" role="tab" aria-selected="true">Документ</a>
-                </li>
-                {% if document.folder.multiple_files %}
-                    <li class="nav-item" role="presentation">
-                        <a class="nav-link" data-bs-toggle="tab" href="#addit" role="tab" aria-selected="true">Дополнительные документы</a>
-                    </li>
-                {% endif %}
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link" data-bs-toggle="tab" href="#collectionsTab" role="tab" aria-selected="false">Обсуждения</a>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link" data-bs-toggle="tab" href="#friendsTab" role="tab" aria-selected="false">Лист согласования</a>
-                </li>
-                <li class="nav-item dropdown ms-auto d-none responsive-tab-dropdown">
-                    <a
-                        class="btn btn-icon btn-icon-only btn-background pt-0"
-                        href="#"
-                        role="button"
-                        data-bs-toggle="dropdown"
-                        aria-haspopup="true"
-                        aria-expanded="false"
-                        >
-                    <i class="bi bi-three-dots-vertical"></i>
-                    </a>
-                    <ul class="dropdown-menu mt-2 dropdown-menu-end"></ul>
-                </li>
-            </ul>
-            <!-- Title Tabs End -->
-            <div class="tab-content">
-                <!-- Projects Tab Start -->
-                <div class="tab-pane fade active show" id="projectsTab" role="tabpanel">
-
-                    {% document_frame request document %}
-
-                </div>
-
-                {% if document.folder.multiple_files %}
-                    <div class="tab-pane fade" id="addit" role="tabpanel">
-                        <div class="card mb-4">
-                            <div class="card-body">
-                                <p class="heading title mb-1">Загрузить документ</p>
-                                <form action="{% url 'documents:upload_addit' document.id %}" method="POST" class="grid_outer" id="addit_form" enctype="multipart/form-data">
-                                    {% csrf_token %}
-                                    
-                                    <div class="grid_child">
-                                        {{addit_form.title}}
-                                    </div>
-        
-                                    <div class="grid_child">
-                                        {{addit_form.document}}
-                                    </div>
-                                
-                                    <button class="btn btn-icon btn-icon-end btn-primary" type="submit">
-                                        <span>Загрузить</span>
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-
-                        {% for addit in document.inner_documents.all %}
-
-                            <div class="card mb-2">
-                                <div class="card-body h-100">
-                                    <div class="row g-0 h-100 align-content-center">
-
-                                        <div class="d-flex flex-column flex-sm-row pt-0 pb-0 pe-0 h-100 align-items-sm-center justify-content-sm-between">
-                                            <div class="d-flex flex-column mb-2 mb-sm-0">
-                                                <div>{{addit.title}}</div>
-                                                <div class="text-small text-muted">{{addit.author}}</div>
-                                            </div>
-                                            <div class="d-flex">
-                                                <a href="{% url 'documents:addit_document_frame' addit.id %}" target="_blank" class="btn btn-outline-secondary btn-sm" type="button">Смотреть</a>
-                                                <a href="{{addit.document.url}}" target="_blank" class="btn btn-sm btn-icon btn-icon-only btn-outline-secondary ms-1" type="button">
-                                                    <i class="bi bi-download"></i>
-                                                </a>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-
-                    </div>
-                {% endif %}
-                <!-- Projects Tab End -->
-                <!-- Collections Tab Start -->
-                <div class="tab-pane fade" id="collectionsTab" role="tabpanel">
-                    
-                    {% load_comments 'document' document.id %}
-                
-                </div>
-                <!-- Collections Tab End -->
-                <!-- Friends Tab Start -->
-                <div class="tab-pane fade" id="friendsTab" role="tabpanel">
-                    
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Дата</th>
-                                <th scope="col">Пользователь</th>
-                                <th scope="col">Статус</th>
-                                <th scope="col">Комментарии</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-
-                            {% for current in document.history.all %}
-                                <tr>
-                                    <td>{{current.date}}</td>
-                                    <td>{{current.user.get_name}}</td>
-                                    <td>{{current.title}}</td>
-                                    <td class="text-info">
-                                        {% if current.text %}
-                                            {{current.text}}
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-
-                        </tbody>
-                    </table>
-
-                </div>
-                <!-- Friends Tab End -->
+            <div class="doc-addit-actions">
+              <a href="{% url 'documents:addit_document_frame' addit.id %}" target="_blank"
+                 class="doc-addit-btn" title="Открыть"><i class="bi bi-eye"></i></a>
+              <a href="{{ addit.document.url }}" download
+                 class="doc-addit-btn" title="Скачать"><i class="bi bi-download"></i></a>
             </div>
-        </div>
-        <!-- Right Side End -->
+          </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# Tab: Comments #}
+      <div class="doc-detail-tab-panel" id="doc-tab-chat">
+        {% load_comments 'document' document.id %}
+      </div>
+
+      {# Tab: Approval sheet #}
+      <div class="doc-detail-tab-panel" id="doc-tab-approval">
+        <table class="doc-approval-table">
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Пользователь</th>
+              <th>Статус</th>
+              <th>Комментарий</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for current in document.history.all %}
+              <tr>
+                <td style="color:#74728a;white-space:nowrap;">{% bpm_date current.date %}</td>
+                <td style="font-weight:500;">{{ current.user.get_name }}</td>
+                <td>{{ current.title }}</td>
+                <td style="color:#2563eb;">{{ current.text|default:"—" }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4" style="text-align:center;padding:24px;color:#9a98aa;font-size:13px;">
+                  История действий пуста
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
     </div>
+  </div>
+
+  {# ── Aside ── #}
+  <div class="doc-detail-aside">
+
+    <div class="doc-aside-panel">
+      <div class="doc-aside-title">{{ document.title }}</div>
+      <div class="doc-info-row">
+        <span class="doc-info-key">Статус</span>
+        <span class="doc-info-val">
+          <span class="doc-status-badge">{{ document.status_info.title }}</span>
+        </span>
+      </div>
+      <div class="doc-info-row">
+        <span class="doc-info-key">Дата добавления</span>
+        <span class="doc-info-val">{% bpm_date document.date %}</span>
+      </div>
+      <div class="doc-info-row">
+        <span class="doc-info-key">Срок</span>
+        <span class="doc-info-val">{% if document.end_date %}{% bpm_date document.end_date %}{% else %}—{% endif %}</span>
+      </div>
+      <div class="doc-info-row">
+        <span class="doc-info-key">Дата регистрации</span>
+        <span class="doc-info-val">{% if document.reg_date %}{% bpm_date document.reg_date %}{% else %}—{% endif %}</span>
+      </div>
+      {% if document.supplier %}
+        <div class="doc-info-row">
+          <span class="doc-info-key">Контрагент</span>
+          <span class="doc-info-val">{{ document.supplier.name }}</span>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="doc-aside-panel">
+      <div class="doc-aside-title">Участники</div>
+      <div class="doc-people">
+        <div class="doc-person">
+          <div class="doc-person-avatar">
+            {{ document.author.get_name|slice:":1"|upper }}
+          </div>
+          <div class="doc-person-info">
+            <div class="doc-person-role">Инициатор</div>
+            <div class="doc-person-name">{{ document.author.get_name }}</div>
+          </div>
+        </div>
+        {% for obs in document.observers.all %}
+          <div class="doc-person">
+            <div class="doc-person-avatar" style="background:#f0fdf4;color:#16a34a;">
+              {{ obs.get_name|slice:":1"|upper }}
+            </div>
+            <div class="doc-person-info">
+              <div class="doc-person-role">Наблюдатель</div>
+              <div class="doc-person-name">{{ obs.get_name }}</div>
+            </div>
+          </div>
+        {% endfor %}
+        {% for coord in document.coordinators.all %}
+          <div class="doc-person">
+            <div class="doc-person-avatar" style="background:#fff4e5;color:#d97706;">
+              {{ coord.get_name|slice:":1"|upper }}
+            </div>
+            <div class="doc-person-info">
+              <div class="doc-person-role">Участник</div>
+              <div class="doc-person-name">{{ coord.get_name }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{# ── Action modal ── #}
+{% if actions %}
+<div class="doc-action-modal-overlay" id="docActionModal">
+  <div class="doc-action-modal">
+    <div class="doc-action-modal-head">
+      <h3 class="doc-action-modal-title">Выполнить действие</h3>
+      <button class="doc-action-modal-close" id="docModalClose">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+    <form method="POST" action="{% url 'documents:document_action' document.id %}">
+      {% csrf_token %}
+      <div class="doc-action-modal-body">
+        <div>
+          <div class="doc-action-modal-label">Действие</div>
+          <select name="action" class="doc-action-modal-select">
+            {% for current in actions %}
+              <option value="{{ current.action }}">{{ current.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <div class="doc-action-modal-label">Комментарий</div>
+          <textarea name="text" class="doc-action-modal-textarea" placeholder="Необязательно"></textarea>
+        </div>
+        <div class="doc-action-modal-foot">
+          <button type="button" class="doc-action-modal-btn doc-action-modal-btn--cancel"
+                  id="docModalCancel">Отмена</button>
+          <button type="submit" class="doc-action-modal-btn doc-action-modal-btn--primary">
+            Отправить
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<script>
+(function() {
+  // Tabs
+  document.querySelectorAll('.doc-detail-tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.doc-detail-tab').forEach(function(b) { b.classList.remove('is-active'); });
+      document.querySelectorAll('.doc-detail-tab-panel').forEach(function(p) { p.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+      var panel = document.getElementById(btn.dataset.tab);
+      if (panel) panel.classList.add('is-active');
+    });
+  });
+  // Modal
+  var overlay = document.getElementById('docActionModal');
+  var openBtn  = document.getElementById('docActionBtn');
+  var closeBtn = document.getElementById('docModalClose');
+  var cancelBtn = document.getElementById('docModalCancel');
+  if (overlay && openBtn) {
+    openBtn.addEventListener('click', function() { overlay.classList.add('is-open'); });
+    function closeModal() { overlay.classList.remove('is-open'); }
+    if (closeBtn)  closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
+  }
+})();
+</script>
 
 {% endblock %}

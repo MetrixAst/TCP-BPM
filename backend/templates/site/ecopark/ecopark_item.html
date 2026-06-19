@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
@@ -41,7 +42,7 @@
       <div class="eco-info-rows">
         <div class="eco-info-row">
           <span class="eco-info-row__label">Дата</span>
-          <span class="eco-info-row__value">{{ work.date }}</span>
+          <span class="eco-info-row__value">{% bpm_date work.date %}</span>
         </div>
         <div class="eco-info-row">
           <span class="eco-info-row__label">Сумма</span>
@@ -84,7 +85,7 @@
               {% for row in history %}
                 <tr>
                   <td>{{ row.title }}</td>
-                  <td>{{ row.date }}</td>
+                  <td>{% bpm_date row.date %}</td>
                   <td>{{ row.executor }}</td>
                   <td>{{ row.responsible }}</td>
                   <td class="eco-amount">{{ row.amount_fmt|default:work.amount_fmt }} ₸</td>

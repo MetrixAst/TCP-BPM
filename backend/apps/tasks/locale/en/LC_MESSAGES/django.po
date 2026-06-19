@@ -1,0 +1,41 @@
+# English
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: en\n"
+
+msgid "Создана"
+msgstr "Created"
+
+msgid "Принята"
+msgstr "Accepted"
+
+msgid "Отклонена"
+msgstr "Rejected"
+
+msgid "На доработке"
+msgstr "In Revision"
+
+msgid "Завершена"
+msgstr "Completed"
+
+msgid "Низкий"
+msgstr "Low"
+
+msgid "Средний"
+msgstr "Medium"
+
+msgid "Высокий"
+msgstr "High"
+
+msgid "Критический"
+msgstr "Critical"
+
+msgid "Поручение"
+msgstr "Assignment"
+
+msgid "Согласование"
+msgstr "Approval"
+
+msgid "Документ"
+msgstr "Document"

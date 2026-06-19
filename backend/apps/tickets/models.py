@@ -275,6 +275,7 @@ class TicketAttachment(models.Model):
         ServiceRequest, on_delete=models.CASCADE, related_name='attachments', verbose_name='Заявка',
     )
     file = models.FileField('Файл', upload_to=PathAndRename('tickets/attachments/'))
+    original_name = models.CharField('Оригинальное имя файла', max_length=255, blank=True, default='')
     uploaded_by = models.ForeignKey(
         UserAccount, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Загрузил',
     )
@@ -300,3 +301,9 @@ class TicketAttachment(models.Model):
     @staticmethod
     def can_view(ticket, user):
         return TicketMessage.can_view(ticket, user)
+
+    @property
+    def display_name(self):
+        """Показываем оригинальное имя если есть, иначе хэш"""
+        return self.original_name if self.original_name else self.filename
+ 

@@ -142,13 +142,15 @@ def kanban_status(request, pk):
     return JsonResponse({'ok': True, 'kanban': _kanban_payload(request)})
 
 
+
+
 @need_permission(PermissionEnums.SERVICE_REQUESTS)
 def create(request):
     manager = user_is_manager(request.user)
     form = (StaffTicketForm if manager else TenantTicketForm)(
         request.POST or None, request.FILES or None,
     )
-
+ 
     if request.method == 'POST' and form.is_valid():
         ticket = form.save(commit=False)
         ticket.author = request.user
@@ -160,6 +162,17 @@ def create(request):
                     ticket.room = tenant.room.number
         ticket.status = TicketStatusEnum.NEW.value[0]
         ticket.save()
+ 
+        # Сохраняем вложения через TicketAttachment с оригинальным именем
+        from .models import TicketAttachment
+        for f in request.FILES.getlist('attachments'):
+            TicketAttachment.objects.create(
+                request=ticket,
+                file=f,
+                original_name=f.name,  # сохраняем оригинальное имя
+                uploaded_by=request.user,
+            )
+ 
         from .models import ServiceRequestHistory
         ServiceRequestHistory.objects.create(
             request=ticket, user=request.user, status=ticket.status,
@@ -168,7 +181,7 @@ def create(request):
         from .services import notify_ticket_created
         notify_ticket_created(ticket)
         return redirect('tickets:item', pk=ticket.id)
-
+ 
     context = {'form': form, **_portal_context(request)}
     return render(request, 'site/tickets/create.html', context)
 
@@ -196,7 +209,8 @@ def action(request, pk):
     comment = request.POST.get('comment', '')
 
     assignee = None
-    assignee_id = request.POST.get('assignee_id')
+    assignee_id = request.POST.get('assignee_id') or request.POST.get('assignee')
+
     if assignee_id:
         from account.models import UserAccount
         assignee = UserAccount.objects.filter(pk=assignee_id).first()

@@ -7,6 +7,38 @@
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v=tk6" />
+<style>
+/* Вложения в заявке */
+.tk-deal__attachments { margin-top: 20px; }
+.tk-deal__attachments .tk-deal__description-label { margin-bottom: 10px; }
+.tk-attachments-list { display: flex; flex-direction: column; gap: 8px; }
+.tk-att-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 12px; background: #f5f3fa;
+}
+.tk-att-item__icon {
+  width: 36px; height: 36px; border-radius: 8px; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.tk-att-item__info { flex: 1; min-width: 0; }
+.tk-att-item__name {
+  display: block; font-size: 13px; font-weight: 600; color: #25233f;
+  text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tk-att-item__name:hover { color: #2f6bed; }
+.tk-att-item__meta { font-size: 11px; color: #9a98aa; margin-top: 2px; display: block; }
+.tk-att-item__actions { display: flex; gap: 4px; flex-shrink: 0; }
+.tk-att-item__btn {
+  width: 32px; height: 32px; border-radius: 8px; background: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #74728a; text-decoration: none; font-size: 15px;
+  transition: background .15s, color .15s; border: 0; cursor: pointer;
+}
+.tk-att-item__btn:hover { background: #ece9f4; color: #25233f; text-decoration: none; }
+.tk-att-item__btn--oo { background: #eef2ff; color: #2f6bed; }
+.tk-att-item__btn--oo:hover { background: #2f6bed; color: #fff; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -19,7 +51,6 @@
 
   <div class="tk-deal__main">
 
-    {# ── Верхний блок ── #}
     <div class="tk-deal__top-block">
 
       <header class="tk-deal__head">
@@ -43,7 +74,6 @@
 
       <h1 class="tk-deal__title">{{ ticket.title }}</h1>
 
-      {# Мета-строка #}
       <div class="tk-deal__meta">
         <div class="tk-deal__meta-item">
           <div class="tk-deal__meta-label">Создано</div>
@@ -69,7 +99,6 @@
         </div>
       </div>
 
-      {# Описание #}
       <div class="tk-deal__description">
         <div class="tk-deal__description-label">{% t 'tickets.detail_desc' 'Описание проблемы' %}</div>
         <div class="tk-deal__description-body">
@@ -77,11 +106,63 @@
         </div>
       </div>
 
+      {# ── Вложения (TicketAttachment) ── #}
+      {% with attachments=ticket.attachments.all %}
+      {% if attachments %}
+      <div class="tk-deal__attachments">
+        <div class="tk-deal__description-label">Вложения</div>
+        <div class="tk-attachments-list">
+          {% for att in attachments %}
+          <div class="tk-att-item">
+            <div class="tk-att-item__icon">
+              {% with fname=att.filename %}
+              {% if '.pdf' in fname %}<i class="bi bi-file-earmark-pdf" style="color:#ef4444"></i>
+              {% elif '.doc' in fname %}<i class="bi bi-file-earmark-word" style="color:#2563eb"></i>
+              {% elif '.xls' in fname %}<i class="bi bi-file-earmark-excel" style="color:#16a34a"></i>
+              {% elif '.ppt' in fname %}<i class="bi bi-file-earmark-ppt" style="color:#ea580c"></i>
+              {% elif att.is_image %}<i class="bi bi-file-earmark-image" style="color:#7c3aed"></i>
+              {% elif '.zip' in fname or '.rar' in fname %}<i class="bi bi-file-earmark-zip" style="color:#78716c"></i>
+              {% else %}<i class="bi bi-file-earmark" style="color:#74728a"></i>
+              {% endif %}
+              {% endwith %}
+            </div>
+            <div class="tk-att-item__info">
+              <a href="{{ att.file.url }}" target="_blank" class="tk-att-item__name">{{ att.filename }}</a>
+              {% if att.uploaded_by %}
+              <span class="tk-att-item__meta">{{ att.uploaded_by.get_name }} · {{ att.created_at|date:"d.m.Y H:i" }}</span>
+              {% endif %}
+            </div>
+            <div class="tk-att-item__actions">
+              {% if att.filename|oo_supported %}
+              <a href="/doc/attachment/ticket_att/{{ att.id }}/editor/"
+                 target="_blank" rel="noopener"
+                 class="tk-att-item__btn tk-att-item__btn--oo"
+                 title="Открыть в ONLYOFFICE">
+                <i class="bi bi-eye"></i>
+              </a>
+              {% endif %}
+              <a href="{{ att.file.url }}" download class="tk-att-item__btn" title="Скачать">
+                <i class="bi bi-download"></i>
+              </a>
+            </div>
+          </div>
+          {% if att.is_image %}
+            <a href="{{ att.file.url }}" target="_blank" style="display:block;margin-top:8px;">
+              <img src="{{ att.file.url }}" alt="вложение"
+                   style="max-width:100%;max-height:280px;border-radius:12px;object-fit:cover;display:block;" />
+            </a>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {% endwith %}
+
+            {# Старое поле photo — обратная совместимость #}
       {% if ticket.photo %}
         <div class="tk-deal__photo">
           {% with fname=ticket.photo.name furl=ticket.photo.url fpk=ticket.id %}
           {% if fname|oo_supported %}
-            {# Документ — показываем OO компонент #}
             <div class="oo-file-item">
               <div class="oo-file-item__icon">
                 {% with ext=fname|lower %}
@@ -105,47 +186,30 @@
               </div>
             </div>
           {% else %}
-            {# Изображение — показываем как картинку + кнопка скачать #}
             <a href="{{ furl }}" target="_blank">
               <img src="{{ furl }}" alt="Фото заявки" style="max-width:100%;border-radius:12px;display:block;" />
             </a>
-            <div style="margin-top:8px;">
-              <a href="{{ furl }}" download class="oo-file-item__btn" title="Скачать фото"
-                 style="display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:8px;background:#f5f3fa;color:#25233f;font-size:13px;font-weight:500;text-decoration:none;">
-                <i class="bi bi-download"></i> Скачать
-              </a>
-            </div>
           {% endif %}
           {% endwith %}
         </div>
       {% endif %}
 
-      {# Кнопки действий #}
       {% if actions %}
         <div class="tk-deal__actions">
           {% for a in actions %}
             {% if a.action == 'accept' %}
-              <button type="button"
-                      class="tk-deal__action-btn tk-deal__action-btn--primary"
-                      id="btnAcceptTicket"
-                      data-action="{{ a.action }}"
-                      data-title="{{ a.title }}">
+              <button type="button" class="tk-deal__action-btn tk-deal__action-btn--primary"
+                      id="btnAcceptTicket" data-action="{{ a.action }}" data-title="{{ a.title }}">
                 <i class="bi bi-check-circle"></i> {{ a.title }}
               </button>
             {% elif a.variant == 'danger' %}
-              <button type="button"
-                      class="tk-deal__action-btn tk-deal__action-btn--danger"
-                      data-ticket-action="{{ a.action }}"
-                      data-next-title="{{ a.title }}"
-                      data-variant="{{ a.variant }}">
+              <button type="button" class="tk-deal__action-btn tk-deal__action-btn--danger"
+                      data-ticket-action="{{ a.action }}" data-next-title="{{ a.title }}" data-variant="{{ a.variant }}">
                 {{ a.title }}
               </button>
             {% else %}
-              <button type="button"
-                      class="tk-deal__action-btn tk-deal__action-btn--ghost"
-                      data-ticket-action="{{ a.action }}"
-                      data-next-title="{{ a.title }}"
-                      data-variant="{{ a.variant }}">
+              <button type="button" class="tk-deal__action-btn tk-deal__action-btn--ghost"
+                      data-ticket-action="{{ a.action }}" data-next-title="{{ a.title }}" data-variant="{{ a.variant }}">
                 {{ a.title }}
               </button>
             {% endif %}
@@ -153,9 +217,8 @@
         </div>
       {% endif %}
 
-    </div>{# /tk-deal__top-block #}
+    </div>
 
-    {# ── Чат ── #}
     {% if can_chat %}
     <div class="tk-deal__card-block">
       <div class="tk-chat-wrap">
@@ -168,25 +231,20 @@
             {% csrf_token %}
             <input type="text" class="tk-chat__input" id="tkChatInput"
                    placeholder="{% t 'tickets.chat_placeholder' 'Напишите сообщение…' %}" autocomplete="off" maxlength="2000" />
-            <button type="submit" class="tk-chat__send">
-              <i class="bi bi-send"></i>
-            </button>
+            <button type="submit" class="tk-chat__send"><i class="bi bi-send"></i></button>
           </form>
         </div>
       </div>
     </div>
     {% endif %}
 
-    {# ── История ── #}
     <div class="tk-deal__card-block">
       <h3 class="tk-deal__section-title">{% t 'tickets.detail_history' 'История' %}</h3>
       <ul class="tk-timeline">
         {% for h in ticket.history.all %}
         <li class="tk-timeline__item">
           <div class="tk-timeline__status">{{ h.status_info.title }}</div>
-          <div class="tk-timeline__date">
-            {{ h.created_at|date:'d.m.Y H:i' }}{% if h.user %} · {{ h.user.get_name }}{% endif %}
-          </div>
+          <div class="tk-timeline__date">{{ h.created_at|date:'d.m.Y H:i' }}{% if h.user %} · {{ h.user.get_name }}{% endif %}</div>
           {% if h.comment %}<div class="tk-timeline__comment">{{ h.comment }}</div>{% endif %}
         </li>
         {% empty %}
@@ -195,12 +253,9 @@
       </ul>
     </div>
 
-  </div>{# /tk-deal__main #}
+  </div>
 
-  {# ── Сайдбар ── #}
   <aside class="tk-deal__aside">
-
-    {# Информация #}
     <div class="tk-side-panel">
       <div class="tk-side-panel__head">
         <h3 class="tk-side-panel__title">{% t 'tickets.detail_info' 'Информация' %}</h3>
@@ -215,7 +270,6 @@
       {% endfor %}
     </div>
 
-    {# Маршрутизация (только если нет исполнителя) #}
     {% if assign_form and not ticket.assignee %}
     <div class="tk-side-panel">
       <div class="tk-side-panel__head">
@@ -238,27 +292,21 @@
 
   </aside>
 
-</div>{# /tk-deal #}
+</div>
 
-{# ══ МОДАЛКА: Принять заявку ══ #}
 {% if is_manager %}
 <div class="tk-modal-overlay" id="acceptModal" aria-hidden="true">
   <div class="tk-modal" role="dialog" aria-modal="true">
     <div class="tk-modal__head">
       <h3 class="tk-modal__title">{% t 'tickets.modal_accept_title' 'Принять заявку' %}</h3>
-      <button type="button" class="tk-modal__close" id="acceptModalClose">
-        <i class="bi bi-x-lg"></i>
-      </button>
+      <button type="button" class="tk-modal__close" id="acceptModalClose"><i class="bi bi-x-lg"></i></button>
     </div>
-    <form class="tk-modal__body" method="POST"
-          action="{% url 'tickets:action' ticket.id %}" id="acceptForm">
+    <form class="tk-modal__body" method="POST" action="{% url 'tickets:action' ticket.id %}" id="acceptForm">
       {% csrf_token %}
       <input type="hidden" name="action" value="accept" />
       <div class="tk-modal__field">
         <label class="tk-modal__label">{% t 'tickets.field_assignee' 'Исполнитель' %} <span>*</span></label>
-        {% if assign_form %}
-          {{ assign_form.assignee }}
-        {% endif %}
+        {% if assign_form %}{{ assign_form.assignee }}{% endif %}
         <div class="tk-modal__error" id="acceptAssigneeError"></div>
       </div>
       <div class="tk-modal__field">
@@ -267,8 +315,7 @@
                   placeholder="{% t 'tickets.field_comment_hint' 'Необязательно' %}"></textarea>
       </div>
       <div class="tk-modal__foot">
-        <button type="button" class="tk-modal__btn tk-modal__btn--cancel"
-                id="acceptModalCancel">{% t 'common.cancel' 'Отмена' %}</button>
+        <button type="button" class="tk-modal__btn tk-modal__btn--cancel" id="acceptModalCancel">{% t 'common.cancel' 'Отмена' %}</button>
         <button type="submit" class="tk-modal__btn tk-modal__btn--save">
           <i class="bi bi-check-circle"></i> {% t 'tickets.btn_accept' 'Принять заявку' %}
         </button>
@@ -277,17 +324,13 @@
   </div>
 </div>
 
-{# ══ МОДАЛКА: Изменить исполнителя ══ #}
 <div class="tk-modal-overlay" id="reassignModal" aria-hidden="true">
   <div class="tk-modal" role="dialog" aria-modal="true">
     <div class="tk-modal__head">
       <h3 class="tk-modal__title">{% t 'tickets.modal_reassign_title' 'Изменить исполнителя' %}</h3>
-      <button type="button" class="tk-modal__close" id="reassignModalClose">
-        <i class="bi bi-x-lg"></i>
-      </button>
+      <button type="button" class="tk-modal__close" id="reassignModalClose"><i class="bi bi-x-lg"></i></button>
     </div>
-    <form class="tk-modal__body" method="POST"
-          action="{% url 'tickets:assign' ticket.id %}" id="reassignForm">
+    <form class="tk-modal__body" method="POST" action="{% url 'tickets:assign' ticket.id %}" id="reassignForm">
       {% csrf_token %}
       <div class="tk-modal__field">
         <label class="tk-modal__label">{% t 'tickets.field_assignee_new' 'Новый исполнитель' %} <span>*</span></label>
@@ -299,8 +342,7 @@
                   placeholder="{% t 'tickets.field_reassign_hint' 'Причина переназначения' %}"></textarea>
       </div>
       <div class="tk-modal__foot">
-        <button type="button" class="tk-modal__btn tk-modal__btn--cancel"
-                id="reassignModalCancel">{% t 'common.cancel' 'Отмена' %}</button>
+        <button type="button" class="tk-modal__btn tk-modal__btn--cancel" id="reassignModalCancel">{% t 'common.cancel' 'Отмена' %}</button>
         <button type="submit" class="tk-modal__btn tk-modal__btn--save">
           <i class="bi bi-person-check"></i> {% t 'common.save' 'Сохранить' %}
         </button>
@@ -318,191 +360,121 @@
 (function () {
   'use strict';
 
-  // ── Select2 для всех select в модалках и сайдбаре ──
   if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
     function initSelect2(container) {
       jQuery(container).find('select').each(function () {
         var $s = jQuery(this);
         if ($s.hasClass('select2-hidden-accessible')) return;
-        $s.select2({
-          width: '100%',
-          placeholder: $s.find('option[value=""]').text() || 'Выберите...',
-          allowClear: true,
-          dropdownParent: jQuery(container),
-        });
+        $s.select2({ width: '100%', placeholder: $s.find('option[value=""]').text() || 'Выберите...', allowClear: true, dropdownParent: jQuery(container) });
       });
     }
-    // Модалки — инициализируем при открытии чтобы dropdownParent был правильным
     document.addEventListener('click', function (e) {
-      var btn = e.target.closest('#btnAcceptTicket');
-      if (btn) { setTimeout(function(){ initSelect2('#acceptModal .tk-modal'); }, 50); }
-      var btn2 = e.target.closest('#btnChangeAssignee');
-      if (btn2) { setTimeout(function(){ initSelect2('#reassignModal .tk-modal'); }, 50); }
+      if (e.target.closest('#btnAcceptTicket')) { setTimeout(function(){ initSelect2('#acceptModal .tk-modal'); }, 50); }
+      if (e.target.closest('#btnChangeAssignee')) { setTimeout(function(){ initSelect2('#reassignModal .tk-modal'); }, 50); }
     });
-    // Сайдбар (форма маршрутизации)
     initSelect2('.tk-assign-form');
   }
 
-  var detail         = document.getElementById('ticketDetail');
-  var CURRENT_USER   = parseInt(detail.dataset.currentUserId || '0', 10);
-  var MESSAGES_URL   = detail.dataset.messagesUrl;
-  var SEND_URL       = detail.dataset.sendUrl;
-  var ACTION_URL     = detail.dataset.actionUrl;
+  var detail       = document.getElementById('ticketDetail');
+  var CURRENT_USER = parseInt(detail.dataset.currentUserId || '0', 10);
+  var MESSAGES_URL = detail.dataset.messagesUrl;
+  var SEND_URL     = detail.dataset.sendUrl;
+  var ACTION_URL   = detail.dataset.actionUrl;
 
-  function esc(s) {
-    var d = document.createElement('div');
-    d.textContent = s == null ? '' : String(s);
-    return d.innerHTML;
-  }
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+  function getCsrf() { var t = document.querySelector('[name=csrfmiddlewaretoken]'); if (t) return t.value; var m = document.cookie.match(/csrftoken=([^;]+)/); return m ? m[1] : ''; }
 
-  function getCsrf() {
-    var t = document.querySelector('[name=csrfmiddlewaretoken]');
-    if (t) return t.value;
-    var m = document.cookie.match(/csrftoken=([^;]+)/);
-    return m ? m[1] : '';
-  }
-
-  /* ── Модалки ── */
   function openModal(id)  { var el = document.getElementById(id); if (el) { el.removeAttribute('aria-hidden'); el.classList.add('is-open'); } }
   function closeModal(id) { var el = document.getElementById(id); if (el) { el.setAttribute('aria-hidden','true'); el.classList.remove('is-open'); } }
 
   var btnAccept = document.getElementById('btnAcceptTicket');
   if (btnAccept) btnAccept.addEventListener('click', function () { openModal('acceptModal'); });
 
+  // Синхронизируем выбранного исполнителя в скрытое поле assignee_id
+  var acceptForm = document.getElementById('acceptForm');
+  if (acceptForm) {
+    acceptForm.addEventListener('submit', function(e) {
+      // Select2 хранит значение в оригинальном <select>
+      var assigneeSelect = acceptForm.querySelector('select');
+      var assigneeIdInput = document.getElementById('acceptAssigneeId');
+      if (assigneeSelect && assigneeIdInput) {
+        assigneeIdInput.value = assigneeSelect.value;
+        // Если значение пустое — показываем ошибку
+        if (!assigneeSelect.value) {
+          e.preventDefault();
+          var errEl = document.getElementById('acceptAssigneeError');
+          if (errEl) errEl.textContent = 'Выберите исполнителя';
+          return;
+        }
+      }
+    });
+  }
   var btnChange = document.getElementById('btnChangeAssignee');
   if (btnChange) btnChange.addEventListener('click', function () { openModal('reassignModal'); });
+  ['acceptModalClose','acceptModalCancel'].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener('click', function(){ closeModal('acceptModal'); }); });
+  ['reassignModalClose','reassignModalCancel'].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener('click', function(){ closeModal('reassignModal'); }); });
+  document.querySelectorAll('.tk-modal-overlay').forEach(function(o){ o.addEventListener('click', function(e){ if(e.target===o) o.classList.remove('is-open'); }); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeModal('acceptModal'); closeModal('reassignModal'); } });
 
-  ['acceptModalClose','acceptModalCancel'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.addEventListener('click', function(){ closeModal('acceptModal'); });
-  });
-  ['reassignModalClose','reassignModalCancel'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.addEventListener('click', function(){ closeModal('reassignModal'); });
-  });
-
-  document.querySelectorAll('.tk-modal-overlay').forEach(function(overlay){
-    overlay.addEventListener('click', function(e){
-      if (e.target === overlay) overlay.classList.remove('is-open');
-    });
-  });
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape') { closeModal('acceptModal'); closeModal('reassignModal'); }
-  });
-
-  /* ── Прочие действия ── */
   document.querySelectorAll('[data-ticket-action]').forEach(function(btn){
     btn.addEventListener('click', async function(){
-      var action  = btn.getAttribute('data-ticket-action');
-      var title   = btn.getAttribute('data-next-title') || 'действие';
-      var variant = btn.getAttribute('data-variant') || 'info';
-      var ok;
-      if (window.bpmModal) {
-        ok = await window.bpmModal.confirm(
-          'Вы собираетесь выполнить: «' + title + '».',
-          { title: 'Подтверждение', confirmText: title,
-            variant: variant === 'danger' ? 'danger' : 'info' }
-        );
-      } else {
-        ok = window.confirm('Выполнить «' + title + '»?');
-      }
+      var action=btn.getAttribute('data-ticket-action'), title=btn.getAttribute('data-next-title')||'действие', variant=btn.getAttribute('data-variant')||'info', ok;
+      if (window.bpmModal) { ok = await window.bpmModal.confirm('Вы собираетесь выполнить: «'+title+'».', {title:'Подтверждение',confirmText:title,variant:variant==='danger'?'danger':'info'}); }
+      else { ok = window.confirm('Выполнить «'+title+'»?'); }
       if (!ok) return;
-      var f = document.createElement('form');
-      f.method = 'POST';
-      f.action = ACTION_URL;
-      f.innerHTML = '<input type="hidden" name="csrfmiddlewaretoken" value="' + esc(getCsrf()) + '">' +
-                    '<input type="hidden" name="action" value="' + esc(action) + '">';
-      document.body.appendChild(f);
-      f.submit();
+      var f=document.createElement('form'); f.method='POST'; f.action=ACTION_URL;
+      f.innerHTML='<input type="hidden" name="csrfmiddlewaretoken" value="'+esc(getCsrf())+'"><input type="hidden" name="action" value="'+esc(action)+'">';
+      document.body.appendChild(f); f.submit();
     });
   });
 
-  /* ── Чат ── */
-  var feed  = document.getElementById('tkChatFeed');
-  var form  = document.getElementById('tkChatForm');
-  var input = document.getElementById('tkChatInput');
-  if (!feed || !form || !input) return;
-
-  var lastId = 0;
+  var feed=document.getElementById('tkChatFeed'), form=document.getElementById('tkChatForm'), input=document.getElementById('tkChatInput');
+  if (!feed||!form||!input) return;
+  var lastId=0;
 
   function msgHtml(m) {
-    var mine = m.author_id === CURRENT_USER;
-    return '<div class="tk-msg' + (mine ? ' tk-msg--mine' : '') + '">' +
-      '<div class="tk-msg__bubble">' +
-        '<div class="tk-msg__text">' + esc(m.text) + '</div>' +
-        '<div class="tk-msg__meta">' +
-          (mine ? '' : '<span class="tk-msg__author">' + esc(m.author) + '</span>') +
-          '<span class="tk-msg__time">' + esc(m.created_at) + '</span>' +
-        '</div>' +
-      '</div></div>';
+    var mine=m.author_id===CURRENT_USER;
+    return '<div class="tk-msg'+(mine?' tk-msg--mine':'')+'"><div class="tk-msg__bubble"><div class="tk-msg__text">'+esc(m.text)+'</div><div class="tk-msg__meta">'+(mine?'':'<span class="tk-msg__author">'+esc(m.author)+'</span>')+'<span class="tk-msg__time">'+esc(m.created_at)+'</span></div></div></div>';
   }
 
-  function scrollBottom() { feed.scrollTop = feed.scrollHeight; }
+  function scrollBottom() { feed.scrollTop=feed.scrollHeight; }
 
   async function loadMessages() {
     try {
-      var res  = await fetch(MESSAGES_URL, { credentials: 'same-origin' });
-      var data = await res.json();
+      var res=await fetch(MESSAGES_URL,{credentials:'same-origin'}), data=await res.json();
       if (!data.ok) return;
-      var msgs = data.messages || [];
-      if (!msgs.length) {
-        feed.innerHTML = '<div class="tk-chat__empty">Сообщений пока нет. Напишите первым!</div>';
-        return;
-      }
-      var html = '';
-      msgs.forEach(function(m){ html += msgHtml(m); if (m.id > lastId) lastId = m.id; });
-      feed.innerHTML = html;
-      scrollBottom();
-    } catch(e) {
-      feed.innerHTML = '<div class="tk-chat__error">Ошибка загрузки чата</div>';
-    }
+      var msgs=data.messages||[];
+      if (!msgs.length) { feed.innerHTML='<div class="tk-chat__empty">Сообщений пока нет. Напишите первым!</div>'; return; }
+      var html=''; msgs.forEach(function(m){ html+=msgHtml(m); if(m.id>lastId) lastId=m.id; });
+      feed.innerHTML=html; scrollBottom();
+    } catch(e) { feed.innerHTML='<div class="tk-chat__error">Ошибка загрузки чата</div>'; }
   }
 
   async function pollMessages() {
     try {
-      var res  = await fetch(MESSAGES_URL, { credentials: 'same-origin' });
-      var data = await res.json();
+      var res=await fetch(MESSAGES_URL,{credentials:'same-origin'}), data=await res.json();
       if (!data.ok) return;
-      var newMsgs = (data.messages || []).filter(function(m){ return m.id > lastId; });
+      var newMsgs=(data.messages||[]).filter(function(m){ return m.id>lastId; });
       if (!newMsgs.length) return;
-      var emptyEl = feed.querySelector('.tk-chat__empty');
-      if (emptyEl) emptyEl.remove();
-      newMsgs.forEach(function(m){
-        feed.insertAdjacentHTML('beforeend', msgHtml(m));
-        if (m.id > lastId) lastId = m.id;
-      });
+      var emptyEl=feed.querySelector('.tk-chat__empty'); if(emptyEl) emptyEl.remove();
+      newMsgs.forEach(function(m){ feed.insertAdjacentHTML('beforeend',msgHtml(m)); if(m.id>lastId) lastId=m.id; });
       scrollBottom();
-    } catch(e) { /* ignore */ }
+    } catch(e) {}
   }
 
   loadMessages();
-  setInterval(pollMessages, 5000);
+  setInterval(pollMessages,5000);
 
   form.addEventListener('submit', async function(e){
     e.preventDefault();
-    var text = input.value.trim();
-    if (!text) return;
-    input.value = '';
-    input.disabled = true;
+    var text=input.value.trim(); if(!text) return;
+    input.value=''; input.disabled=true;
     try {
-      var fd = new FormData();
-      fd.append('text', text);
-      fd.append('csrfmiddlewaretoken', getCsrf());
-      var res  = await fetch(SEND_URL, {
-        method: 'POST', credentials: 'same-origin',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        body: fd,
-      });
-      var data = await res.json();
-      if (data.ok) {
-        var emptyEl = feed.querySelector('.tk-chat__empty');
-        if (emptyEl) emptyEl.remove();
-        feed.insertAdjacentHTML('beforeend', msgHtml(data.message));
-        if (data.message.id > lastId) lastId = data.message.id;
-        scrollBottom();
-      }
-    } catch(e) { console.error(e); }
-    finally { input.disabled = false; input.focus(); }
+      var fd=new FormData(); fd.append('text',text); fd.append('csrfmiddlewaretoken',getCsrf());
+      var res=await fetch(SEND_URL,{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest'},body:fd}), data=await res.json();
+      if(data.ok){ var emptyEl=feed.querySelector('.tk-chat__empty'); if(emptyEl) emptyEl.remove(); feed.insertAdjacentHTML('beforeend',msgHtml(data.message)); if(data.message.id>lastId) lastId=data.message.id; scrollBottom(); }
+    } catch(e){ console.error(e); }
+    finally{ input.disabled=false; input.focus(); }
   });
 
 })();

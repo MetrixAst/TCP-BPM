@@ -1520,3 +1520,872 @@ body.onec-invoice-body {
   }
 }
  
+
+/* ── Таблица типов ── */
+.onec-table--acl th:last-child,
+.onec-table--acl td:last-child {
+  width: 80px;
+  text-align: right;
+}
+ 
+.onec-acl-row td { vertical-align: top; padding-top: .75rem; padding-bottom: .75rem; }
+ 
+.onec-acl-type-name {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-weight: 500;
+}
+ 
+.onec-acl-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+ 
+.onec-acl-type-desc {
+  font-size: .75rem;
+  color: var(--bpm-text-muted, #6c757d);
+  margin-top: .2rem;
+}
+ 
+.onec-acl-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: .2rem .5rem;
+  background: var(--bpm-surface-2, #f0f2f5);
+  border-radius: 999px;
+  font-size: .8rem;
+  font-weight: 600;
+}
+ 
+.onec-acl-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .25rem;
+}
+ 
+/* ── Бейджи видимости ── */
+.onec-acl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .25rem .6rem;
+  border-radius: 6px;
+  font-size: .75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+ 
+.onec-acl-badge--none {
+  background: #e9ecef;
+  color: #495057;
+}
+ 
+.onec-acl-badge--global {
+  background: #d1e7dd;
+  color: #0a5234;
+}
+ 
+.onec-acl-badge--restricted {
+  background: #fff3cd;
+  color: #664d03;
+}
+ 
+/* ── Пилюли «кому видно» ── */
+.onec-acl-who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+}
+ 
+.onec-acl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .15rem .5rem;
+  border-radius: 5px;
+  font-size: .7rem;
+  font-weight: 500;
+}
+ 
+.onec-acl-pill--role {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+ 
+.onec-acl-pill--dept {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+ 
+.onec-acl-pill--user {
+  background: #dbeafe;
+  color: #1e40af;
+}
+ 
+/* ── Легенда ── */
+.onec-acl-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem 2rem;
+  padding: 1rem 1.25rem;
+  font-size: .8rem;
+  color: var(--bpm-text-muted, #6c757d);
+}
+ 
+.onec-acl-legend__item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+ 
+/* ── Форма: переключатель режима доступа ── */
+.onec-acl-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+}
+ 
+@media (max-width: 600px) {
+  .onec-acl-toggle { grid-template-columns: 1fr; }
+}
+ 
+.onec-acl-toggle__option {
+  cursor: pointer;
+}
+ 
+.onec-acl-toggle__option input { display: none; }
+ 
+.onec-acl-toggle__box {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  padding: 1rem 1.125rem;
+  border: 2px solid var(--bpm-border-color, #dee2e6);
+  border-radius: 10px;
+  transition: border-color .15s, background-color .15s;
+  cursor: pointer;
+}
+ 
+.onec-acl-toggle__box i {
+  font-size: 1.25rem;
+  opacity: .6;
+  margin-bottom: .25rem;
+}
+ 
+.onec-acl-toggle__box b { font-size: .9rem; }
+ 
+.onec-acl-toggle__box small {
+  font-size: .75rem;
+  color: var(--bpm-text-muted, #6c757d);
+  line-height: 1.4;
+}
+ 
+.onec-acl-toggle__option input:checked + .onec-acl-toggle__box {
+  border-color: var(--bpm-primary, #0d6efd);
+  background-color: rgba(13, 110, 253, .05);
+}
+ 
+.onec-acl-toggle__option input:checked + .onec-acl-toggle__box i { opacity: 1; color: var(--bpm-primary, #0d6efd); }
+ 
+/* ── Инфобокс ── */
+.onec-acl-info-box {
+  display: flex;
+  gap: .875rem;
+  padding: 1rem 1.125rem;
+  background: var(--bpm-surface-2, #f8f9fa);
+  border-left: 3px solid var(--bpm-primary, #0d6efd);
+  border-radius: 0 8px 8px 0;
+  margin: 1.25rem 0;
+  font-size: .85rem;
+}
+ 
+.onec-acl-info-box__icon {
+  font-size: 1.1rem;
+  color: var(--bpm-primary, #0d6efd);
+  flex-shrink: 0;
+  margin-top: .1rem;
+}
+ 
+.onec-acl-info-box p { margin: .25rem 0 0; color: var(--bpm-text-muted, #6c757d); }
+ 
+/* ── Подсказка к полю ── */
+.onec-field-hint {
+  font-size: .75rem;
+  color: var(--bpm-text-muted, #6c757d);
+  margin-top: .375rem;
+  line-height: 1.4;
+}
+ 
+/* ── Заголовок секции с подписью ── */
+.onec-section-hint {
+  font-size: .75rem;
+  font-weight: 400;
+  color: var(--bpm-text-muted, #6c757d);
+  margin-left: .5rem;
+}
+ 
+/* ── Выбор цвета ── */
+.onec-color-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+ 
+.onec-color-picker {
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  border: 1px solid var(--bpm-border-color, #dee2e6);
+  border-radius: 8px;
+  cursor: pointer;
+}
+ 
+.onec-color-preview {
+  font-size: .8rem;
+  color: var(--bpm-text-muted, #6c757d);
+  cursor: pointer;
+}
+ 
+/* ── Страница подтверждения ── */
+.onec-create-card--confirm { max-width: 520px; }
+ 
+.onec-confirm-body {
+  padding: 1.5rem 0 1rem;
+  text-align: center;
+}
+ 
+.onec-confirm-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+ 
+.onec-confirm-icon--danger { color: #dc3545; }
+ 
+.onec-confirm-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: .75rem;
+}
+ 
+.onec-confirm-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  padding: .875rem 1rem;
+  background: #fff3cd;
+  border-radius: 8px;
+  font-size: .875rem;
+  text-align: left;
+  margin-bottom: .75rem;
+}
+ 
+.onec-confirm-warning i { color: #856404; flex-shrink: 0; margin-top: .1rem; }
+ 
+.onec-confirm-text { color: var(--bpm-text-muted, #6c757d); font-size: .875rem; }
+ 
+.onec-confirm-note {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  padding: .75rem 1rem;
+  background: var(--bpm-surface-2, #f8f9fa);
+  border-radius: 8px;
+  font-size: .8rem;
+  color: var(--bpm-text-muted, #6c757d);
+  text-align: left;
+  margin-top: .75rem;
+}
+ 
+.onec-confirm-note i { flex-shrink: 0; margin-top: .1rem; }
+ 
+/* ── Кнопки (доп. варианты) ── */
+.onec-btn--danger {
+  background: #dc3545;
+  color: #fff;
+  border-color: #dc3545;
+}
+.onec-btn--danger:hover { background: #b02a37; border-color: #b02a37; color: #fff; }
+ 
+.onec-btn--danger-ghost {
+  background: transparent;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+}
+.onec-btn--danger-ghost:hover { background: #dc3545; color: #fff; }
+ 
+/* ── Алерты ── */
+.onec-alert {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  padding: .75rem 1rem;
+  border-radius: 8px;
+  font-size: .875rem;
+  margin-bottom: 1rem;
+}
+ 
+.onec-alert--success { background: #d1e7dd; color: #0a5234; }
+.onec-alert--error,
+.onec-alert--danger   { background: #f8d7da; color: #58151c; }
+.onec-alert--warning  { background: #fff3cd; color: #664d03; }
+.onec-alert--info     { background: #cff4fc; color: #055160; }
+ 
+/* ─── Кастомный дропдаун .bpm-dropdown ─────────────────────────────────────
+   Используется в фильтрах вместо нативного <select>.
+   Стиль соответствует пилюлям-кнопкам из макета.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+   .bpm-dropdown {
+    position: relative;
+    display: inline-block;
+  }
+  
+  /* ── Триггер-кнопка ── */
+  .bpm-dropdown__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    height: 36px;
+    padding: 0 14px;
+    background: #f5f3fa;
+    border: 0;
+    border-radius: 999px;
+    color: #25233f;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color .12s, box-shadow .12s;
+    user-select: none;
+    min-width: 130px;
+    justify-content: space-between;
+  }
+  
+  .bpm-dropdown__trigger:hover {
+    background: #ece9f7;
+  }
+  
+  .bpm-dropdown__trigger.is-open {
+    background: #ece9f7;
+    box-shadow: 0 0 0 2px rgba(99, 82, 199, .25);
+  }
+  
+  .bpm-dropdown__chevron {
+    font-size: .7rem;
+    transition: transform .15s;
+    opacity: .6;
+    flex-shrink: 0;
+  }
+  
+  .bpm-dropdown__trigger.is-open .bpm-dropdown__chevron {
+    transform: rotate(180deg);
+  }
+  
+  /* ── Меню ── */
+  .bpm-dropdown__menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 200;
+    min-width: 100%;
+    padding: .375rem 0;
+    background: #fff;
+    border: 1px solid #e0ddf0;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .10);
+    list-style: none;
+    margin: 0;
+    animation: bpmDropFadeIn .1s ease;
+  }
+  
+  @keyframes bpmDropFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* ── Пункт ── */
+  .bpm-dropdown__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .45rem 1rem;
+    font-size: .875rem;
+    color: #25233f;
+    cursor: pointer;
+    transition: background-color .1s;
+  }
+  
+  .bpm-dropdown__item:hover {
+    background: #f5f3fa;
+  }
+  
+  .bpm-dropdown__item.is-active {
+    background: #ece9f7;
+    font-weight: 600;
+    color: #4c3fc1;
+  }
+  
+  /* Галочка — видна только у активного пункта */
+  .bpm-dropdown__check {
+    font-size: .8rem;
+    opacity: 0;
+    flex-shrink: 0;
+  }
+  
+  .bpm-dropdown__item.is-active .bpm-dropdown__check {
+    opacity: 1;
+  }
+
+  // ============================================================================
+// ФОРМА СОЗДАНИЯ/РЕДАКТИРОВАНИЯ ТИПА — стиль Task Manager
+// ============================================================================
+
+body.onec-modal-body {
+  .bpm-sidebar,
+  #bpmSidebar,
+  .bpm-topbar,
+  #bpmTopbar {
+    display: none !important;
+  }
+
+  .bpm-main,
+  #bpmMain {
+    margin-left: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+
+  .bpm-content {
+    padding: 0 !important;
+    min-height: 100vh !important;
+    background: transparent !important;
+  }
+}
+
+.onec-create-page {
+  min-height: 100vh;
+  width: 100vw;
+  padding: 48px 24px;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+.onec-create-card {
+  width: 760px;
+  max-width: calc(100vw - 48px);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+  padding: 20px;
+}
+
+// ── Шапка формы ──────────────────────────────────────────────────────────
+.onec-create-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+  padding-bottom: 0;
+}
+
+.onec-create-card__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #25233f;
+}
+
+.onec-create-card__close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f5f3fa;
+  color: #25233f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+
+  &:hover {
+    background: #ece9f4;
+    color: #25233f;
+    text-decoration: none;
+  }
+}
+
+// ── Заголовки секций ─────────────────────────────────────────────────────
+.onec-create-card__section-title {
+  margin: 0 0 12px;
+  color: #25233f;
+  font-size: 13px;
+  font-weight: 700;
+
+  &--items {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+}
+
+.onec-section-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: #74728a;
+  margin-left: 8px;
+}
+
+// ── Сетка полей ──────────────────────────────────────────────────────────
+.onec-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.onec-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.onec-form-field--full {
+  grid-column: 1 / -1;
+}
+
+// ── Лейбл ────────────────────────────────────────────────────────────────
+.onec-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: #74728a;
+  line-height: 1.2;
+
+  span {
+    color: #ef4444;
+  }
+}
+
+// ── Инпуты в форме типа ───────────────────────────────────────────────────
+#counterpartyTypeForm {
+  .onec-input {
+    width: 100%;
+    height: 32px;
+    min-height: 32px;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: #f5f3fa !important;
+    color: #25233f !important;
+    font-size: 13px !important;
+    font-weight: 500;
+    padding: 0 16px !important;
+    outline: none !important;
+    box-shadow: none !important;
+    box-sizing: border-box;
+
+    &::placeholder { color: #9a98aa; }
+    &:focus { box-shadow: 0 0 0 2px rgba(47, 107, 237, 0.15) !important; }
+    &--error { box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important; }
+  }
+}
+
+// ── Подсказки под полями ──────────────────────────────────────────────────
+.onec-field-hint {
+  font-size: 11px;
+  color: #74728a;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+// ── Моно-инпут (код) ──────────────────────────────────────────────────────
+.onec-input--mono {
+  font-family: monospace !important;
+  letter-spacing: 0.02em;
+}
+
+// ── Чекбокс «Тип активен» ─────────────────────────────────────────────────
+.onec-cp-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+
+  input[type="checkbox"] { display: none; }
+
+  &__box {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: #f5f3fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background .15s;
+
+    i { font-size: 12px; color: #fff; opacity: 0; transition: opacity .15s; }
+  }
+
+  &__label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #25233f;
+  }
+
+  input:checked + .onec-cp-check__box {
+    background: #2f6bed;
+    i { opacity: 1; }
+  }
+}
+
+// ── Переключатель Глобальный / Ограниченный ───────────────────────────────
+.onec-acl-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+
+  @media (max-width: 600px) { grid-template-columns: 1fr; }
+}
+
+.onec-acl-toggle__option {
+  cursor: pointer;
+  input { display: none; }
+}
+
+.onec-acl-toggle__box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 2px solid #eceaf3;
+  border-radius: 12px;
+  transition: border-color .15s, background .15s;
+  cursor: pointer;
+
+  i {
+    font-size: 20px;
+    opacity: 0.5;
+    margin-bottom: 4px;
+    color: #25233f;
+  }
+
+  b {
+    font-size: 13px;
+    font-weight: 600;
+    color: #25233f;
+  }
+
+  small {
+    font-size: 12px;
+    color: #74728a;
+    line-height: 1.4;
+  }
+}
+
+.onec-acl-toggle__option input:checked + .onec-acl-toggle__box {
+  border-color: #2f6bed;
+  background: rgba(47, 107, 237, 0.04);
+
+  i { opacity: 1; color: #2f6bed; }
+  b { color: #2f6bed; }
+}
+
+// ── Секции ролей / отделов / пользователей ───────────────────────────────
+.onec-acl-section {
+  margin-bottom: 4px;
+}
+
+.onec-acl-section__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #74728a;
+  margin-bottom: 8px;
+}
+
+// ── Чекбоксы ролей ────────────────────────────────────────────────────────
+.onec-acl-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+
+.onec-acl-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 5px 12px;
+  border: 1px solid #eceaf3;
+  border-radius: 999px;
+  background: #faf9fd;
+  transition: background .12s, border-color .12s;
+  user-select: none;
+
+  &:has(input:checked) {
+    background: #eef2ff;
+    border-color: #2f6bed;
+    color: #2f6bed;
+    font-weight: 600;
+  }
+
+  input { display: none; }
+}
+
+// ── Мультиселект (отделы / пользователи) ─────────────────────────────────
+.onec-acl-multiselect {
+  width: 100%;
+  min-height: 110px;
+  border: 1px solid #eceaf3 !important;
+  border-radius: 12px !important;
+  padding: 6px !important;
+  font-size: 13px;
+  background: #fff;
+  color: #25233f;
+  outline: none;
+
+  option {
+    padding: 5px 8px;
+    border-radius: 6px;
+  }
+
+  option:checked {
+    background: #eef2ff;
+    color: #2f6bed;
+  }
+}
+
+// ── Инфобокс ──────────────────────────────────────────────────────────────
+.onec-acl-info-box {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #f5f7ff;
+  border-left: 3px solid #2f6bed;
+  border-radius: 0 10px 10px 0;
+  margin: 20px 0 4px;
+  font-size: 13px;
+
+  b { display: block; color: #25233f; font-weight: 700; margin-bottom: 4px; }
+  p { margin: 0; color: #74728a; font-size: 12px; line-height: 1.5; }
+}
+
+.onec-acl-info-box__icon {
+  font-size: 16px;
+  color: #2f6bed;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+// ── Футер формы ───────────────────────────────────────────────────────────
+.onec-create-footer {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #f0eef6;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.onec-btn--ghost {
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: transparent;
+  color: #25233f;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  border: 0;
+
+  &:hover { background: #f5f3fa; color: #25233f; text-decoration: none; }
+}
+
+.onec-btn--danger-ghost {
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: transparent;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border: 0;
+
+  &:hover { background: #feecec; color: #ef4444; text-decoration: none; }
+}
+
+.onec-btn--primary {
+  height: 32px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: #2f6bed;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border: 0;
+  text-decoration: none;
+
+  &:hover { background: #2458c7; color: #fff; text-decoration: none; }
+}
+
+// ── Ошибки формы ──────────────────────────────────────────────────────────
+.onec-form-errors {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.onec-form-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #feecec;
+  color: #ef4444;
+  font-size: 13px;
+
+  i { flex-shrink: 0; }
+}
+
+// ── Адаптив ───────────────────────────────────────────────────────────────
+@media (max-width: 600px) {
+  .onec-create-page { padding: 24px 12px; }
+  .onec-create-card { width: 100%; max-width: 100%; }
+  .onec-form-grid { grid-template-columns: 1fr; }
+}

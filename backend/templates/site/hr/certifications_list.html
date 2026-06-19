@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&t=7">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr-modal-patch.css' %}?v={{ static_version|default:'1' }}">
 {% endblock styles %}
 
 {% block content %}
@@ -15,10 +16,10 @@
   <div class="hr-registry-top">
     <div>
       <h1>Реестр сертификаций</h1>
-      <p>Сертификаты сотрудников, номера и сроки действия</p>
     </div>
     <div class="hr-registry-top__actions">
-      <a href="{% url 'hr:certifications_export' %}?{{ request.GET.urlencode }}" class="hr-registry-btn hr-registry-btn--light">
+      <a href="{% url 'hr:certifications_export' %}?{{ request.GET.urlencode }}"
+         class="hr-registry-btn hr-registry-btn--light">
         <i class="bi bi-file-earmark-excel"></i> Экспорт Excel
       </a>
       {% if is_hr %}
@@ -29,25 +30,35 @@
     </div>
   </div>
 
-  <form method="get" class="hr-registry-filters">
+  <form method="get" class="hr-registry-filters" id="certFilterForm">
     <div class="hr-registry-field hr-registry-field--search">
-      <label>Поиск</label>
-      <div class="hr-registry-search"><i class="bi bi-search"></i>{{ filter_form.search }}</div>
+      <div class="hr-registry-search">
+        <i class="bi bi-search"></i>
+        {{ filter_form.search }}
+      </div>
     </div>
-    <div class="hr-registry-field"><label>Отдел</label>{{ filter_form.department }}</div>
-    <div class="hr-registry-field"><label>Тип</label>{{ filter_form.cert_type }}</div>
-    <div class="hr-registry-field"><label>Статус</label>{{ filter_form.status }}</div>
-    <button type="submit" class="hr-registry-btn hr-registry-btn--primary">Найти</button>
+    <div class="hr-registry-field">{{ filter_form.department }}</div>
+    <div class="hr-registry-field">{{ filter_form.cert_type }}</div>
+    <div class="hr-registry-field">{{ filter_form.status }}</div>
+    <button type="submit" class="hr-registry-btn hr-registry-btn--primary">
+      <i class="bi bi-search"></i> Найти
+    </button>
   </form>
 
   <div class="hr-registry-panel">
     <div class="hr-registry-tabs">
       <a href="{% url 'hr:certifications_list' %}"
-         class="hr-registry-tab {% if not request.GET.expiring_soon and not request.GET.expired %}is-active{% endif %}">Все</a>
+         class="hr-registry-tab {% if not request.GET.expiring_soon and not request.GET.expired %}is-active{% endif %}">
+        Все
+      </a>
       <a href="{% url 'hr:certifications_list' %}?expiring_soon=on"
-         class="hr-registry-tab {% if request.GET.expiring_soon %}is-active{% endif %}">Истекающие</a>
+         class="hr-registry-tab {% if request.GET.expiring_soon %}is-active{% endif %}">
+        Истекающие
+      </a>
       <a href="{% url 'hr:certifications_list' %}?expired=on"
-         class="hr-registry-tab {% if request.GET.expired %}is-active{% endif %}">Просроченные</a>
+         class="hr-registry-tab {% if request.GET.expired %}is-active{% endif %}">
+        Просроченные
+      </a>
     </div>
 
     <div class="hr-registry-table-wrap">
@@ -136,4 +147,40 @@
 {% block scripts %}
 <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
 <script src="{% static 'site/js/apps/hr-registries.js' %}?v={{ static_version|default:'1'}}"></script>
+<script>
+(function($) {
+  $(function() {
+    if (!$.fn.select2) return;
+    $.fn.select2.defaults.set('theme', 'bootstrap4');
+
+    // Инициализируем Select2 на все select в фильтре
+    $('#certFilterForm select').each(function() {
+      var $el = $(this);
+      if ($el.hasClass('select2-hidden-accessible')) return;
+
+      var isAjax = $el.attr('data-url');
+      var placeholder = $el.find('option[value=""]').first().text() || '—';
+
+      if (isAjax) {
+        $el.wrap('<div class="position-relative"></div>');
+        $el.select2({
+          width: '100%', theme: 'bootstrap4',
+          dropdownParent: $el.parent(),
+          allowClear: true, placeholder: placeholder,
+          ajax: {
+            url: isAjax, dataType: 'json', delay: 250,
+            data: function(p) { return { term: p.term || '', page: p.page || 1 }; }
+          },
+          escapeMarkup: function(m) { return m; }
+        });
+      } else {
+        $el.select2({
+          width: '100%', theme: 'bootstrap4',
+          allowClear: true, placeholder: placeholder
+        });
+      }
+    });
+  });
+})(window.jQuery);
+</script>
 {% endblock scripts %}

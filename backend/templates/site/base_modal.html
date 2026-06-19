@@ -1,0 +1,70 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ html_lang|default:'ru' }}"{% if current_lang and current_lang != 'ru' %} data-i18n-pending="1"{% endif %}>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>{% block title %}metriX BPM{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'site/img/favicon/metrix-logo.svg' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'site/css/main.css' %}?v={{ static_version|default:'1' }}" />
+  <link rel="stylesheet" href="{% static 'site/css/layout.css' %}?v={{ static_version|default:'1' }}" />
+  <link rel="stylesheet" href="{% static 'site/css/components.css' %}?v={{ static_version|default:'1' }}" />
+  <link rel="stylesheet" href="{% static 'site/css/design-system.css' %}?v={{ static_version|default:'1' }}" />
+  <link rel="stylesheet" href="{% static 'site/css/bpm-modal.css' %}?v={{ static_version|default:'1' }}" />
+  {% block styles %}{% endblock %}
+
+  <style>
+    /* Страница-модалка: тёмный оверлей, карточка по центру */
+    html, body { height: 100%; }
+    body.bpm-modal-page {
+      margin: 0;
+      min-height: 100vh;
+      background: rgba(0, 0, 0, .45);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 3rem 1rem 3rem;
+      box-sizing: border-box;
+    }
+    /* Карточка уже стилизована в onec.css через .onec-create-card */
+    /* Здесь только ограничиваем ширину и убираем box-shadow страницы */
+    .onec-create-page {
+      width: 100%;
+      max-width: 760px;
+      padding: 0;
+      background: transparent;
+    }
+    html[data-i18n-pending] body { visibility: hidden; }
+    html.i18n-ready body { visibility: visible; }
+  </style>
+</head>
+<body class="bpm-modal-page {% block body_classes %}{% endblock %}">
+
+  {% if messages %}
+    <div class="bpm-messages" style="position:fixed;top:1rem;right:1rem;z-index:9999;max-width:400px;">
+      {% for message in messages %}
+        <div class="alert alert--{{ message.tags|default:'info' }}">
+          <span>{{ message }}</span>
+          <button type="button" onclick="this.parentElement.remove()" class="bpm-alert-close">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+
+  <script src="{% static 'site/js/vendor/jquery-3.5.1.min.js' %}"></script>
+  <script src="{% static 'site/js/vendor/bootstrap.bundle.min.js' %}"></script>
+  {% include "site/components/i18n_scripts.html" %}
+  <script src="{% static 'site/js/bpm-modal.js' %}?v={{ static_version|default:'1' }}"></script>
+  {% block scripts %}{% endblock %}
+
+</body>
+</html>

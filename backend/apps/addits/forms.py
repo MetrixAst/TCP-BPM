@@ -6,7 +6,8 @@ from django.forms.widgets import Textarea
 
 class Select2ChoiceField(forms.ChoiceField):
     def __init__(self, choices, required = False, placeholder=""):
-        choices.insert(0, ('', '----'))
+        if not any(c[0] == '' for c in choices):
+            choices.insert(0, ('', placeholder or '----'))
         super().__init__(choices=choices, required=required, widget=forms.Select(attrs={'class': 'select2', 'placeholder': placeholder}))
 
 

@@ -1021,7 +1021,7 @@ body.task-edit-body .bpm-content {
   font-size: 11px;
 }
 
-#taskEditForm input,
+#taskEditForm input:not([type=file]),
 #taskEditForm select,
 #taskEditForm textarea,
 .task-edit-select {
@@ -1039,13 +1039,13 @@ body.task-edit-body .bpm-content {
   box-shadow: none !important;
   box-sizing: border-box;
 }
-#taskEditForm input::placeholder,
+#taskEditForm input:not([type=file])::placeholder,
 #taskEditForm select::placeholder,
 #taskEditForm textarea::placeholder,
 .task-edit-select::placeholder {
   color: #9a98aa;
 }
-#taskEditForm input:focus,
+#taskEditForm input:not([type=file]):focus,
 #taskEditForm select:focus,
 #taskEditForm textarea:focus,
 .task-edit-select:focus {
@@ -4290,6 +4290,44 @@ body.task-edit-body .bpm-content {
 .oo-file-item__btn--danger:hover {
   background: #feecec;
   color: #ef4444;
+}
+
+.task-edit-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 120px;
+  border: 1px dashed #d8d5e6;
+  border-radius: 16px;
+  background: #fff;
+  color: #646176;
+  cursor: pointer;
+  text-align: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.task-edit-upload:hover {
+  border-color: #2f6bed;
+  background: #faf9fd;
+}
+.task-edit-upload__input {
+  display: none !important;
+}
+.task-edit-upload__icon {
+  font-size: 28px;
+  color: #2f6bed;
+}
+.task-edit-upload__text {
+  font-size: 13px;
+  color: #74728a;
+}
+.task-edit-upload__name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #25233f;
 }
 
 /*# sourceMappingURL=tasks.css.map */

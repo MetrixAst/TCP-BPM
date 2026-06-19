@@ -15,16 +15,42 @@
   const apiUrl = page.dataset.kanbanApi;
   const statusUrlTpl = page.dataset.statusUrlTpl || '/tasks/api/kanban/0/status/';
 
+  // ── i18n: читаем все переводы из data-атрибутов шаблона
+  const i18n = {
+    loading:          page.dataset.i18nLoading         || 'Загрузка…',
+    executor:         page.dataset.i18nExecutor        || 'Исполнитель',
+    noTasks:          page.dataset.i18nNoTasks         || 'Нет задач',
+    noExecutor:       page.dataset.i18nNoExecutor      || 'Без исполнителя',
+    noColumns:        page.dataset.i18nNoColumns       || 'Нет колонок статусов',
+    noTasksHint:      page.dataset.i18nNoTasksHint     || 'Задач пока нет. Создайте задачу или назначьте исполнителя.',
+    loadError:        page.dataset.i18nLoadError       || 'Не удалось загрузить канбан',
+    networkError:     page.dataset.i18nNetworkError    || 'Ошибка сети при смене статуса',
+    statusError:      page.dataset.i18nStatusError     || 'Не удалось сменить статус',
+    moveConfirmTitle: page.dataset.i18nMoveConfirmTitle|| 'Смена статуса',
+    moveConfirmText:  page.dataset.i18nMoveConfirmText || 'Подтвердить',
+    moveConfirmMsg:   page.dataset.i18nMoveConfirmMsg  || 'Перевести задачу в статус «{title}»?',
+    errorTitle:       page.dataset.i18nErrorTitle      || 'Ошибка',
+    // приоритеты
+    priorityLow:      page.dataset.i18nPriorityLow      || 'Низкий',
+    priorityMedium:   page.dataset.i18nPriorityMedium   || 'Средний',
+    priorityHigh:     page.dataset.i18nPriorityHigh     || 'Высокий',
+    priorityCritical: page.dataset.i18nPriorityCritical || 'Критический',
+  };
+
   let dragTaskId = null;
   let dragFromStatus = null;
   let moveInFlight = false;
 
-  const PRIORITY = {
-    low: { label: 'Низкий', cls: 'low' },
-    medium: { label: 'Средний', cls: 'medium' },
-    high: { label: 'Высокий', cls: 'high' },
-    critical: { label: 'Критический', cls: 'critical' },
-  };
+  // ── PRIORITY теперь берёт label из i18n
+  function getPriority(key) {
+    const map = {
+      low:      { label: i18n.priorityLow,      cls: 'low' },
+      medium:   { label: i18n.priorityMedium,   cls: 'medium' },
+      high:     { label: i18n.priorityHigh,     cls: 'high' },
+      critical: { label: i18n.priorityCritical, cls: 'critical' },
+    };
+    return map[key] || null;
+  }
 
   function formatDeadline(iso) {
     if (!iso) return '';
@@ -57,7 +83,7 @@
         if (!rowsMap[key]) {
           rowsMap[key] = {
             executor_id: task.executor_id,
-            executor: task.executor || 'Без исполнителя',
+            executor: task.executor || i18n.noExecutor,  // ── i18n
             byStatus: {},
           };
         }
@@ -84,13 +110,12 @@
     board.__statuses = statuses;
 
     if (!statuses.length) {
-      board.innerHTML = '<div class="tasks-kanban__error">Нет колонок статусов</div>';
+      board.innerHTML = '<div class="tasks-kanban__error">' + escapeHtml(i18n.noColumns) + '</div>';  // ── i18n
       return;
     }
 
     const colCount = statuses.length;
 
-    // Считаем доступную ширину и делим поровну между колонками
     const boardWidth = board.offsetWidth || 1000;
     const executorColW = 130;
     const statusColW = Math.floor((boardWidth - executorColW) / colCount);
@@ -99,7 +124,7 @@
     let html = '<div class="tasks-kanban-swim" style="--kanban-cols:' + colCount + '">';
 
     html += '<div class="tasks-kanban-swim__head" style="grid-template-columns:' + gridCols + '">';
-    html += '<div class="tasks-kanban-swim__head-cell tasks-kanban-swim__head-cell--corner">Исполнитель</div>';
+    html += '<div class="tasks-kanban-swim__head-cell tasks-kanban-swim__head-cell--corner">' + escapeHtml(i18n.executor) + '</div>';  // ── i18n
     statuses.forEach(function (st) {
       html +=
         '<div class="tasks-kanban-swim__head-cell">' +
@@ -107,13 +132,12 @@
           escapeHtml(st.title) +
         '</div>';
     });
-    // ── ИЗМЕНЕНО: убрана ячейка «Менеджер задач» из шапки
     html += '</div>';
 
     if (!rows.length) {
       html +=
         '<div class="tasks-kanban-swim__empty">' +
-          'Задач пока нет. Создайте задачу или назначьте исполнителя.' +
+          escapeHtml(i18n.noTasksHint) +  // ── i18n
         '</div>';
     } else {
       rows.forEach(function (row) {
@@ -139,8 +163,6 @@
 
           html += '</div>';
         });
-
-        // ── ИЗМЕНЕНО: убрана ссылка «Менеджер задач» из каждой строки
 
         html += '</div>';
       });
@@ -175,7 +197,7 @@
   }
 
   function cardHtml(task) {
-    const prio = PRIORITY[task.priority];
+    const prio = getPriority(task.priority);  // ── i18n через функцию
     const initial = task.executor ? escapeHtml(task.executor.charAt(0).toUpperCase()) : '';
     const prioLabel = prio ? prio.label : (task.priority_title || '');
 
@@ -237,18 +259,21 @@
 
   async function confirmMove(taskId, newStatus, fromStatus) {
     const title = statusTitle(newStatus);
+    const msg = i18n.moveConfirmMsg.replace('{title}', title);  // ── i18n
     const proceed = window.bpmModal
-      ? await window.bpmModal.confirm(
-          'Перевести задачу в статус «' + title + '»?',
-          { title: 'Смена статуса', confirmText: 'Подтвердить', variant: 'info' })
-      : window.confirm('Перевести задачу в «' + title + '»?');
+      ? await window.bpmModal.confirm(msg, {
+          title: i18n.moveConfirmTitle,        // ── i18n
+          confirmText: i18n.moveConfirmText,   // ── i18n
+          variant: 'info',
+        })
+      : window.confirm(msg);
     if (!proceed) { dragTaskId = null; dragFromStatus = null; return; }
     moveTask(taskId, newStatus, fromStatus);
   }
 
   function showError(message) {
     if (window.bpmModal) {
-      window.bpmModal.alert(message, { variant: 'danger', title: 'Ошибка' });
+      window.bpmModal.alert(message, { variant: 'danger', title: i18n.errorTitle });  // ── i18n
     } else {
       alert(message);
     }
@@ -295,7 +320,7 @@
       }
 
       if (!res.ok || data.ok === false) {
-        showError(data.message || 'Не удалось сменить статус');
+        showError(data.message || i18n.statusError);  // ── i18n
         await loadBoard();
         return;
       }
@@ -307,7 +332,7 @@
       }
     } catch (err) {
       console.error(err);
-      showError('Ошибка сети при смене статуса');
+      showError(i18n.networkError);  // ── i18n
       try {
         await loadBoard();
       } catch (loadErr) {
@@ -321,6 +346,6 @@
   }
 
   loadBoard().catch(function () {
-    board.innerHTML = '<div class="tasks-kanban__error">Не удалось загрузить канбан</div>';
+    board.innerHTML = '<div class="tasks-kanban__error">' + escapeHtml(i18n.loadError) + '</div>';  // ── i18n
   });
 })();

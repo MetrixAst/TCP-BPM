@@ -1,0 +1,80 @@
+# Russian
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: ru\n"
+
+msgid "Электрика"
+msgstr "Электрика"
+
+msgid "Сантехника"
+msgstr "Сантехника"
+
+msgid "Вентиляция и кондиционирование"
+msgstr "Вентиляция и кондиционирование"
+
+msgid "Клининг"
+msgstr "Клининг"
+
+msgid "Мебель и фурнитура"
+msgstr "Мебель и фурнитура"
+
+msgid "ИТ и связь"
+msgstr "ИТ и связь"
+
+msgid "Безопасность"
+msgstr "Безопасность"
+
+msgid "Прочее"
+msgstr "Прочее"
+
+msgid "Низкий"
+msgstr "Низкий"
+
+msgid "Средний"
+msgstr "Средний"
+
+msgid "Высокий"
+msgstr "Высокий"
+
+msgid "Срочный"
+msgstr "Срочный"
+
+msgid "Новая"
+msgstr "Новая"
+
+msgid "Принята"
+msgstr "Принята"
+
+msgid "В работе"
+msgstr "В работе"
+
+msgid "Выполнена"
+msgstr "Выполнена"
+
+msgid "Отклонена"
+msgstr "Отклонена"
+
+msgid "Отменена"
+msgstr "Отменена"
+
+msgid "Принять в работу"
+msgstr "Принять в работу"
+
+msgid "Отклонить"
+msgstr "Отклонить"
+
+msgid "Отозвать заявку"
+msgstr "Отозвать заявку"
+
+msgid "Начать выполнение"
+msgstr "Начать выполнение"
+
+msgid "Завершить"
+msgstr "Завершить"
+
+msgid "Вернуть в работу"
+msgstr "Вернуть в работу"
+
+msgid "Вернуть в новые"
+msgstr "Вернуть в новые"

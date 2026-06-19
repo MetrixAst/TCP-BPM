@@ -1,0 +1,41 @@
+# Russian
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: ru\n"
+
+msgid "Создана"
+msgstr "Создана"
+
+msgid "Принята"
+msgstr "Принята"
+
+msgid "Отклонена"
+msgstr "Отклонена"
+
+msgid "На доработке"
+msgstr "На доработке"
+
+msgid "Завершена"
+msgstr "Завершена"
+
+msgid "Низкий"
+msgstr "Низкий"
+
+msgid "Средний"
+msgstr "Средний"
+
+msgid "Высокий"
+msgstr "Высокий"
+
+msgid "Критический"
+msgstr "Критический"
+
+msgid "Поручение"
+msgstr "Поручение"
+
+msgid "Согласование"
+msgstr "Согласование"
+
+msgid "Документ"
+msgstr "Документ"

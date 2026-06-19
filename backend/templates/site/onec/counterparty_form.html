@@ -1,4 +1,4 @@
-{% extends "site/base.html" %}
+{% extends "site/base_modal.html" %}
 {% load static %}
 
 {% block styles %}
@@ -6,10 +6,6 @@
 {% endblock %}
 
 {% block content %}
-<script>
-  document.body.classList.add('onec-invoice-body');
-</script>
-
 <div class="onec-create-page">
   <form method="post" class="onec-create-card" id="onecCounterpartyForm">
     {% csrf_token %}
@@ -207,7 +203,7 @@
       <a href="{% url 'onec:counterparty_list' %}" class="onec-btn onec-btn--ghost">Отменить</a>
       <button type="submit" class="onec-btn onec-btn--primary">
         <i class="bi bi-check-lg"></i>
-        {% if title == "Редактировать контрагента" %}Сохранить{% else %}Создать{% endif %}
+        {% if is_edit %}Сохранить{% else %}Создать{% endif %}
       </button>
     </div>
   </form>
