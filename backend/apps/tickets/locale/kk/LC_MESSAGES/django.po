@@ -1,0 +1,80 @@
+# Kazakh
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: kk\n"
+
+msgid "Электрика"
+msgstr "Электрика"
+
+msgid "Сантехника"
+msgstr "Сантехника"
+
+msgid "Вентиляция и кондиционирование"
+msgstr "Желдету және ауа баптау"
+
+msgid "Клининг"
+msgstr "Клининг"
+
+msgid "Мебель и фурнитура"
+msgstr "Жиһаз және фурнитура"
+
+msgid "ИТ и связь"
+msgstr "АТ және байланыс"
+
+msgid "Безопасность"
+msgstr "Қауіпсіздік"
+
+msgid "Прочее"
+msgstr "Басқа"
+
+msgid "Низкий"
+msgstr "Төмен"
+
+msgid "Средний"
+msgstr "Орташа"
+
+msgid "Высокий"
+msgstr "Жоғары"
+
+msgid "Срочный"
+msgstr "Шұғыл"
+
+msgid "Новая"
+msgstr "Жаңа"
+
+msgid "Принята"
+msgstr "Қабылданды"
+
+msgid "В работе"
+msgstr "Жұмыста"
+
+msgid "Выполнена"
+msgstr "Орындалды"
+
+msgid "Отклонена"
+msgstr "Қабылданбады"
+
+msgid "Отменена"
+msgstr "Болдырылмады"
+
+msgid "Принять в работу"
+msgstr "Жұмысқа қабылдау"
+
+msgid "Отклонить"
+msgstr "Қабылдамау"
+
+msgid "Отозвать заявку"
+msgstr "Өтінішті кері алу"
+
+msgid "Начать выполнение"
+msgstr "Орындауды бастау"
+
+msgid "Завершить"
+msgstr "Аяқтау"
+
+msgid "Вернуть в работу"
+msgstr "Жұмысқа қайтару"
+
+msgid "Вернуть в новые"
+msgstr "Жаңаларға қайтару"

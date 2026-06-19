@@ -29,15 +29,18 @@ def _can_edit_content(task, user):
         return True
     return task._get_user_role(user) in ('author', 'executor', 'co_executor')
 
-
 def _task_card_dict(task):
+    # priority_title — берём из PriorityEnum, он уже переведён через gettext_lazy
+    from .enums import PriorityEnum
+    priority_title = dict(PriorityEnum.list()).get(task.priority, task.priority)
+
     return {
         'id': task.id,
         'number': f'#{task.id}',
         'title': task.title,
-        'type': task.get_task_type_display(),
+        'type': task.get_task_type_display(),   # Django сам переведёт через gettext
         'priority': task.priority,
-        'priority_title': dict(task._meta.get_field('priority').choices).get(task.priority, task.priority),
+        'priority_title': str(priority_title),  # str() форсирует перевод lazy-строки
         'deadline': task.deadline.isoformat() if task.deadline else None,
         'executor': task.executor.get_name if task.executor else None,
         'executor_id': task.executor_id,
@@ -53,13 +56,14 @@ def _kanban_payload(request):
     buckets = {}
     for task in qs:
         buckets.setdefault(task.status, []).append(task)
+
     columns = []
     for slug, title in TaskStatusEnum.list():
         items = [_task_card_dict(t) for t in buckets.get(slug, [])]
         info = TaskStatusEnum.get_info(slug)
         columns.append({
             'status': slug,
-            'title': title,
+            'title': str(title),   # str() форсирует перевод lazy-строки
             'color': info.get('color', 'neutral'),
             'tasks': items,
         })

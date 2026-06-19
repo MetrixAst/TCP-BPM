@@ -1,0 +1,80 @@
+# English
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: en\n"
+
+msgid "Электрика"
+msgstr "Electrical"
+
+msgid "Сантехника"
+msgstr "Plumbing"
+
+msgid "Вентиляция и кондиционирование"
+msgstr "HVAC"
+
+msgid "Клининг"
+msgstr "Cleaning"
+
+msgid "Мебель и фурнитура"
+msgstr "Furniture"
+
+msgid "ИТ и связь"
+msgstr "IT & Communications"
+
+msgid "Безопасность"
+msgstr "Security"
+
+msgid "Прочее"
+msgstr "Other"
+
+msgid "Низкий"
+msgstr "Low"
+
+msgid "Средний"
+msgstr "Medium"
+
+msgid "Высокий"
+msgstr "High"
+
+msgid "Срочный"
+msgstr "Urgent"
+
+msgid "Новая"
+msgstr "New"
+
+msgid "Принята"
+msgstr "Accepted"
+
+msgid "В работе"
+msgstr "In Progress"
+
+msgid "Выполнена"
+msgstr "Done"
+
+msgid "Отклонена"
+msgstr "Rejected"
+
+msgid "Отменена"
+msgstr "Cancelled"
+
+msgid "Принять в работу"
+msgstr "Accept"
+
+msgid "Отклонить"
+msgstr "Reject"
+
+msgid "Отозвать заявку"
+msgstr "Cancel request"
+
+msgid "Начать выполнение"
+msgstr "Start"
+
+msgid "Завершить"
+msgstr "Complete"
+
+msgid "Вернуть в работу"
+msgstr "Reopen"
+
+msgid "Вернуть в новые"
+msgstr "Move to new"
