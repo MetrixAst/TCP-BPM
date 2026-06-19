@@ -105,17 +105,24 @@ def structure_csv(request, get):
 
 @login_required
 def global_search(request):
-    """Глобальный поиск по шапке: разделы меню + сотрудники (имя/должность)."""
+    """Глобальный поиск по шапке: разделы меню, сотрудники, документы, задачи,
+    заявки, контрагенты, поставщики, арендаторы — с учётом прав доступа."""
     from django.urls import reverse
-    from account.role_permissions import MenuItem, RoleEnums
-    from account.models import Employee
+    from account.role_permissions import MenuItem, RoleEnums, RolePermissions
 
     query = (request.GET.get('q') or '').strip()
     if len(query) < 2:
-        return JsonResponse({'results': []})
+        return JsonResponse({'results': [], 'groups': {}})
 
     ql = query.lower()
     results = []
+    groups = {}
+
+    def _add(group_key, group_label, title, subtitle, url):
+        item = {'title': title, 'subtitle': subtitle, 'url': url, 'group': group_key}
+        results.append(item)
+        groups.setdefault(group_key, {'label': group_label, 'items': []})
+        groups[group_key]['items'].append(item)
 
     # 1) Разделы из доступного пользователю меню (включая подпункты).
     def _walk(items):
@@ -123,19 +130,20 @@ def global_search(request):
             url = getattr(item, 'url', None)
             title = getattr(item, 'title', None)
             if title and ql in title.lower() and url and url != '#' and not str(url).startswith('#'):
-                results.append({'title': title, 'subtitle': 'Раздел', 'url': url})
+                _add('menu', 'Разделы', title, 'Раздел', url)
             if getattr(item, 'submenu', None):
                 _walk(item.submenu)
-
     try:
         _walk(MenuItem.generate_menu(request.user))
     except Exception:
         pass
 
-    # 2) Сотрудники — только для внутренних ролей (не портал-арендаторов/гостей).
     role = getattr(request.user, 'role', None)
     viewer_is_admin = bool(getattr(request.user, 'is_superuser', False)) or role == RoleEnums.ADMINISTRATOR.value
+
+    # 2) Сотрудники — только для внутренних ролей (не портал-арендаторов/гостей).
     if role not in RoleEnums.portal_roles():
+        from account.models import Employee
         employees = (
             Employee.objects
             .select_related('user', 'position', 'department')
@@ -157,17 +165,128 @@ def global_search(request):
                 subtitle = emp.department.name
             else:
                 subtitle = 'Сотрудник'
-            # Админу показываем логин сотрудника.
             if viewer_is_admin:
                 subtitle = f'{subtitle} · логин: {emp.user.username}'
-            results.append({
-                'title': name,
-                'subtitle': subtitle,
-                'url': reverse('hr:employee_detail', args=[emp.pk]),
-            })
+            _add('employees', 'Сотрудники', name, subtitle, reverse('hr:employee_detail', args=[emp.pk]))
 
-    return JsonResponse({'results': results[:12]})
+    # 3) Документы — номер, название, текст.
+    if RolePermissions.checkPermission(role, PermissionEnums.DOCUMENTS):
+        from documents.models import Document
+        try:
+            docs = (
+                Document.get_available_queryset(request)
+                .filter(
+                    Q(title__icontains=query)
+                    | Q(number__icontains=query)
+                    | Q(text__icontains=query)
+                )
+                .order_by('-id')[:8]
+            )
+            for doc in docs:
+                _add(
+                    'documents', 'Документы',
+                    doc.title or doc.number or f'Документ #{doc.pk}',
+                    doc.number or 'Документ',
+                    reverse('documents:document', args=[doc.pk]),
+                )
+        except Exception:
+            pass
 
+    # 4) Задачи — заголовок, id как номер.
+    if RolePermissions.checkPermission(role, PermissionEnums.TASKS):
+        from tasks.models import Task
+        try:
+            task_filter = Q(title__icontains=query)
+            if query.isdigit():
+                task_filter |= Q(id=int(query))
+            tasks_qs = (
+                Task.get_available_queryset(request)
+                .filter(task_filter)
+                .order_by('-id')[:8]
+            )
+            for task in tasks_qs:
+                _add(
+                    'tasks', 'Задачи',
+                    task.title or f'Задача #{task.pk}',
+                    f'#{task.pk}',
+                    reverse('tasks:task', args=[task.pk]),
+                )
+        except Exception:
+            pass
+
+   # 5) Сервисные заявки — заголовок, номер.
+    if RolePermissions.checkPermission(role, PermissionEnums.SERVICE_REQUESTS):
+        from tickets.models import ServiceRequest
+        try:
+            tickets_qs = (
+                ServiceRequest.get_available_queryset(request)
+                .filter(Q(title__icontains=query))
+                .order_by('-id')[:8]
+            )
+            for ticket in tickets_qs:
+                _add(
+                    'tickets', 'Заявки',
+                    ticket.title or ticket.number,
+                    ticket.number or 'Заявка',
+                    reverse('tickets:item', args=[ticket.pk]),
+                )
+        except Exception:
+            pass
+
+    # 6) Контрагенты — с учётом зон доступа.
+    if RolePermissions.checkPermission(role, PermissionEnums.FINANCES) or RolePermissions.checkPermission(role, PermissionEnums.PURCHASES):
+        from onec.models import Counterparty
+        from account.services.access_scope import filter_counterparties_queryset
+        try:
+            cps = filter_counterparties_queryset(
+                Counterparty.objects.filter(
+                    Q(full_name__icontains=query)
+                    | Q(short_name__icontains=query)
+                    | Q(bin_number__icontains=query)
+                ),
+                request.user,
+            ).order_by('short_name')[:8]
+            for cp in cps:
+                _add(
+                    'counterparties', 'Контрагенты',
+                    cp.short_name or cp.full_name,
+                    cp.bin_number or 'Контрагент',
+                    reverse('onec:counterparty_detail', args=[cp.pk]),
+                )
+        except Exception:
+            pass
+
+    # 7) Поставщики.
+    if RolePermissions.checkPermission(role, PermissionEnums.SUPPLIERS):
+        from purchases.models import Supplier
+        try:
+            suppliers = Supplier.objects.filter(name__icontains=query).order_by('name')[:8]
+            for supplier in suppliers:
+                _add(
+                    'suppliers', 'Поставщики',
+                    supplier.name,
+                    'Поставщик',
+                    reverse('purchases:supplier', args=[supplier.pk]),
+                )
+        except Exception:
+            pass
+
+    # 8) Арендаторы.
+    if RolePermissions.checkPermission(role, PermissionEnums.TENANTS):
+        from tenants.models import Tenant
+        try:
+            tenants_qs = Tenant.objects.filter(name__icontains=query).order_by('name')[:8]
+            for tenant in tenants_qs:
+                _add(
+                    'tenants', 'Арендаторы',
+                    tenant.name,
+                    'Арендатор',
+                    reverse('tenants:detail', args=[tenant.pk]),
+                )
+        except Exception:
+            pass
+
+    return JsonResponse({'results': results[:40], 'groups': groups})
 
 @need_permission(PermissionEnums.USERS_LIST)
 def users_ajax(request, selection):
