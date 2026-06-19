@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 
 import requests
 
@@ -14,6 +15,7 @@ from .forms import InnerDocumentForm
 from .enums import DocumentTypeEnum
 from .services import documents_list, document, document_action, edit_document_by_type, create_folder
 from . import onlyoffice
+from . import attachments
 
 from project.utils import get_or_error
 
@@ -87,25 +89,32 @@ def document_editor(request, pk):
     if not current.document:
         raise Http404('У документа нет файла')
 
+    title = current.title or os.path.basename(current.document.name)
+    download_url = current.document.url
+    back_url = reverse('documents:document', args=[current.pk])
+
     if not onlyoffice.is_enabled():
-        context = {'document': current, 'onlyoffice_disabled': True}
+        context = {'title': title, 'download_url': download_url, 'onlyoffice_disabled': True}
         return render(request, 'site/documents/onlyoffice_editor.html', context)
 
     if not onlyoffice.is_supported(current.document.name):
-        context = {'document': current, 'onlyoffice_unsupported': True}
+        context = {'title': title, 'download_url': download_url, 'onlyoffice_unsupported': True}
         return render(request, 'site/documents/onlyoffice_editor.html', context)
 
     can_edit = _user_can_edit_document(request, current)
     callback_url = reverse('documents:onlyoffice_callback', args=[current.pk])
-    config = onlyoffice.build_config(request, current, can_edit, callback_url)
+    config = onlyoffice.build_config(request, current.pk, current.document, title, can_edit, callback_url)
 
     context = {
-        'document': current,
+        'title': title,
+        'download_url': download_url,
+        'back_url': back_url,
         'oo_api_url': onlyoffice.public_api_url(),
         'oo_config_json': json.dumps(config, ensure_ascii=False),
         'oo_can_edit': can_edit and onlyoffice.is_editable(current.document.name),
     }
     return render(request, 'site/documents/onlyoffice_editor.html', context)
+
 
 
 @csrf_exempt
@@ -189,3 +198,102 @@ def upload_addit_document(request, pk):
             new.save()
 
     return redirect('documents:document', pk=pk)
+
+
+def _universal_editor(request, kind, pk):
+    spec = attachments.get_spec(kind)
+    if spec is None:
+        raise Http404('Неизвестный тип вложения')
+
+    obj = spec.get_object(request, pk)
+    if obj is None:
+        raise Http404('Вложение не найдено')
+
+    if not spec.can_view(request, obj):
+        raise Http404('Вложение не найдено')
+
+    file_field = spec.get_file(obj)
+    if not file_field:
+        raise Http404('У вложения нет файла')
+
+    title = spec.get_title(obj)
+    download_url = file_field.url
+
+    if not onlyoffice.is_enabled():
+        context = {'title': title, 'download_url': download_url, 'onlyoffice_disabled': True}
+        return render(request, 'site/documents/onlyoffice_editor.html', context)
+
+    if not onlyoffice.is_supported(file_field.name):
+        context = {'title': title, 'download_url': download_url, 'onlyoffice_unsupported': True}
+        return render(request, 'site/documents/onlyoffice_editor.html', context)
+
+    can_edit = spec.can_edit(request, obj)
+    callback_url = reverse('documents:onlyoffice_universal_callback', args=[kind, pk])
+    config = onlyoffice.build_config(request, pk, file_field, title, can_edit, callback_url)
+
+    context = {
+        'title': title,
+        'download_url': download_url,
+        'oo_api_url': onlyoffice.public_api_url(),
+        'oo_config_json': json.dumps(config, ensure_ascii=False),
+        'oo_can_edit': can_edit and onlyoffice.is_editable(file_field.name),
+    }
+    return render(request, 'site/documents/onlyoffice_editor.html', context)
+
+
+def attachment_editor(request, kind, pk):
+    return _universal_editor(request, kind, pk)
+
+
+@csrf_exempt
+def onlyoffice_universal_callback(request, kind, pk):
+    if request.method != 'POST':
+        return JsonResponse({'error': 1, 'message': 'Method not allowed'}, status=405)
+
+    spec = attachments.get_spec(kind)
+    if spec is None:
+        return JsonResponse({'error': 1, 'message': 'Unknown attachment type'}, status=404)
+
+    obj = spec.get_object(request, pk)
+    if obj is None:
+        return JsonResponse({'error': 1, 'message': 'Attachment not found'}, status=404)
+
+    try:
+        body = json.loads(request.body.decode('utf-8') or '{}')
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({'error': 1, 'message': 'Bad payload'}, status=400)
+
+    if onlyoffice.jwt_enabled():
+        token = body.get('token')
+        if not token:
+            auth = request.headers.get('Authorization', '')
+            if auth.startswith('Bearer '):
+                token = auth[7:]
+        try:
+            decoded = onlyoffice.decode(token) if token else None
+            if decoded and 'payload' in decoded:
+                decoded = decoded['payload']
+            if decoded:
+                body = decoded
+        except Exception:
+            logger.warning('ONLYOFFICE callback: invalid JWT for %s %s', kind, pk)
+            return JsonResponse({'error': 1, 'message': 'Invalid token'}, status=403)
+
+    status = body.get('status')
+    if status in (2, 6):
+        download_url = body.get('url')
+        if download_url:
+            file_field = spec.get_file(obj)
+            try:
+                resp = requests.get(
+                    download_url,
+                    timeout=getattr(settings, 'ONLYOFFICE_CALLBACK_TIMEOUT', 30),
+                )
+                resp.raise_for_status()
+                filename = (file_field.name or '').split('/')[-1] or f'{kind}_{pk}'
+                file_field.save(filename, ContentFile(resp.content), save=True)
+            except Exception as exc:
+                logger.exception('ONLYOFFICE callback: save failed for %s %s: %s', kind, pk, exc)
+                return JsonResponse({'error': 1, 'message': 'Save failed'}, status=500)
+
+    return JsonResponse({'error': 0})
