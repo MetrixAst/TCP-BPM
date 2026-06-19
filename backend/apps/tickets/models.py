@@ -140,20 +140,34 @@ class ServiceRequest(models.Model):
                 })
         return result
 
-    def apply_action(self, request, action, comment=''):
+    def apply_action(self, request, action, comment='', assignee=None):
         """Применяет переход статуса, если он разрешён пользователю."""
         allowed = {a['action']: a for a in self.actions(request)}
         if action not in allowed:
-            return False
+            return False, 'Действие недоступно'
+
+        if action == 'accept' and not self.assignee and not assignee:
+            return False, 'Выберите исполнителя перед принятием заявки'
+
+        if action == 'accept' and assignee:
+            self.assignee = assignee
+
         self.status = allowed[action]['next']
-        self.save(update_fields=['status', 'updated_at'])
+        fields = ['status', 'updated_at']
+        if action == 'accept' and assignee:
+            fields.append('assignee')
+        self.save(update_fields=fields)
+
         ServiceRequestHistory.objects.create(
             request=self, user=request.user, status=self.status,
             comment=comment or '',
         )
         from .services import notify_ticket_status
         notify_ticket_status(self, actor=request.user)
-        return True
+        if action == 'accept' and assignee:
+            from .services import notify_ticket_assigned
+            notify_ticket_assigned(self, actor=request.user)
+        return True, None
 
     def assign(self, request, department=None, assignee=None, priority=None, comment=''):
         """Маршрутизация заявки: отдел / ответственный / приоритет (только сотрудник)."""
@@ -220,3 +234,69 @@ class ServiceRequestHistory(models.Model):
     @property
     def status_info(self):
         return TicketStatusEnum.get_info(self.status)
+
+class TicketMessage(models.Model):
+    """Сообщение в чате заявки между арендатором и исполнителем/менеджером."""
+
+    request = models.ForeignKey(
+        ServiceRequest, on_delete=models.CASCADE, related_name='messages', verbose_name='Заявка',
+    )
+    author = models.ForeignKey(
+        UserAccount, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Автор',
+    )
+    text = models.TextField('Текст', max_length=2000)
+    created_at = models.DateTimeField('Дата', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Сообщение заявки'
+        verbose_name_plural = 'Сообщения заявок'
+        ordering = ['id']
+
+    def __str__(self):
+        return f'{self.request_id}: {self.text[:30]}'
+
+    @staticmethod
+    def can_view(ticket, user):
+        """Арендатор видит чат своей заявки; исполнитель/менеджер — назначенных."""
+        if not user or not user.is_authenticated:
+            return False
+        if getattr(user, 'is_superuser', False):
+            return True
+        if ticket.is_author(user):
+            return True
+        if ticket.assignee_id and ticket.assignee_id == user.id:
+            return True
+        if user_is_manager(user):
+            return True
+        return False
+
+class TicketAttachment(models.Model):
+    request = models.ForeignKey(
+        ServiceRequest, on_delete=models.CASCADE, related_name='attachments', verbose_name='Заявка',
+    )
+    file = models.FileField('Файл', upload_to=PathAndRename('tickets/attachments/'))
+    uploaded_by = models.ForeignKey(
+        UserAccount, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Загрузил',
+    )
+    created_at = models.DateTimeField('Дата', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Вложение заявки'
+        verbose_name_plural = 'Вложения заявок'
+        ordering = ['id']
+
+    def __str__(self):
+        return self.filename
+
+    @property
+    def filename(self):
+        return self.file.name.split('/')[-1] if self.file else ''
+
+    @property
+    def is_image(self):
+        ext = self.filename.rsplit('.', 1)[-1].lower() if '.' in self.filename else ''
+        return ext in ('jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp')
+
+    @staticmethod
+    def can_view(ticket, user):
+        return TicketMessage.can_view(ticket, user)
