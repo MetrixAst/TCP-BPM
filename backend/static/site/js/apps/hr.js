@@ -810,8 +810,6 @@
       });
     }
   }
-
-
   function init() {
     initTableSearch();
     initInlineModals();
@@ -819,6 +817,10 @@
     initOrgChart();
     initHrDatepickers();
     initHrEmployeesFilters();
+
+    if (window.BPM && window.BPM.applyTranslations) {
+      window.BPM.applyTranslations();
+    }
   }
 
   if (document.readyState === "loading") {

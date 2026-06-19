@@ -209,6 +209,11 @@ class LeaveFilterForm(forms.Form):
         label='По'
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['department'].empty_label = 'Отдел'
+        self.fields['leave_type'].empty_label = 'Тип отпуска'
+
 
 def validate_file(file):
     if file:
