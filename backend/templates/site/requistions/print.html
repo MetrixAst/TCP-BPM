@@ -1,5 +1,6 @@
 {% extends 'site/layouts/base_blank.html' %}
 {% load static %}
+{% load site_tags %}
 
 {% block inner %}
 
@@ -35,7 +36,7 @@
 
                     {% for item in current.history.all %}
                         <tr>
-                            <td>{{item.date}}</td>
+                            <td>{% bpm_date item.date %}</td>
                             <td>{{item.user.get_name}}</td>
                             <td>{{item.title}}</td>
                         </tr>

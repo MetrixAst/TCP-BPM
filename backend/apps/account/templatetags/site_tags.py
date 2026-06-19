@@ -277,3 +277,29 @@ def oo_editable_filter(filename):
         return onlyoffice.is_editable(str(filename))
     except Exception:
         return False
+
+MONTHS_RU = ['января','февраля','марта','апреля','мая','июня',
+             'июля','августа','сентября','октября','ноября','декабря']
+MONTHS_KK = ['қаңтар','ақпан','наурыз','сәуір','мамыр','маусым',
+             'шілде','тамыз','қыркүйек','қазан','қараша','желтоқсан']
+MONTHS_EN = ['January','February','March','April','May','June',
+             'July','August','September','October','November','December']
+
+@register.simple_tag(takes_context=True)
+def bpm_date(context, value, time=False):
+    if not value:
+        return ''
+    request = context.get('request')
+    lang = 'ru'
+    if request:
+        lang = request.session.get('lang', 'ru')
+    if lang == 'kk':
+        months = MONTHS_KK
+    elif lang == 'en':
+        months = MONTHS_EN
+    else:
+        months = MONTHS_RU
+    month = months[value.month - 1]
+    if time and hasattr(value, 'hour'):
+        return f"{value.day} {month} {value.year} {value.hour:02d}:{value.minute:02d}"
+    return f"{value.day} {month} {value.year}"

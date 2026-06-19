@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe70">
@@ -14,7 +15,7 @@
       <span class="fin-dash-hero__eyebrow"><i class="bi bi-pie-chart-fill"></i> Финансы</span>
       <h1 class="fin-dash-hero__title">Финансовый дашборд</h1>
       <p class="fin-dash-hero__meta">
-        <span class="fin-dash-hero__date"><i class="bi bi-calendar3"></i> {{ today }}</span>
+        <span class="fin-dash-hero__date"><i class="bi bi-calendar3"></i> {% bpm_date today %}</span>
         <span>Ключевые показатели и денежный поток</span>
       </p>
     </div>
