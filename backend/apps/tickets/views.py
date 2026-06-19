@@ -176,11 +176,13 @@ def create(request):
 @need_permission(PermissionEnums.SERVICE_REQUESTS)
 def item(request, pk):
     ticket = ServiceRequest.get_by_id(request, pk)
+    from .models import TicketMessage
     context = {
         'ticket': ticket,
         'info': ticket.get_data(),
         'actions': ticket.actions(request),
         'assign_form': TicketAssignForm(instance=ticket) if user_is_manager(request.user) else None,
+        'can_chat': TicketMessage.can_view(ticket, request.user),
         **_portal_context(request),
     }
     return render(request, 'site/tickets/ticket.html', context)

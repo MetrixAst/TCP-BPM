@@ -31,18 +31,18 @@
 
   function cardHtml(t) {
     let meta = '';
-    if (t.tenant) meta += '<span><i class="bi bi-shop"></i>' + esc(t.tenant) + '</span>';
-    if (t.room) meta += '<span><i class="bi bi-geo-alt"></i>' + esc(t.room) + '</span>';
-    if (t.assignee) meta += '<span><i class="bi bi-person"></i>' + esc(t.assignee) + '</span>';
-    if (t.created_at) meta += '<span><i class="bi bi-clock"></i>' + esc(t.created_at) + '</span>';
+    if (t.tenant)     meta += '<span><i class="bi bi-shop"></i>'    + esc(t.tenant)     + '</span>';
+    if (t.room)       meta += '<span><i class="bi bi-geo-alt"></i>' + esc(t.room)       + '</span>';
+    if (t.assignee)   meta += '<span><i class="bi bi-person"></i>'  + esc(t.assignee)   + '</span>';
+    if (t.created_at) meta += '<span><i class="bi bi-clock"></i>'   + esc(t.created_at) + '</span>';
 
     return (
       '<a class="tk-card tk-card--' + esc(t.status_color || 'neutral') + '"' +
-      ' href="' + esc(t.url) + '" draggable="true"' +
-      ' data-id="' + t.id + '" data-status="' + esc(t.status) + '">' +
+        ' href="' + esc(t.url) + '" draggable="true"' +
+        ' data-id="' + t.id + '" data-status="' + esc(t.status) + '">' +
         '<div class="tk-card__top">' +
           '<span class="tk-card__num">' + esc(t.number) + '</span>' +
-          '<span class="tk-prio tk-prio--' + esc(t.priority_color || 'neutral') + '" title="Приоритет">' +
+          '<span class="tk-prio tk-prio--' + esc(t.priority_color || 'neutral') + '">' +
             '<span class="tk-prio__dot"></span>' + esc(t.priority_title) +
           '</span>' +
         '</div>' +
@@ -56,25 +56,32 @@
   function render(data) {
     const columns = (data && data.columns) || [];
     if (!columns.length) {
-      board.innerHTML = '<div class="tk-list__empty">Нет колонок</div>';
+      board.innerHTML = '<div class="tk-kanban-loading">Нет колонок</div>';
       return;
     }
-    let html = '';
+
+    // Рендерим в стиле columns
+    let html = '<div class="tk-board">';
     columns.forEach(function (col) {
-      html += '<div class="tk-col" data-drop-zone data-status="' + esc(col.status) + '">';
-      html += '<div class="tk-col__head">' +
-        '<span class="tk-col__dot tk-badge--' + esc(col.color) + '" style="background:currentColor"></span>' +
-        esc(col.title) +
-        '<span class="tk-col__count">' + col.count + '</span>' +
-        '</div>';
-      html += '<div class="tk-col__body">';
+      html +=
+        '<div class="tk-col" data-drop-zone data-status="' + esc(col.status) + '">' +
+          '<div class="tk-col__head">' +
+            '<span class="tk-col__dot tk-badge--' + esc(col.color) + '"></span>' +
+            esc(col.title) +
+            '<span class="tk-col__count">' + col.count + '</span>' +
+          '</div>' +
+          '<div class="tk-col__body">';
+
       if (!col.tickets.length) {
         html += '<div class="tk-col__empty">—</div>';
       } else {
         col.tickets.forEach(function (t) { html += cardHtml(t); });
       }
+
       html += '</div></div>';
     });
+    html += '</div>';
+
     board.innerHTML = html;
     bindEvents();
   }
@@ -82,7 +89,7 @@
   function bindEvents() {
     board.querySelectorAll('.tk-card').forEach(function (card) {
       card.addEventListener('dragstart', function () {
-        dragId = card.getAttribute('data-id');
+        dragId   = card.getAttribute('data-id');
         dragFrom = card.getAttribute('data-status');
         card.classList.add('is-dragging');
       });
@@ -95,24 +102,24 @@
     });
 
     board.querySelectorAll('[data-drop-zone]').forEach(function (zone) {
-      zone.addEventListener('dragover', function (e) { e.preventDefault(); zone.classList.add('is-drag-over'); });
-      zone.addEventListener('dragleave', function () { zone.classList.remove('is-drag-over'); });
+      zone.addEventListener('dragover',  function (e) { e.preventDefault(); zone.classList.add('is-drag-over'); });
+      zone.addEventListener('dragleave', function ()  { zone.classList.remove('is-drag-over'); });
       zone.addEventListener('drop', function (e) {
         e.preventDefault();
         zone.classList.remove('is-drag-over');
         const target = zone.getAttribute('data-status');
         if (!dragId || inFlight || target === dragFrom) { dragId = null; return; }
-        confirmMove(dragId, target, zone);
+        confirmMove(dragId, target);
       });
     });
   }
 
   function colTitle(status) {
-    const head = board.querySelector('[data-drop-zone][data-status="' + status + '"] .tk-col__head');
+    const head = board.querySelector('[data-status="' + status + '"] .tk-col__head');
     return head ? head.textContent.replace(/\d+$/, '').trim() : status;
   }
 
-  async function confirmMove(id, target, zone) {
+  async function confirmMove(id, target) {
     const proceed = window.bpmModal
       ? await window.bpmModal.confirm(
           'Перевести заявку в статус «' + colTitle(target) + '»?',
@@ -163,6 +170,6 @@
   }
 
   load().catch(function () {
-    board.innerHTML = '<div class="tk-list__empty">Не удалось загрузить канбан</div>';
+    board.innerHTML = '<div class="tk-kanban-loading">Не удалось загрузить канбан</div>';
   });
 })();
