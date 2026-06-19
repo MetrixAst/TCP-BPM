@@ -1,5 +1,5 @@
 {% extends 'site/base.html' %}
-{% load static %}
+{% load static site_tags %}
 
 {% block title %}{{ ticket.number }} — metriX BPM{% endblock %}
 
@@ -27,14 +27,14 @@
           <a href="{% url 'tickets:home' %}" class="tk-deal__back">
             <i class="bi bi-arrow-left"></i>
           </a>
-          <a href="{% url 'tickets:home' %}" class="tk-deal__crumb">Заявки</a>
+          <a href="{% url 'tickets:home' %}" class="tk-deal__crumb">{% t 'tickets.to_list' 'Заявки' %}</a>
           <span class="tk-deal__crumb-sep">/</span>
           <span class="tk-deal__crumb tk-deal__crumb--current">{{ ticket.number }}</span>
         </div>
         <div class="tk-deal__head-actions">
           {% if is_manager and ticket.assignee %}
             <button type="button" class="tk-deal__icon-btn" id="btnChangeAssignee"
-                    title="Изменить исполнителя">
+                    title="{% t 'tickets.btn_change_assignee' 'Изменить исполнителя' %}">
               <i class="bi bi-person-gear"></i>
             </button>
           {% endif %}
@@ -71,7 +71,7 @@
 
       {# Описание #}
       <div class="tk-deal__description">
-        <div class="tk-deal__description-label">Описание проблемы</div>
+        <div class="tk-deal__description-label">{% t 'tickets.detail_desc' 'Описание проблемы' %}</div>
         <div class="tk-deal__description-body">
           <div class="tk-deal__description-text">{{ ticket.description }}</div>
         </div>
@@ -79,9 +79,44 @@
 
       {% if ticket.photo %}
         <div class="tk-deal__photo">
-          <a href="{{ ticket.photo.url }}" target="_blank">
-            <img src="{{ ticket.photo.url }}" alt="Фото заявки" />
-          </a>
+          {% with fname=ticket.photo.name furl=ticket.photo.url fpk=ticket.id %}
+          {% if fname|oo_supported %}
+            {# Документ — показываем OO компонент #}
+            <div class="oo-file-item">
+              <div class="oo-file-item__icon">
+                {% with ext=fname|lower %}
+                  {% if '.pdf' in ext %}<i class="bi bi-file-earmark-pdf" style="color:#ef4444"></i>
+                  {% elif '.doc' in ext %}<i class="bi bi-file-earmark-word" style="color:#2563eb"></i>
+                  {% else %}<i class="bi bi-file-earmark" style="color:#74728a"></i>
+                  {% endif %}
+                {% endwith %}
+              </div>
+              <div class="oo-file-item__info">
+                <a href="{{ fpk|oo_editor_url:'ticket_photo' }}" target="_blank" rel="noopener" class="oo-file-item__name">{{ fname }}</a>
+              </div>
+              <div class="oo-file-item__actions">
+                <a href="{{ fpk|oo_editor_url:'ticket_photo' }}" target="_blank" rel="noopener"
+                   class="oo-file-item__btn oo-file-item__btn--oo" title="Открыть в ONLYOFFICE">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{{ furl }}" download class="oo-file-item__btn" title="Скачать">
+                  <i class="bi bi-download"></i>
+                </a>
+              </div>
+            </div>
+          {% else %}
+            {# Изображение — показываем как картинку + кнопка скачать #}
+            <a href="{{ furl }}" target="_blank">
+              <img src="{{ furl }}" alt="Фото заявки" style="max-width:100%;border-radius:12px;display:block;" />
+            </a>
+            <div style="margin-top:8px;">
+              <a href="{{ furl }}" download class="oo-file-item__btn" title="Скачать фото"
+                 style="display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:8px;background:#f5f3fa;color:#25233f;font-size:13px;font-weight:500;text-decoration:none;">
+                <i class="bi bi-download"></i> Скачать
+              </a>
+            </div>
+          {% endif %}
+          {% endwith %}
         </div>
       {% endif %}
 
@@ -124,7 +159,7 @@
     {% if can_chat %}
     <div class="tk-deal__card-block">
       <div class="tk-chat-wrap">
-        <h3 class="tk-chat-wrap__title">Чат</h3>
+        <h3 class="tk-chat-wrap__title">{% t 'tickets.detail_chat' 'Чат' %}</h3>
         <div class="tk-chat">
           <div class="tk-chat__feed" id="tkChatFeed">
             <div class="tk-chat__loading"><i class="bi bi-arrow-repeat"></i> Загрузка…</div>
@@ -132,7 +167,7 @@
           <form class="tk-chat__composer" id="tkChatForm">
             {% csrf_token %}
             <input type="text" class="tk-chat__input" id="tkChatInput"
-                   placeholder="Напишите сообщение…" autocomplete="off" maxlength="2000" />
+                   placeholder="{% t 'tickets.chat_placeholder' 'Напишите сообщение…' %}" autocomplete="off" maxlength="2000" />
             <button type="submit" class="tk-chat__send">
               <i class="bi bi-send"></i>
             </button>
@@ -144,7 +179,7 @@
 
     {# ── История ── #}
     <div class="tk-deal__card-block">
-      <h3 class="tk-deal__section-title">История</h3>
+      <h3 class="tk-deal__section-title">{% t 'tickets.detail_history' 'История' %}</h3>
       <ul class="tk-timeline">
         {% for h in ticket.history.all %}
         <li class="tk-timeline__item">
@@ -155,7 +190,7 @@
           {% if h.comment %}<div class="tk-timeline__comment">{{ h.comment }}</div>{% endif %}
         </li>
         {% empty %}
-        <li class="tk-timeline__empty">Нет записей</li>
+        <li class="tk-timeline__empty">{% t 'tickets.history_empty' 'Нет записей' %}</li>
         {% endfor %}
       </ul>
     </div>
@@ -168,7 +203,7 @@
     {# Информация #}
     <div class="tk-side-panel">
       <div class="tk-side-panel__head">
-        <h3 class="tk-side-panel__title">Информация</h3>
+        <h3 class="tk-side-panel__title">{% t 'tickets.detail_info' 'Информация' %}</h3>
       </div>
       {% for key, value in info.items %}
         {% if value %}
@@ -184,7 +219,7 @@
     {% if assign_form and not ticket.assignee %}
     <div class="tk-side-panel">
       <div class="tk-side-panel__head">
-        <h3 class="tk-side-panel__title">Маршрутизация</h3>
+        <h3 class="tk-side-panel__title">{% t 'tickets.detail_routing' 'Маршрутизация' %}</h3>
       </div>
       <form method="POST" action="{% url 'tickets:assign' ticket.id %}" class="tk-assign-form">
         {% csrf_token %}
@@ -210,7 +245,7 @@
 <div class="tk-modal-overlay" id="acceptModal" aria-hidden="true">
   <div class="tk-modal" role="dialog" aria-modal="true">
     <div class="tk-modal__head">
-      <h3 class="tk-modal__title">Принять заявку</h3>
+      <h3 class="tk-modal__title">{% t 'tickets.modal_accept_title' 'Принять заявку' %}</h3>
       <button type="button" class="tk-modal__close" id="acceptModalClose">
         <i class="bi bi-x-lg"></i>
       </button>
@@ -220,22 +255,22 @@
       {% csrf_token %}
       <input type="hidden" name="action" value="accept" />
       <div class="tk-modal__field">
-        <label class="tk-modal__label">Исполнитель <span>*</span></label>
+        <label class="tk-modal__label">{% t 'tickets.field_assignee' 'Исполнитель' %} <span>*</span></label>
         {% if assign_form %}
           {{ assign_form.assignee }}
         {% endif %}
         <div class="tk-modal__error" id="acceptAssigneeError"></div>
       </div>
       <div class="tk-modal__field">
-        <label class="tk-modal__label">Комментарий</label>
+        <label class="tk-modal__label">{% t 'tickets.field_comment' 'Комментарий' %}</label>
         <textarea name="comment" class="tk-modal__textarea" rows="2"
-                  placeholder="Необязательно"></textarea>
+                  placeholder="{% t 'tickets.field_comment_hint' 'Необязательно' %}"></textarea>
       </div>
       <div class="tk-modal__foot">
         <button type="button" class="tk-modal__btn tk-modal__btn--cancel"
-                id="acceptModalCancel">Отмена</button>
+                id="acceptModalCancel">{% t 'common.cancel' 'Отмена' %}</button>
         <button type="submit" class="tk-modal__btn tk-modal__btn--save">
-          <i class="bi bi-check-circle"></i> Принять заявку
+          <i class="bi bi-check-circle"></i> {% t 'tickets.btn_accept' 'Принять заявку' %}
         </button>
       </div>
     </form>
@@ -246,7 +281,7 @@
 <div class="tk-modal-overlay" id="reassignModal" aria-hidden="true">
   <div class="tk-modal" role="dialog" aria-modal="true">
     <div class="tk-modal__head">
-      <h3 class="tk-modal__title">Изменить исполнителя</h3>
+      <h3 class="tk-modal__title">{% t 'tickets.modal_reassign_title' 'Изменить исполнителя' %}</h3>
       <button type="button" class="tk-modal__close" id="reassignModalClose">
         <i class="bi bi-x-lg"></i>
       </button>
@@ -255,19 +290,19 @@
           action="{% url 'tickets:assign' ticket.id %}" id="reassignForm">
       {% csrf_token %}
       <div class="tk-modal__field">
-        <label class="tk-modal__label">Новый исполнитель <span>*</span></label>
+        <label class="tk-modal__label">{% t 'tickets.field_assignee_new' 'Новый исполнитель' %} <span>*</span></label>
         {% if assign_form %}{{ assign_form.assignee }}{% endif %}
       </div>
       <div class="tk-modal__field">
-        <label class="tk-modal__label">Комментарий</label>
+        <label class="tk-modal__label">{% t 'tickets.field_comment' 'Комментарий' %}</label>
         <textarea name="comment" class="tk-modal__textarea" rows="2"
-                  placeholder="Причина переназначения"></textarea>
+                  placeholder="{% t 'tickets.field_reassign_hint' 'Причина переназначения' %}"></textarea>
       </div>
       <div class="tk-modal__foot">
         <button type="button" class="tk-modal__btn tk-modal__btn--cancel"
-                id="reassignModalCancel">Отмена</button>
+                id="reassignModalCancel">{% t 'common.cancel' 'Отмена' %}</button>
         <button type="submit" class="tk-modal__btn tk-modal__btn--save">
-          <i class="bi bi-person-check"></i> Сохранить
+          <i class="bi bi-person-check"></i> {% t 'common.save' 'Сохранить' %}
         </button>
       </div>
     </form>

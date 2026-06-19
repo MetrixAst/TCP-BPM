@@ -4,15 +4,13 @@
 {% block title %}Реестр документов — metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&t=5">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&t=7">
 {% endblock styles %}
 
 {% block content %}
 <div class="hr-registry-page" id="hrRegistryPage">
 
   {% if employee_mode %}
-  {# ── Документы одного сотрудника ── #}
-
   <div class="hr-registry-top">
     <div style="display:flex; align-items:center; gap:12px;">
       <a href="{% url 'hr:documents_list' %}" class="hr-registry-btn hr-registry-btn--light">
@@ -20,23 +18,19 @@
       </a>
       <div>
         <h1>
-          <a href="{% url 'hr:employee_detail' selected_employee.pk %}"
-             style="color:inherit; text-decoration:none;">
+          <a href="{% url 'hr:employee_detail' selected_employee.pk %}" style="color:inherit;text-decoration:none;">
             {{ selected_employee.user.get_full_name|default:selected_employee.user.username }}
           </a>
         </h1>
         <p>{{ selected_employee.department|default:"Без отдела" }} · Документы</p>
       </div>
     </div>
-
     <div class="hr-registry-top__actions">
       {% if is_hr %}
-        <a href="{% url 'hr:documents_export' %}?employee_id={{ selected_employee.pk }}"
-           class="hr-registry-btn hr-registry-btn--light">
+        <a href="{% url 'hr:documents_export' %}?employee_id={{ selected_employee.pk }}" class="hr-registry-btn hr-registry-btn--light">
           <i class="bi bi-file-earmark-excel"></i> Excel
         </a>
-        <a href="{% url 'hr:documents_create' %}?employee_id={{ selected_employee.pk }}"
-           class="hr-registry-btn hr-registry-btn--primary">
+        <a href="{% url 'hr:documents_create' %}?employee_id={{ selected_employee.pk }}" class="hr-registry-btn hr-registry-btn--primary">
           <i class="bi bi-plus-lg"></i> Добавить документ
         </a>
       {% endif %}
@@ -71,23 +65,27 @@
             <td>
               <div class="hr-registry-actions">
                 {% if doc.file %}
-                  <a href="{{ doc.file.url }}" target="_blank" download
-                     class="hr-download-btn" title="Скачать документ">
-                    <i class="bi bi-download"></i>
-                    <span>Скачать документ</span>
-                  </a>
+                  {% with fname=doc.file.name furl=doc.file.url fpk=doc.pk %}
+                    {% if fname|oo_supported %}
+                      <a href="{{ fpk|oo_editor_url:'hr_document' }}" target="_blank" rel="noopener"
+                         class="hr-icon-btn hr-icon-btn--oo"
+                         title="{% if fname|oo_editable %}Редактировать в ONLYOFFICE{% else %}Открыть в ONLYOFFICE{% endif %}">
+                        <i class="bi {% if fname|oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
+                      </a>
+                    {% endif %}
+                    <a href="{{ furl }}" download class="hr-icon-btn" title="Скачать">
+                      <i class="bi bi-download"></i>
+                    </a>
+                  {% endwith %}
                 {% endif %}
                 {% if is_hr %}
-                  <a href="{% url 'hr:documents_edit' doc.pk %}"
-                     class="hr-registry-icon" title="Редактировать">
+                  <a href="{% url 'hr:documents_edit' doc.pk %}" class="hr-icon-btn" title="Редактировать">
                     <i class="bi bi-pencil"></i>
                   </a>
                   <form action="{% url 'hr:documents_delete' doc.pk %}" method="post"
-                        onsubmit="return confirm('Удалить документ?');">
+                        onsubmit="return confirm('Удалить документ?');" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit"
-                            class="hr-registry-icon hr-registry-icon--danger"
-                            title="Удалить">
+                    <button type="submit" class="hr-icon-btn hr-icon-btn--danger" title="Удалить">
                       <i class="bi bi-trash"></i>
                     </button>
                   </form>
@@ -101,13 +99,7 @@
               <div class="hr-registry-empty">
                 <i class="bi bi-folder2-open"></i>
                 <strong>Документов нет</strong>
-                <span>
-                  {% if is_hr %}
-                    Добавьте первый документ с помощью кнопки выше.
-                  {% else %}
-                    Кадровые документы ещё не загружены.
-                  {% endif %}
-                </span>
+                <span>{% if is_hr %}Добавьте первый документ.{% else %}Кадровые документы ещё не загружены.{% endif %}</span>
               </div>
             </td>
           </tr>
@@ -116,27 +108,19 @@
       </table>
     </div>
     {% if paginator.pages_count > 1 %}
-    <div class="hr-pagination">
-      {% show_paginator paginator %}
-    </div>
+    <div class="hr-pagination">{% show_paginator paginator %}</div>
     {% endif %}
   </div>
 
   {% else %}
-  {# ── Список сотрудников ── #}
-
   <div class="hr-registry-top">
-    <div>
-      <h1>Реестр документов</h1>
-    </div>
+    <div><h1>Реестр документов</h1></div>
     {% if is_hr %}
     <div class="hr-registry-top__actions">
-      <a href="{% url 'hr:documents_export' %}"
-         class="hr-registry-btn hr-registry-btn--light">
+      <a href="{% url 'hr:documents_export' %}" class="hr-registry-btn hr-registry-btn--light">
         <i class="bi bi-file-earmark-excel"></i> Экспорт всех
       </a>
-      <a href="{% url 'hr:documents_create' %}"
-         class="hr-registry-btn hr-registry-btn--primary">
+      <a href="{% url 'hr:documents_create' %}" class="hr-registry-btn hr-registry-btn--primary">
         <i class="bi bi-plus-lg"></i> Добавить документ
       </a>
     </div>
@@ -146,25 +130,17 @@
   {% if paginator.count %}
     <div class="hr-docs-employee-grid">
       {% for emp in paginator.items %}
-        <a href="{% url 'hr:documents_list' %}?employee_id={{ emp.pk }}"
-           class="hr-docs-emp-card">
+        <a href="{% url 'hr:documents_list' %}?employee_id={{ emp.pk }}" class="hr-docs-emp-card">
           <div class="hr-docs-emp-card__avatar">
             {{ emp.user.get_full_name|default:emp.user.username|slice:":1"|upper }}
           </div>
           <div class="hr-docs-emp-card__info">
-            <div class="hr-docs-emp-card__name">
-              {{ emp.user.get_full_name|default:emp.user.username }}
-            </div>
-            <div class="hr-docs-emp-card__dept">
-              {{ emp.department|default:"Без отдела" }}
-            </div>
+            <div class="hr-docs-emp-card__name">{{ emp.user.get_full_name|default:emp.user.username }}</div>
+            <div class="hr-docs-emp-card__dept">{{ emp.department|default:"Без отдела" }}</div>
             {% with cnt=emp.documents.count %}
             <div class="hr-docs-emp-card__count">
-              {% if cnt %}
-                <i class="bi bi-file-text"></i> {{ cnt }} докум.
-              {% else %}
-                <span class="hr-docs-emp-card__count--empty">Нет документов</span>
-              {% endif %}
+              {% if cnt %}<i class="bi bi-file-text"></i> {{ cnt }} докум.
+              {% else %}<span class="hr-docs-emp-card__count--empty">Нет документов</span>{% endif %}
             </div>
             {% endwith %}
           </div>
@@ -173,9 +149,7 @@
       {% endfor %}
     </div>
     {% if paginator.pages_count > 1 %}
-    <div class="hr-pagination">
-      {% show_paginator paginator %}
-    </div>
+    <div class="hr-pagination">{% show_paginator paginator %}</div>
     {% endif %}
   {% else %}
     <div class="hr-registry-panel">
@@ -186,12 +160,11 @@
       </div>
     </div>
   {% endif %}
-
   {% endif %}
 
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'site/js/apps/hr-registries.js' %}?v={{ static_version|default:'1' }}"></script>
+<script src="{% static 'site/js/apps/hr-registries.js' %}?v={{ static_version|default:'1'}}"></script>
 {% endblock scripts %}

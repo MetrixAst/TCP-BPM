@@ -1,5 +1,6 @@
 {% extends 'site/base.html' %}
 {% load static %}
+{% load static site_tags %}
 
 {% block title %}
   {% if is_own_profile %}Мой профиль{% else %}{{ user.get_name|default:user.username }}{% endif %} — metriX BPM
@@ -298,31 +299,34 @@
               </td>
               <td>{{ doc.expires_at|date:"d.m.Y"|default:"—" }}</td>
               <td>
-                <div class="emp-table__actions">
-                  {% if doc.file %}
-                    <a href="{{ doc.file.url }}" target="_blank" download
-                       class="hr-download-btn" title="Скачать документ">
-                      <i class="bi bi-download"></i>
-                      <span>Скачать документ</span>
+                {% if doc.file %}
+                {% with fname=doc.file.name furl=doc.file.url fpk=doc.pk %}
+                <div class="hr-registry-actions">
+                  {% if fname|oo_supported %}
+                    <a href="{{ fpk|oo_editor_url:'hr_document' }}" target="_blank" rel="noopener"
+                       class="hr-icon-btn hr-icon-btn--oo"
+                       title="{% if fname|oo_editable %}Редактировать в ONLYOFFICE{% else %}Открыть в ONLYOFFICE{% endif %}">
+                      <i class="bi {% if fname|oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
                     </a>
                   {% endif %}
+                  <a href="{{ furl }}" download class="hr-icon-btn" title="Скачать">
+                    <i class="bi bi-download"></i>
+                  </a>
                   {% if can_manage %}
-                    <a href="{% url 'hr:documents_edit' doc.pk %}"
-                       class="emp-icon-btn" title="Редактировать">
+                    <a href="{% url 'hr:documents_edit' fpk %}" class="hr-icon-btn" title="Редактировать">
                       <i class="bi bi-pencil"></i>
                     </a>
-                    <form action="{% url 'hr:documents_delete' doc.pk %}" method="post"
-                          onsubmit="return confirm('Удалить документ?');"
-                          style="display:inline;">
+                    <form action="{% url 'hr:documents_delete' fpk %}" method="post"
+                          onsubmit="return confirm('Удалить?');" style="display:inline;">
                       {% csrf_token %}
-                      <button type="submit"
-                              class="emp-icon-btn emp-icon-btn--danger"
-                              title="Удалить">
+                      <button type="submit" class="hr-icon-btn hr-icon-btn--danger" title="Удалить">
                         <i class="bi bi-trash"></i>
                       </button>
                     </form>
                   {% endif %}
                 </div>
+                {% endwith %}
+              {% endif %}
               </td>
             </tr>
             {% endfor %}
@@ -387,15 +391,26 @@
               <td>
                 <div class="emp-table__actions">
                   {% if cert.scan %}
-                    <a href="{{ cert.scan.url }}" target="_blank" class="emp-icon-btn">
-                      <i class="bi bi-file-earmark"></i>
+                  {% with fname=cert.scan.name furl=cert.scan.url fpk=cert.pk %}
+                  <div class="hr-registry-actions">
+                    {% if fname|oo_supported %}
+                      <a href="{{ fpk|oo_editor_url:'hr_cert' }}" target="_blank" rel="noopener"
+                         class="hr-icon-btn hr-icon-btn--oo"
+                         title="{% if fname|oo_editable %}Редактировать в ONLYOFFICE{% else %}Открыть в ONLYOFFICE{% endif %}">
+                        <i class="bi {% if fname|oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
+                      </a>
+                    {% endif %}
+                    <a href="{{ furl }}" download class="hr-icon-btn" title="Скачать">
+                      <i class="bi bi-download"></i>
                     </a>
-                  {% endif %}
-                  {% if can_manage %}
-                    <a href="{% url 'hr:certifications_edit' cert.pk %}" class="emp-icon-btn">
-                      <i class="bi bi-pencil"></i>
-                    </a>
-                  {% endif %}
+                    {% if can_manage %}
+                      <a href="{% url 'hr:certifications_edit' fpk %}" class="hr-icon-btn" title="Редактировать">
+                        <i class="bi bi-pencil"></i>
+                      </a>
+                    {% endif %}
+                  </div>
+                  {% endwith %}
+                {% endif %}
                 </div>
               </td>
             </tr>
@@ -449,10 +464,26 @@
               <td>
                 <div class="emp-table__actions">
                   {% if p.scan %}
-                    <a href="{{ p.scan.url }}" target="_blank" class="emp-icon-btn">
-                      <i class="bi bi-file-earmark"></i>
+                  {% with fname=p.scan.name furl=p.scan.url fpk=p.pk %}
+                  <div class="hr-registry-actions">
+                    {% if fname|oo_supported %}
+                      <a href="{{ fpk|oo_editor_url:'hr_permit' }}" target="_blank" rel="noopener"
+                         class="hr-icon-btn hr-icon-btn--oo"
+                         title="{% if fname|oo_editable %}Редактировать в ONLYOFFICE{% else %}Открыть в ONLYOFFICE{% endif %}">
+                        <i class="bi {% if fname|oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
+                      </a>
+                    {% endif %}
+                    <a href="{{ furl }}" download class="hr-icon-btn" title="Скачать">
+                      <i class="bi bi-download"></i>
                     </a>
-                  {% endif %}
+                    {% if can_manage %}
+                      <a href="{% url 'hr:permits_edit' fpk %}" class="hr-icon-btn" title="Редактировать">
+                        <i class="bi bi-pencil"></i>
+                      </a>
+                    {% endif %}
+                  </div>
+                  {% endwith %}
+                {% endif %}
                   {% if can_manage %}
                     <a href="{% url 'hr:permits_edit' p.pk %}" class="emp-icon-btn">
                       <i class="bi bi-pencil"></i>

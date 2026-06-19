@@ -248,3 +248,32 @@ def subtract(value, arg):
         return float(value) - float(arg)
     except (ValueError, TypeError):
         return ''
+
+@register.filter(name='oo_editor_url')
+def oo_editor_url(pk, kind):
+    """{{ f.id|oo_editor_url:'task_file' }} → /doc/attachment/task_file/123/editor/"""
+    try:
+        from django.urls import reverse
+        return reverse('documents:attachment_editor', args=[kind, pk])
+    except Exception:
+        return ''
+ 
+ 
+@register.filter(name='oo_supported')
+def oo_supported(filename):
+    """{{ f.filename|oo_supported }} → True/False"""
+    try:
+        from documents import onlyoffice
+        return onlyoffice.is_enabled() and onlyoffice.is_supported(str(filename))
+    except Exception:
+        return False
+ 
+ 
+@register.filter(name='oo_editable')
+def oo_editable_filter(filename):
+    """{{ f.filename|oo_editable }} → True/False"""
+    try:
+        from documents import onlyoffice
+        return onlyoffice.is_editable(str(filename))
+    except Exception:
+        return False
