@@ -289,8 +289,6 @@ MONTHS_EN = ['January','February','March','April','May','June',
 def bpm_date(context, value, time=False):
     if not value:
         return ''
-    if isinstance(value, str):
-        return value
     request = context.get('request')
     lang = 'ru'
     if request:

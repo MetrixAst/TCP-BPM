@@ -4,7 +4,6 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from account.role_permissions import login_required
 from account.services.access_scope import user_can_manage_access_scopes
-from account.i18n import translate
 
 from .forms import CounterpartyTypeForm
 from .models import CounterpartyType
@@ -25,7 +24,7 @@ def counterparty_type_list(request):
     types = CounterpartyType.objects.select_related('access_scope').order_by('sort_order', 'name')
     return render(request, 'site/onec/settings/counterparty_type_list.html', {
         'types': types,
-        'title': translate(getattr(request, 'current_lang', 'ru'), 'onec.types_title', default='Типы контрагентов и зоны доступа'),
+        'title': 'Типы контрагентов и зоны доступа',
     })
 
 
@@ -39,7 +38,7 @@ def counterparty_type_create(request):
         return redirect('onec:counterparty_type_list')
     return render(request, 'site/onec/settings/counterparty_type_form.html', {
         'form': form,
-        'title': translate(getattr(request, 'current_lang', 'ru'), 'onec.type_form_title_create', default='Новый тип контрагента'),
+        'title': 'Новый тип контрагента',
         'is_edit': False,
     })
 
@@ -56,7 +55,7 @@ def counterparty_type_edit(request, pk):
     return render(request, 'site/onec/settings/counterparty_type_form.html', {
         'form': form,
         'counterparty_type': counterparty_type,
-        'title': translate(getattr(request, 'current_lang', 'ru'), 'onec.type_form_title_edit', default='Редактирование типа'),
+        'title': 'Редактирование типа',
         'is_edit': True,
     })
 

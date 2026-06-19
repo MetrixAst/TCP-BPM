@@ -1,155 +1,163 @@
-from django.utils.translation import gettext_lazy as _
 from project.enums import CustomEnum
 
 
 class TaskStatusEnum(CustomEnum):
-    CREATED   = ("created",   _("Создана"))
-    ACCEPTED  = ("accepted",  _("Принята"))
-    REJECTED  = ("rejected",  _("Отклонена"))
-    REVISION  = ("revision",  _("На доработке"))
-    COMPLETED = ("completed", _("Завершена"))
+    CREATED = ("created", "Создана")
+    ACCEPTED = ("accepted", "Принята")
+    REJECTED = ("rejected", "Отклонена")
+    REVISION = ("revision", "На доработке")
+    COMPLETED = ("completed", "Завершена")
 
     @classmethod
     def get_full(cls):
-        return {
+        full = {
             cls.CREATED.value[0]: {
-                'title': str(cls.CREATED.value[1]),
+                'title': cls.CREATED.value[1],
                 'color': 'neutral',
             },
+
             cls.ACCEPTED.value[0]: {
-                'title': str(cls.ACCEPTED.value[1]),
+                'title': cls.ACCEPTED.value[1],
                 'color': 'info',
             },
+
             cls.REJECTED.value[0]: {
-                'title': str(cls.REJECTED.value[1]),
+                'title': cls.REJECTED.value[1],
                 'color': 'danger',
             },
+
             cls.REVISION.value[0]: {
-                'title': str(cls.REVISION.value[1]),
+                'title': cls.REVISION.value[1],
                 'color': 'warning',
             },
+
             cls.COMPLETED.value[0]: {
-                'title': str(cls.COMPLETED.value[1]),
+                'title': cls.COMPLETED.value[1],
                 'color': 'success',
             },
         }
 
+        return full
+
     @classmethod
     def get_info(cls, status):
-        return cls.get_full().get(status, {})
+        res = cls.get_full()
+        return res.get(status, {})
 
     @classmethod
     def get_actions(cls, status):
         actions = {
             cls.CREATED.value[0]: [
                 {
-                    'title': str(_('Принять')),
+                    'title': 'Принять',
                     'color': 'primary',
                     'action': 'accept',
                     'next': cls.ACCEPTED.value[0],
                 },
                 {
-                    'title': str(_('Отклонить')),
+                    'title': 'Отклонить',
                     'color': 'danger',
                     'action': 'reject',
                     'next': cls.REJECTED.value[0],
                 },
                 {
-                    'title': str(_('Отмена')),
+                    'title': 'Отмена',
                     'color': 'outline-dark',
                     'action': 'cancel',
                 },
             ],
             cls.ACCEPTED.value[0]: [
                 {
-                    'title': str(_('Завершить')),
+                    'title': 'Завершить',
                     'color': 'success',
                     'action': 'complete',
                     'next': cls.COMPLETED.value[0],
                 },
                 {
-                    'title': str(_('Отмена')),
+                    'title': 'Отмена',
                     'color': 'outline-dark',
                     'action': 'cancel',
                 },
             ],
             cls.COMPLETED.value[0]: [
                 {
-                    'title': str(_('На доработку')),
+                    'title': 'На доработку',
                     'color': 'warning',
                     'action': 'revision',
                     'next': cls.REVISION.value[0],
                 },
                 {
-                    'title': str(_('Отмена')),
+                    'title': 'Отмена',
                     'color': 'outline-dark',
                     'action': 'cancel',
                 },
             ],
             cls.REVISION.value[0]: [
                 {
-                    'title': str(_('Принять')),
+                    'title': 'Принять',
                     'color': 'primary',
                     'action': 'accept',
                     'next': cls.ACCEPTED.value[0],
                 },
                 {
-                    'title': str(_('Отмена')),
+                    'title': 'Отмена',
                     'color': 'outline-dark',
                     'action': 'cancel',
                 },
             ],
             cls.REJECTED.value[0]: [
                 {
-                    'title': str(_('Переоткрыть')),
+                    'title': 'Переоткрыть',
                     'color': 'secondary',
                     'action': 'reopen',
                     'next': cls.CREATED.value[0],
                 },
                 {
-                    'title': str(_('Отмена')),
+                    'title': 'Отмена',
                     'color': 'outline-dark',
                     'action': 'cancel',
                 },
             ],
         }
+
         return actions.get(status, None)
 
     @classmethod
     def get_notification_text(cls, status):
         res = {
             cls.CREATED.value[0]: {
-                'title': str(_('Новая задача')),
-                'text':  str(_('Создана новая задача')),
+                'title': 'Новая задача',
+                'text': 'Создана новая задача',
             },
             cls.ACCEPTED.value[0]: {
-                'title': str(_('Задача принята')),
-                'text':  str(_('Задача принята к исполнению')),
+                'title': 'Задача принята',
+                'text': 'Задача принята к исполнению',
             },
             cls.REJECTED.value[0]: {
-                'title': str(_('Задача отклонена')),
-                'text':  str(_('Задача была отклонена')),
+                'title': 'Задача отклонена',
+                'text': 'Задача была отклонена',
             },
             cls.REVISION.value[0]: {
-                'title': str(_('Задача отправлена на доработку')),
-                'text':  str(_('Задача требует доработки')),
+                'title': 'Задача отправлена на доработку',
+                'text': 'Задача требует доработки',
             },
             cls.COMPLETED.value[0]: {
-                'title': str(_('Задача завершена')),
-                'text':  str(_('Задача успешно завершена')),
+                'title': 'Задача завершена',
+                'text': 'Задача успешно завершена',
             },
         }
+
         return res.get(status, None)
 
 
 class PriorityEnum(CustomEnum):
-    LOW      = ("low",      _("Низкий"))
-    MEDIUM   = ("medium",   _("Средний"))
-    HIGH     = ("high",     _("Высокий"))
-    CRITICAL = ("critical", _("Критический"))
+    LOW = ("low", "Низкий")
+    MEDIUM = ("medium", "Средний")
+    HIGH = ("high", "Высокий")
+    CRITICAL = ("critical", "Критический")
 
 
 class TaskTypeEnum(CustomEnum):
-    ASSIGNMENT = ("assignment", _("Поручение"))
-    APPROVAL   = ("approval",  _("Согласование"))
-    DOCUMENT   = ("document",  _("Документ"))
+    ASSIGNMENT = ("assignment", "Поручение")
+    APPROVAL = ("approval", "Согласование")
+    DOCUMENT = ("document", "Документ")
