@@ -2,275 +2,324 @@
 {% load static %}
 {% load site_tags %}
 
+{% block title %}{% t 'profile.title' 'Профиль' %} — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
+
 {% block content %}
+<div class="prof-page">
 
-<div class="account-profile-page">
-
-  <div class="account-profile-hero">
-    <div>
-      <h1>{% t 'profile.title' 'Профиль' %}</h1>
-      <div class="account-profile-breadcrumb">
-        <a href="{% url 'dashboard:dashboard' %}">{% t 'common.home' 'Главная' %}</a>
-        <span>/</span>
-        <span>{{ user.username }}</span>
-      </div>
+  {# ── Шапка ── #}
+  <div class="tasks-page__top" style="margin-bottom:18px">
+    <div class="tasks-page__header">
+      <h1 class="tasks-page__title">{% t 'profile.title' 'Профиль' %}</h1>
     </div>
   </div>
 
-  <div class="account-profile-layout">
+  <div class="prof-layout">
 
-    <aside class="account-profile-sidebar">
-      <form method="POST" enctype="multipart/form-data" class="account-profile-avatar-form">
+    {# ── Сайдбар ── #}
+    <aside class="prof-sidebar">
+
+      <form method="POST" enctype="multipart/form-data" class="prof-avatar-form">
         {% csrf_token %}
         <input type="hidden" name="form_type" value="avatar">
-
-        <label class="account-profile-avatar">
+        <label class="prof-avatar">
           <img src="{{ user.get_avatar_url }}" alt="{{ user.username }}">
           <input type="file" name="avatar" accept="image/*" onchange="this.form.submit()">
-          <span class="account-profile-avatar__edit">
-            <i class="bi bi-camera"></i>
-          </span>
+          <span class="prof-avatar__edit"><i class="bi bi-camera"></i></span>
         </label>
       </form>
 
-      <h2>{{ user.get_name|default:user.username }}</h2>
+      <div class="prof-sidebar__name">{{ user.get_name|default:user.username }}</div>
 
       {% if info %}
-        <p>{{ user.employee_info.job_title }}</p>
-        <p>{{ user.employee_info.department }}</p>
+        <div class="prof-sidebar__sub">{{ user.employee_info.job_title }}</div>
+        <div class="prof-sidebar__sub">{{ user.employee_info.department }}</div>
       {% endif %}
 
-      <nav class="account-profile-menu">
-        <a class="active" data-bs-toggle="tab" href="#overviewTab" role="tab">
-          {% t 'profile.account' 'Аккаунт' %}
-        </a>
-
-        {% if info %}
-          <a data-bs-toggle="tab" href="#projectsTab" role="tab">
-            {% t 'profile.team' 'Команда' %}
-          </a>
-        {% endif %}
-
-        <a href="/">
-          {% t 'profile.logout' 'Выйти' %}
+      <nav class="prof-nav">
+        <a class="prof-nav__item prof-nav__item--danger" href="{% url 'account:logout' %}">
+          <i class="bi bi-box-arrow-right"></i> {% t 'profile.logout' 'Выйти' %}
         </a>
       </nav>
     </aside>
 
-    <main class="account-profile-content tab-content">
+    {# ── Контент ── #}
+    <main class="prof-content">
 
-      <div class="tab-pane fade show active" id="overviewTab" role="tabpanel">
-
-        <section class="account-profile-card">
-          <div class="account-profile-card__head">
-            <div>
-              <h2>{% t 'profile.account_settings' 'Настройки аккаунта' %}</h2>
-              <p>Основные данные пользователя</p>
-            </div>
+      {# Настройки аккаунта #}
+      <div class="tasks-panel" style="margin-bottom:16px">
+        <div class="prof-card__head">
+          <h2 class="prof-card__title">{% t 'profile.account_settings' 'Настройки аккаунта' %}</h2>
+        </div>
+        <form method="POST" enctype="multipart/form-data" class="prof-form" id="profileForm">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="profile">
+          {% for field in profile_form %}
+            {% if field.field.widget.input_type == "hidden" %}
+              {{ field }}
+            {% else %}
+              <div class="prof-field {% if field.errors %}is-invalid{% endif %}">
+                <label class="prof-field__label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                  <div class="prof-field__error">{{ field.errors.0 }}</div>
+                {% endif %}
+              </div>
+            {% endif %}
+          {% endfor %}
+          <div class="prof-form__footer">
+            <button type="submit" class="tasks-page__btn tasks-page__btn--primary">
+              {% t 'common.save' 'Сохранить' %}
+            </button>
           </div>
-
-          <form method="POST" enctype="multipart/form-data">
-            {% csrf_token %}
-            <input type="hidden" name="form_type" value="profile">
-            {% init_form profile_form True %}
-          </form>
-        </section>
-
-        <section class="account-profile-card">
-          <div class="account-profile-card__head">
-            <div>
-              <h2>{% t 'profile.password' 'Пароль' %}</h2>
-              <p>Изменение пароля аккаунта</p>
-            </div>
-          </div>
-
-          <form method="POST">
-            {% csrf_token %}
-            <input type="hidden" name="form_type" value="password">
-            {% init_form password_form True %}
-          </form>
-        </section>
-
+        </form>
       </div>
 
-      <div class="tab-pane fade" id="projectsTab" role="tabpanel">
-        <section class="account-profile-card">
-          <div class="chart-container" data-url="{% url 'account:structure' 'self' %}" style="height: 70vh;"></div>
-        </section>
+      {# Пароль #}
+      <div class="tasks-panel">
+        <div class="prof-card__head">
+          <h2 class="prof-card__title">{% t 'profile.password' 'Пароль' %}</h2>
+        </div>
+        <form method="POST" class="prof-form" id="passwordForm">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="password">
+          {% for field in password_form %}
+            {% if field.field.widget.input_type == "hidden" %}
+              {{ field }}
+            {% else %}
+              <div class="prof-field {% if field.errors %}is-invalid{% endif %}">
+                <label class="prof-field__label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                  <div class="prof-field__error">{{ field.errors.0 }}</div>
+                {% endif %}
+              </div>
+            {% endif %}
+          {% endfor %}
+          <div class="prof-form__footer">
+            <button type="submit" class="tasks-page__btn tasks-page__btn--primary">
+              {% t 'common.save' 'Сохранить' %}
+            </button>
+          </div>
+        </form>
       </div>
 
     </main>
-
   </div>
 </div>
 
 <style>
-.account-profile-page {
-  padding: 24px 28px 48px;
-}
+.prof-page { padding: 0; }
 
-.account-profile-hero {
-  margin-bottom: 22px;
-}
-
-.account-profile-hero h1 {
-  margin: 0 0 8px;
-  font-size: 44px;
-  line-height: 1.1;
-  font-weight: 700;
-  color: #101828;
-}
-
-.account-profile-breadcrumb {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  color: #8a92a6;
-  font-size: 14px;
-}
-
-.account-profile-breadcrumb a {
-  color: #2563eb;
-  text-decoration: none;
-}
-
-.account-profile-layout {
+.prof-layout {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
 }
 
-.account-profile-sidebar,
-.account-profile-card {
+/* ── Сайдбар ── */
+.prof-sidebar {
   background: #fff;
-  border: 1px solid #e8ecf4;
-  border-radius: 22px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, .04);
-}
-
-.account-profile-sidebar {
+  border-radius: 18px;
   padding: 20px;
-  height: fit-content;
+  position: sticky;
+  top: 16px;
 }
 
-.account-profile-avatar-form {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 18px;
-}
+.prof-avatar-form { display: flex; justify-content: center; margin-bottom: 16px; }
 
-.account-profile-avatar {
+.prof-avatar {
   position: relative;
-  width: 180px;
-  height: 180px;
-  border-radius: 24px;
+  width: 120px;
+  height: 120px;
+  border-radius: 18px;
   overflow: hidden;
-  background: #f3f6fb;
+  background: #f5f3fa;
   cursor: pointer;
+  display: block;
 }
 
-.account-profile-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.prof-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.prof-avatar input { display: none; }
 
-.account-profile-avatar input {
-  display: none;
-}
-
-.account-profile-avatar__edit {
+.prof-avatar__edit {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  background: #2563eb;
+  right: 8px; bottom: 8px;
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  background: #2f6bed;
   color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(47,107,237,.3);
+}
+
+.prof-sidebar__name { text-align: center; font-size: 15px; font-weight: 700; color: #25233f; margin-bottom: 4px; }
+.prof-sidebar__sub { text-align: center; font-size: 12px; color: #74728a; margin-bottom: 2px; }
+
+.prof-nav { margin-top: 20px; display: flex; flex-direction: column; gap: 2px; }
+
+.prof-nav__item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px;
+  color: #25233f; font-size: 13px; font-weight: 500;
+  text-decoration: none; transition: background .12s; cursor: pointer;
+}
+.prof-nav__item i { font-size: 15px; color: #74728a; }
+.prof-nav__item:hover { background: #f5f3fa; text-decoration: none; color: #25233f; }
+.prof-nav__item--danger { color: #ef4444; }
+.prof-nav__item--danger i { color: #ef4444; }
+.prof-nav__item--danger:hover { background: #feecec; color: #ef4444; }
+
+/* ── Карточки ── */
+.prof-card__head { margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid #f0eef6; }
+.prof-card__title { margin: 0 0 4px; font-size: 16px; font-weight: 700; color: #25233f; }
+.prof-card__sub { margin: 0; font-size: 12px; color: #74728a; }
+
+/* ── Форма — сетка ── */
+.prof-form {
   display: grid;
-  place-items: center;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, .3);
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
 }
 
-.account-profile-sidebar h2 {
-  margin: 0;
-  text-align: center;
-  font-size: 24px;
-  font-weight: 700;
-  color: #101828;
-}
-
-.account-profile-sidebar p {
-  margin: 6px 0 0;
-  text-align: center;
-  color: #667085;
-}
-
-.account-profile-menu {
-  margin-top: 24px;
+.prof-form__footer {
+  grid-column: 1 / -1;
   display: flex;
-  flex-direction: column;
+  justify-content: flex-end;
+  padding-top: 4px;
 }
 
-.account-profile-menu a {
-  padding: 14px 10px;
-  border-bottom: 1px solid #eef1f6;
-  color: #2563eb;
-  text-decoration: none;
-  font-weight: 500;
+.prof-field { display: flex; flex-direction: column; gap: 6px; }
+.prof-field__label { font-size: 11px; font-weight: 500; color: #74728a; }
+.prof-field__error { font-size: 11px; color: #ef4444; }
+
+/* ── Инпуты ── */
+.prof-form .form-control,
+.prof-form .form-select,
+.prof-form input:not([type="file"]):not([type="hidden"]):not([type="submit"]):not([type="checkbox"]),
+.prof-form select,
+.prof-form textarea {
+  width: 100% !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f5f3fa !important;
+  color: #25233f !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding: 0 16px !important;
+  outline: none !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
 }
 
-.account-profile-menu a.active {
-  color: #101828;
+.prof-form .form-control:focus,
+.prof-form input:focus,
+.prof-form select:focus {
+  box-shadow: 0 0 0 2px rgba(47,107,237,.15) !important;
+  border: 0 !important;
 }
 
-.account-profile-content {
-  min-width: 0;
+/* ── Select — стрелочка ── */
+.prof-form select,
+.prof-form .form-select {
+  background-color: #f5f3fa !important;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B6880' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 12px 8px !important;
+  padding-right: 36px !important;
+  cursor: pointer !important;
 }
 
-.account-profile-card {
-  padding: 22px;
-  margin-bottom: 24px;
+/* ── Кнопка submit ── */
+.prof-form .btn,
+.prof-form button[type="submit"],
+.prof-form input[type="submit"] {
+  height: 36px !important;
+  padding: 0 20px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #2f6bed !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
 }
 
-.account-profile-card__head {
-  margin-bottom: 20px;
+.prof-form .btn:hover,
+.prof-form button[type="submit"]:hover { background: #2458c7 !important; }
+.prof-form .btn i[data-acorn-icon] { display: none !important; }
+
+/* ── Bootstrap cleanup ── */
+.prof-form .row { margin: 0 !important; }
+.prof-form .col, .prof-form [class*="col-"] { padding: 0 !important; }
+.prof-form .form-label { display: none !important; }
+.prof-form .w-100 { width: 100% !important; }
+
+/* ── Datepicker ── */
+.datepicker-dropdown {
+  border: 0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 18px 48px rgba(15,23,42,.18) !important;
+  padding: 12px !important;
+  background: #fff !important;
+  z-index: 99999 !important;
 }
 
-.account-profile-card__head h2 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-  color: #101828;
+.datepicker table { width: 260px !important; margin: 0 !important; }
+
+.datepicker table tr td {
+  width: 34px !important; height: 34px !important;
+  border-radius: 999px !important;
+  font-size: 13px !important; color: #25233f !important;
+  text-align: center !important;
 }
 
-.account-profile-card__head p {
-  margin: 6px 0 0;
-  color: #8a92a6;
-}
+.datepicker table tr td.day:hover { background: #eef2ff !important; color: #2f6bed !important; }
+.datepicker table tr td.active,
+.datepicker table tr td.active:hover { background: #2f6bed !important; color: #fff !important; text-shadow: none !important; }
+.datepicker table tr td.today { background: #f5f3fa !important; color: #2f6bed !important; font-weight: 700 !important; }
+.datepicker table tr td.old, .datepicker table tr td.new { color: #c8c7d3 !important; }
+.datepicker table tr th { height: 36px !important; border-radius: 10px !important; font-size: 13px !important; font-weight: 700 !important; color: #25233f !important; }
+.datepicker .datepicker-switch:hover,
+.datepicker .prev:hover,
+.datepicker .next:hover { background: #f5f3fa !important; }
+.datepicker .dow { color: #74728a !important; font-size: 11px !important; font-weight: 600 !important; }
 
-.account-profile-card .form-control,
-.account-profile-card select {
-  border-radius: 12px;
-  min-height: 44px;
-}
-
-.account-profile-card button[type="submit"],
-.account-profile-card input[type="submit"] {
-  border-radius: 14px;
-  padding: 12px 24px;
-  background: #2563eb;
-  border: 0;
-  color: #fff;
-  font-weight: 600;
-}
-
-@media (max-width: 992px) {
-  .account-profile-layout {
-    grid-template-columns: 1fr;
-  }
-}
+@media (max-width: 900px) { .prof-layout { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .prof-form { grid-template-columns: 1fr; } }
 </style>
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Datepicker для поля birthday
+  var birthdayInput = document.querySelector('#profileForm input[name="birthday"]');
+  if (birthdayInput && typeof $.fn !== 'undefined' && $.fn.datepicker) {
+    $(birthdayInput).datepicker({
+      format: 'dd.mm.yyyy',
+      language: 'ru',
+      autoclose: true,
+      todayHighlight: true,
+      startView: 2,
+    });
+  }
+});
+</script>
+{% endblock %}
 
 {% endblock %}
