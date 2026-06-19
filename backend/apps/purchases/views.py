@@ -1,6 +1,8 @@
 from django.shortcuts import redirect, render
 from django.db.models import Q
+from django.http import Http404
 from account.role_permissions import need_permission, PermissionEnums, RolePermissions
+from account.services.access_scope import filter_suppliers_queryset, user_can_view_supplier
 from .forms import SupplierForm
 from .models import Supplier
 from project.utils import get_or_error, get_or_none
@@ -20,7 +22,7 @@ def suppliers_by_status(request, status = None):
 
     sync_counterparties_to_suppliers()
 
-    queryset = Supplier.objects.all()
+    queryset = filter_suppliers_queryset(Supplier.objects.all(), request.user)
     search = request.GET.get('search', '')
     page = int(request.GET.get('page', 1))
 
@@ -47,6 +49,9 @@ def suppliers_by_status(request, status = None):
 @need_permission(PermissionEnums.SUPPLIERS)
 def supplier(request, pk):
     current = get_or_error(Supplier, id=pk)
+
+    if not user_can_view_supplier(request.user, current):
+        raise Http404
 
     arr = {
         "ID": current.id,
@@ -103,7 +108,7 @@ def edit_supplier(request, pk):
                 new.author = request.user
             new.save()
             form.save_m2m()
-            
+
             return redirect('purchases:suppliers')
 
     context = {

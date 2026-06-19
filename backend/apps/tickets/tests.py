@@ -296,3 +296,116 @@ class TicketChatTest(TicketsBaseTest):
             'text': 'Попытка написать',
         })
         self.assertEqual(resp.status_code, 404)
+
+class TicketAttachmentTest(TicketsBaseTest):
+    def test_tenant_can_upload_attachment(self):
+        ticket = self._new_ticket()
+        ticket.assignee = self.manager
+        ticket.save()
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.force_login(self.tenant_user)
+        photo = SimpleUploadedFile('photo.jpg', b'fake jpg bytes', content_type='image/jpeg')
+        resp = self.client.post(
+            reverse('tickets:attachment_upload', args=[ticket.id]), {'file': photo},
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['ok'])
+        self.assertTrue(data['attachment']['is_image'])
+        self.assertEqual(ticket.attachments.count(), 1)
+
+    def test_upload_document_not_marked_as_image(self):
+        ticket = self._new_ticket()
+        ticket.assignee = self.manager
+        ticket.save()
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.force_login(self.tenant_user)
+        doc = SimpleUploadedFile('contract.pdf', b'%PDF-1.4 fake', content_type='application/pdf')
+        resp = self.client.post(
+            reverse('tickets:attachment_upload', args=[ticket.id]), {'file': doc},
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertFalse(data['attachment']['is_image'])
+
+    def test_outsider_cannot_upload(self):
+        ticket = self._new_ticket()
+        ticket.assignee = self.manager
+        ticket.save()
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.force_login(self.other_tenant_user)
+        photo = SimpleUploadedFile('photo.jpg', b'fake', content_type='image/jpeg')
+        resp = self.client.post(
+            reverse('tickets:attachment_upload', args=[ticket.id]), {'file': photo},
+        )
+        self.assertEqual(resp.status_code, 404)
+
+    def test_list_attachments(self):
+        from tickets.models import TicketAttachment
+        from django.core.files.base import ContentFile
+
+        ticket = self._new_ticket()
+        ticket.assignee = self.manager
+        ticket.save()
+        att = TicketAttachment.objects.create(request=ticket, uploaded_by=self.tenant_user)
+        att.file.save('photo.jpg', ContentFile(b'fake'), save=True)
+
+        self.client.force_login(self.manager)
+        resp = self.client.get(reverse('tickets:attachments_list', args=[ticket.id]))
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(len(data['attachments']), 1)
+
+    def test_owner_can_delete_attachment(self):
+        from tickets.models import TicketAttachment
+        from django.core.files.base import ContentFile
+
+        ticket = self._new_ticket()
+        ticket.assignee = self.manager
+        ticket.save()
+        att = TicketAttachment.objects.create(request=ticket, uploaded_by=self.tenant_user)
+        att.file.save('photo.jpg', ContentFile(b'fake'), save=True)
+
+        self.client.force_login(self.tenant_user)
+        resp = self.client.post(
+            reverse('tickets:attachment_delete', args=[ticket.id, att.id]),
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(ticket.attachments.count(), 0)
+
+    def test_non_owner_non_manager_cannot_delete(self):
+        from tickets.models import TicketAttachment
+        from django.core.files.base import ContentFile
+
+        ticket = self._new_ticket()
+        ticket.assignee = self.manager
+        ticket.save()
+        att = TicketAttachment.objects.create(request=ticket, uploaded_by=self.manager)
+        att.file.save('photo.jpg', ContentFile(b'fake'), save=True)
+
+        self.client.force_login(self.tenant_user)
+        resp = self.client.post(
+            reverse('tickets:attachment_delete', args=[ticket.id, att.id]),
+        )
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(ticket.attachments.count(), 1)
+
+    def test_manager_can_delete_any_attachment(self):
+        from tickets.models import TicketAttachment
+        from django.core.files.base import ContentFile
+
+        ticket = self._new_ticket()
+        ticket.assignee = self.manager
+        ticket.save()
+        att = TicketAttachment.objects.create(request=ticket, uploaded_by=self.tenant_user)
+        att.file.save('photo.jpg', ContentFile(b'fake'), save=True)
+
+        self.client.force_login(self.manager)
+        resp = self.client.post(
+            reverse('tickets:attachment_delete', args=[ticket.id, att.id]),
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(ticket.attachments.count(), 0)
