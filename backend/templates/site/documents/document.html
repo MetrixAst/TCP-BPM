@@ -44,15 +44,15 @@
       <div class="doc-detail-meta">
         <div>
           <div class="doc-detail-meta-label">Дата добавления</div>
-          <div class="doc-detail-meta-value">{{ document.date }}</div>
+          <div class="doc-detail-meta-value">{% bpm_date document.date %}</div>
         </div>
         <div>
           <div class="doc-detail-meta-label">Срок</div>
-          <div class="doc-detail-meta-value">{{ document.end_date|default:"—" }}</div>
+          <div class="doc-detail-meta-value">{% if document.end_date %}{% bpm_date document.end_date %}{% else %}—{% endif %}</div>
         </div>
         <div>
           <div class="doc-detail-meta-label">Дата регистрации</div>
-          <div class="doc-detail-meta-value">{{ document.reg_date|default:"—" }}</div>
+          <div class="doc-detail-meta-value">{% if document.reg_date %}{% bpm_date document.reg_date %}{% else %}—{% endif %}</div>
         </div>
         <div>
           <div class="doc-detail-meta-label">Статус</div>
@@ -137,7 +137,7 @@
           <tbody>
             {% for current in document.history.all %}
               <tr>
-                <td style="color:#74728a;white-space:nowrap;">{{ current.date }}</td>
+                <td style="color:#74728a;white-space:nowrap;">{% bpm_date current.date %}</td>
                 <td style="font-weight:500;">{{ current.user.get_name }}</td>
                 <td>{{ current.title }}</td>
                 <td style="color:#2563eb;">{{ current.text|default:"—" }}</td>
@@ -169,15 +169,15 @@
       </div>
       <div class="doc-info-row">
         <span class="doc-info-key">Дата добавления</span>
-        <span class="doc-info-val">{{ document.date }}</span>
+        <span class="doc-info-val">{% bpm_date document.date %}</span>
       </div>
       <div class="doc-info-row">
         <span class="doc-info-key">Срок</span>
-        <span class="doc-info-val">{{ document.end_date|default:"—" }}</span>
+        <span class="doc-info-val">{% if document.end_date %}{% bpm_date document.end_date %}{% else %}—{% endif %}</span>
       </div>
       <div class="doc-info-row">
         <span class="doc-info-key">Дата регистрации</span>
-        <span class="doc-info-val">{{ document.reg_date|default:"—" }}</span>
+        <span class="doc-info-val">{% if document.reg_date %}{% bpm_date document.reg_date %}{% else %}—{% endif %}</span>
       </div>
       {% if document.supplier %}
         <div class="doc-info-row">

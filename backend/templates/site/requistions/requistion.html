@@ -1,5 +1,6 @@
 {% extends 'site/base.html' %}
 {% load static %}
+{% load site_tags %}
 
 {% block content %}
 
@@ -105,7 +106,7 @@
                                         <div class="sh-5 d-flex align-items-center lh-1-25 text-muted">Дата добавления</div>
                                     </div>
                                     <div class="col-auto">
-                                        <div class="sh-5 d-flex align-items-center">{{current.date}}</div>
+                                        <div class="sh-5 d-flex align-items-center">{% bpm_date current.date %}</div>
                                     </div>
                                 </div>
                             </div>
@@ -213,7 +214,7 @@
 
                             {% for item in current.history.all %}
                                 <tr>
-                                    <td>{{item.date}}</td>
+                                    <td>{% bpm_date item.date %}</td>
                                     <td>{{item.user.get_name}}</td>
                                     <td>{{item.title}}</td>
                                     <td class="text-info">{{item.text}}</td>

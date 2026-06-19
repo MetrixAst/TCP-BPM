@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
@@ -136,7 +137,7 @@
             <tr>
               <td>
                 <a href="{% url 'ecopark:item' work.id %}" class="eco-work-link">{{ work.title }}</a>
-                <div class="eco-work-meta">{{ work.date }}</div>
+                <div class="eco-work-meta">{% bpm_date work.date %}</div>
                 <span class="eco-object-tag">{{ work.object }}</span>
               </td>
               <td>{{ work.executor }}</td>

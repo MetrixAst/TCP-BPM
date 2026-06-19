@@ -31,7 +31,7 @@
 
             {% if forloop.counter|divisibleby:2 %}
                 <div class="row g-0">
-                    <div class="col mb-2 justify-content-end align-items-center text-semi-large text-muted d-none d-md-flex">{{current.created_date}}</div>
+                    <div class="col mb-2 justify-content-end align-items-center text-semi-large text-muted d-none d-md-flex">{{current.created_date|date:"d.m.Y H:i"}}</div>
                     <div class="col-auto sw-7 d-flex flex-column justify-content-center align-items-center position-relative me-4 ms-0 ms-md-4">
                         <div class="w-100 d-flex h-100"></div>
                         <div
@@ -57,7 +57,7 @@
                                         <span class="stretched-link">{{current.title}}</span>
                                     {% endif %}
                                     
-                                    <div class="text-alternate d-md-none mb-2">{{current.created_date}}</div>
+                                    <div class="text-alternate d-md-none mb-2">{{current.created_date|date:"d.m.Y H:i"}}</div>
                                     <div class="text-muted">{{current.text}}</div>
                                 </div>
                             </div>
@@ -66,7 +66,7 @@
                 </div>
             {% else %}
                 <div class="row g-0">
-                    <div class="col mb-2 justify-content-start align-items-center text-semi-large text-muted d-none d-md-flex order-md-3">{{current.created_date}}</div>
+                    <div class="col mb-2 justify-content-start align-items-center text-semi-large text-muted d-none d-md-flex order-md-3">{{current.created_date|date:"d.m.Y H:i"}}</div>
                     <div class="col-auto sw-7 d-flex flex-column justify-content-center align-items-center position-relative me-4 ms-0 ms-md-4 order-md-2">
                         <div class="w-100 d-flex h-100 justify-content-center position-relative">
                             <div class="line-w-1 bg-separator h-100 position-absolute"></div>
@@ -94,7 +94,7 @@
                                         <span class="stretched-link">{{current.title}}</span>
                                     {% endif %}
                                     
-                                    <div class="text-alternate d-md-none mb-2">{{current.created_date}}</div>
+                                    <div class="text-alternate d-md-none mb-2">{{current.created_date|date:"d.m.Y H:i"}}</div>
                                     <div class="text-muted">{{current.text}}</div>
                                 </div>
                             </div>
