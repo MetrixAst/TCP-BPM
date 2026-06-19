@@ -18,6 +18,7 @@ from .models import Task, TaskFile, TaskChecklistItem, TaskLineItem, TaskUserFla
 from .forms import TaskForm
 
 
+
 def is_ajax(request):
     return request.headers.get("x-requested-with") == "XMLHttpRequest"
 
