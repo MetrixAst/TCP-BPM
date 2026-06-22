@@ -281,7 +281,9 @@
     "kpi_expenses_month": "Шығындар (ай)",
     "period_90_days": "90 күн ішінде",
     "period_ytd": "жыл басынан",
-    "period_current_month": "ағымдағы ай"
+    "period_current_month": "ағымдағы ай",
+    "records_count": "жазба",
+    "first_500": "(алғашқы 500 көрсетілген)"
   },
   "dashboard": {
     "welcome": "Қош келдіңіз",

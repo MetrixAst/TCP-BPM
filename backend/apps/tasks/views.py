@@ -505,6 +505,7 @@ def task_file_add(request, pk):
             'url': obj.file.url,
             'size': obj.file.size,
             'uploaded_by': request.user.get_name,
+            'oo_url': request.build_absolute_uri(f'/doc/attachment/task_file/{obj.id}/editor/') if obj.filename.lower().endswith(('.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx')) else None,
         })
     return JsonResponse({'ok': True, 'files': created})
 

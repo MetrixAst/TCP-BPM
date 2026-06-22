@@ -10,6 +10,90 @@
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap-datepicker3.standalone.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/apps/docs.css' %}?v={{ static_version|default:'1' }}">
+
+<style>
+  .doc-filter-date-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  
+  .doc-filter-date-icon {
+    position: absolute;
+    left: 12px;
+    color: #9a98aa;
+    font-size: 13px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  
+  .doc-filter-field--date input,
+  .doc-filter-field--date .form-control {
+    padding-left: 34px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: #f5f3fa !important;
+    height: 36px !important;
+    font-size: 13px !important;
+    box-shadow: none !important;
+    outline: none !important;
+    cursor: pointer;
+    width: 100% !important;
+  }
+  
+  .doc-filter-field--date .input-group {
+    display: block !important;
+  }
+  
+  .doc-filter-field--date .input-group-prepend,
+  .doc-filter-field--date .input-group-append {
+    display: none !important;
+  }
+  
+  /* Datepicker стиль */
+  .datepicker-dropdown {
+    border: 0 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 18px 48px rgba(15,23,42,.18) !important;
+    padding: 12px !important;
+    background: #fff !important;
+    z-index: 99999 !important;
+  }
+  
+  .datepicker table tr td {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 999px !important;
+    font-size: 13px !important;
+    color: #25233f !important;
+  }
+  
+  .datepicker table tr td.day:hover { background: #eef2ff !important; color: #2f6bed !important; }
+  .datepicker table tr td.active,
+  .datepicker table tr td.active:hover { background: #2f6bed !important; color: #fff !important; text-shadow: none !important; }
+  .datepicker table tr td.today { background: #f5f3fa !important; color: #2f6bed !important; font-weight: 700 !important; }
+  .datepicker table tr td.old, .datepicker table tr td.new { color: #c8c7d3 !important; }
+  .datepicker table tr th { height: 36px !important; border-radius: 10px !important; font-size: 13px !important; font-weight: 700 !important; color: #25233f !important; }
+  .datepicker .datepicker-switch:hover,
+  .datepicker .prev:hover,
+  .datepicker .next:hover { background: #f5f3fa !important; }
+  .datepicker .dow { color: #74728a !important; font-size: 11px !important; font-weight: 600 !important; }
+
+  .doc-filter-field--date input,
+  .doc-filter-field--date .form-control {
+    padding-left: 34px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: #f5f3fa !important;
+    height: 36px !important;
+    font-size: 13px !important;
+    box-shadow: none !important;
+    outline: none !important;
+    cursor: pointer;
+    width: 140px !important;  /* ← уменьшили */
+    min-width: 140px !important;
+  }
+  </style>
 {% endblock %}
 
 {% block content %}
@@ -25,10 +109,13 @@
     {% for field in form %}
       {% if field.field.widget.input_type == "hidden" %}
         {{ field }}
-      {% elif field.field.widget.input_type == "text" or field.field.widget.input_type == "search" %}
-        <div class="doc-filter-field doc-filter-field--search">
+      {% elif field.field.widget.input_type == "date" %}
+        <div class="doc-filter-field doc-filter-field--date">
           <span class="doc-filter-label">{{ field.label }}</span>
-          <div class="doc-filter-search-wrap">{{ field }}</div>
+          <div class="doc-filter-date-wrap">
+            <i class="bi bi-calendar3 doc-filter-date-icon"></i>
+            {{ field }}
+          </div>
         </div>
       {% elif field.field.widget.input_type == "date" %}
         <div class="doc-filter-field doc-filter-field--date">
@@ -246,10 +333,9 @@
     }
 
     // ── Датепикер на поля с датой ──
-    var $dateInputs = $('#filter_form .doc-filter-field--date input');
-    $dateInputs.closest('.input-group')
-      .css('display', 'block')
-      .find('.input-group-prepend, .input-group-append').hide();
+    var $dateInputs = $('#filter_form .doc-filter-field--date input, #filter_form .single_date_picker');
+    $dateInputs.closest('.input-group').css('display', 'block');
+    $dateInputs.closest('.input-group').find('.input-group-prepend, .input-group-append').remove();
 
     $dateInputs.datepicker({
       autoclose: true,
@@ -267,5 +353,14 @@
 
   });
 })(window.jQuery);
+
+// Datepicker для всех полей с классом single_date_picker
+$('.single_date_picker').datepicker({
+  autoclose: true,
+  language: 'ru',
+  format: 'dd.mm.yyyy',
+  todayHighlight: true,
+  orientation: 'bottom auto'
+});
 </script>
 {% endblock %}

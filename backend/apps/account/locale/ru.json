@@ -281,7 +281,9 @@
     "kpi_expenses_month": "Расходы (месяц)",
     "period_90_days": "за 90 дней",
     "period_ytd": "с начала года",
-    "period_current_month": "текущий месяц"
+    "period_current_month": "текущий месяц",
+    "records_count": "записей",
+    "first_500": "(показаны первые 500)"
   },
   "dashboard": {
     "welcome": "Добро пожаловать",

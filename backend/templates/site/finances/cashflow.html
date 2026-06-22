@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block title %}Реестр ДДС | metriX BPM{% endblock %}
 
@@ -86,7 +87,7 @@
     <div class="fin-table-head">
       <div>
         <div class="fin-table-title">Операции</div>
-        <div class="fin-table-subtitle">{{ records|length }} запис{{ records|length|pluralize:"ь,и,ей" }}{% if records|length >= 500 %} (показаны первые 500){% endif %}</div>
+<div class="fin-table-subtitle">{{ records|length }} {% t 'finances.records_count' 'записей' %}{% if records|length >= 500 %} {% t 'finances.first_500' '(показаны первые 500)' %}{% endif %}</div>
       </div>
       <div class="fin-legend">
         <span class="fin-legend__dot fin-legend__dot--success"></span>Приход
