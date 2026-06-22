@@ -1,5 +1,10 @@
 'use strict';
 
+/* ─── Translation helper ──────────────────────────────────── */
+function t(key) {
+  return (window.BPM && window.BPM.t) ? window.BPM.t(key, key) : key;
+}
+
 /* ─── Chart instances ─────────────────────────────────────── */
 let cashflowChartInstance = null;
 let weeklyChartInstance   = null;
@@ -54,7 +59,7 @@ async function loadCashflowChart(days) {
         labels,
         datasets: [
           {
-            label: 'Поступления',
+            label: t('Поступления'),
             data: income,
             backgroundColor: 'rgba(47, 107, 237, 0.75)',
             borderColor: 'rgba(47, 107, 237, 0)',
@@ -64,7 +69,7 @@ async function loadCashflowChart(days) {
             order: 2,
           },
           {
-            label: 'Выбытия',
+            label: t('Выбытия'),
             data: expense,
             backgroundColor: 'rgba(255, 149, 0, 0.65)',
             borderColor: 'rgba(255, 149, 0, 0)',
@@ -74,7 +79,7 @@ async function loadCashflowChart(days) {
             order: 2,
           },
           {
-            label: 'Чистый CF',
+            label: t('Чистый CF'),
             data: net,
             type: 'line',
             borderColor: '#25233f',
@@ -128,7 +133,7 @@ async function loadWeeklyChart(weeks) {
         labels,
         datasets: [
           {
-            label: 'Чистый CF (нед.)',
+            label: t('Чистый CF (нед.)'),
             data: netCf,
             borderColor: '#2f6bed',
             borderWidth: 2.5,
@@ -231,8 +236,8 @@ async function openDrillPanel(type, period) {
   const titleEl = document.getElementById('drillTitle');
   const bodyEl  = document.getElementById('drillBody');
 
-  titleEl.textContent = DRILL_TITLES[type] || type;
-  bodyEl.innerHTML = '<div class="fin-empty"><span class="fin-spinner"></span> Загрузка...</div>';
+  titleEl.textContent = t(DRILL_TITLES[type] || type);
+  bodyEl.innerHTML = `<div class="fin-empty"><span class="fin-spinner"></span> ${t('Загрузка...')}</div>`;
   panel.classList.add('is-open');
   panel.setAttribute('aria-hidden', 'false');
 
@@ -243,7 +248,7 @@ async function openDrillPanel(type, period) {
     const rows = data.data || [];
 
     if (!rows.length) {
-      bodyEl.innerHTML = '<div class="fin-empty"><i class="bi bi-inbox"></i> Нет данных</div>';
+      bodyEl.innerHTML = `<div class="fin-empty"><i class="bi bi-inbox"></i> ${t('Нет данных')}</div>`;
       return;
     }
 
@@ -269,7 +274,7 @@ async function openDrillPanel(type, period) {
     html += '</tbody></table></div>';
     bodyEl.innerHTML = html;
   } catch (e) {
-    bodyEl.innerHTML = '<div class="fin-empty fin-empty--danger"><i class="bi bi-exclamation-circle"></i> Ошибка загрузки</div>';
+    bodyEl.innerHTML = `<div class="fin-empty fin-empty--danger"><i class="bi bi-exclamation-circle"></i> ${t('Ошибка загрузки')}</div>`;
     console.error('drill-down error', e);
   }
 }
@@ -302,7 +307,7 @@ async function refreshKPIs() {
       netEl.classList.toggle('fin-kpi-value--success', data.net_cf >= 0);
       netEl.classList.toggle('fin-kpi-value--danger', data.net_cf < 0);
     }
-    set('kpi-overdue-amount',data.overdue_amount);
+    set('kpi-overdue-amount', data.overdue_amount);
 
     const trendEl = document.getElementById('kpi-revenue-trend');
     if (trendEl && data.revenue_mtd_change !== undefined) {
@@ -313,7 +318,7 @@ async function refreshKPIs() {
 
     const countEl = document.getElementById('kpi-overdue-count');
     if (countEl && data.overdue_count !== undefined) {
-      countEl.textContent = `${data.overdue_count} позиций`;
+      countEl.textContent = `${data.overdue_count} ${t('позиций')}`;
     }
   } catch (e) {
     console.warn('KPI refresh failed', e);
@@ -322,11 +327,9 @@ async function refreshKPIs() {
 
 /* ─── Init ───────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  /* charts */
   loadCashflowChart(30);
   loadWeeklyChart(12);
 
-  /* cashflow toggle */
   document.querySelectorAll('.fin-chart-btn[data-days]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.fin-chart-btn[data-days]').forEach(b => b.classList.remove('is-active'));
@@ -335,7 +338,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* KPI drill-down on card click / keyboard */
   document.querySelectorAll('.fin-kpi-card[data-drill-type]').forEach(card => {
     const open = () => openDrillPanel(card.dataset.drillType, card.dataset.drillPeriod || '');
     card.addEventListener('click', open);
@@ -347,7 +349,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* close drill panel */
   document.querySelectorAll('[data-close-drill]').forEach(el => {
     el.addEventListener('click', closeDrillPanel);
   });
@@ -355,30 +356,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') closeDrillPanel();
   });
 
-  /* KPI auto-refresh every 5 min */
   setInterval(refreshKPIs, 5 * 60 * 1000);
 });
 
 
 (function () {
   'use strict';
- 
+
   function getCsrf() {
     const el = document.querySelector('[name=csrfmiddlewaretoken]');
     if (el) return el.value;
     const m = document.cookie.match(/csrftoken=([^;]+)/);
     return m ? m[1] : '';
   }
- 
+
   document.querySelectorAll('[data-checkin-action]').forEach(function (btn) {
     btn.addEventListener('click', async function () {
       const action = btn.dataset.checkinAction;
       const url    = btn.dataset.checkinUrl;
- 
+
       btn.disabled = true;
       const origHtml = btn.innerHTML;
-      btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:task-spin .7s linear infinite;display:inline-block"></i> Загрузка...';
- 
+      btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:task-spin .7s linear infinite;display:inline-block"></i> ' + t('Загрузка...');
+
       try {
         const res = await fetch(url, {
           method: 'POST',
@@ -390,20 +390,19 @@ document.addEventListener('DOMContentLoaded', () => {
           credentials: 'same-origin',
           body: JSON.stringify({ action: action }),
         });
- 
+
         const data = await res.json();
- 
+
         if (res.ok && data.ok !== false) {
-          // Перезагружаем страницу чтобы обновить статус
           window.location.reload();
         } else {
-          alert(data.message || 'Ошибка отметки');
+          alert(data.message || t('Ошибка'));
           btn.disabled = false;
           btn.innerHTML = origHtml;
         }
       } catch (err) {
         console.error(err);
-        alert('Ошибка сети');
+        alert(t('Ошибка'));
         btn.disabled = false;
         btn.innerHTML = origHtml;
       }

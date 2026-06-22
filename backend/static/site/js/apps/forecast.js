@@ -1,5 +1,9 @@
 'use strict';
 
+function t(key) {
+  return (window.BPM && window.BPM.t) ? window.BPM.t(key, key) : key;
+}
+
 /* ─── Chart instances ─────────────────────────────────────── */
 let forecastChartInstance   = null;
 let scenarioChartInstance   = null;
@@ -47,7 +51,7 @@ async function loadForecast(days) {
         labels,
         datasets: [
           {
-            label: 'Прогноз поступлений',
+            label: t('Прогноз поступлений'),
             data: income,
             borderColor: '#2f6bed',
             backgroundColor: 'rgba(47,107,237,0.08)',
@@ -56,7 +60,7 @@ async function loadForecast(days) {
             pointRadius: 3,
           },
           {
-            label: 'Прогноз расходов',
+            label: t('Прогноз расходов'),
             data: expense,
             borderColor: '#ff3b30',
             backgroundColor: 'rgba(255,59,48,0.06)',
@@ -65,7 +69,7 @@ async function loadForecast(days) {
             pointRadius: 3,
           },
           {
-            label: 'Чистый CF',
+            label: t('Чистый CF'),
             data: net,
             borderColor: '#7b7890',
             backgroundColor: 'transparent',
@@ -101,7 +105,7 @@ async function loadForecast(days) {
     if (alertEl) {
       const gaps = data.gap_dates || [];
       if (gaps.length > 0) {
-        alertEl.textContent = `⚠ Ближайший кассовый разрыв: ${gaps[0]}`;
+        alertEl.textContent = `⚠ ${t('Ближайший кассовый разрыв:')} ${gaps[0]}`;
         alertEl.style.display = 'block';
       } else {
         alertEl.style.display = 'none';
@@ -123,7 +127,7 @@ async function loadScenarioChart(pk, name) {
   const canvas   = document.getElementById('scenarioChart');
 
   if (card) card.style.display = '';
-  if (titleEl) titleEl.textContent = name || `Сценарий #${pk}`;
+  if (titleEl) titleEl.textContent = name || `${t('Сценарий')} #${pk}`;
 
   try {
     const resp = await fetch(`/finances/scenarios/${pk}/json/`);
@@ -135,7 +139,7 @@ async function loadScenarioChart(pk, name) {
 
     if (titleEl) {
       const dscr = d.dscr != null ? Number(d.dscr).toFixed(4) : '—';
-      titleEl.textContent = `${d.name} (${d.scenario}) — DSCR: ${dscr} | Риск: ${d.risk_level}`;
+      titleEl.textContent = `${d.name} (${d.scenario}) — DSCR: ${dscr} | ${t('Риск')}: ${d.risk_level}`;
     }
 
     const ctx = canvas.getContext('2d');
@@ -146,7 +150,7 @@ async function loadScenarioChart(pk, name) {
       data: {
         labels,
         datasets: [{
-          label: 'Прогноз ДДС, ₸',
+          label: t('Прогноз ДДС, ₸'),
           data: values,
           backgroundColor: values.map(v => v >= 0 ? 'rgba(34,168,90,0.65)' : 'rgba(255,59,48,0.65)'),
           borderColor:      values.map(v => v >= 0 ? '#22a85a' : '#ff3b30'),
@@ -173,15 +177,12 @@ async function loadScenarioChart(pk, name) {
 
 /* ─── Init ───────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  /* Default forecast load */
   loadForecast(90);
 
-  /* Forecast horizon toggle */
   document.querySelectorAll('.fin-chart-btn[data-forecast-days]').forEach(btn => {
     btn.addEventListener('click', () => loadForecast(Number(btn.dataset.forecastDays)));
   });
 
-  /* Scenario buttons (delegated) */
   document.addEventListener('click', e => {
     const btn = e.target.closest('[data-scenario-pk]');
     if (btn) {

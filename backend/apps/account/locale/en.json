@@ -48,7 +48,8 @@
     "delete": "Delete",
     "download": "Download",
     "copy_link": "Copy link",
-    "send": "Send"
+    "send": "Send",
+    "days_short": "days"
   },
   "auth": {
     "title": "Sign in — metriX BPM",
@@ -228,5 +229,10 @@
       "new_password1": "New password",
       "new_password2": "Repeat new password"
     }
+  },
+  "chart": {
+  "30d": "30d",
+  "60d": "60d",
+  "90d": "90d"
   }
 }
