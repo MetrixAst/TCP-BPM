@@ -50,7 +50,8 @@
     "copy_link": "Сілтемені көшіру",
     "send": "Жіберу",
     "days_short": "күн",
-    "payment_short": "төл."
+    "payment_short": "төл.",
+    "hours_short": "с."
   },
   "invoice": {
     "sent_via": "Арқылы жіберілді"
@@ -240,5 +241,24 @@
   "30d": "30к",
   "60d": "60к",
   "90d": "90к"
+  },
+  "documents": {
+    "location": "Орналасуы",
+    "root_level": "Түбірлік деңгей"
+  },
+  "counterparty": {
+    "main_info": "Негізгі ақпарат",
+    "short_name": "Қысқа атауы",
+    "full_name": "Толық атауы",
+    "description": "Сипаттама",
+    "website": "Сайт / сілтеме",
+    "activity_type": "Қызмет түрі",
+    "founded_date": "Құрылған күні",
+    "type": "Контрагент түрі",
+    "type_and_access": "Түрі және қол жеткізу аймағы",
+    "category": "Санат",
+    "no_type": "— түрі жоқ (барлығы көреді) —",
+    "supplier": "Жеткізуші",
+    "customer": "Клиент"
   }
 }

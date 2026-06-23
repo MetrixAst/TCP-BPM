@@ -64,7 +64,7 @@
             <th>Арендатор</th>
             <th>Категория</th>
             <th>Площадь</th>
-            <th>Ставка / м²</th>
+            <th>Ставка / {% t 'common.sqm' 'м²' %}</th>
             <th>Окончание</th>
             <th>Статус</th>
             <th>Портал</th>
@@ -78,7 +78,7 @@
               <a href="{% url 'tenants:detail' current.id %}" class="onec-name">{{ current.name }}</a>
             </td>
             <td>{% if current.category %}{{ current.category.title }}{% else %}—{% endif %}</td>
-            <td>{{ current.area|floatformat:0 }} м²</td>
+            <td>{{ current.area|floatformat:0 }} {% t 'common.sqm' 'м²' %}</td>
             <td>{{ current.price|floatformat:0 }} ₸</td>
             <td><span class="onec-mono">{{ current.end_date|date:"d.m.Y" }}</span></td>
             <td>
@@ -151,11 +151,11 @@
                         <div class="tenant-form-section__title">Условия аренды</div>
                         <div class="tenant-form-grid">
                             <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_area">Площадь, м² <span>*</span></label>
+                                <label class="tenant-form-label" for="id_area">Площадь, {% t 'common.sqm' 'м²' %} <span>*</span></label>
                                 {{ tenant_form.area }}
                             </div>
                             <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_price">Ставка за м², ₸ <span>*</span></label>
+                                <label class="tenant-form-label" for="id_price">Ставка за {% t 'common.sqm' 'м²' %}, ₸ <span>*</span></label>
                                 {{ tenant_form.price }}
                             </div>
                             <div class="tenant-form-field">

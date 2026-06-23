@@ -50,7 +50,8 @@
     "copy_link": "Скопировать ссылку",
     "send": "Отправить",
     "days_short": "дн.",
-    "payment_short": "пл."
+    "payment_short": "пл.",
+    "hours_short": "ч."
   },
   "auth": {
     "title": "Вход — metriX BPM",
@@ -237,5 +238,9 @@
   "30d": "30д",
   "60d": "60д",
   "90d": "90д"
+  },
+  "documents": {
+    "location": "Расположение",
+    "root_level": "Корневой уровень"
   }
 }

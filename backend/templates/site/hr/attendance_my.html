@@ -1,5 +1,6 @@
 {% extends 'site/base.html' %}
 {% load static %}
+{% load site_tags %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&att=1">
@@ -111,7 +112,7 @@
               {% if item.no_record %}
                 <span class="attendance-table__empty">Нет данных</span>
               {% else %}
-                <strong>{{ item.total_hours|floatformat:1 }} ч.</strong>
+                <strong>{{ item.total_hours|floatformat:1 }} {% t 'common.hours_short' 'ч.' %}</strong>
                 {% if item.late %}
                   <span class="attendance-table__late-text"> · Опоздание</span>
                 {% endif %}

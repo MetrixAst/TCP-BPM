@@ -50,7 +50,8 @@
     "copy_link": "Copy link",
     "send": "Send",
     "days_short": "days",
-    "payment_short": "pay."
+    "payment_short": "pay.",
+    "hours_short": "h."
   },
   "auth": {
     "title": "Sign in — metriX BPM",
@@ -240,5 +241,24 @@
   "30d": "30d",
   "60d": "60d",
   "90d": "90d"
+  },
+  "documents": {
+    "location": "Location",
+    "root_level": "Root level"
+  },
+  "counterparty": {
+    "main_info": "Main information",
+    "short_name": "Short name",
+    "full_name": "Full name",
+    "description": "Description",
+    "website": "Website / link",
+    "activity_type": "Business type",
+    "founded_date": "Founded date",
+    "type": "Counterparty type",
+    "type_and_access": "Type and access zone",
+    "category": "Category",
+    "no_type": "— no type (visible to all) —",
+    "supplier": "Supplier",
+    "customer": "Client"
   }
 }
