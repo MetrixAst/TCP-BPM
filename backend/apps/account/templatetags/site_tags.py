@@ -313,3 +313,52 @@ def bpm_date(context, value, time=False):
     if time and hasattr(value, 'hour'):
         return f"{value.day} {month} {value.year} {value.hour:02d}:{value.minute:02d}"
     return f"{value.day} {month} {value.year}"
+
+
+def _plural_index_ru(n):
+    """Индекс формы для русского/казахского: 0 — одна, 1 — несколько, 2 — много."""
+    n = abs(int(n))
+    if n % 10 == 1 and n % 100 != 11:
+        return 0
+    if 2 <= n % 10 <= 4 and not (12 <= n % 100 <= 14):
+        return 1
+    return 2
+
+
+def _plural_index_en(n):
+    """Индекс формы для английского: 0 — единственное, 1 — множественное."""
+    return 0 if abs(int(n)) == 1 else 1
+
+
+@register.simple_tag(takes_context=True)
+def plural_t(context, count, key, default=''):
+    """
+    Плюрализация с учётом языка.
+    В JSON значение хранится через | разделитель:
+      ru/kk: "форма1|форма2|форма3"  (1 запись | 2 записи | 5 записей)
+      en:    "форма1|форма2"          (1 record | 2 records)
+
+    Использование:
+      {% plural_t rows|length 'finances.categories' 'категория|категории|категорий' %}
+    """
+    request = context.get('request')
+    lang = getattr(request, 'current_lang', DEFAULT_LANG) if request else DEFAULT_LANG
+
+    raw = translate(lang, key, default=default or key)
+    forms = [f.strip() for f in str(raw).split('|')]
+
+    try:
+        n = int(count)
+    except (ValueError, TypeError):
+        n = 0
+
+    if lang == 'en':
+        idx = _plural_index_en(n)
+    else:
+        idx = _plural_index_ru(n)
+
+    # Защита: если форм меньше чем нужно — берём последнюю доступную
+    if idx >= len(forms):
+        idx = len(forms) - 1
+
+    return forms[idx] if forms else ''
