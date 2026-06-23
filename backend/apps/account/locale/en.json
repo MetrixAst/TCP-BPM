@@ -203,7 +203,9 @@
     "kpi_expenses_month": "Expenses (month)",
     "period_90_days": "last 90 days",
     "period_ytd": "year to date",
-    "period_current_month": "current month"
+    "period_current_month": "current month",
+    "records_count": "records",
+    "first_500": "(first 500 shown)"
   },
   "dashboard": {
     "welcome": "Welcome",

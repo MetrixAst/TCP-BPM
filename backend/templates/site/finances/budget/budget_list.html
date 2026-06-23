@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block title %}Бюджет | metriX BPM{% endblock %}
 
@@ -76,7 +77,7 @@
     <div class="fin-table-head">
       <div>
         <div class="fin-table-title">Статьи бюджета</div>
-        <div class="fin-table-subtitle">{{ rows|length }} категори{{ rows|length|pluralize:"я,и,й" }}</div>
+        <div class="fin-table-subtitle">{{ rows|length }} {% t 'finances.categories_count' 'категорий' %}</div>
       </div>
       <div class="fin-legend">
         <span class="fin-legend__dot fin-legend__dot--success"></span>В норме

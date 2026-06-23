@@ -30,20 +30,20 @@
     </div>
   </div>
 
-  <form method="get" class="hr-registry-filters" id="certFilterForm">
-    <div class="hr-registry-field hr-registry-field--search">
-      <div class="hr-registry-search">
-        <i class="bi bi-search"></i>
-        {{ filter_form.search }}
-      </div>
+<form method="get" class="hr-registry-filters" id="certFilterForm">
+  <div class="hr-registry-field hr-registry-field--search">
+    <div class="hr-registry-search">
+      <i class="bi bi-search"></i>
+      {{ filter_form.search }}
     </div>
-    <div class="hr-registry-field">{{ filter_form.department }}</div>
-    <div class="hr-registry-field">{{ filter_form.cert_type }}</div>
-    <div class="hr-registry-field">{{ filter_form.status }}</div>
-    <button type="submit" class="hr-registry-btn hr-registry-btn--primary">
-      <i class="bi bi-search"></i> Найти
-    </button>
-  </form>
+  </div>
+  <div class="hr-registry-field">{{ filter_form.department }}</div>
+  <div class="hr-registry-field">{{ filter_form.cert_type }}</div>
+  <div class="hr-registry-field">{{ filter_form.status }}</div>
+  <button type="submit" class="hr-registry-btn hr-registry-btn--primary">
+    <i class="bi bi-search"></i> {% t 'common.find' 'Найти' %}
+  </button>
+</form>
 
   <div class="hr-registry-panel">
     <div class="hr-registry-tabs">
@@ -151,34 +151,17 @@
 (function($) {
   $(function() {
     if (!$.fn.select2) return;
-    $.fn.select2.defaults.set('theme', 'bootstrap4');
-
-    // Инициализируем Select2 на все select в фильтре
     $('#certFilterForm select').each(function() {
       var $el = $(this);
       if ($el.hasClass('select2-hidden-accessible')) return;
-
-      var isAjax = $el.attr('data-url');
       var placeholder = $el.find('option[value=""]').first().text() || '—';
-
-      if (isAjax) {
-        $el.wrap('<div class="position-relative"></div>');
-        $el.select2({
-          width: '100%', theme: 'bootstrap4',
-          dropdownParent: $el.parent(),
-          allowClear: true, placeholder: placeholder,
-          ajax: {
-            url: isAjax, dataType: 'json', delay: 250,
-            data: function(p) { return { term: p.term || '', page: p.page || 1 }; }
-          },
-          escapeMarkup: function(m) { return m; }
-        });
-      } else {
-        $el.select2({
-          width: '100%', theme: 'bootstrap4',
-          allowClear: true, placeholder: placeholder
-        });
-      }
+      $el.select2({
+        width: '100%',
+        theme: 'bootstrap4',
+        allowClear: true,
+        placeholder: placeholder,
+        minimumResultsForSearch: Infinity
+      });
     });
   });
 })(window.jQuery);

@@ -272,9 +272,12 @@
               </div>
               <div class="task-feed__content">
                 <div class="task-feed__name">{{ u.user.get_name|default:"Система" }}</div>
-                <div class="task-feed__text">
-                  {% if u.kind == 'status' %}{% t 'tasks.changed_status' 'Изменил статус' %}: {{ u.text }}
-                  {% else %}{{ u.text }}{% endif %}
+                <div class="task-feed__text" data-raw="{{ u.text|escapejs }}">
+                  {% if u.kind == 'status' %}
+                    {% t 'tasks.changed_status' 'Изменил статус' %}: {{ u.text }}
+                  {% else %}
+                    {{ u.text }}
+                  {% endif %}
                 </div>
               </div>
               <div class="task-feed__time">{{ u.date|date:"d.m.Y" }}<br>{{ u.date|time:"H:i" }}</div>
@@ -511,7 +514,7 @@
 
 {% block scripts %}
 <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
-<script src="{% static 'site/js/apps/tasks.js' %}?v={{ static_version|default:'6' }}"></script>
+<script src="{% static 'site/js/apps/tasks.js' %}?v=99"></script>
 <script>
 (function () {
   'use strict';
