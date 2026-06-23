@@ -947,3 +947,57 @@
   .doc-filter-form { flex-wrap: wrap; }
   .doc-detail-meta { grid-template-columns: 1fr 1fr; }
 }
+/* FIX: Folder Select2 arrow center in document form */
+#docEditForm .doc-form-field .select2-container {
+  width: 100% !important;
+}
+
+#docEditForm .doc-form-field .select2-container--default .select2-selection--single,
+#docEditForm .doc-form-field .select2-container--bootstrap4 .select2-selection--single {
+  height: 36px !important;
+  min-height: 36px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: var(--doc-field-bg) !important;
+  box-shadow: none !important;
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+#docEditForm .doc-form-field .select2-selection--single .select2-selection__rendered {
+  height: 36px !important;
+  line-height: 36px !important;
+  padding-left: 16px !important;
+  padding-right: 42px !important;
+  color: var(--doc-text) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+#docEditForm .doc-form-field .select2-selection--single .select2-selection__arrow {
+  position: absolute !important;
+  top: 0 !important;
+  right: 16px !important;
+  width: 16px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* скрываем стандартный кривой треугольник */
+#docEditForm .doc-form-field .select2-selection--single .select2-selection__arrow b {
+  display: none !important;
+}
+
+/* рисуем новый ровный треугольник */
+#docEditForm .doc-form-field .select2-selection--single .select2-selection__arrow::after {
+  content: "" !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-left: 4px solid transparent !important;
+  border-right: 4px solid transparent !important;
+  border-top: 5px solid #6b6880 !important;
+  display: block !important;
+}

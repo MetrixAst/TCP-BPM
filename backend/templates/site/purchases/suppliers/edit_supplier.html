@@ -5,12 +5,14 @@
 {% block title %}{% if form.instance.pk %}Редактирование контрагента{% else %}Новый контрагент{% endif %} — metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v=4">
 {% endblock %}
 
 {% block content %}
-<div class="onec-create-page" style="max-width:860px;">
-  <form class="onec-create-card" method="POST" id="supplierForm" style="max-width:100%;">
+<div class="onec-create-page">
+  <form class="onec-create-card" method="POST" id="supplierForm">
     {% csrf_token %}
 
     <div class="onec-create-card__header">
@@ -150,4 +152,40 @@
     </div>
   </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+
+<script>
+(function () {
+  function initSupplierSelects() {
+    if (!window.jQuery || !jQuery.fn.select2) return;
+
+    var $form = jQuery('#supplierForm');
+    if (!$form.length) return;
+
+    $form.find('select').each(function () {
+      var $select = jQuery(this);
+
+      if ($select.data('select2')) {
+        $select.select2('destroy');
+      }
+
+      $select.select2({
+        width: '100%',
+        theme: 'default',
+        dropdownParent: $form,
+        minimumResultsForSearch: Infinity
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSupplierSelects);
+  } else {
+    initSupplierSelects();
+  }
+})();
+</script>
 {% endblock %}

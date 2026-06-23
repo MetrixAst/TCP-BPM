@@ -31,13 +31,29 @@ def _can_edit_content(task, user):
 
 
 def _task_card_dict(task):
+    from .enums import TaskTypeEnum, PriorityEnum
+    
+    # Тип задачи через gettext
+    type_display = ''
+    for item in TaskTypeEnum:
+        if item.value[0] == task.task_type:
+            type_display = str(item.value[1])
+            break
+    
+    # Приоритет через gettext
+    priority_title = ''
+    for item in PriorityEnum:
+        if item.value[0] == task.priority:
+            priority_title = str(item.value[1])
+            break
+
     return {
         'id': task.id,
         'number': f'#{task.id}',
         'title': task.title,
-        'type': task.get_task_type_display(),
+        'type': type_display,
         'priority': task.priority,
-        'priority_title': dict(task._meta.get_field('priority').choices).get(task.priority, task.priority),
+        'priority_title': priority_title,
         'deadline': task.deadline.isoformat() if task.deadline else None,
         'executor': task.executor.get_name if task.executor else None,
         'executor_id': task.executor_id,
@@ -59,7 +75,7 @@ def _kanban_payload(request):
         info = TaskStatusEnum.get_info(slug)
         columns.append({
             'status': slug,
-            'title': title,
+            'title': str(title),
             'color': info.get('color', 'neutral'),
             'tasks': items,
         })
