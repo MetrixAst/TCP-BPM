@@ -87,7 +87,7 @@
     <div class="fin-table-head">
       <div>
         <div class="fin-table-title">Операции</div>
-<div class="fin-table-subtitle">{{ records|length }} {% t 'finances.records_count' 'записей' %}{% if records|length >= 500 %} {% t 'finances.first_500' '(показаны первые 500)' %}{% endif %}</div>
+        <div class="fin-table-subtitle">{{ records|length }} {% plural_t records|length 'finances.records_plural' 'запись|записи|записей' %}{% if records|length >= 500 %} {% t 'finances.first_500' '(показаны первые 500)' %}{% endif %}</div>
       </div>
       <div class="fin-legend">
         <span class="fin-legend__dot fin-legend__dot--success"></span>Приход

@@ -69,7 +69,7 @@
     <div class="fin-table-head">
       <div>
         <div class="fin-table-title">Сценарии</div>
-        <div class="fin-table-subtitle">{{ credit_models|length }} {% if credit_models|length == 1 %}{% t 'credit.model_one' 'модель' %}{% elif credit_models|length < 5 %}{% t 'credit.model_few' 'модели' %}{% else %}{% t 'credit.model_many' 'моделей' %}{% endif %}</div>
+        <div class="fin-table-subtitle">{{ credit_models|length }} {% plural_t credit_models|length 'finances.models_plural' 'модель|модели|моделей' %}</div>
       </div>
       <div class="fin-legend">
         <span class="fin-legend__dot fin-legend__dot--success"></span>Низкий риск

@@ -112,7 +112,7 @@
     <div class="fin-table-head">
       <div>
         <div class="fin-table-title">Наименование работ</div>
-        <div class="fin-table-subtitle">{{ works|length }} запис{{ works|length|pluralize:"ь,и,ей" }}</div>
+        <div class="fin-table-subtitle">{{ works|length }} {% plural_t works|length 'finances.records_plural' 'запись|записи|записей' %}</div>
       </div>
       <div class="fin-legend">
         <span><i class="is-success"></i> Выполнен</span>

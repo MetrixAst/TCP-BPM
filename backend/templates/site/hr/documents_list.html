@@ -139,7 +139,7 @@
             <div class="hr-docs-emp-card__dept">{{ emp.department|default:"Без отдела" }}</div>
             {% with cnt=emp.documents.count %}
             <div class="hr-docs-emp-card__count">
-              {% if cnt %}<i class="bi bi-file-text"></i> {{ cnt }} докум.
+              {% if cnt %}<i class="bi bi-file-text"></i> {{ cnt }} {% plural_t cnt 'hr.docs_plural' 'документ|документа|документов' %}
               {% else %}<span class="hr-docs-emp-card__count--empty">Нет документов</span>{% endif %}
             </div>
             {% endwith %}
