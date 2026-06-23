@@ -49,7 +49,11 @@
     "download": "Жүктеп алу",
     "copy_link": "Сілтемені көшіру",
     "send": "Жіберу",
-    "days_short": "күн"
+    "days_short": "күн",
+    "payment_short": "төл."
+  },
+  "invoice": {
+    "sent_via": "Арқылы жіберілді"
   },
   "auth": {
     "title": "Кіру — metriX BPM",
