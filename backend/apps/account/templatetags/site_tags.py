@@ -294,7 +294,11 @@ def bpm_date(context, value, time=False):
     request = context.get('request')
     lang = 'ru'
     if request:
-        lang = request.session.get('lang', 'ru')
+        lang = getattr(request, 'current_lang', None)
+        if not lang:
+            lang = request.COOKIES.get('bpm_lang', 'ru')
+        if lang not in ('ru', 'kk', 'en'):
+            lang = 'ru'
     if lang == 'kk':
         months = MONTHS_KK
     elif lang == 'en':
@@ -302,6 +306,10 @@ def bpm_date(context, value, time=False):
     else:
         months = MONTHS_RU
     month = months[value.month - 1]
+    if lang == 'en':
+        if time and hasattr(value, 'hour'):
+            return f"{month} {value.day}, {value.year} {value.hour:02d}:{value.minute:02d}"
+        return f"{month} {value.day}, {value.year}"
     if time and hasattr(value, 'hour'):
         return f"{value.day} {month} {value.year} {value.hour:02d}:{value.minute:02d}"
     return f"{value.day} {month} {value.year}"

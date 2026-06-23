@@ -233,36 +233,3 @@ def _hr_permit_spec():
  
 register(_hr_cert_spec())
 register(_hr_permit_spec())
-
-
-def _ticket_attachment_spec():
-    from tickets.models import TicketAttachment, TicketMessage
-    from account.role_permissions import RolePermissions, PermissionEnums
- 
-    def get_object(request, pk):
-        return TicketAttachment.objects.select_related('request', 'uploaded_by').filter(pk=pk).first()
- 
-    def get_file(obj):
-        return obj.file
- 
-    def get_title(obj):
-        return obj.filename or (obj.file.name.split('/')[-1] if obj.file else '')
- 
-    def can_view(request, obj):
-        if obj is None:
-            return False
-        return TicketMessage.can_view(obj.request, request.user)
- 
-    def can_edit(request, obj):
-        if obj is None:
-            return False
-        # Редактировать могут менеджеры или загрузивший файл
-        from tickets.models import user_is_manager
-        if user_is_manager(request.user):
-            return True
-        return obj.uploaded_by_id == request.user.id
- 
-    return AttachmentSpec('ticket_att', get_object, get_file, get_title, can_view, can_edit)
- 
- 
-register(_ticket_attachment_spec())

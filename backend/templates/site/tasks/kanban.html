@@ -10,26 +10,7 @@
 {% block content %}
 <div class="tasks-page tasks-kanban-page" id="tasksKanbanPage"
      data-kanban-api="{% url 'tasks:kanban_api' %}"
-     data-status-url-tpl="{% url 'tasks:kanban_status' 0 %}"
-
-     data-i18n-loading="{% t 'tasks.loading' 'Загрузка…' %}"
-     data-i18n-executor="{% t 'tasks.executor' 'Исполнитель' %}"
-     data-i18n-no-tasks="{% t 'tasks.no_tasks' 'Нет задач' %}"
-     data-i18n-no-executor="{% t 'tasks.no_executor' 'Без исполнителя' %}"
-     data-i18n-no-columns="{% t 'tasks.no_columns' 'Нет колонок статусов' %}"
-     data-i18n-no-tasks-hint="{% t 'tasks.no_tasks_hint' 'Задач пока нет. Создайте задачу или назначьте исполнителя.' %}"
-     data-i18n-load-error="{% t 'tasks.load_error' 'Не удалось загрузить канбан' %}"
-     data-i18n-network-error="{% t 'tasks.network_error' 'Ошибка сети при смене статуса' %}"
-     data-i18n-status-error="{% t 'tasks.status_error' 'Не удалось сменить статус' %}"
-     data-i18n-move-confirm-title="{% t 'tasks.move_confirm_title' 'Смена статуса' %}"
-     data-i18n-move-confirm-text="{% t 'tasks.move_confirm_text' 'Подтвердить' %}"
-     data-i18n-move-confirm-msg="{% t 'tasks.move_confirm_msg' 'Перевести задачу в статус «{title}»?' %}"
-     data-i18n-error-title="{% t 'tasks.error_title' 'Ошибка' %}"
-
-     data-i18n-priority-low="{% t 'tasks.priority_low' 'Низкий' %}"
-     data-i18n-priority-medium="{% t 'tasks.priority_medium' 'Средний' %}"
-     data-i18n-priority-high="{% t 'tasks.priority_high' 'Высокий' %}"
-     data-i18n-priority-critical="{% t 'tasks.priority_critical' 'Критический' %}">
+     data-status-url-tpl="{% url 'tasks:kanban_status' 0 %}">
 
   <div class="tasks-page__top">
     <div class="tasks-page__header">
@@ -43,20 +24,20 @@
       {% if can_create %}
         <a href="{% url 'tasks:edit' 0 %}" class="tasks-page__btn tasks-page__btn--primary">
           <i class="bi bi-plus-lg"></i>
-          {% t 'tasks.create' 'Создать' %}
+          Создать
         </a>
       {% endif %}
     </div>
   </div>
 
   <div class="tasks-kanban tasks-kanban--board" id="tasksKanbanBoard">
-    <div class="tasks-kanban__loading">{% t 'tasks.loading' 'Загрузка…' %}</div>
+    <div class="tasks-kanban__loading">Загрузка…</div>
   </div>
 
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'site/js/apps/tasks-kanban.js' %}?v=4"></script>
+<script src="{% static 'site/js/apps/tasks-kanban.js' %}?v=3"></script>
 <script src="{% static 'site/js/apps/tasks-kanban-fix.js' %}?v=1"></script>
 {% endblock %}
