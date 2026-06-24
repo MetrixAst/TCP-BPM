@@ -242,5 +242,7 @@
   "documents": {
     "location": "Расположение",
     "root_level": "Корневой уровень"
-  }
+  },
+  "access": "Доступ",
+  "folder_access": "Доступ к папкам"
 }

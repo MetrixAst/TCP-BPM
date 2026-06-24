@@ -244,7 +244,9 @@
   },
   "documents": {
     "location": "Орналасуы",
-    "root_level": "Түбірлік деңгей"
+    "root_level": "Түбірлік деңгей",
+    "access": "Қол жеткізу",
+    "folder_access": "Қапшықтарға қол жеткізу"
   },
   "counterparty": {
     "main_info": "Негізгі ақпарат",

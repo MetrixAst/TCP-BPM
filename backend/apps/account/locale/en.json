@@ -51,7 +51,8 @@
     "send": "Send",
     "days_short": "days",
     "payment_short": "pay.",
-    "hours_short": "h."
+    "hours_short": "h.",
+    "sqm": "m²"
   },
   "auth": {
     "title": "Sign in — metriX BPM",
@@ -244,7 +245,9 @@
   },
   "documents": {
     "location": "Location",
-    "root_level": "Root level"
+    "root_level": "Root level",
+    "access": "Access",
+    "folder_access": "Folder access"
   },
   "counterparty": {
     "main_info": "Main information",
