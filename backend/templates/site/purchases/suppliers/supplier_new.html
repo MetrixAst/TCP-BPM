@@ -1,0 +1,307 @@
+﻿{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{{ supplier.name }} вЂ” metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/docs.css' %}?v={{ static_version|default:'1' }}">
+
+<style>
+  .doc-chat {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .doc-chat__list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 80px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  
+  .doc-chat__item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .doc-chat__avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f5f3fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+    color: #74728a;
+    overflow: hidden;
+  }
+  
+  .doc-chat__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .doc-chat__content {
+    flex: 1;
+    background: #f5f3fa;
+    border-radius: 10px;
+    padding: 8px 12px;
+  }
+  
+  .doc-chat__meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  
+  .doc-chat__name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #25233f;
+  }
+  
+  .doc-chat__time {
+    font-size: 11px;
+    color: #74728a;
+  }
+  
+  .doc-chat__text {
+    font-size: 13px;
+    color: #25233f;
+    line-height: 1.4;
+  }
+  
+  .doc-chat__empty {
+    color: #9a98aa;
+    font-size: 13px;
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .doc-chat__composer {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    background: #f5f3fa;
+    border-radius: 12px;
+    padding: 6px 8px 6px 14px;
+  }
+  
+  .doc-chat__input {
+    flex: 1;
+    border: 0;
+    outline: none;
+    background: transparent;
+    font-size: 13px;
+    color: #25233f;
+    resize: none;
+    min-height: 22px;
+    max-height: 120px;
+    line-height: 1.4;
+    padding: 2px 0;
+  }
+  
+  .doc-chat__input::placeholder { color: #9a98aa; }
+  
+  .doc-chat__send {
+    height: 32px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: #2f6bed;
+    color: #fff;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  
+  .doc-chat__send:hover { background: #2458c7; }
+  .doc-chat__send:disabled { opacity: 0.5; }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="onec-page onec-detail-page" data-supplier-id="{{ supplier.id }}">
+
+  <main class="onec-detail-main">
+
+    <section class="onec-detail-card">
+      <div class="onec-detail-card__top">
+        <div class="onec-detail-breadcrumb">
+          <a href="{% url 'purchases:suppliers' %}" class="onec-detail-back" aria-label="РќР°Р·Р°Рґ">
+            <i class="bi bi-arrow-left"></i>
+          </a>
+          <span>РљРѕРЅС‚СЂР°РіРµРЅС‚С‹ / {{ supplier.name }}</span>
+        </div>
+
+        <div class="onec-detail-actions">
+          <button type="button" class="onec-icon-btn" id="cpFavoriteBtn" title="Р’ РёР·Р±СЂР°РЅРЅРѕРµ" aria-pressed="false">
+            <i class="bi bi-star"></i>
+          </button>
+          {% if supplier.onec_counterparty_pk %}
+          <a href="{% url 'onec:counterparty_detail' supplier.onec_counterparty_pk %}" class="onec-icon-btn" title="РљР°СЂС‚РѕС‡РєР° 1РЎ">
+            <i class="bi bi-box-arrow-in-down"></i>
+          </a>
+          {% endif %}
+          <a href="{% url 'purchases:edit_supplier' supplier.id %}" class="onec-icon-btn" title="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ">
+            <i class="bi bi-pencil"></i>
+          </a>
+        </div>
+      </div>
+
+      <h1 class="onec-detail-title">{{ supplier.name }}</h1>
+
+      <div class="onec-detail-meta">
+        <div>
+          <div class="onec-detail-meta__label">РЎС‚Р°С‚СѓСЃ</div>
+          <div class="onec-detail-meta__value">
+            <span class="onec-type-badge onec-type-badge--{{ supplier.status_color|default:'neutral' }}">{{ supplier.get_status_display }}</span>
+          </div>
+        </div>
+        <div>
+          <div class="onec-detail-meta__label">Р¤РѕСЂРјР° СЃРѕР±СЃС‚РІРµРЅРЅРѕСЃС‚Рё</div>
+          <div class="onec-detail-meta__value">{{ supplier.get_form_display|default:"вЂ”" }}</div>
+        </div>
+        <div>
+          <div class="onec-detail-meta__label">РўРёРї</div>
+          <div class="onec-detail-meta__value">{{ supplier.get_supplier_type_display|default:"вЂ”" }}</div>
+        </div>
+      </div>
+
+      {% if supplier.problems %}
+        <div class="onec-detail-description">{{ supplier.problems }}</div>
+      {% endif %}
+    </section>
+
+    <section class="onec-tabs-card">
+      <div class="onec-tabs">
+        <button type="button" class="onec-tab is-active" data-tab="req">Р РµРєРІРёР·РёС‚С‹</button>
+        <button type="button" class="onec-tab" data-tab="docs">Р”РѕРєСѓРјРµРЅС‚С‹</button>
+        <button type="button" class="onec-tab" data-tab="requests">Р—Р°СЏРІРєРё</button>
+        <button type="button" class="onec-tab" data-tab="history">РСЃС‚РѕСЂРёСЏ</button>
+      </div>
+
+      <div class="onec-tab-panel is-active" id="req">
+        <div class="onec-req-grid">
+          {% for title, value in info.items %}
+            {% if value %}
+              <div>
+                <div class="onec-req__label">{{ title }}</div>
+                <div class="onec-req__value">{{ value }}</div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="onec-tab-panel" id="docs" hidden>
+        <div class="onec-empty-small">Р”РѕРєСѓРјРµРЅС‚РѕРІ РїРѕРєР° РЅРµС‚.</div>
+      </div>
+
+      <div class="onec-tab-panel" id="requests" hidden>
+        <div class="onec-empty-small">Р—Р°СЏРІРѕРє РїРѕРєР° РЅРµС‚.</div>
+      </div>
+
+      <div class="onec-tab-panel" id="history" hidden>
+        <div class="onec-empty-small">РСЃС‚РѕСЂРёСЏ РёР·РјРµРЅРµРЅРёР№ РїРѕРєР° РЅРµРґРѕСЃС‚СѓРїРЅР°.</div>
+      </div>
+    </section>
+
+    <section class="onec-messages-card">
+      {% load site_tags %}
+      {% load_comments 'supplier' supplier.pk %}
+    </section>
+
+  </main>
+
+  <aside class="onec-detail-aside">
+
+    <section class="onec-aside-card">
+      <div class="onec-aside-card__head"><h2>РўРµР»РµС„РѕРЅС‹</h2></div>
+      <div class="onec-info-list">
+        {% if supplier.phone %}<p>{{ supplier.phone }}</p>{% else %}<p class="onec-muted">вЂ”</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="onec-aside-card">
+      <div class="onec-aside-card__head"><h2>РџРѕС‡С‚Р°</h2></div>
+      <div class="onec-info-list">
+        {% if supplier.email %}<p>{{ supplier.email }}</p>{% else %}<p class="onec-muted">вЂ”</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="onec-aside-card">
+      <div class="onec-aside-card__head"><h2>РЎСЃС‹Р»РєРё</h2></div>
+      <div class="onec-info-list">
+        {% if supplier.adata_link %}
+          <a href="{{ supplier.adata_link }}" target="_blank" rel="noopener">РљР°СЂС‚РѕС‡РєР° РІ adata.kz</a>
+        {% else %}<p class="onec-muted">вЂ”</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="onec-aside-card">
+      <div class="onec-aside-card__head"><h2>РђРґСЂРµСЃР°</h2></div>
+      <div class="onec-info-list">
+        {% if supplier.address1 %}<p>{{ supplier.address1 }}</p>{% endif %}
+        {% if supplier.address2 %}<p>{{ supplier.address2 }}</p>{% endif %}
+        {% if not supplier.address1 and not supplier.address2 %}<p class="onec-muted">вЂ”</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="onec-aside-card">
+      <div class="onec-aside-card__head"><h2>Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕ</h2></div>
+      <div class="onec-extra">
+        {% if supplier.identifier %}<span>Р‘РРќ / РРРќ</span><p>{{ supplier.identifier }}</p>{% endif %}
+        {% if supplier.kbe %}<span>РљР‘Р•</span><p>{{ supplier.kbe }}</p>{% endif %}
+        {% if supplier.oked %}<span>РћРљР­Р”</span><p>{{ supplier.oked }}</p>{% endif %}
+        {% if supplier.city %}<span>Р“РѕСЂРѕРґ</span><p>{{ supplier.city }}</p>{% endif %}
+        {% if supplier.country %}<span>РЎС‚СЂР°РЅР° СЂРµР·РёРґРµРЅС‚СЃС‚РІР°</span><p>{{ supplier.country }}</p>{% endif %}
+        {% if supplier.size %}<span>Р Р°Р·РјРµСЂ РїСЂРµРґРїСЂРёСЏС‚РёСЏ</span><p>{{ supplier.size }}</p>{% endif %}
+        {% if supplier.author %}<span>Р”РѕР±Р°РІРёР»</span><p>{{ supplier.author.get_name }}</p>{% endif %}
+      </div>
+    </section>
+
+  </aside>
+
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('click', function (e) {
+      const tab = e.target.closest('.onec-tab');
+      if (!tab) return;
+      document.querySelectorAll('.onec-tab').forEach(t => t.classList.remove('is-active'));
+      document.querySelectorAll('.onec-tab-panel').forEach(p => { p.hidden = true; p.classList.remove('is-active'); });
+      tab.classList.add('is-active');
+      const panel = document.getElementById(tab.dataset.tab);
+      if (panel) { panel.hidden = false; panel.classList.add('is-active'); }
+    });
+
+    const favBtn = document.getElementById('cpFavoriteBtn');
+    if (favBtn) {
+      favBtn.addEventListener('click', function () {
+        const active = favBtn.getAttribute('aria-pressed') === 'true';
+        favBtn.setAttribute('aria-pressed', String(!active));
+        const icon = favBtn.querySelector('i');
+        icon.classList.toggle('bi-star', active);
+        icon.classList.toggle('bi-star-fill', !active);
+      });
+    }
+
+  });
+</script>
+{% endblock %}
+

@@ -10,6 +10,7 @@ from project.paginator import CustomPaginator
 from .forms import TenantForm
 from .models import Tenant, TenantCategory, Room
 from .serializers import TenantSerializer
+from addits.models import Comment
 
 
 @need_permission(PermissionEnums.TENANTS)
@@ -61,9 +62,14 @@ def tenant_detail(request, pk):
 
     has_portal = current.portal_users.exists() if hasattr(current, 'portal_users') else False
 
+    comments = Comment.objects.filter(
+        target_type='tenant', target_id=current.pk
+    ).select_related('user').order_by('id')
+
     return render(request, 'site/tenants/tenant_detail.html', {
         'tenant': current,
         'has_portal': has_portal,
+        'comments': comments,
     })
 
 

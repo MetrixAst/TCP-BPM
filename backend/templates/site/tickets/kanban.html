@@ -1,40 +1,50 @@
 {% extends 'site/base.html' %}
-{% load static %}
+{% load static site_tags %}
 
-{% block title %}Канбан заявок — metriX BPM{% endblock %}
+{% block title %}{% t 'tickets.kanban_title' 'Канбан заявок' %} — metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v=tk6" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v=tk7" />
 {% endblock %}
 
 {% block content %}
 <div class="tk-page tasks-kanban-page" id="ticketsKanbanPage"
      data-kanban-api="{% url 'tickets:kanban_api' %}"
-     data-status-url-tpl="{% url 'tickets:kanban_status' 0 %}">
+     data-status-url-tpl="{% url 'tickets:kanban_status' 0 %}"
+
+     data-i18n-loading="{% t 'tickets.loading' 'Загрузка…' %}"
+     data-i18n-no-columns="{% t 'tickets.no_columns' 'Нет колонок' %}"
+     data-i18n-load-error="{% t 'tickets.load_error' 'Не удалось загрузить канбан' %}"
+     data-i18n-move-confirm-msg="{% t 'tickets.move_confirm_msg' 'Перевести заявку в статус «{title}»?' %}"
+     data-i18n-move-confirm-title="{% t 'tickets.move_confirm_title' 'Смена статуса' %}"
+     data-i18n-move-confirm-text="{% t 'tickets.move_confirm_text' 'Подтвердить' %}"
+     data-i18n-status-error="{% t 'tickets.status_error' 'Не удалось сменить статус' %}"
+     data-i18n-network-error="{% t 'tickets.network_error' 'Ошибка сети при смене статуса' %}"
+     data-i18n-error-title="{% t 'tickets.error_title' 'Ошибка' %}">
 
   <div class="tk-page__top">
     <div class="tk-page__header">
-      <h1 class="tk-page__title">Заявки от арендаторов</h1>
+      <h1 class="tk-page__title">{% t 'tickets.page_title' 'Заявки от арендаторов' %}</h1>
 
       <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
         <div class="tk-view-switch">
-          <a href="{% url 'tickets:home' %}" class="tk-view-switch__btn">Список</a>
-          <a href="{% url 'tickets:kanban' %}" class="tk-view-switch__btn is-active">Канбан</a>
+          <a href="{% url 'tickets:home' %}" class="tk-view-switch__btn">{% t 'tasks.list_view' 'Список' %}</a>
+          <a href="{% url 'tickets:kanban' %}" class="tk-view-switch__btn is-active">{% t 'tasks.kanban_view' 'Канбан' %}</a>
         </div>
         <a href="{% url 'tickets:create' %}" class="tk-page__btn tk-page__btn--primary">
-          <i class="bi bi-plus-lg"></i> Создать
+          <i class="bi bi-plus-lg"></i> {% t 'tasks.create' 'Создать' %}
         </a>
       </div>
     </div>
   </div>
 
   <div class="tk-kanban-board" id="ticketsKanbanBoard">
-    <div class="tk-kanban-loading">Загрузка…</div>
+    <div class="tk-kanban-loading">{% t 'tickets.loading' 'Загрузка…' %}</div>
   </div>
 
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'site/js/apps/tickets-kanban.js' %}?v=tk6"></script>
+<script src="{% static 'site/js/apps/tickets-kanban.js' %}?v=tk7"></script>
 {% endblock %}

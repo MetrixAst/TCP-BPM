@@ -180,7 +180,8 @@
     "client_empty": "No client selected",
     "files": "Files",
     "add_file": "Add file",
-    "files_empty": "No files"
+    "files_empty": "No files",
+    "executor": "Assignee"
   },
   "requistions": {
     "portal_hint": "Tenant portal: submit a pass or works request.",
