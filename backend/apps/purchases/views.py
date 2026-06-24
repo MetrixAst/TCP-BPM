@@ -7,6 +7,7 @@ from .forms import SupplierForm
 from .models import Supplier
 from project.utils import get_or_error, get_or_none
 from project.paginator import CustomPaginator
+from addits.models import Comment
 
 from .enums import SupplierStatusEnum
 from .services.sync_from_onec import sync_counterparties_to_suppliers
@@ -95,12 +96,15 @@ def supplier(request, pk):
         "Юрист": current.lawyer,
     }
 
-    context = {
+    comments = Comment.objects.filter(
+        target_type='supplier', target_id=current.id
+    ).select_related('user').order_by('id')
+    
+    return render(request, 'site/purchases/suppliers/supplier.html', {
         'supplier': current,
         'info': arr,
-    }
-
-    return render(request, 'site/purchases/suppliers/supplier.html', context)
+        'comments': comments,
+    })
 
 
 @need_permission(PermissionEnums.EDIT_SUPPLIERS)

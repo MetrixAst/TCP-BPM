@@ -8,6 +8,19 @@
   const apiUrl = page.dataset.kanbanApi;
   const statusUrlTpl = page.dataset.statusUrlTpl || '/tickets/api/kanban/0/status/';
 
+  // ── i18n из data-атрибутов шаблона ──
+  const i18n = {
+    loading:          page.dataset.i18nLoading         || 'Загрузка…',
+    noColumns:        page.dataset.i18nNoColumns        || 'Нет колонок',
+    loadError:        page.dataset.i18nLoadError        || 'Не удалось загрузить канбан',
+    moveConfirmMsg:   page.dataset.i18nMoveConfirmMsg   || 'Перевести заявку в статус «{title}»?',
+    moveConfirmTitle: page.dataset.i18nMoveConfirmTitle || 'Смена статуса',
+    moveConfirmText:  page.dataset.i18nMoveConfirmText  || 'Подтвердить',
+    statusError:      page.dataset.i18nStatusError      || 'Не удалось сменить статус',
+    networkError:     page.dataset.i18nNetworkError     || 'Ошибка сети при смене статуса',
+    errorTitle:       page.dataset.i18nErrorTitle       || 'Ошибка',
+  };
+
   let dragId = null;
   let dragFrom = null;
   let inFlight = false;
@@ -56,11 +69,10 @@
   function render(data) {
     const columns = (data && data.columns) || [];
     if (!columns.length) {
-      board.innerHTML = '<div class="tk-kanban-loading">Нет колонок</div>';
+      board.innerHTML = '<div class="tk-kanban-loading">' + esc(i18n.noColumns) + '</div>';
       return;
     }
 
-    // Рендерим в стиле columns
     let html = '<div class="tk-board">';
     columns.forEach(function (col) {
       html +=
@@ -120,17 +132,21 @@
   }
 
   async function confirmMove(id, target) {
+    const title = colTitle(target);
+    const msg = i18n.moveConfirmMsg.replace('{title}', title);
     const proceed = window.bpmModal
-      ? await window.bpmModal.confirm(
-          'Перевести заявку в статус «' + colTitle(target) + '»?',
-          { title: 'Смена статуса', confirmText: 'Подтвердить', variant: 'info' })
-      : window.confirm('Перевести заявку в «' + colTitle(target) + '»?');
+      ? await window.bpmModal.confirm(msg, {
+          title: i18n.moveConfirmTitle,
+          confirmText: i18n.moveConfirmText,
+          variant: 'info',
+        })
+      : window.confirm(msg);
     if (!proceed) { dragId = null; dragFrom = null; return; }
     move(id, target);
   }
 
   function showError(msg) {
-    if (window.bpmModal) window.bpmModal.alert(msg, { variant: 'danger', title: 'Ошибка' });
+    if (window.bpmModal) window.bpmModal.alert(msg, { variant: 'danger', title: i18n.errorTitle });
     else alert(msg);
   }
 
@@ -155,14 +171,14 @@
       });
       const data = await res.json().catch(function () { return {}; });
       if (!res.ok || data.ok === false) {
-        showError(data.message || 'Не удалось сменить статус');
+        showError(data.message || i18n.statusError);
         await load();
         return;
       }
       if (data.kanban) render(data.kanban); else await load();
     } catch (err) {
       console.error(err);
-      showError('Ошибка сети при смене статуса');
+      showError(i18n.networkError);
       try { await load(); } catch (e) { console.error(e); }
     } finally {
       inFlight = false; dragId = null; dragFrom = null;
@@ -170,6 +186,6 @@
   }
 
   load().catch(function () {
-    board.innerHTML = '<div class="tk-kanban-loading">Не удалось загрузить канбан</div>';
+    board.innerHTML = '<div class="tk-kanban-loading">' + esc(i18n.loadError) + '</div>';
   });
 })();
