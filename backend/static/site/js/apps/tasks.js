@@ -127,7 +127,12 @@
           dropdownParent: jQuery('#tasksPage')
         });
       }
-      $stateSel.on('change', updateFilters);
+
+      if (window.BPM && window.BPM.applyTranslations) {
+        window.BPM.applyTranslations();
+      }
+
+      $stateSel.on('change', updateFiltersWithoutReload);
     } else {
       stateSel?.addEventListener('change', updateFilters);
     }
