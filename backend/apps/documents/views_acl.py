@@ -9,6 +9,7 @@ from .enums import DocumentTypeEnum
 from .folder_structure import ensure_folder_tree
 from .forms_acl import FolderAccessForm
 from .models import Folder
+from account.i18n import translate
 
 
 def _require_acl_manager(view_func):
@@ -33,7 +34,7 @@ def folder_access_list(request, document_type):
         'document_type': document_type,
         'type_config': DocumentTypeEnum.get_config(document_type),
         'folders': folders,
-        'title': 'Доступ к папкам',
+        'title': translate(getattr(request, 'current_lang', 'ru'), 'documents.folder_access', default='Доступ к папкам'),
     })
 
 
@@ -60,5 +61,5 @@ def folder_access_edit(request, document_type, pk):
         'type_config': DocumentTypeEnum.get_config(document_type),
         'folder': folder,
         'form': form,
-        'title': f'Доступ: {folder.short_name}',
+        'title': f'{translate(getattr(request, "current_lang", "ru"), "documents.access", default="Доступ")}: {folder.short_name}',
     })

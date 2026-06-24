@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block title %}{{ tenant.name }} — metriX BPM{% endblock %}
 
@@ -74,10 +75,10 @@
         <div class="onec-req-grid">
           <div>
             <div class="onec-req__label">Площадь</div>
-            <div class="onec-req__value">{{ tenant.area|floatformat:0 }} м²</div>
+            <div class="onec-req__value">{{ tenant.area|floatformat:0 }} {% t 'common.sqm' 'м²' %}</div>
           </div>
           <div>
-            <div class="onec-req__label">Ставка за м²</div>
+            <div class="onec-req__label">Ставка за {% t 'common.sqm' 'м²' %}</div>
             <div class="onec-req__value">{{ tenant.price|floatformat:0 }} ₸</div>
           </div>
           <div>
@@ -190,8 +191,8 @@
       <div class="onec-aside-card__head"><h2>Дополнительно</h2></div>
       <div class="onec-extra">
         <span>Помещение</span><p>{{ tenant.number }}</p>
-        <span>Площадь</span><p>{{ tenant.area|floatformat:0 }} м²</p>
-        <span>Ставка за м²</span><p>{{ tenant.price|floatformat:0 }} ₸</p>
+        <span>Площадь</span><p>{{ tenant.area|floatformat:0 }} {% t 'common.sqm' 'м²' %}</p>
+        <span>Ставка за {% t 'common.sqm' 'м²' %}</span><p>{{ tenant.price|floatformat:0 }} ₸</p>
         {% if tenant.category %}<span>Категория</span><p>{{ tenant.category.title }}</p>{% endif %}
         <span>Портал</span><p>{% if has_portal %}Доступ выдан{% else %}Не подключён{% endif %}</p>
       </div>

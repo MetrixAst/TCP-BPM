@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/bpm-calendars.css' %}?v=1" />
@@ -127,7 +128,7 @@
 
           {% if day.count > 0 %}
             <span class="fin-calendar-day__body">
-              <span class="fin-calendar-amount is-plan">{{ day.count }} пл.</span>
+              <span class="fin-calendar-amount is-plan">{{ day.count }} {% t 'common.payment_short' 'пл.' %}</span>
               <span class="fin-calendar-amount {% if day.has_overdue %}is-danger{% else %}is-fact{% endif %}">
                 {{ day.planned|floatformat:0 }} ₸
               </span>

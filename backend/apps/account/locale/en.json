@@ -49,7 +49,10 @@
     "download": "Download",
     "copy_link": "Copy link",
     "send": "Send",
-    "days_short": "days"
+    "days_short": "days",
+    "payment_short": "pay.",
+    "hours_short": "h.",
+    "sqm": "m²"
   },
   "auth": {
     "title": "Sign in — metriX BPM",
@@ -120,6 +123,9 @@
     "hr_sick_leaves": "Sick leave (Enbek)",
     "hr_contracts": "Contracts (Enbek)",
     "reports": "Metrics"
+  },
+  "invoice": {
+    "sent_via": "Sent via"
   },
   "tasks": {
     "list_title": "Task manager",
@@ -242,5 +248,26 @@
   },
   "hr": {
       "docs_plural": "document|documents"
+  },
+  "documents": {
+    "location": "Location",
+    "root_level": "Root level",
+    "access": "Access",
+    "folder_access": "Folder access"
+  },
+  "counterparty": {
+    "main_info": "Main information",
+    "short_name": "Short name",
+    "full_name": "Full name",
+    "description": "Description",
+    "website": "Website / link",
+    "activity_type": "Business type",
+    "founded_date": "Founded date",
+    "type": "Counterparty type",
+    "type_and_access": "Type and access zone",
+    "category": "Category",
+    "no_type": "— no type (visible to all) —",
+    "supplier": "Supplier",
+    "customer": "Client"
   }
 }

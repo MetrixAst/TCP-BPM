@@ -1,3 +1,4 @@
+{% load site_tags %}
 {% if rows %}
 <table class="emp-table">
   <thead>
@@ -18,7 +19,7 @@
         {% if row.no_record %}
           <span class="emp-table__sub">Нет данных</span>
         {% else %}
-          {{ row.total_hours|floatformat:1 }} ч.
+          {{ row.total_hours|floatformat:1 }} {% t 'common.hours_short' 'ч.' %}
         {% endif %}
       </td>
     </tr>

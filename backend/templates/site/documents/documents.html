@@ -195,9 +195,9 @@
                        placeholder="Например: Договоры" maxlength="40" required>
               </div>
               <div class="doc-folder-create__field">
-                <span class="doc-folder-create__label">Расположение</span>
+                <span class="doc-folder-create__label">{% t 'documents.location' 'Расположение' %}</span>
                 <select name="parent" class="doc-folder-create__select">
-                  <option value="">Корневой уровень</option>
+                  <option value="">{% t 'documents.root_level' 'Корневой уровень' %}</option>
                   {% for node in tree %}
                     <option value="{{ node.id }}">{{ node.short_name }}</option>
                   {% endfor %}

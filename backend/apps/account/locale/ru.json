@@ -49,7 +49,9 @@
     "download": "Скачать",
     "copy_link": "Скопировать ссылку",
     "send": "Отправить",
-    "days_short": "дн."
+    "days_short": "дн.",
+    "payment_short": "пл.",
+    "hours_short": "ч."
   },
   "auth": {
     "title": "Вход — metriX BPM",
@@ -241,5 +243,11 @@
   },
   "hr": {
       "docs_plural": "документ|документа|документов"
-  }
+  },
+  "documents": {
+    "location": "Расположение",
+    "root_level": "Корневой уровень"
+  },
+  "access": "Доступ",
+  "folder_access": "Доступ к папкам"
 }

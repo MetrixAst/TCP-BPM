@@ -120,7 +120,8 @@
 
     if (typeof jQuery !== 'undefined' && jQuery.fn.select2 && stateSel) {
       const $stateSel = jQuery(stateSel);
-      if (!$stateSel.hasClass('select2-hidden-accessible')) {
+    
+if (!$stateSel.hasClass('select2-hidden-accessible')) {
         $stateSel.select2({
           width: '170px',
           minimumResultsForSearch: Infinity,

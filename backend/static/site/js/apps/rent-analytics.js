@@ -110,7 +110,7 @@ function renderDynamicsChart(dynamics) {
     data: {
       labels,
       datasets: [{
-        label: 'Поступления',
+        label: (window.BPM && window.BPM.t) ? window.BPM.t('Поступления', 'Поступления') : 'Поступления',
         data: actual,
         borderColor: '#2f6bed',
         borderWidth: 2.5,
