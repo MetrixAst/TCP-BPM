@@ -120,14 +120,20 @@
 
     if (typeof jQuery !== 'undefined' && jQuery.fn.select2 && stateSel) {
       const $stateSel = jQuery(stateSel);
-      if (!$stateSel.hasClass('select2-hidden-accessible')) {
+    
+if (!$stateSel.hasClass('select2-hidden-accessible')) {
         $stateSel.select2({
           width: '170px',
           minimumResultsForSearch: Infinity,
           dropdownParent: jQuery('#tasksPage')
         });
       }
-      $stateSel.on('change', updateFilters);
+
+      if (window.BPM && window.BPM.applyTranslations) {
+        window.BPM.applyTranslations();
+      }
+
+      $stateSel.on('change', updateFiltersWithoutReload);
     } else {
       stateSel?.addEventListener('change', updateFilters);
     }
