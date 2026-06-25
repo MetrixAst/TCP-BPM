@@ -1,139 +1,275 @@
 {% extends "site/base.html" %}
-{% load static %}
-{% load site_tags %}
+{% load static site_tags %}
+
+{% block title %}{{ work.title }} — metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
-<link rel="stylesheet" href="{% static 'site/css/apps/ecopark.css' %}?v=eco01">
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999">
+<style>
+.eco-badge {
+  display: inline-flex; align-items: center;
+  height: 26px; padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.eco-badge--done     { background:#e6f7ee; color:#16a34a; }
+.eco-badge--progress { background:#e8f0fe; color:#2563eb; }
+.eco-badge--pending  { background:#f0eff6; color:#25233f; }
+.eco-badge--overdue  { background:#feecec; color:#ef4444; }
+
+/* файл точно как в таске */
+.eco-file {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f5f3fa;
+  transition: background .15s;
+}
+.eco-file:hover { background: #ece9f4; }
+.eco-file__icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 20px;
+}
+.eco-file__info { flex: 1; min-width: 0; }
+.eco-file__name {
+  display: block; font-size: 12px; font-weight: 700;
+  color: #25233f; text-decoration: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.eco-file__name:hover { color: #2f6bed; }
+.eco-file__meta { margin-top: 2px; font-size: 11px; color: #74728a; }
+.eco-file__actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.eco-file__btn {
+  width: 30px; height: 30px; border: 0; border-radius: 8px;
+  background: transparent; color: #74728a;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; text-decoration: none; font-size: 14px;
+  transition: background .15s, color .15s;
+}
+.eco-file__btn:hover { background: #fff; color: #25233f; text-decoration: none; }
+.eco-file__btn--oo { background: #eef2ff; color: #2f6bed; }
+.eco-file__btn--oo:hover { background: #2f6bed; color: #fff; }
+.eco-file__btn--danger { color: #ef4444; }
+.eco-file__btn--danger:hover { background: #feecec; color: #ef4444; }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="eco-page">
+<div class="task-deal" data-type="eco" data-id="{{ work.id }}">
 
-  <header class="eco-hero">
-    <div>
-      <span class="eco-hero__eyebrow"><i class="bi bi-wrench-adjustable"></i> Карточка работы</span>
-      <h1 class="eco-hero__title">{{ work.title }}</h1>
-      <nav aria-label="breadcrumb" class="mt-2">
-        <ol class="eco-breadcrumb">
-          <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-          <li><a href="{% url 'ecopark:home' %}">Эксплуатация</a></li>
-          <li>{{ work.eco_object.name|default:"—" }}</li>
-        </ol>
-      </nav>
-    </div>
-    <div class="eco-hero__actions">
-      <a href="{% url 'ecopark:edit' work.id %}" class="fin-btn fin-btn--light">
-        <i class="bi bi-pencil"></i> Редактировать
-      </a>
-      <form method="post" action="{% url 'ecopark:delete' work.id %}"
-            onsubmit="return confirm('Удалить запись?')" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit" class="fin-btn fin-btn--light" style="color:#ff3b30;">
-          <i class="bi bi-trash"></i> Удалить
-        </button>
-      </form>
-      <a href="{% url 'ecopark:home' %}" class="fin-btn fin-btn--light">
-        <i class="bi bi-arrow-left"></i> К списку
-      </a>
-    </div>
-  </header>
+  {# ══ MAIN ══ #}
+  <div class="task-deal__main">
 
-  <div class="eco-detail-grid">
-    <aside class="eco-info-card">
-      <div class="eco-info-card__icon"><i class="bi bi-building-gear"></i></div>
-      <div class="eco-info-card__object">{{ work.eco_object.name|default:"—" }}</div>
-      <h2 class="eco-info-card__title">{{ work.title }}</h2>
-      <span class="eco-badge eco-badge--{{ work.status }}">{{ work.get_status_display }}</span>
+    <div class="task-deal__top-block">
+      <header class="task-deal__head">
+        <div class="task-deal__crumbs">
+          <a href="{% url 'ecopark:home' %}" class="task-deal__back" aria-label="Назад">
+            <i class="bi bi-arrow-left"></i>
+          </a>
+          <a href="{% url 'ecopark:home' %}" class="task-deal__crumb">Эксплуатация</a>
+          <span class="task-deal__crumb-sep">/</span>
+          <span class="task-deal__crumb task-deal__crumb--current">{{ work.title }}</span>
+        </div>
+        <div class="task-deal__head-actions">
+          <a href="{% url 'ecopark:edit' work.id %}" class="task-deal__icon-btn" title="Редактировать">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <form method="post" action="{% url 'ecopark:delete' work.id %}"
+                onsubmit="return confirm('Удалить запись?')" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="task-deal__icon-btn task-deal__icon-btn--danger" title="Удалить">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </div>
+      </header>
 
-      <div class="eco-info-rows">
-        <div class="eco-info-row">
-          <span class="eco-info-row__label">Дата</span>
-          <span class="eco-info-row__value">{% bpm_date work.date %}</span>
+      <h1 class="task-deal__title">{{ work.title }}</h1>
+
+      <div class="task-deal__meta">
+        <div class="task-deal__meta-item">
+          <div class="task-deal__meta-label">Дата</div>
+          <div class="task-deal__meta-value">{% bpm_date work.date %}</div>
         </div>
-        <div class="eco-info-row">
-          <span class="eco-info-row__label">Сумма</span>
-          <span class="eco-info-row__value">{{ work.amount|floatformat:0 }} ₸</span>
+        <div class="task-deal__meta-item">
+          <div class="task-deal__meta-label">Объект</div>
+          <div class="task-deal__meta-value">{{ work.eco_object.name|default:"—" }}</div>
         </div>
-        <div class="eco-info-row">
-          <span class="eco-info-row__label">Исполнитель</span>
-          <span class="eco-info-row__value">{{ work.executor.name|default:"—" }}</span>
+        <div class="task-deal__meta-item">
+          <div class="task-deal__meta-label">Статус</div>
+          <div class="task-deal__meta-value">
+            <span class="eco-badge eco-badge--{{ work.status }}">{{ work.get_status_display }}</span>
+          </div>
         </div>
-        <div class="eco-info-row">
-          <span class="eco-info-row__label">Ответственный</span>
-          <span class="eco-info-row__value">{{ work.responsible|default:"—" }}</span>
+        <div class="task-deal__meta-item">
+          <div class="task-deal__meta-label">Сумма</div>
+          <div class="task-deal__meta-value">{{ work.amount|floatformat:0 }} ₸</div>
         </div>
       </div>
-    </aside>
+    </div>
 
-    <div>
-      <div class="eco-tabs" role="tablist">
-        <a class="eco-tab is-active" href="#tab-doc" data-eco-tab="doc">Документ</a>
-        <a class="eco-tab" href="#tab-history" data-eco-tab="history">История обслуживания</a>
+    {# Табы #}
+    <div class="task-deal__card-block">
+      <div class="task-tabs-bar">
+        <div class="task-tablist" id="ecoTabList">
+          <button type="button" class="task-tab is-active" data-tab="doc">
+            Документ
+          </button>
+          <button type="button" class="task-tab" data-tab="history">
+            История обслуживания
+          </button>
+        </div>
+
+        {# ── Документ ── #}
+        <div class="task-tab-panel is-active" id="tabDoc" style="padding-top:16px;">
+          {% if work.document %}
+            {% with fname=work.document.name %}
+            <div class="eco-file">
+              <div class="eco-file__icon">
+                {% if ".pdf" in fname|lower %}
+                  <i class="bi bi-file-earmark-pdf" style="color:#ef4444"></i>
+                {% elif ".doc" in fname|lower %}
+                  <i class="bi bi-file-earmark-word" style="color:#2563eb"></i>
+                {% elif ".xls" in fname|lower %}
+                  <i class="bi bi-file-earmark-excel" style="color:#16a34a"></i>
+                {% elif ".ppt" in fname|lower %}
+                  <i class="bi bi-file-earmark-ppt" style="color:#f59e0b"></i>
+                {% elif ".png" in fname|lower or ".jpg" in fname|lower or ".jpeg" in fname|lower %}
+                  <i class="bi bi-file-earmark-image" style="color:#0ea5e9"></i>
+                {% else %}
+                  <i class="bi bi-file-earmark" style="color:#74728a"></i>
+                {% endif %}
+              </div>
+              <div class="eco-file__info">
+                <a href="{{ work.document.url }}" target="_blank" class="eco-file__name">
+                  {{ fname|cut:"ecopark/docs/" }}
+                </a>
+                <div class="eco-file__meta">{{ work.document.size|filesizeformat }}</div>
+              </div>
+              <div class="eco-file__actions">
+                <a href="{% url 'ecopark:work_editor' work.id %}"
+                   target="_blank" rel="noopener"
+                   class="eco-file__btn eco-file__btn--oo" title="Открыть в ONLYOFFICE">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{{ work.document.url }}" download
+                   class="eco-file__btn" title="Скачать">
+                  <i class="bi bi-download"></i>
+                </a>
+                <form method="post" action="{% url 'ecopark:work_delete_doc' work.id %}"
+                      onsubmit="return confirm('Удалить документ?')" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="eco-file__btn eco-file__btn--danger" title="Удалить">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+            {% endwith %}
+          {% else %}
+            <div class="task-invoices__empty">
+              <i class="bi bi-file-earmark-x"></i>
+              <div>Документ не прикреплён</div>
+            </div>
+          {% endif %}
+        </div>
+
+        {# ── История ── #}
+        <div class="task-tab-panel" id="tabHistory" style="padding-top:16px;">
+          {% if history %}
+            <div style="overflow-x:auto;border:1px solid #eceaf3;border-radius:12px;">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                  <tr style="background:#faf9fd;border-bottom:1px solid #eceaf3;">
+                    <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#74728a;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;">Наименование</th>
+                    <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#74728a;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;">Дата</th>
+                    <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#74728a;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;">Исполнитель</th>
+                    <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#74728a;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;">Ответственный</th>
+                    <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#74728a;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;">Сумма</th>
+                    <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#74728a;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;">Статус</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in history %}
+                    <tr style="border-bottom:1px solid #f5f3fa;">
+                      <td style="padding:12px 14px;font-weight:500;">
+                        <a href="{% url 'ecopark:item' row.id %}" style="color:#2f6bed;text-decoration:none;">{{ row.title }}</a>
+                      </td>
+                      <td style="padding:12px 14px;color:#74728a;white-space:nowrap;">{% bpm_date row.date %}</td>
+                      <td style="padding:12px 14px;">{{ row.executor.name|default:"—" }}</td>
+                      <td style="padding:12px 14px;">{{ row.responsible|default:"—" }}</td>
+                      <td style="padding:12px 14px;font-weight:600;white-space:nowrap;">{{ row.amount|floatformat:0 }} ₸</td>
+                      <td style="padding:12px 14px;">
+                        <span class="eco-badge eco-badge--{{ row.status }}">{{ row.get_status_display }}</span>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="task-invoices__empty">
+              <i class="bi bi-clock-history"></i>
+              <div>История пуста</div>
+            </div>
+          {% endif %}
+        </div>
+
       </div>
+    </div>
 
-      <div class="eco-panel" id="tab-doc" data-eco-panel="doc">
-        {% if work.document %}
-          <div class="eco-empty" style="padding:40px;text-align:center;">
-            <i class="bi bi-file-earmark-text" style="font-size:48px;color:#2f6bed;"></i>
-            <div style="margin-top:16px;">
-              <a href="{% url 'ecopark:work_editor' work.id %}" target="_blank" class="fin-btn fin-btn--primary">
-                <i class="bi bi-eye"></i> Открыть документ
-              </a>
-              <a href="{{ work.document.url }}" download class="fin-btn fin-btn--light" style="margin-left:8px;">
-                <i class="bi bi-download"></i> Скачать
-              </a>
-              <form method="post" action="{% url 'ecopark:work_delete_doc' work.id %}"
-                    onsubmit="return confirm('Удалить документ?')" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" class="fin-btn fin-btn--light" style="margin-left:8px;color:#ff3b30;">
-                  <i class="bi bi-trash"></i> Удалить
-                </button>
-              </form>
+  </div>{# /main #}
+
+  {# ══ ASIDE ══ #}
+  <aside class="task-deal__aside">
+
+    {# Маршрут #}
+    <section class="task-panel">
+      <div class="task-panel__head">
+        <h3 class="task-panel__title">Маршрут</h3>
+        <a href="{% url 'ecopark:edit' work.id %}" class="task-panel__add" title="Редактировать">
+          <i class="bi bi-pencil"></i>
+        </a>
+      </div>
+      <div class="task-route">
+        {% if work.responsible %}
+          <div class="task-route__item">
+            <div class="task-route__avatar">
+              <span class="task-route__avatar-letter">{{ work.responsible|first|upper }}</span>
+            </div>
+            <div class="task-route__content">
+              <div class="task-route__role">Ответственный</div>
+              <div class="task-route__name">{{ work.responsible }}</div>
+            </div>
+            <div class="task-route__status task-route__status--done">
+              <i class="bi bi-check-circle-fill"></i>
             </div>
           </div>
-        {% else %}
-          <div class="eco-empty" style="padding:40px;text-align:center;">
-            <i class="bi bi-file-earmark-x"></i>
-            <strong>Документ не прикреплён</strong>
+        {% endif %}
+        {% if work.executor %}
+          <div class="task-route__item">
+            <div class="task-route__avatar">
+              <span class="task-route__avatar-letter">{{ work.executor.name|first|upper }}</span>
+            </div>
+            <div class="task-route__content">
+              <div class="task-route__role">Исполнитель</div>
+              <div class="task-route__name">{{ work.executor.name }}</div>
+            </div>
+            <div class="task-route__status task-route__status--in-progress">
+              <i class="bi bi-clock"></i>
+              <span>На исполнении</span>
+            </div>
           </div>
         {% endif %}
+        {% if not work.responsible and not work.executor %}
+          <p class="task-panel__empty">Маршрут не задан</p>
+        {% endif %}
       </div>
+    </section>
 
-      <div class="eco-panel d-none" id="tab-history" data-eco-panel="history">
-        <div class="fin-table-wrap" style="border-radius:18px;">
-          <table class="fin-table">
-            <thead>
-              <tr>
-                <th>Наименование</th>
-                <th>Дата</th>
-                <th>Исполнитель</th>
-                <th>Ответственный</th>
-                <th>Сумма</th>
-                <th>Статус</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in history %}
-                <tr>
-                  <td><a href="{% url 'ecopark:item' row.id %}">{{ row.title }}</a></td>
-                  <td>{% bpm_date row.date %}</td>
-                  <td>{{ row.executor.name|default:"—" }}</td>
-                  <td>{{ row.responsible|default:"—" }}</td>
-                  <td class="eco-amount">{{ row.amount|floatformat:0 }} ₸</td>
-                  <td><span class="eco-badge eco-badge--{{ row.status }}">{{ row.get_status_display }}</span></td>
-                </tr>
-              {% empty %}
-                <tr>
-                  <td colspan="6" class="fin-empty">История пуста</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
+  </aside>
 
 </div>
 {% endblock %}
@@ -141,18 +277,19 @@
 {% block scripts %}
 <script>
 (function () {
-  var tabs = document.querySelectorAll('[data-eco-tab]');
-  var panels = document.querySelectorAll('[data-eco-panel]');
-  if (!tabs.length) return;
-  tabs.forEach(function (tab) {
-    tab.addEventListener('click', function (e) {
-      e.preventDefault();
-      var id = tab.getAttribute('data-eco-tab');
-      tabs.forEach(function (t) { t.classList.toggle('is-active', t === tab); });
-      panels.forEach(function (p) {
-        var show = p.getAttribute('data-eco-panel') === id;
-        p.classList.toggle('d-none', !show);
-      });
+  var tabList = document.getElementById('ecoTabList');
+  if (!tabList) return;
+  var panels = {
+    doc:     document.getElementById('tabDoc'),
+    history: document.getElementById('tabHistory'),
+  };
+  tabList.querySelectorAll('.task-tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var key = btn.dataset.tab;
+      tabList.querySelectorAll('.task-tab').forEach(function (b) { b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+      Object.values(panels).forEach(function (p) { if (p) p.classList.remove('is-active'); });
+      if (panels[key]) panels[key].classList.add('is-active');
     });
   });
 })();

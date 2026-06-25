@@ -1,115 +1,296 @@
 {% extends "site/base.html" %}
 {% load static %}
-{% load site_tags %}
+
+{% block title %}Добавить работу — metriX BPM{% endblock %}
+
+{% block body_classes %}task-edit-body{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
-<link rel="stylesheet" href="{% static 'site/css/apps/ecopark.css' %}?v=eco01">
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999">
 {% endblock %}
 
 {% block content %}
-<div class="eco-page">
+<div class="task-edit-page">
+  <div class="task-edit-card">
 
-  <header class="eco-hero" style="max-width:720px;margin:0 auto 0;">
-    <div>
-      <span class="eco-hero__eyebrow"><i class="bi bi-plus-circle"></i> Новая запись</span>
-      <h1 class="eco-hero__title">Добавить работу</h1>
-      <nav aria-label="breadcrumb" class="mt-2">
-        <ol class="eco-breadcrumb">
-          <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-          <li><a href="{% url 'ecopark:home' %}">Эксплуатация</a></li>
-          <li>Создание</li>
-        </ol>
-      </nav>
+    <div class="task-edit-card__header">
+      <h1 class="task-edit-card__title">Добавить работу</h1>
+      <a href="{% url 'ecopark:home' %}" class="task-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
     </div>
-  </header>
 
-  <div class="eco-form-card">
-    <form method="post" action="{% url 'ecopark:create' %}" enctype="multipart/form-data">
+    <form method="post" action="{% url 'ecopark:create' %}" enctype="multipart/form-data" id="ecoCreateForm">
       {% csrf_token %}
 
-      <div class="eco-form-grid">
-        <div class="fin-field">
-          <label class="fin-label" for="eco-title">Наименование работ</label>
-          <input type="text" id="eco-title" name="title" class="fin-input" required placeholder="Например: замена расходников">
-        </div>
+      <div class="task-edit-card__body">
 
-        <div class="fin-field">
-          <label class="fin-label">Объект</label>
-          <div class="fin-custom-select">
-            <input type="hidden" name="object" value="">
-            <button type="button" class="fin-custom-select__button">
-              <span class="fin-custom-select__value">Выберите объект</span>
-              <span class="fin-custom-select__arrow"></span>
-            </button>
-            <div class="fin-custom-select__dropdown">
-              {% for obj in objects %}
-                <button type="button" class="fin-custom-select__option" data-value="{{ obj.id }}">{{ obj.name }}</button>
-              {% endfor %}
+        <!-- Данные работы -->
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Данные работы</h2>
+
+          <div class="task-edit-grid task-edit-grid--2">
+
+            <div class="task-edit-field" style="grid-column:1/-1">
+              <label class="task-edit-field__label">Наименование работ<span>*</span></label>
+              <input type="text" name="title" class="eco-cinput" required
+                     placeholder="Например: замена расходников эскалатора">
             </div>
-          </div>
-        </div>
 
-        <div class="fin-field">
-          <label class="fin-label" for="eco-doc">Документ</label>
-          <input type="file" id="eco-doc" name="document" class="fin-input" multiple>
-        </div>
-
-        <div class="fin-field">
-          <label class="fin-label">Исполнитель</label>
-          <div class="fin-custom-select">
-            <input type="hidden" name="executor" value="">
-            <button type="button" class="fin-custom-select__button">
-              <span class="fin-custom-select__value">Выберите исполнителя</span>
-              <span class="fin-custom-select__arrow"></span>
-            </button>
-            <div class="fin-custom-select__dropdown">
-              {% for ex in executors %}
-                <button type="button" class="fin-custom-select__option" data-value="{{ ex.id }}">{{ ex.name }}</button>
-              {% endfor %}
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Объект</label>
+              <div class="eco-sel" id="eco-sel-object">
+                <input type="hidden" name="object" value="">
+                <button type="button" class="eco-sel__btn">
+                  <span class="eco-sel__val eco-sel__val--ph">Выберите объект</span>
+                  <i class="bi bi-chevron-down eco-sel__ico"></i>
+                </button>
+                <div class="eco-sel__drop">
+                  {% for obj in objects %}
+                    <button type="button" class="eco-sel__opt" data-value="{{ obj.id }}">{{ obj.name }}</button>
+                  {% endfor %}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div class="fin-field">
-          <label class="fin-label" for="eco-responsible">Ответственный</label>
-          <input type="text" id="eco-responsible" name="responsible" class="fin-input" placeholder="ФИО сотрудника">
-        </div>
-
-        <div class="fin-field">
-          <label class="fin-label">Статус</label>
-          <div class="fin-custom-select">
-            <input type="hidden" name="status" value="pending">
-            <button type="button" class="fin-custom-select__button">
-              <span class="fin-custom-select__value">Ожидает</span>
-              <span class="fin-custom-select__arrow"></span>
-            </button>
-            <div class="fin-custom-select__dropdown">
-              <button type="button" class="fin-custom-select__option" data-value="pending">Ожидает</button>
-              <button type="button" class="fin-custom-select__option" data-value="progress">В процессе</button>
-              <button type="button" class="fin-custom-select__option" data-value="done">Выполнен</button>
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Статус</label>
+              <div class="eco-sel" id="eco-sel-status">
+                <input type="hidden" name="status" value="pending">
+                <button type="button" class="eco-sel__btn">
+                  <span class="eco-sel__val">Ожидает</span>
+                  <i class="bi bi-chevron-down eco-sel__ico"></i>
+                </button>
+                <div class="eco-sel__drop">
+                  <button type="button" class="eco-sel__opt eco-sel__opt--sel" data-value="pending">Ожидает</button>
+                  <button type="button" class="eco-sel__opt" data-value="progress">В процессе</button>
+                  <button type="button" class="eco-sel__opt" data-value="done">Выполнен</button>
+                </div>
+              </div>
             </div>
+
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Сумма, ₸</label>
+              <input type="number" name="amount" class="eco-cinput"
+                     min="0" step="1" placeholder="0">
+            </div>
+
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Ответственный</label>
+              <input type="text" name="responsible" class="eco-cinput"
+                     placeholder="ФИО сотрудника">
+            </div>
+
           </div>
-        </div>
+        </section>
 
-        <div class="fin-field eco-form-span-2">
-          <label class="fin-label" for="eco-amount">Сумма, ₸</label>
-          <input type="number" id="eco-amount" name="amount" class="fin-input" min="0" step="1" placeholder="0">
-        </div>
-      </div>
+        <!-- Маршрут -->
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Маршрут</h2>
+          <div class="task-edit-route task-edit-route--single">
 
-      <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap">
-        <a href="{% url 'ecopark:home' %}" class="fin-btn fin-btn--light">Отмена</a>
-        <button type="submit" class="fin-btn fin-btn--primary">
-          <i class="bi bi-check-lg"></i> Сохранить
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Исполнитель</label>
+              <div class="eco-sel" id="eco-sel-executor">
+                <input type="hidden" name="executor" value="">
+                <button type="button" class="eco-sel__btn">
+                  <span class="eco-sel__val eco-sel__val--ph">Выберите исполнителя</span>
+                  <i class="bi bi-chevron-down eco-sel__ico"></i>
+                </button>
+                <div class="eco-sel__drop">
+                  {% for ex in executors %}
+                    <button type="button" class="eco-sel__opt" data-value="{{ ex.id }}">{{ ex.name }}</button>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Файлы -->
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Файлы</h2>
+          <div class="task-edit-field">
+            <label class="task-edit-field__label">Вложения</label>
+            <label class="task-edit-upload" for="ecoAttachments">
+              <input type="file" id="ecoAttachments" name="document"
+                     multiple class="task-edit-upload__input">
+              <span class="task-edit-upload__icon">
+                <i class="bi bi-file-earmark-arrow-up"></i>
+              </span>
+              <span class="task-edit-upload__text">Выберите файлы или перетащите сюда</span>
+              <span class="task-edit-upload__name" id="ecoFileNames">Файлы не выбраны</span>
+            </label>
+          </div>
+        </section>
+
+      </div><!-- /body -->
+
+      <div class="task-edit-card__footer">
+        <a href="{% url 'ecopark:home' %}" class="task-edit-btn task-edit-btn--cancel">
+          Отменить
+        </a>
+        <button type="submit" class="task-edit-btn task-edit-btn--save">
+          Сохранить
         </button>
       </div>
+
     </form>
   </div>
-
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'site/js/apps/finance-filters.js' %}?v=fe65"></script>
+<style>
+/* ── eco custom select — точная копия стиля таска ── */
+.eco-cinput {
+  width: 100%;
+  height: 32px !important;
+  min-height: 32px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f5f3fa !important;
+  color: #25233f;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0 16px !important;
+  outline: none !important;
+  box-shadow: none !important;
+  box-sizing: border-box;
+}
+.eco-cinput::placeholder { color: #9a98aa; }
+.eco-cinput:focus { box-shadow: 0 0 0 2px rgba(54,100,220,.15) !important; }
+.eco-cinput[type="number"] { -moz-appearance: textfield; }
+.eco-cinput[type="number"]::-webkit-inner-spin-button { display: none; }
+
+.eco-sel { position: relative; }
+
+.eco-sel__btn {
+  width: 100%;
+  height: 32px;
+  padding: 0 36px 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #f5f3fa;
+  color: #25233f;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  outline: none;
+  position: relative;
+}
+.eco-sel__btn:focus { box-shadow: 0 0 0 2px rgba(54,100,220,.15); }
+
+.eco-sel__val { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eco-sel__val--ph { color: #9a98aa; }
+
+.eco-sel__ico {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: #8b88a0;
+  transition: transform .2s;
+  pointer-events: none;
+}
+.eco-sel.is-open .eco-sel__ico { transform: translateY(-50%) rotate(180deg); }
+
+.eco-sel__drop {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0; right: 0;
+  z-index: 200;
+  background: #fff;
+  border: 0;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(15,23,42,.16);
+  padding: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.eco-sel.is-open .eco-sel__drop { display: block; }
+
+.eco-sel__opt {
+  width: 100%;
+  min-height: 34px;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #25233f;
+  text-align: left;
+  display: flex;
+  align-items: center;
+}
+.eco-sel__opt:hover { background: #f5f3fa; }
+.eco-sel__opt--sel { background: #f5f3fa; color: #2f6bed; font-weight: 600; }
+</style>
+
+<script>
+(function () {
+  /* ── custom selects: один открыт за раз ── */
+  var sels = Array.prototype.slice.call(document.querySelectorAll('.eco-sel'));
+
+  function closeAll(except) {
+    sels.forEach(function (s) { if (s !== except) s.classList.remove('is-open'); });
+  }
+
+  sels.forEach(function (sel) {
+    var btn    = sel.querySelector('.eco-sel__btn');
+    var valEl  = sel.querySelector('.eco-sel__val');
+    var hidden = sel.querySelector('input[type="hidden"]');
+    var opts   = Array.prototype.slice.call(sel.querySelectorAll('.eco-sel__opt'));
+
+    btn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      var was = sel.classList.contains('is-open');
+      closeAll(sel);
+      sel.classList.toggle('is-open', !was);
+    });
+
+    opts.forEach(function (opt) {
+      opt.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        var val = opt.getAttribute('data-value') || '';
+        if (hidden) hidden.value = val;
+        if (valEl) {
+          valEl.textContent = opt.textContent.trim();
+          valEl.classList.remove('eco-sel__val--ph');
+        }
+        opts.forEach(function (o) { o.classList.remove('eco-sel__opt--sel'); });
+        opt.classList.add('eco-sel__opt--sel');
+        sel.classList.remove('is-open');
+      });
+    });
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.eco-sel')) closeAll(null);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeAll(null);
+  });
+
+  /* ── file upload ── */
+  var fileInput = document.getElementById('ecoAttachments');
+  var fileNames = document.getElementById('ecoFileNames');
+  if (fileInput && fileNames) {
+    fileInput.addEventListener('change', function () {
+      var files = Array.prototype.slice.call(this.files);
+      fileNames.textContent = files.length
+        ? files.map(function (f) { return f.name; }).join(', ')
+        : 'Файлы не выбраны';
+    });
+  }
+})();
+</script>
 {% endblock %}

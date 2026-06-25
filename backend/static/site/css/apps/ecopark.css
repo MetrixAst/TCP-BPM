@@ -364,3 +364,31 @@
   width: 140px;
   flex: 0 0 140px;
 }
+
+.eco-page .fin-custom-select { position: relative; }
+
+.eco-page .fin-custom-select__dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 50;                 /* перекрывает соседние селекты и таблицу */
+  max-height: 280px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e6e8ee;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(20, 30, 60, .12);
+  padding: 6px;
+}
+
+.eco-page .fin-custom-select__option.is-selected {
+  background: #eef2ff;
+  color: #2f54eb;
+  font-weight: 600;
+}
+
+.eco-page .fin-custom-select.is-open .fin-custom-select__arrow {
+  transform: rotate(180deg);
+}
+

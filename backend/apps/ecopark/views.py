@@ -19,10 +19,11 @@ def home(request):
     exec_filter = request.GET.get('executor')
     status_filter = request.GET.get('status')
 
+    # Фильтруем по имени (строке), а не по id — иначе ValueError
     if obj_filter:
-        works = works.filter(eco_object_id=obj_filter)
+        works = works.filter(eco_object__name=obj_filter)
     if exec_filter:
-        works = works.filter(executor_id=exec_filter)
+        works = works.filter(executor__name=exec_filter)
     if status_filter:
         works = works.filter(status=status_filter)
 
@@ -85,6 +86,7 @@ def create(request):
     }
     return render(request, 'site/ecopark/ecopark_create.html', context)
 
+
 def work_editor(request, pk):
     work = get_object_or_404(EcoWork, pk=pk)
     if not work.document:
@@ -119,6 +121,7 @@ def work_editor(request, pk):
 @csrf_exempt
 def work_editor_callback(request, pk):
     return JsonResponse({'error': 0})
+
 
 def edit(request, pk):
     work = get_object_or_404(EcoWork, pk=pk)
