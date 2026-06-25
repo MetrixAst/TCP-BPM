@@ -74,7 +74,12 @@
 
       {# Tabs #}
       <div class="doc-detail-tablist">
-        <button class="doc-detail-tab is-active" data-tab="doc-tab-doc">Документ</button>
+        <button class="doc-detail-tab is-active" data-tab="doc-tab-doc">
+          Документ
+          {% if files_count > 1 %}
+            <span class="doc-detail-tab-count">{{ files_count }}</span>
+          {% endif %}
+        </button>
         {% if document.folder.multiple_files %}
           <button class="doc-detail-tab" data-tab="doc-tab-addit">Доп. документы</button>
         {% endif %}
@@ -84,7 +89,94 @@
 
       {# Tab: Document #}
       <div class="doc-detail-tab-panel is-active" id="doc-tab-doc">
-        {% document_frame request document %}
+
+        {% if files_count > 1 %}
+          <div class="doc-files-list">
+            <div class="doc-files-list__head">
+              <div class="doc-files-list__title">Файлы документа</div>
+              <div class="doc-files-list__count">Всего файлов: {{ files_count }}</div>
+            </div>
+      
+            {% if document.document %}
+              <div class="doc-file-row">
+                <div class="doc-file-row__icon">
+                  <i class="bi bi-file-earmark-text"></i>
+                </div>
+      
+                <div class="doc-file-row__info">
+                  <div class="doc-file-row__name">{{ document.document.name|cut:"documents/" }}</div>
+                  <div class="doc-file-row__meta">Файл документа</div>
+                </div>
+      
+                <div class="doc-file-row__actions">
+                  <a href="{% url 'documents:document_editor' document.id %}"
+                     target="_blank"
+                     class="doc-file-row__btn doc-file-row__btn--primary">
+                    <i class="bi bi-eye"></i> Открыть в ONLYOFFICE
+                  </a>
+                
+                  <a href="{{ document.document.url }}"
+                     download
+                     class="doc-file-row__btn">
+                    <i class="bi bi-download"></i> Скачать
+                  </a>
+                
+                  <form method="POST"
+                        action="{% url 'documents:document_file_delete' document.id 'main' 0 %}"
+                        class="doc-file-row__delete-form">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="doc-file-row__btn doc-file-row__btn--danger"
+                            data-file-delete-confirm>
+                      <i class="bi bi-trash"></i> Удалить
+                    </button>
+                  </form>
+                </div>
+              </div>
+            {% endif %}
+      
+            {% for file_doc in inner_documents %}
+              <div class="doc-file-row">
+                <div class="doc-file-row__icon">
+                  <i class="bi bi-file-earmark-text"></i>
+                </div>
+      
+                <div class="doc-file-row__info">
+                  <div class="doc-file-row__name">{{ file_doc.title }}</div>
+                  <div class="doc-file-row__meta">Файл документа</div>
+                </div>
+      
+                <div class="doc-file-row__actions">
+                  <a href="{% url 'documents:attachment_editor' 'inner_document' file_doc.id %}"
+                     target="_blank"
+                     class="doc-file-row__btn doc-file-row__btn--primary">
+                    <i class="bi bi-eye"></i> Открыть в ONLYOFFICE
+                  </a>
+                
+                  <a href="{{ file_doc.document.url }}"
+                     download
+                     class="doc-file-row__btn">
+                    <i class="bi bi-download"></i> Скачать
+                  </a>
+                
+                  <form method="POST"
+                        action="{% url 'documents:document_file_delete' document.id 'inner' file_doc.id %}"
+                        class="doc-file-row__delete-form">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="doc-file-row__btn doc-file-row__btn--danger"
+                            data-file-delete-confirm>
+                      <i class="bi bi-trash"></i> Удалить
+                    </button>
+                  </form>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          {% document_frame request document %}
+        {% endif %}
+      
       </div>
 
       {# Tab: Additional docs #}
@@ -289,6 +381,15 @@
     if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
     overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
   }
+
+  document.querySelectorAll('[data-file-delete-confirm]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      var ok = window.confirm('Удалить этот файл из документа?');
+      if (!ok) {
+        e.preventDefault();
+      }
+    });
+  });
 })();
 </script>
 

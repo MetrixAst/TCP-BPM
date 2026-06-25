@@ -133,7 +133,7 @@ if (!$stateSel.hasClass('select2-hidden-accessible')) {
         window.BPM.applyTranslations();
       }
 
-      $stateSel.on('change', updateFiltersWithoutReload);
+      $stateSel.on('change', updateFilters);
     } else {
       stateSel?.addEventListener('change', updateFilters);
     }

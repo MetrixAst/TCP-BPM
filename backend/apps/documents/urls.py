@@ -13,6 +13,7 @@ urlpatterns = [
     path('document/<int:pk>/action/', views.document_action_view, name="document_action"),
     path('document/<int:pk>/frame/', views.document_frame, name="document_frame"),
     path('document/<int:pk>/editor/', views.document_editor, name="document_editor"),
+    path('document/<int:pk>/file/<slug:kind>/<int:file_pk>/delete/', views.document_file_delete, name="document_file_delete"),
     path('document/<int:pk>/onlyoffice/callback/', views.onlyoffice_callback, name="onlyoffice_callback"),
     path('document/upload_addit/<int:pk>/', views.upload_addit_document, name="upload_addit"),
     path('document/addit/<int:pk>/', views.addit_document_frame, name="addit_document_frame"),

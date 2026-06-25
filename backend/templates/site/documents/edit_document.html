@@ -47,12 +47,18 @@
           </div>
 
           <div class="doc-form-field doc-form-field--full">
-            <label class="doc-form-label" for="{{ form.document.id_for_label }}">Файл</label>
+            <label class="doc-form-label" for="{{ form.document.id_for_label }}">Файлы</label>
+          
             <label class="doc-form-upload" for="{{ form.document.id_for_label }}">
-              {{ form.document }}
+              <input type="file"
+                     name="{{ form.document.html_name }}"
+                     id="{{ form.document.id_for_label }}"
+                     class="{{ form.document.field.widget.attrs.class }}"
+                     multiple>
+          
               <span class="doc-form-upload__icon"><i class="bi bi-cloud-upload"></i></span>
-              <span class="doc-form-upload__text">Перетащите файл или нажмите для выбора</span>
-              <span class="doc-form-upload__name" data-upload-name>Файл не выбран</span>
+              <span class="doc-form-upload__text">Перетащите файлы или нажмите для выбора</span>
+              <span class="doc-form-upload__name" data-upload-name>Файлы не выбраны</span>
             </label>
           </div>
 

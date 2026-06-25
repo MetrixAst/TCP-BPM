@@ -7,7 +7,9 @@ from project.utils import get_or_error
 from project.paginator import CustomPaginator
 
 from .enums import DocumentTypeEnum, DocumentStatusEnum
-from .models import Folder, Document
+import os
+
+from .models import Folder, Document, InnerDocument
 from .forms import DocumentForm, PurchaseForm, BudgetForm, DocumentsForm, InnerDocumentForm
 from .folder_structure import ensure_folder_tree, folder_display_name
 
@@ -144,8 +146,14 @@ def document(request, pk):
     current = Document.get_by_id(request, pk)
     if not user_can_view_folder(request.user, current.folder):
         raise Http404
+
+    inner_documents = current.inner_documents.all()
+    files_count = (1 if current.document else 0) + inner_documents.count()
+
     context = {
         'document': current,
+        'inner_documents': inner_documents,
+        'files_count': files_count,
         'status_info': current.status_info,
         'actions': current.actions(request),
         'type_config': DocumentTypeEnum.get_config(current.document_type),
@@ -184,10 +192,27 @@ def edit_document_by_type(request, pk, document_type):
     else:
         form_class = DocumentForm
 
+    selected_files = request.FILES.getlist('document') if request.method == 'POST' else []
+
+    form_files = request.FILES or None
+
+    if selected_files:
+        form_files = request.FILES.copy()
+
+        if current is None:
+            # Создание новой карточки:
+            # первый файл сохраняется в Document.document,
+            # остальные ниже уйдут в InnerDocument.
+            form_files.setlist('document', [selected_files[0]])
+        else:
+            # Редактирование существующей карточки:
+            # НЕ заменяем основной файл, а добавляем новые как файлы карточки.
+            form_files.pop('document', None)
+
     form = form_class(
         instance=current,
         data=request.POST or None,
-        files=request.FILES or None,
+        files=form_files,
         user=request.user,
     )
 
@@ -216,6 +241,21 @@ def edit_document_by_type(request, pk, document_type):
                 new.observers.set([request.user])
             else:
                 form.save_m2m()
+
+            # Файлы внутри одной карточки Document.
+            # При создании: первый файл уже лежит в Document.document, остальные добавляем.
+            # При редактировании: основной файл не заменяем, все новые файлы добавляем.
+            if selected_files:
+                files_for_inner = selected_files[1:] if current is None else selected_files
+
+                for uploaded_file in files_for_inner:
+                    filename = os.path.basename(uploaded_file.name or 'Документ')
+                    InnerDocument.objects.create(
+                        parent=new,
+                        author=request.user,
+                        title=filename[:120],
+                        document=uploaded_file,
+                    )
 
             if new.status is None or new.status == "":
                 new.set_action(request, "create")
