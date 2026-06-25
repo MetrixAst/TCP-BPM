@@ -207,8 +207,10 @@
     "period_90_days": "last 90 days",
     "period_ytd": "year to date",
     "period_current_month": "current month",
-    "records_count": "records",
-    "first_500": "(first 500 shown)"
+    "records_plural": "record|records",
+    "categories_plural": "category|categories",
+    "first_500": "(first 500 shown)",
+    "models_plural": "model|models"
   },
   "dashboard": {
     "welcome": "Welcome",
@@ -243,6 +245,9 @@
   "30d": "30d",
   "60d": "60d",
   "90d": "90d"
+  },
+  "hr": {
+      "docs_plural": "document|documents"
   },
   "documents": {
     "location": "Location",

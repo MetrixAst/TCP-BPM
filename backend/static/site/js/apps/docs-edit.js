@@ -92,9 +92,62 @@
       });
     });
 
+    $form.on('click', '.doc-form-check span', function (e) {
+      var checkbox = $(this).closest('.doc-form-check').find('input[type="checkbox"]')[0];
+      if (!checkbox || checkbox.disabled) return;
+    
+      checkbox.checked = !checkbox.checked;
+      checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    $form.find('input[type="file"]').each(function () {
+      $(this).attr('multiple', 'multiple');
+    });
+    
     $form.find('input[type="file"]').on('change', function () {
-      var name = this.files && this.files[0] ? this.files[0].name : 'Файл не выбран';
-      $(this).closest('.doc-form-upload').find('[data-upload-name]').text(name);
+      var input = this;
+      var $input = $(input);
+      var $uploadName = $input.closest('.doc-form-upload').find('[data-upload-name]');
+    
+      var previousFiles = $input.data('selectedFiles') || [];
+      var newFiles = Array.from(input.files || []);
+    
+      if (!newFiles.length && !previousFiles.length) {
+        $uploadName.text('Файлы не выбраны');
+        return;
+      }
+    
+      var mergedFiles = previousFiles.slice();
+    
+      newFiles.forEach(function (file) {
+        var alreadyExists = mergedFiles.some(function (existingFile) {
+          return existingFile.name === file.name &&
+                 existingFile.size === file.size &&
+                 existingFile.lastModified === file.lastModified;
+        });
+    
+        if (!alreadyExists) {
+          mergedFiles.push(file);
+        }
+      });
+    
+      if (window.DataTransfer) {
+        var dataTransfer = new DataTransfer();
+    
+        mergedFiles.forEach(function (file) {
+          dataTransfer.items.add(file);
+        });
+    
+        input.files = dataTransfer.files;
+      }
+    
+      $input.data('selectedFiles', mergedFiles);
+    
+      var names = mergedFiles.map(function (file) {
+        return file.name;
+      });
+    
+      $uploadName.text(names.join(', '));
     });
   });
 })(window.jQuery);

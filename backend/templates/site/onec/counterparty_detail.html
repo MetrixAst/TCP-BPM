@@ -3,6 +3,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'1' }}">
 {% endblock %}
 
 {% block content %}
@@ -131,22 +132,39 @@
       </div>
     </section>
 
-    <section class="onec-messages-card">
-      <div class="onec-messages-title">
-        <span>Сообщения</span>
-        <span>Письма</span>
-      </div>
-      <div class="onec-messages-list" id="onecMessagesList">
-        <div class="onec-messages-empty">
-          <i class="bi bi-chat-dots"></i>
-          <p>Сообщений пока нет</p>
+    <div class="task-deal__card-block" style="background:#fff;border-radius:16px;padding:18px;">
+      <section class="task-feed">
+        <h2 class="task-feed__title">Сообщения</h2>
+        <div class="task-feed__list" id="counterpartyFeedList">
+          {% for c in comments %}
+            <div class="task-feed__item task-feed__item--comment">
+              <div class="task-feed__avatar">
+                {% if c.user and c.user.get_avatar_url %}
+                  <img src="{{ c.user.get_avatar_url }}" alt="">
+                {% else %}
+                  <i class="bi bi-person-fill"></i>
+                {% endif %}
+              </div>
+              <div class="task-feed__content">
+                <div class="task-feed__name">{% if c.user %}{{ c.user.get_name|default:c.user.username }}{% else %}—{% endif %}</div>
+                <div class="task-feed__text">{{ c.text }}</div>
+              </div>
+              <div class="task-feed__time">{{ c.formatted_date }}</div>
+            </div>
+          {% empty %}
+            <div class="task-feed__empty">Сообщений пока нет</div>
+          {% endfor %}
         </div>
-      </div>
-      <form class="onec-message-input" id="onecMessageForm">
-        <input type="text" id="onecMessageInput" placeholder="Сообщение">
-        <button type="submit">Отправить</button>
+      </section>
+    
+      <form method="post" action="{% url 'addits:comment' 'counterparty' counterparty.pk %}"
+            class="task-comment-composer" id="counterpartyCommentForm">
+        {% csrf_token %}
+        <input type="text" name="text" class="task-comment-composer__input"
+               placeholder="Написать сообщение..." />
+        <button type="submit" class="task-comment-composer__submit">Отправить</button>
       </form>
-    </section>
+    </div>
 
   </main>
 
@@ -277,35 +295,38 @@
       });
     }
 
-    // Сообщения (локальный черновик)
-    const list = document.getElementById('onecMessagesList');
-    const form = document.getElementById('onecMessageForm');
-    const input = document.getElementById('onecMessageInput');
-    let messages = [];
-
-    function render() {
-      if (!messages.length) {
-        list.innerHTML = '<div class="onec-messages-empty"><i class="bi bi-chat-dots"></i><p>Сообщений пока нет</p></div>';
-        return;
-      }
-      list.innerHTML = messages.map(m =>
-        '<div class="onec-message-item"><div></div><span>' + m.date + '</span></div>'
-      ).join('');
-      list.querySelectorAll('.onec-message-item > div').forEach((el, i) => { el.textContent = messages[i].text; });
-    }
-
-    if (form) {
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        const v = input.value.trim();
-        if (!v) return;
-        messages.push({ text: v, date: new Date().toLocaleString('ru-RU') });
+    // ── Форма комментария AJAX ──
+    const cpForm = document.getElementById('counterpartyCommentForm');
+    cpForm && cpForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const input = cpForm.querySelector('input[name="text"]');
+      const text = input.value.trim();
+      if (!text) return;
+      try {
+        const res = await fetch(cpForm.action, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          credentials: 'same-origin',
+          body: new FormData(cpForm),
+        });
+        if (!res.ok) throw new Error('failed');
+        const data = await res.json();
+        const feed = document.getElementById('counterpartyFeedList');
+        feed.querySelector('.task-feed__empty')?.remove();
+        const avatar = data.avatar ? '<img src="' + data.avatar + '" alt="">' : '<i class="bi bi-person-fill"></i>';
+        feed.insertAdjacentHTML('beforeend',
+          '<div class="task-feed__item task-feed__item--comment">' +
+            '<div class="task-feed__avatar">' + avatar + '</div>' +
+            '<div class="task-feed__content">' +
+              '<div class="task-feed__name">' + (data.name || '') + '</div>' +
+              '<div class="task-feed__text">' + (data.text || '') + '</div>' +
+            '</div>' +
+            '<div class="task-feed__time">' + (data.date || '') + '</div>' +
+          '</div>'
+        );
         input.value = '';
-        render();
-      });
-    }
-
-    render();
+      } catch (err) { console.error(err); }
+    });
   });
 </script>
 {% endblock %}

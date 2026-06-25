@@ -199,6 +199,62 @@ def upload_addit_document(request, pk):
 
     return redirect('documents:document', pk=pk)
 
+@need_permission(PermissionEnums.EDIT_DOCUMENT)
+def document_file_delete(request, pk, kind, file_pk):
+    current = Document.get_by_id(request, pk, exception=True)
+
+    if request.method != 'POST':
+        return redirect('documents:document', pk=pk)
+
+    if not _user_can_edit_document(request, current):
+        raise Http404
+
+    # Удаление дополнительного файла
+    if kind == 'inner':
+        inner = current.inner_documents.filter(pk=file_pk).first()
+        if inner is None:
+            raise Http404
+
+        file_name = inner.document.name if inner.document else ''
+        storage = inner.document.storage if inner.document else None
+
+        inner.delete()
+
+        if file_name and storage:
+            storage.delete(file_name)
+
+        return redirect('documents:document', pk=pk)
+
+    # Удаление основного файла
+    if kind == 'main':
+        if not current.document:
+            return redirect('documents:document', pk=pk)
+
+        old_file_name = current.document.name
+        old_storage = current.document.storage
+
+        # Если есть дополнительные файлы — один из них становится основным,
+        # чтобы карточка документа не осталась пустой.
+        next_inner = current.inner_documents.first()
+
+        if next_inner and next_inner.document:
+            current.document = next_inner.document.name
+            current.save(update_fields=['document'])
+
+            next_inner.delete()
+
+            if old_file_name and old_storage:
+                old_storage.delete(old_file_name)
+
+        else:
+            current.document.delete(save=False)
+            current.document = None
+            current.save(update_fields=['document'])
+
+        return redirect('documents:document', pk=pk)
+
+    raise Http404
+
 
 def _universal_editor(request, kind, pk):
     spec = attachments.get_spec(kind)

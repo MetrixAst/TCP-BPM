@@ -10,6 +10,7 @@ from django.conf import settings
 from django.db import models
 from django.db import transaction
 from django.utils import timezone
+from addits.models import Comment
 
 from account.role_permissions import login_required
 from account.services.access_scope import (
@@ -180,10 +181,15 @@ def counterparty_detail(request, pk):
         ),
         pk=pk,
     )
+    comments = Comment.objects.filter(
+        target_type='counterparty', target_id=counterparty.pk
+    ).select_related('user').order_by('id')
+
     return render(request, 'site/onec/counterparty_detail.html', {
         'counterparty': counterparty,
         'tasks_count': counterparty.tasks.count(),
         'invoices_count': counterparty.invoices.count(),
+        'comments': comments,
     })
 
 
