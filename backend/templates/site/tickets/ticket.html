@@ -131,6 +131,15 @@
               {% endif %}
             </div>
             <div class="tk-att-item__actions">
+              {% if att.filename|oo_supported %}
+                <a href="{{ att.id|oo_editor_url:'ticket_attachment' }}"
+                   target="_blank" rel="noopener"
+                   class="tk-att-item__btn"
+                   style="background:#eef2ff;color:#2f6bed;"
+                   title="{% if att.filename|oo_editable %}Редактировать в ONLYOFFICE{% else %}Открыть в ONLYOFFICE{% endif %}">
+                  <i class="bi {% if att.filename|oo_editable %}bi-pencil-square{% else %}bi-eye{% endif %}"></i>
+                </a>
+              {% endif %}
               <a href="{{ att.file.url }}" download class="tk-att-item__btn" title="Скачать">
                 <i class="bi bi-download"></i>
               </a>
