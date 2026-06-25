@@ -53,7 +53,7 @@
       <div class="fin-field fin-field--wide">
         <label class="fin-label">Объект</label>
         <div class="fin-custom-select">
-          <input type="hidden" name="object" value="">
+          <input type="hidden" name="object" value="{{ request.GET.object }}">
           <button type="button" class="fin-custom-select__button">
             <span class="fin-custom-select__value">Все</span>
             <span class="fin-custom-select__arrow"></span>
@@ -61,7 +61,7 @@
           <div class="fin-custom-select__dropdown">
             <button type="button" class="fin-custom-select__option" data-value="">Все</button>
             {% for obj in objects %}
-              <button type="button" class="fin-custom-select__option" data-value="{{ obj }}">{{ obj }}</button>
+              <button type="button" class="fin-custom-select__option" data-value="{{ obj.id }}">{{ obj.name }}</button>
             {% endfor %}
           </div>
         </div>
@@ -70,7 +70,7 @@
       <div class="fin-field fin-field--wide">
         <label class="fin-label">Исполнитель</label>
         <div class="fin-custom-select">
-          <input type="hidden" name="executor" value="">
+          <input type="hidden" name="executor" value="{{ request.GET.executor }}">
           <button type="button" class="fin-custom-select__button">
             <span class="fin-custom-select__value">Все</span>
             <span class="fin-custom-select__arrow"></span>
@@ -78,7 +78,7 @@
           <div class="fin-custom-select__dropdown">
             <button type="button" class="fin-custom-select__option" data-value="">Все</button>
             {% for ex in executors %}
-              <button type="button" class="fin-custom-select__option" data-value="{{ ex }}">{{ ex }}</button>
+              <button type="button" class="fin-custom-select__option" data-value="{{ ex.id }}">{{ ex.name }}</button>
             {% endfor %}
           </div>
         </div>
@@ -87,7 +87,7 @@
       <div class="fin-field fin-field--narrow">
         <label class="fin-label">Статус</label>
         <div class="fin-custom-select">
-          <input type="hidden" name="status" value="">
+          <input type="hidden" name="status" value="{{ request.GET.status }}">
           <button type="button" class="fin-custom-select__button">
             <span class="fin-custom-select__value">Все</span>
             <span class="fin-custom-select__arrow"></span>
@@ -112,7 +112,11 @@
     <div class="fin-table-head">
       <div>
         <div class="fin-table-title">Наименование работ</div>
+<<<<<<< HEAD
         <div class="fin-table-subtitle">{{ works|length }} {% plural_t works|length 'finances.records_plural' 'запись|записи|записей' %}</div>
+=======
+        <div class="fin-table-subtitle">{{ works|length }} записей</div>
+>>>>>>> origin/feature/PP-08-counterparty-acl-be
       </div>
       <div class="fin-legend">
         <span><i class="is-success"></i> Выполнен</span>
@@ -138,13 +142,13 @@
               <td>
                 <a href="{% url 'ecopark:item' work.id %}" class="eco-work-link">{{ work.title }}</a>
                 <div class="eco-work-meta">{% bpm_date work.date %}</div>
-                <span class="eco-object-tag">{{ work.object }}</span>
+                {% if work.eco_object %}<span class="eco-object-tag">{{ work.eco_object.name }}</span>{% endif %}
               </td>
-              <td>{{ work.executor }}</td>
-              <td>{{ work.responsible }}</td>
-              <td class="eco-amount">{{ work.amount_fmt }} ₸</td>
+              <td>{{ work.executor.name|default:"—" }}</td>
+              <td>{{ work.responsible|default:"—" }}</td>
+              <td class="eco-amount">{{ work.amount|floatformat:0 }} ₸</td>
               <td>
-                <span class="eco-badge eco-badge--{{ work.status }}">{{ work.status_label }}</span>
+                <span class="eco-badge eco-badge--{{ work.status }}">{{ work.get_status_display }}</span>
               </td>
             </tr>
           {% empty %}
