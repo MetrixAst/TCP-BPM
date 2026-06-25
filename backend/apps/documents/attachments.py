@@ -275,3 +275,31 @@ def _hr_permit_spec():
  
 register(_hr_cert_spec())
 register(_hr_permit_spec())
+
+
+def _ticket_attachment_spec():
+    from tickets.models import TicketAttachment
+ 
+    def get_object(request, pk):
+        return TicketAttachment.objects.select_related('request', 'uploaded_by').get(pk=pk)
+ 
+    def get_file(obj):
+        return obj.file
+ 
+    def get_title(obj):
+        import os
+        return obj.original_name or os.path.basename(obj.file.name)
+ 
+    def can_view(request, obj):
+        # Просматривать может любой авторизованный пользователь
+        return request.user.is_authenticated
+ 
+    def can_edit(request, obj):
+        # Редактировать — только менеджеры/персонал
+        return request.user.is_staff or request.user.is_superuser
+ 
+    return AttachmentSpec('ticket_attachment', get_object, get_file, get_title, can_view, can_edit)
+ 
+ 
+register(_ticket_attachment_spec())
+ 
