@@ -315,9 +315,9 @@ class MenuItem:
                     MenuItem('tenants_list', 'tenants:list', '', 'Арендаторы'),
                 ]),
                 MenuItem('purchases', 'documents:list', 'folder2', 'Закупки', url_param=['purchases']),
-                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu + [
-                    MenuItem('bill', 'finances:bill', '', 'Счет компании'),
-                ]),
+                # MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu + [
+                #     MenuItem('bill', 'finances:bill', '', 'Счет компании'),
+                # ]),
                 MenuItem('hr', '#hr', 'people', 'HR', submenu=[
                     MenuItem('my_profile', 'hr:my_profile', '', 'Личный профиль'),
                     MenuItem('org', 'hr:org', '', 'Орг. структура'),
@@ -337,26 +337,26 @@ class MenuItem:
                     MenuItem('hr_sick_leaves', 'hr:sick_leaves', '', 'Больничные (Enbek)'),
                     MenuItem('hr_contracts', 'hr:contracts', '', 'Договоры (Enbek)'),
                 ]),
-                MenuItem('onec', '#onec', 'box-arrow-in-down', '1С', submenu=[
-                    MenuItem('onec_counterparties', 'onec:counterparty_list', '', 'Контрагенты'),
-                ]),
+                # MenuItem('onec', '#onec', 'box-arrow-in-down', '1С', submenu=[
+                #     MenuItem('onec_counterparties', 'onec:counterparty_list', '', 'Контрагенты'),
+                # ]),
                 MenuItem('ecopark', 'ecopark:home', 'water', 'Эксплуатация'),
                 MenuItem('tickets', 'tickets:kanban', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket'),
-                MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
+                # MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
             RoleEnums.OWNER.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
                 MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
-                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
-                MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
+                # MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
+                # MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
             RoleEnums.CFO.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
                 MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
-                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
-                MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
+                # MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
+                # MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
             RoleEnums.CHIEF_ACCOUNTANT.value: [
@@ -368,7 +368,7 @@ class MenuItem:
                     MenuItem('hr_permits', 'hr:permits_list', '', 'Допуски'),
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                 ]),
-                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_readonly_submenu),
+                # MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_readonly_submenu),
             ],
 
             RoleEnums.HR.value: [
