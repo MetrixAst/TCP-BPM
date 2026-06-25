@@ -1,0 +1,132 @@
+{% extends "site/base.html" %}
+{% load static %}
+{% load site_tags %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
+<link rel="stylesheet" href="{% static 'site/css/apps/ecopark.css' %}?v=eco01">
+{% endblock %}
+
+{% block content %}
+<div class="eco-page">
+
+  <header class="eco-hero" style="max-width:720px;margin:0 auto 0;">
+    <div>
+      <span class="eco-hero__eyebrow"><i class="bi bi-pencil"></i> Редактирование</span>
+      <h1 class="eco-hero__title">{{ work.title }}</h1>
+      <nav aria-label="breadcrumb" class="mt-2">
+        <ol class="eco-breadcrumb">
+          <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
+          <li><a href="{% url 'ecopark:home' %}">Эксплуатация</a></li>
+          <li><a href="{% url 'ecopark:item' work.id %}">{{ work.title }}</a></li>
+          <li>Редактирование</li>
+        </ol>
+      </nav>
+    </div>
+  </header>
+
+  <div class="eco-form-card">
+    <form method="post" action="{% url 'ecopark:edit' work.id %}" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="eco-form-grid">
+        <div class="fin-field">
+          <label class="fin-label" for="eco-title">Наименование работ</label>
+          <input type="text" id="eco-title" name="title" class="fin-input" required
+                 value="{{ work.title }}" placeholder="Например: замена расходников">
+        </div>
+
+        <div class="fin-field">
+          <label class="fin-label">Объект</label>
+          <div class="fin-custom-select">
+            <input type="hidden" name="object" value="{{ work.eco_object_id }}">
+            <button type="button" class="fin-custom-select__button">
+              <span class="fin-custom-select__value">{{ work.eco_object.name|default:"Выберите объект" }}</span>
+              <span class="fin-custom-select__arrow"></span>
+            </button>
+            <div class="fin-custom-select__dropdown">
+              {% for obj in objects %}
+                <button type="button" class="fin-custom-select__option {% if obj.id == work.eco_object_id %}is-selected{% endif %}"
+                        data-value="{{ obj.id }}">{{ obj.name }}</button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div class="fin-field">
+          <label class="fin-label" for="eco-doc">Документ</label>
+          {% if work.document %}
+            <div style="margin-bottom:8px;font-size:13px;color:#74728a;">
+              <i class="bi bi-file-earmark"></i> {{ work.document.name|slice:"9:" }}
+            </div>
+          {% endif %}
+          <input type="file" id="eco-doc" name="document" class="fin-input">
+          <div style="font-size:11px;color:#9a98aa;margin-top:4px;">Загрузите новый файл чтобы заменить текущий</div>
+        </div>
+
+        <div class="fin-field">
+          <label class="fin-label">Исполнитель</label>
+          <div class="fin-custom-select">
+            <input type="hidden" name="executor" value="{{ work.executor_id }}">
+            <button type="button" class="fin-custom-select__button">
+              <span class="fin-custom-select__value">{{ work.executor.name|default:"Выберите исполнителя" }}</span>
+              <span class="fin-custom-select__arrow"></span>
+            </button>
+            <div class="fin-custom-select__dropdown">
+              {% for ex in executors %}
+                <button type="button" class="fin-custom-select__option {% if ex.id == work.executor_id %}is-selected{% endif %}"
+                        data-value="{{ ex.id }}">{{ ex.name }}</button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div class="fin-field">
+          <label class="fin-label" for="eco-responsible">Ответственный</label>
+          <input type="text" id="eco-responsible" name="responsible" class="fin-input"
+                 value="{{ work.responsible }}" placeholder="ФИО сотрудника">
+        </div>
+
+        <div class="fin-field">
+          <label class="fin-label">Статус</label>
+          <div class="fin-custom-select">
+            <input type="hidden" name="status" value="{{ work.status }}">
+            <button type="button" class="fin-custom-select__button">
+              <span class="fin-custom-select__value">{{ work.get_status_display }}</span>
+              <span class="fin-custom-select__arrow"></span>
+            </button>
+            <div class="fin-custom-select__dropdown">
+              <button type="button" class="fin-custom-select__option {% if work.status == 'pending' %}is-selected{% endif %}"
+                      data-value="pending">Ожидает</button>
+              <button type="button" class="fin-custom-select__option {% if work.status == 'progress' %}is-selected{% endif %}"
+                      data-value="progress">В процессе</button>
+              <button type="button" class="fin-custom-select__option {% if work.status == 'done' %}is-selected{% endif %}"
+                      data-value="done">Выполнен</button>
+              <button type="button" class="fin-custom-select__option {% if work.status == 'overdue' %}is-selected{% endif %}"
+                      data-value="overdue">Просрочен</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="fin-field eco-form-span-2">
+          <label class="fin-label" for="eco-amount">Сумма, ₸</label>
+          <input type="number" id="eco-amount" name="amount" class="fin-input"
+                 min="0" step="1" value="{{ work.amount }}">
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap">
+        <a href="{% url 'ecopark:item' work.id %}" class="fin-btn fin-btn--light">Отмена</a>
+        <button type="submit" class="fin-btn fin-btn--primary">
+          <i class="bi bi-check-lg"></i> Сохранить
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/finance-filters.js' %}?v=fe65"></script>
+{% endblock %}

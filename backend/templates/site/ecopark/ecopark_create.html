@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
@@ -24,7 +25,7 @@
   </header>
 
   <div class="eco-form-card">
-    <form method="post" action="{% url 'ecopark:create' %}">
+    <form method="post" action="{% url 'ecopark:create' %}" enctype="multipart/form-data">
       {% csrf_token %}
 
       <div class="eco-form-grid">
@@ -43,7 +44,7 @@
             </button>
             <div class="fin-custom-select__dropdown">
               {% for obj in objects %}
-                <button type="button" class="fin-custom-select__option" data-value="{{ obj }}">{{ obj }}</button>
+                <button type="button" class="fin-custom-select__option" data-value="{{ obj.id }}">{{ obj.name }}</button>
               {% endfor %}
             </div>
           </div>
@@ -51,7 +52,7 @@
 
         <div class="fin-field">
           <label class="fin-label" for="eco-doc">Документ</label>
-          <input type="file" id="eco-doc" name="document" class="fin-input">
+          <input type="file" id="eco-doc" name="document" class="fin-input" multiple>
         </div>
 
         <div class="fin-field">
@@ -64,7 +65,7 @@
             </button>
             <div class="fin-custom-select__dropdown">
               {% for ex in executors %}
-                <button type="button" class="fin-custom-select__option" data-value="{{ ex }}">{{ ex }}</button>
+                <button type="button" class="fin-custom-select__option" data-value="{{ ex.id }}">{{ ex.name }}</button>
               {% endfor %}
             </div>
           </div>

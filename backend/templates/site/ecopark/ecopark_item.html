@@ -18,14 +18,21 @@
         <ol class="eco-breadcrumb">
           <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
           <li><a href="{% url 'ecopark:home' %}">Эксплуатация</a></li>
-          <li>{{ work.object }}</li>
+          <li>{{ work.eco_object.name|default:"—" }}</li>
         </ol>
       </nav>
     </div>
     <div class="eco-hero__actions">
-      <a href="{% static 'sample.pdf' %}" download class="fin-btn fin-btn--light">
-        <i class="bi bi-download"></i> Скачать
+      <a href="{% url 'ecopark:edit' work.id %}" class="fin-btn fin-btn--light">
+        <i class="bi bi-pencil"></i> Редактировать
       </a>
+      <form method="post" action="{% url 'ecopark:delete' work.id %}"
+            onsubmit="return confirm('Удалить запись?')" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="fin-btn fin-btn--light" style="color:#ff3b30;">
+          <i class="bi bi-trash"></i> Удалить
+        </button>
+      </form>
       <a href="{% url 'ecopark:home' %}" class="fin-btn fin-btn--light">
         <i class="bi bi-arrow-left"></i> К списку
       </a>
@@ -35,9 +42,9 @@
   <div class="eco-detail-grid">
     <aside class="eco-info-card">
       <div class="eco-info-card__icon"><i class="bi bi-building-gear"></i></div>
-      <div class="eco-info-card__object">{{ work.object }}</div>
+      <div class="eco-info-card__object">{{ work.eco_object.name|default:"—" }}</div>
       <h2 class="eco-info-card__title">{{ work.title }}</h2>
-      <span class="eco-badge eco-badge--{{ work.status }}">{{ work.status_label }}</span>
+      <span class="eco-badge eco-badge--{{ work.status }}">{{ work.get_status_display }}</span>
 
       <div class="eco-info-rows">
         <div class="eco-info-row">
@@ -46,15 +53,15 @@
         </div>
         <div class="eco-info-row">
           <span class="eco-info-row__label">Сумма</span>
-          <span class="eco-info-row__value">{{ work.amount_fmt }} ₸</span>
+          <span class="eco-info-row__value">{{ work.amount|floatformat:0 }} ₸</span>
         </div>
         <div class="eco-info-row">
           <span class="eco-info-row__label">Исполнитель</span>
-          <span class="eco-info-row__value">{{ work.executor }}</span>
+          <span class="eco-info-row__value">{{ work.executor.name|default:"—" }}</span>
         </div>
         <div class="eco-info-row">
           <span class="eco-info-row__label">Ответственный</span>
-          <span class="eco-info-row__value">{{ work.responsible }}</span>
+          <span class="eco-info-row__value">{{ work.responsible|default:"—" }}</span>
         </div>
       </div>
     </aside>
@@ -66,7 +73,31 @@
       </div>
 
       <div class="eco-panel" id="tab-doc" data-eco-panel="doc">
-        <iframe class="eco-panel__pdf" src="{% static 'sample.pdf' %}" title="Документ работы"></iframe>
+        {% if work.document %}
+          <div class="eco-empty" style="padding:40px;text-align:center;">
+            <i class="bi bi-file-earmark-text" style="font-size:48px;color:#2f6bed;"></i>
+            <div style="margin-top:16px;">
+              <a href="{% url 'ecopark:work_editor' work.id %}" target="_blank" class="fin-btn fin-btn--primary">
+                <i class="bi bi-eye"></i> Открыть документ
+              </a>
+              <a href="{{ work.document.url }}" download class="fin-btn fin-btn--light" style="margin-left:8px;">
+                <i class="bi bi-download"></i> Скачать
+              </a>
+              <form method="post" action="{% url 'ecopark:work_delete_doc' work.id %}"
+                    onsubmit="return confirm('Удалить документ?')" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="fin-btn fin-btn--light" style="margin-left:8px;color:#ff3b30;">
+                  <i class="bi bi-trash"></i> Удалить
+                </button>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <div class="eco-empty" style="padding:40px;text-align:center;">
+            <i class="bi bi-file-earmark-x"></i>
+            <strong>Документ не прикреплён</strong>
+          </div>
+        {% endif %}
       </div>
 
       <div class="eco-panel d-none" id="tab-history" data-eco-panel="history">
@@ -79,16 +110,22 @@
                 <th>Исполнитель</th>
                 <th>Ответственный</th>
                 <th>Сумма</th>
+                <th>Статус</th>
               </tr>
             </thead>
             <tbody>
               {% for row in history %}
                 <tr>
-                  <td>{{ row.title }}</td>
+                  <td><a href="{% url 'ecopark:item' row.id %}">{{ row.title }}</a></td>
                   <td>{% bpm_date row.date %}</td>
-                  <td>{{ row.executor }}</td>
-                  <td>{{ row.responsible }}</td>
-                  <td class="eco-amount">{{ row.amount_fmt|default:work.amount_fmt }} ₸</td>
+                  <td>{{ row.executor.name|default:"—" }}</td>
+                  <td>{{ row.responsible|default:"—" }}</td>
+                  <td class="eco-amount">{{ row.amount|floatformat:0 }} ₸</td>
+                  <td><span class="eco-badge eco-badge--{{ row.status }}">{{ row.get_status_display }}</span></td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="6" class="fin-empty">История пуста</td>
                 </tr>
               {% endfor %}
             </tbody>
