@@ -90,6 +90,15 @@ class PurchaseForm(forms.ModelForm):
         kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         self.fields['folder'].queryset = all_folders_queryset('purchases')
+        self.fields['folder'].label = 'Папка'
+        self.fields['document'].label = 'Файл'
+        self.fields['title'].label = 'Название документа'
+        self.fields['number'].label = 'Номер документа'
+        self.fields['reg_date'].label = 'Дата'
+        self.fields['days'].label = 'Срок (дней)'
+        self.fields['need_all'].label = 'Все согласующие должны согласовать'
+        self.fields['need_head'].label = 'Требуется подпись руководителя'
+        self.fields['supplier'].label = 'Контрагент'
 
     class Meta:
         model = Document

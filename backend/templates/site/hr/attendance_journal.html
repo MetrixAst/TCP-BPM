@@ -1,5 +1,6 @@
 {% extends 'site/base.html' %}
 {% load static %}
+{% load site_tags %}
 
 {% block title %}Журнал посещаемости — metriX BPM{% endblock %}
 
@@ -104,7 +105,7 @@
             </td>
             <td>
               {% if item.total_hours > 0 %}
-                <strong>{{ item.total_hours|floatformat:1 }} ч.</strong>
+                <strong>{{ item.total_hours|floatformat:1 }} {% t 'common.hours_short' 'ч.' %}</strong>
               {% else %}
                 <span class="attendance-table__empty">—</span>
               {% endif %}

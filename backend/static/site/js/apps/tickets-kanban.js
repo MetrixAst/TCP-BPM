@@ -8,7 +8,7 @@
   const apiUrl = page.dataset.kanbanApi;
   const statusUrlTpl = page.dataset.statusUrlTpl || '/tickets/api/kanban/0/status/';
 
-  // ── i18n: читаем переводы из data-атрибутов шаблона
+  // ── i18n из data-атрибутов шаблона ──
   const i18n = {
     loading:          page.dataset.i18nLoading         || 'Загрузка…',
     noColumns:        page.dataset.i18nNoColumns        || 'Нет колонок',
@@ -69,7 +69,7 @@
   function render(data) {
     const columns = (data && data.columns) || [];
     if (!columns.length) {
-      board.innerHTML = '<div class="tk-kanban-loading">' + esc(i18n.noColumns) + '</div>';  // ── i18n
+      board.innerHTML = '<div class="tk-kanban-loading">' + esc(i18n.noColumns) + '</div>';
       return;
     }
 
@@ -133,11 +133,11 @@
 
   async function confirmMove(id, target) {
     const title = colTitle(target);
-    const msg = i18n.moveConfirmMsg.replace('{title}', title);  // ── i18n
+    const msg = i18n.moveConfirmMsg.replace('{title}', title);
     const proceed = window.bpmModal
       ? await window.bpmModal.confirm(msg, {
-          title: i18n.moveConfirmTitle,      // ── i18n
-          confirmText: i18n.moveConfirmText, // ── i18n
+          title: i18n.moveConfirmTitle,
+          confirmText: i18n.moveConfirmText,
           variant: 'info',
         })
       : window.confirm(msg);
@@ -146,7 +146,7 @@
   }
 
   function showError(msg) {
-    if (window.bpmModal) window.bpmModal.alert(msg, { variant: 'danger', title: i18n.errorTitle });  // ── i18n
+    if (window.bpmModal) window.bpmModal.alert(msg, { variant: 'danger', title: i18n.errorTitle });
     else alert(msg);
   }
 
@@ -171,14 +171,14 @@
       });
       const data = await res.json().catch(function () { return {}; });
       if (!res.ok || data.ok === false) {
-        showError(data.message || i18n.statusError);  // ── i18n
+        showError(data.message || i18n.statusError);
         await load();
         return;
       }
       if (data.kanban) render(data.kanban); else await load();
     } catch (err) {
       console.error(err);
-      showError(i18n.networkError);  // ── i18n
+      showError(i18n.networkError);
       try { await load(); } catch (e) { console.error(e); }
     } finally {
       inFlight = false; dragId = null; dragFrom = null;
@@ -186,6 +186,6 @@
   }
 
   load().catch(function () {
-    board.innerHTML = '<div class="tk-kanban-loading">' + esc(i18n.loadError) + '</div>';  // ── i18n
+    board.innerHTML = '<div class="tk-kanban-loading">' + esc(i18n.loadError) + '</div>';
   });
 })();

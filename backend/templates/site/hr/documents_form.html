@@ -86,4 +86,32 @@
 <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
 <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
 <script src="{% static 'site/js/apps/hr-registries.js' %}?v={{ static_version|default:'1' }}"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (!window.jQuery || !jQuery.fn.datepicker) return;
+
+  var $dates = jQuery("#id_signed_at, #id_expires_at");
+
+  $dates.each(function () {
+    var $input = jQuery(this);
+
+    $input.attr("placeholder", "дд.мм.гггг");
+    $input.attr("autocomplete", "off");
+
+    if ($input.data("datepicker")) {
+      $input.datepicker("destroy");
+    }
+
+    $input.datepicker({
+      format: "dd.mm.yyyy",
+      autoclose: true,
+      todayHighlight: true,
+      clearBtn: true,
+      orientation: "bottom auto",
+      container: "body"
+    });
+  });
+});
+</script>
 {% endblock scripts %}

@@ -5,8 +5,11 @@
 {% block title %}Арендаторы — metriX BPM{% endblock %}
 
 {% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}">
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}">
+<link rel="stylesheet" href="{% static 'site/css/vendor/bootstrap-datepicker3.standalone.min.css' %}">
 <link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
-<link rel="stylesheet" href="{% static 'site/css/apps/tenants.css' %}?v={{ static_version|default:'1' }}&t=3">
+<link rel="stylesheet" href="{% static 'site/css/apps/tenants.css' %}?v={{ static_version|default:'1' }}&t=5">
 {% endblock styles %}
 
 {% block content %}
@@ -64,7 +67,7 @@
             <th>Арендатор</th>
             <th>Категория</th>
             <th>Площадь</th>
-            <th>Ставка / м²</th>
+            <th>Ставка / {% t 'common.sqm' 'м²' %}</th>
             <th>Окончание</th>
             <th>Статус</th>
             <th>Портал</th>
@@ -78,7 +81,7 @@
               <a href="{% url 'tenants:detail' current.id %}" class="onec-name">{{ current.name }}</a>
             </td>
             <td>{% if current.category %}{{ current.category.title }}{% else %}—{% endif %}</td>
-            <td>{{ current.area|floatformat:0 }} м²</td>
+            <td>{{ current.area|floatformat:0 }} {% t 'common.sqm' 'м²' %}</td>
             <td>{{ current.price|floatformat:0 }} ₸</td>
             <td><span class="onec-mono">{{ current.end_date|date:"d.m.Y" }}</span></td>
             <td>
@@ -151,11 +154,11 @@
                         <div class="tenant-form-section__title">Условия аренды</div>
                         <div class="tenant-form-grid">
                             <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_area">Площадь, м² <span>*</span></label>
+                                <label class="tenant-form-label" for="id_area">Площадь, {% t 'common.sqm' 'м²' %} <span>*</span></label>
                                 {{ tenant_form.area }}
                             </div>
                             <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_price">Ставка за м², ₸ <span>*</span></label>
+                                <label class="tenant-form-label" for="id_price">Ставка за {% t 'common.sqm' 'м²' %}, ₸ <span>*</span></label>
                                 {{ tenant_form.price }}
                             </div>
                             <div class="tenant-form-field">
@@ -223,9 +226,44 @@
 {% endblock %}
 
 {% block scripts %}
+    <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+    <script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
     <script src="{% static 'site/js/apps/tenants.js' %}?v={{ static_version|default:'1' }}"></script>
 
     <script>
+      function initTenantSelect2() {
+        if (!window.jQuery || !jQuery.fn.select2) return;
+
+        var $modal = jQuery('#createTenantModal');
+
+        $modal.find('select').each(function () {
+          var $select = jQuery(this);
+
+          if ($select.data('select2')) {
+            $select.select2('destroy');
+          }
+
+          $select.select2({
+            width: '100%',
+            theme: 'default',
+            dropdownParent: $modal,
+            dropdownCssClass: 'tenant-select2-dropdown',
+            minimumResultsForSearch: Infinity
+          });
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        initTenantSelect2();
+      });
+
+      document.addEventListener('shown.bs.modal', function (event) {
+        if (event.target && event.target.id === 'createTenantModal') {
+          initTenantSelect2();
+        }
+      });
+
       function _tenantCsrf() {
         var m = document.cookie.match(/csrftoken=([^;]+)/);
         if (m) return m[1];

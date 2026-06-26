@@ -8,7 +8,7 @@ from account.models import Department, Employee, UserAccount
 from documents.forms import PaginatorForm
 from addits.forms import Select2FieldDefault, Select2ChoiceField
 
-from .models import CalendarItem, Position, LeaveRequest, LeaveType, EmployeeDocument, EmployeeWorkPermit, EmployeeCertification, EmployeeWorkSchedule
+from .models import CalendarItem, Position, LeaveRequest, LeaveType, EmployeeDocument, EmployeeWorkPermit, EmployeeCertification, EmployeeWorkSchedule, CertificationType
 from .enums import CalendarItemType, EmployeeStatusEnum, LeaveStatusEnum, DocumentTypeEnum, CertificationStatusEnum, DocumentStatusEnum
 
 
@@ -343,9 +343,10 @@ class CertificationFilterForm(forms.Form):
     department = Select2FieldDefault(
         queryset=Department.objects.all(), placeholder='Отдел', required=False,
     )
-    cert_type = forms.CharField(
+    cert_type = forms.ChoiceField(
         required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Тип сертификации'}),
+        choices=[],  # заполняется в __init__
+        widget=forms.Select(attrs={'class': 'form-control'}),
     )
     status = Select2ChoiceField(
         choices=[('', 'Статус'), ('active', 'Активна'), ('expired', 'Истекла'), ('pending', 'Ожидает')],
@@ -355,6 +356,12 @@ class CertificationFilterForm(forms.Form):
     expiring_soon = forms.BooleanField(required=False, label='Истекающие (30 дней)')
     expired = forms.BooleanField(required=False, label='Просроченные')
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .models import CertificationType
+        choices = [('', 'Тип сертификации')]
+        choices += [(ct.name, ct.name) for ct in CertificationType.objects.all().order_by('name')]
+        self.fields['cert_type'].choices = choices
 
 WEEKDAY_CHOICES = [
     ('0', 'Пн'), ('1', 'Вт'), ('2', 'Ср'), ('3', 'Чт'),

@@ -97,7 +97,7 @@
         video.hidden = true;
         empty.hidden = false;
         captureBtn.disabled = true;
-        showMessage('Доступ к камере запрещён или камера недоступна.', 'error');
+        showMessage(window.BPM ? window.BPM.t('Доступ к камере запрещён или камера недоступна.', 'Доступ к камере запрещён или камера недоступна.') : 'Доступ к камере запрещён или камера недоступна.', 'error');
       }
     }
   

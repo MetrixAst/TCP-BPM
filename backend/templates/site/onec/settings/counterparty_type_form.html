@@ -1,5 +1,5 @@
 {% extends "site/base_modal.html" %}
-{% load static site_tags %}
+{% load static %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
@@ -11,8 +11,13 @@
     {% csrf_token %}
 
     <div class="onec-create-card__header">
-      <h1 class="onec-create-card__title">{{ title }}</h1>
-      <a href="{% url 'onec:counterparty_type_list' %}" class="onec-create-card__close" title="{% t 'onec.form_close' 'Закрыть' %}">×</a>
+      <div>
+        <a href="{% url 'onec:counterparty_type_list' %}" class="onec-detail-back" style="display:inline-flex;margin-bottom:4px">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h1 class="onec-create-card__title">{{ title }}</h1>
+      </div>
+      <a href="{% url 'onec:counterparty_type_list' %}" class="onec-create-card__close" title="Закрыть">×</a>
     </div>
 
     {% if form.errors %}
@@ -21,19 +26,20 @@
           {% for error in errors %}
             <div class="onec-form-error">
               <i class="bi bi-exclamation-circle"></i>
-              {% if field == 'name' %}{% t 'onec.field_name' 'Название' %}{% elif field == 'code' %}{% t 'onec.field_code' 'Код' %}{% elif field == '__all__' %}{% else %}{{ field }}{% endif %}: {{ error }}
+              {% if field == 'name' %}Название{% elif field == 'code' %}Код{% elif field == '__all__' %}{% else %}{{ field }}{% endif %}: {{ error }}
             </div>
           {% endfor %}
         {% endfor %}
       </div>
     {% endif %}
 
-    <div class="onec-create-card__section-title">{% t 'onec.form_main_info' 'Основная информация' %}</div>
+    {# ── Основная информация ────────────────────────────────────────────── #}
+    <div class="onec-create-card__section-title">Основная информация</div>
     <div class="onec-form-grid">
 
       <div class="onec-form-field onec-form-field--full">
         <label class="onec-label" for="{{ form.name.id_for_label }}">
-          {% t 'onec.form_name_label' 'Название типа' %} <span>*</span>
+          Название типа <span>*</span>
         </label>
         <input
           type="text"
@@ -41,7 +47,7 @@
           name="name"
           value="{{ form.name.value|default:'' }}"
           class="onec-input{% if form.name.errors %} onec-input--error{% endif %}"
-          placeholder="{% t 'onec.form_name_placeholder' 'Например: Корпоративные клиенты' %}"
+          placeholder="Например: Корпоративные клиенты"
           autocomplete="off"
           required
         >
@@ -49,8 +55,8 @@
 
       <div class="onec-form-field onec-form-field--full">
         <label class="onec-label" for="{{ form.code.id_for_label }}">
-          {% t 'onec.form_code_label' 'Код' %} <span>*</span>
-          <span class="onec-section-hint">{% t 'onec.form_code_hint_label' 'латиница, цифры, дефис — используется в API и фильтрах' %}</span>
+          Код <span>*</span>
+          <span class="onec-section-hint">латиница, цифры, дефис — используется в API и фильтрах</span>
         </label>
         <input
           type="text"
@@ -58,15 +64,15 @@
           name="code"
           value="{{ form.code.value|default:'' }}"
           class="onec-input onec-input--mono{% if form.code.errors %} onec-input--error{% endif %}"
-          placeholder="{% t 'onec.form_code_placeholder' 'corporate_clients' %}"
+          placeholder="corporate_clients"
           autocomplete="off"
           required
         >
-        <p class="onec-field-hint">{% t 'onec.form_code_hint' 'Например: supplier_kz, corp-clients, tenants' %}</p>
+        <p class="onec-field-hint">Например: <code>supplier_kz</code>, <code>corp-clients</code>, <code>tenants</code></p>
       </div>
 
       <div class="onec-form-field">
-        <label class="onec-label" for="{{ form.sort_order.id_for_label }}">{% t 'onec.form_sort_label' 'Порядок сортировки' %}</label>
+        <label class="onec-label" for="{{ form.sort_order.id_for_label }}">Порядок сортировки</label>
         <input
           type="number"
           id="{{ form.sort_order.id_for_label }}"
@@ -83,20 +89,22 @@
           <input type="checkbox" name="is_active"
                  {% if form.is_active.value %}checked{% endif %}>
           <span class="onec-cp-check__box"><i class="bi bi-check-lg"></i></span>
-          <span class="onec-cp-check__label">{% t 'onec.form_active_label' 'Тип активен' %}</span>
+          <span class="onec-cp-check__label">Тип активен</span>
         </label>
-        <p class="onec-field-hint">{% t 'onec.form_active_hint' 'Неактивные типы не применяются в фильтрах и скрыты из выбора' %}</p>
+        <p class="onec-field-hint">Неактивные типы не применяются в фильтрах и скрыты из выбора</p>
       </div>
 
     </div>
 
+    {# ── Зона доступа ──────────────────────────────────────────────────── #}
     <div class="onec-create-card__section-title onec-create-card__section-title--items">
-      {% t 'onec.form_access_zone' 'Зона доступа' %}
-      <span class="onec-section-hint">{% t 'onec.form_access_zone_hint' 'Кто может видеть контрагентов этого типа' %}</span>
+      Зона доступа
+      <span class="onec-section-hint">Кто может видеть контрагентов этого типа</span>
     </div>
 
     <div class="onec-form-grid">
 
+      {# Глобальный / ограниченный #}
       <div class="onec-form-field onec-form-field--full">
         <div class="onec-acl-toggle" id="aclToggle">
           <label class="onec-acl-toggle__option">
@@ -104,8 +112,8 @@
                    {% if form.scope_is_global.value %}checked{% endif %}>
             <span class="onec-acl-toggle__box">
               <i class="bi bi-globe2"></i>
-              <b>{% t 'onec.acl_global_title' 'Все пользователи' %}</b>
-              <small>{% t 'onec.acl_global_desc' 'Контрагенты этого типа видны всем, у кого есть доступ к разделу' %}</small>
+              <b>Все пользователи</b>
+              <small>Контрагенты этого типа видны всем, у кого есть доступ к разделу</small>
             </span>
           </label>
           <label class="onec-acl-toggle__option">
@@ -113,21 +121,24 @@
                    {% if not form.scope_is_global.value %}checked{% endif %}>
             <span class="onec-acl-toggle__box">
               <i class="bi bi-shield-lock"></i>
-              <b>{% t 'onec.acl_restricted_title' 'Ограниченный доступ' %}</b>
-              <small>{% t 'onec.acl_restricted_desc' 'Видят только выбранные роли, отделы или пользователи' %}</small>
+              <b>Ограниченный доступ</b>
+              <small>Видят только выбранные роли, отделы или пользователи</small>
             </span>
           </label>
         </div>
+        {# Передаём scope_is_global через hidden, JS обновляет его #}
         <input type="hidden" name="scope_is_global" id="scopeIsGlobalHidden"
                value="{% if form.scope_is_global.value %}on{% endif %}">
       </div>
 
+      {# Поля ограниченного доступа — скрываются при "Все пользователи" #}
       <div id="aclRestrictedFields" class="onec-form-field onec-form-field--full"
            {% if form.scope_is_global.value %}style="display:none"{% endif %}>
 
+        {# Роли #}
         <div class="onec-acl-section">
           <div class="onec-acl-section__title">
-            <i class="bi bi-person-badge"></i> {% t 'onec.acl_roles' 'Роли' %}
+            <i class="bi bi-person-badge"></i> Роли
           </div>
           <div class="onec-acl-checkboxes">
             {% for value, display in form.scope_roles.field.choices %}
@@ -140,9 +151,10 @@
           </div>
         </div>
 
+        {# Отделы #}
         <div class="onec-acl-section" style="margin-top:1rem">
           <div class="onec-acl-section__title">
-            <i class="bi bi-diagram-3"></i> {% t 'onec.acl_departments' 'Отделы' %}
+            <i class="bi bi-diagram-3"></i> Отделы
           </div>
           <select name="scope_departments" multiple class="onec-acl-multiselect">
             {% for dept in form.scope_departments.field.queryset %}
@@ -152,12 +164,13 @@
               </option>
             {% endfor %}
           </select>
-          <p class="onec-field-hint">{% t 'onec.acl_multiselect_hint' 'Удерживайте Ctrl (Cmd) для выбора нескольких' %}</p>
+          <p class="onec-field-hint">Удерживайте Ctrl (Cmd) для выбора нескольких</p>
         </div>
 
+        {# Пользователи #}
         <div class="onec-acl-section" style="margin-top:1rem">
           <div class="onec-acl-section__title">
-            <i class="bi bi-person"></i> {% t 'onec.acl_users' 'Конкретные пользователи' %}
+            <i class="bi bi-person"></i> Конкретные пользователи
           </div>
           <select name="scope_users" multiple class="onec-acl-multiselect">
             {% for user in form.scope_users.field.queryset %}
@@ -167,32 +180,36 @@
               </option>
             {% endfor %}
           </select>
-          <p class="onec-field-hint">{% t 'onec.acl_multiselect_hint' 'Удерживайте Ctrl (Cmd) для выбора нескольких' %}</p>
+          <p class="onec-field-hint">Удерживайте Ctrl (Cmd) для выбора нескольких</p>
         </div>
 
       </div>
 
     </div>
 
+    {# Инфобокс #}
     <div class="onec-acl-info-box">
       <i class="bi bi-info-circle onec-acl-info-box__icon"></i>
       <div>
-        <b>{% t 'onec.acl_info_title' 'Как работают зоны доступа' %}</b>
-        <p>{% t 'onec.acl_info_text' 'Если у типа задана зона — пользователи видят только контрагентов тех типов, к которым им открыт доступ. Администраторы всегда видят всё. Контрагенты без типа видны всем авторизованным пользователям.' %}</p>
+        <b>Как работают зоны доступа</b>
+        <p>
+          Если у типа задана зона — пользователи видят только контрагентов тех типов, к которым им открыт доступ.
+          Администраторы всегда видят всё. Контрагенты без типа видны всем авторизованным пользователям.
+        </p>
       </div>
     </div>
 
     <div class="onec-create-footer">
-      <a href="{% url 'onec:counterparty_type_list' %}" class="onec-btn onec-btn--ghost">{% t 'onec.form_cancel' 'Отменить' %}</a>
+      <a href="{% url 'onec:counterparty_type_list' %}" class="onec-btn onec-btn--ghost">Отменить</a>
       {% if is_edit %}
         <a href="{% url 'onec:counterparty_type_delete' counterparty_type.pk %}"
            class="onec-btn onec-btn--danger-ghost">
-          <i class="bi bi-trash"></i> {% t 'onec.form_delete' 'Удалить' %}
+          <i class="bi bi-trash"></i> Удалить
         </a>
       {% endif %}
       <button type="submit" class="onec-btn onec-btn--primary">
         <i class="bi bi-check-lg"></i>
-        {% if is_edit %}{% t 'onec.form_save' 'Сохранить' %}{% else %}{% t 'onec.form_create' 'Создать тип' %}{% endif %}
+        {% if is_edit %}Сохранить{% else %}Создать тип{% endif %}
       </button>
     </div>
   </form>
@@ -206,6 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const nameInput     = document.querySelector('input[name="name"]');
   const codeInput     = document.querySelector('input[name="code"]');
 
+  // ── Переключение режима доступа ──
   function updateAclMode() {
     const mode = document.querySelector('input[name="_acl_mode"]:checked')?.value;
     const isGlobal = mode === 'global';
@@ -215,6 +233,7 @@ document.addEventListener('DOMContentLoaded', function () {
   radios.forEach(function (r) { r.addEventListener('change', updateAclMode); });
   updateAclMode();
 
+  // ── Автогенерация кода из названия (только если код пустой) ──
   function toSlug(str) {
     return str
       .toLowerCase()
@@ -247,6 +266,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 <style>
+/* Дополнительные стили специфичные для этой формы */
 .onec-input--mono { font-family: monospace; letter-spacing: .02em; }
 .onec-input--mono::placeholder { font-family: inherit; letter-spacing: 0; }
 

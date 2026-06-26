@@ -48,7 +48,11 @@
     "delete": "Delete",
     "download": "Download",
     "copy_link": "Copy link",
-    "send": "Send"
+    "send": "Send",
+    "days_short": "days",
+    "payment_short": "pay.",
+    "hours_short": "h.",
+    "sqm": "m²"
   },
   "auth": {
     "title": "Sign in — metriX BPM",
@@ -120,6 +124,9 @@
     "hr_contracts": "Contracts (Enbek)",
     "reports": "Metrics"
   },
+  "invoice": {
+    "sent_via": "Sent via"
+  },
   "tasks": {
     "list_title": "Task manager",
     "kanban_title": "Task kanban",
@@ -174,101 +181,19 @@
     "files": "Files",
     "add_file": "Add file",
     "files_empty": "No files",
-    "executor": "Executor",
-    "loading": "Loading…",
-    "no_tasks": "No tasks",
-    "no_executor": "No executor",
-    "no_columns": "No status columns",
-    "no_tasks_hint": "No tasks yet. Create a task or assign an executor.",
-    "load_error": "Failed to load kanban",
-    "network_error": "Network error while changing status",
-    "status_error": "Failed to change status",
-    "move_confirm_title": "Change status",
-    "move_confirm_text": "Confirm",
-    "move_confirm_msg": "Move task to status \"{title}\"?",
-    "error_title": "Error",
-    "status_created": "Created",
-    "status_accepted": "Accepted",
-    "status_rejected": "Rejected",
-    "status_revision": "In Revision",
-    "status_completed": "Completed"
+    "executor": "Assignee"
   },
-  "tickets": {
-    "page_title": "Tenant requests",
-    "kanban_title": "Requests kanban",
-    "loading": "Loading…",
-    "no_columns": "No columns",
-    "load_error": "Failed to load kanban",
-    "move_confirm_msg": "Move request to status \"{title}\"?",
-    "move_confirm_title": "Change status",
-    "move_confirm_text": "Confirm",
-    "status_error": "Failed to change status",
-    "network_error": "Network error while changing status",
-    "error_title": "Error"
-},
   "requistions": {
     "portal_hint": "Tenant portal: submit a pass or works request.",
     "new_request": "New request",
     "my_list": "My requests"
   },
-"onec": {
+  "onec": {
     "counterparties": "Counterparties",
     "search_label": "Search counterparty",
     "search_placeholder": "Name, BIN, phone…",
-    "list_title": "Counterparty list",
-    "types_title": "Counterparty types and access zones",
-    "types_subtitle": "Define who can see counterparties of each type",
-    "add_type": "Add type",
-    "col_type": "Counterparty type",
-    "col_access_zone": "Access zone",
-    "col_who_sees": "Who can see",
-    "col_counterparties": "Counterparties",
-    "badge_global": "All users",
-    "badge_restricted": "Restricted",
-    "badge_none": "No restrictions",
-    "who_nobody": "Nobody selected",
-    "who_all": "All authenticated users",
-    "legend_none": "counterparties of this type are visible to all users",
-    "legend_global": "access zone is explicitly open to everyone",
-    "legend_restricted": "visible only to specified roles, departments or users",
-    "types_empty": "No counterparty types created",
-    "types_empty_hint": "Without types, all counterparties are visible to all users with access to this section.",
-    "create_first_type": "Create first type",
-    "back_to_list": "Back to counterparties",
-    "edit": "Edit",
-    "delete": "Delete",
-    "type_form_title_create": "New counterparty type",
-    "type_form_title_edit": "Edit counterparty type",
-    "form_close": "Close",
-    "form_main_info": "Main information",
-    "form_name_label": "Type name",
-    "form_name_placeholder": "Example: Corporate clients",
-    "form_code_label": "Code",
-    "form_code_hint_label": "latin letters, digits, hyphens — used in API and filters",
-    "form_code_placeholder": "corporate_clients",
-    "form_code_hint": "Example: <code>supplier_kz</code>, <code>corp-clients</code>, <code>tenants</code>",
-    "form_sort_label": "Sort order",
-    "form_active_label": "Type is active",
-    "form_active_hint": "Inactive types are not applied in filters and hidden from selection",
-    "form_access_zone": "Access zone",
-    "form_access_zone_hint": "Who can see counterparties of this type",
-    "acl_global_title": "All users",
-    "acl_global_desc": "Counterparties of this type are visible to everyone with access to this section",
-    "acl_restricted_title": "Restricted access",
-    "acl_restricted_desc": "Visible only to selected roles, departments or users",
-    "acl_roles": "Roles",
-    "acl_departments": "Departments",
-    "acl_users": "Specific users",
-    "acl_multiselect_hint": "Hold Ctrl (Cmd) to select multiple",
-    "acl_info_title": "How access zones work",
-    "acl_info_text": "If a type has a zone set — users only see counterparties of the types they have access to. Administrators always see everything. Counterparties without a type are visible to all authenticated users.",
-    "form_cancel": "Cancel",
-    "form_save": "Save",
-    "form_create": "Create type",
-    "form_delete": "Delete",
-    "field_name": "Name",
-    "field_code": "Code"
-},
+    "list_title": "Counterparty list"
+  },
   "finances": {
     "dashboard_title": "Finance dashboard",
     "currency": "Currency:",
@@ -281,7 +206,11 @@
     "kpi_expenses_month": "Expenses (month)",
     "period_90_days": "last 90 days",
     "period_ytd": "year to date",
-    "period_current_month": "current month"
+    "period_current_month": "current month",
+    "records_plural": "record|records",
+    "categories_plural": "category|categories",
+    "first_500": "(first 500 shown)",
+    "models_plural": "model|models"
   },
   "dashboard": {
     "welcome": "Welcome",
@@ -311,5 +240,34 @@
       "new_password1": "New password",
       "new_password2": "Repeat new password"
     }
+  },
+  "chart": {
+  "30d": "30d",
+  "60d": "60d",
+  "90d": "90d"
+  },
+  "hr": {
+      "docs_plural": "document|documents"
+  },
+  "documents": {
+    "location": "Location",
+    "root_level": "Root level",
+    "access": "Access",
+    "folder_access": "Folder access"
+  },
+  "counterparty": {
+    "main_info": "Main information",
+    "short_name": "Short name",
+    "full_name": "Full name",
+    "description": "Description",
+    "website": "Website / link",
+    "activity_type": "Business type",
+    "founded_date": "Founded date",
+    "type": "Counterparty type",
+    "type_and_access": "Type and access zone",
+    "category": "Category",
+    "no_type": "— no type (visible to all) —",
+    "supplier": "Supplier",
+    "customer": "Client"
   }
 }

@@ -1,67 +1,119 @@
 {% extends 'site/base.html' %}
-{% load static %}
+{% load static site_tags %}
+
+{% block body_classes %}task-edit-body{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/docs.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'1' }}">
 <style>
-  .doc-acl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  @media (max-width: 991px) { .doc-acl-grid { grid-template-columns: 1fr; } }
-  .doc-acl-roles ul { list-style: none; padding: 0; margin: 0; }
-  .doc-acl-roles li { margin-bottom: 8px; }
+  .acl-form { display:flex; flex-direction:column; gap:20px; }
+  .acl-global {
+    display:flex; align-items:center; gap:10px;
+    padding:14px 16px; background:#f5f3fa; border-radius:12px;
+    font-size:14px; color:#25233f; cursor:pointer;
+  }
+  .acl-global input[type=checkbox] { width:17px; height:17px; accent-color:#2f6bed; cursor:pointer; flex-shrink:0; }
+  .acl-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:640px){ .acl-row{ grid-template-columns:1fr; } }
+  .acl-field { display:flex; flex-direction:column; gap:6px; }
+  .acl-label { font-size:11px; font-weight:700; color:#74728a; text-transform:uppercase; letter-spacing:.05em; }
+  .acl-box {
+    background:#f5f3fa; border:1.5px solid #ebe9f4; border-radius:12px;
+    padding:10px 14px; min-height:130px; max-height:190px; overflow-y:auto;
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .acl-box:focus-within { border-color:#2f6bed; }
+  .acl-box ul { list-style:none; margin:0; padding:0; }
+  .acl-box ul li label {
+    display:flex; align-items:center; gap:8px;
+    padding:5px 6px; border-radius:8px; cursor:pointer;
+    font-size:13px; color:#25233f; transition:background .12s;
+  }
+  .acl-box ul li label:hover { background:#ede9f8; }
+  .acl-box ul li input[type=checkbox] { accent-color:#2f6bed; width:15px; height:15px; flex-shrink:0; }
+  .acl-box select {
+    width:100%; border:0; background:transparent; outline:none;
+    font-size:13px; color:#25233f; min-height:110px;
+  }
+  .acl-box select option { padding:4px 6px; }
+  .acl-hint { font-size:12px; color:#9a98aa; line-height:1.5; margin:0; }
+  .acl-footer { display:flex; gap:10px; justify-content:flex-end; padding-top:14px; border-top:1px solid #f0eef6; }
+  .acl-btn {
+    height:38px; padding:0 20px; border-radius:999px;
+    font-size:13px; font-weight:600; border:none; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px; text-decoration:none;
+  }
+  .acl-btn--primary { background:#2f6bed; color:#fff; }
+  .acl-btn--primary:hover { background:#2458c7; color:#fff; }
+  .acl-btn--ghost { background:#f5f3fa; color:#25233f; }
+  .acl-btn--ghost:hover { background:#ebe9f4; }
+  .acl-close {
+    width:26px; height:26px; border-radius:50%; background:#f5f3fa; color:#74728a;
+    display:inline-flex; align-items:center; justify-content:center;
+    text-decoration:none; font-size:13px; flex-shrink:0;
+  }
+  .acl-close:hover { background:#ebe9f4; color:#25233f; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="doc-page-header">
-  <div class="doc-page-header__left">
-    <h1 class="doc-page-title">{{ title }}</h1>
-    <nav aria-label="breadcrumb">
-      <ol class="doc-breadcrumb">
-        <li><a href="{% url 'documents:list' document_type %}">{{ type_config.title }}</a></li>
-        <li><a href="{% url 'documents:folder_access_list' document_type %}">Доступ к папкам</a></li>
-        <li>{{ folder.short_name }}</li>
-      </ol>
-    </nav>
-  </div>
-</div>
+<div class="task-edit-page">
+  <div class="task-edit-card">
 
-<div class="doc-filter-card" style="margin-top:16px">
-  <form method="post">
-    {% csrf_token %}
-    {% if form.errors %}
-      <div class="alert alert-danger">{{ form.errors }}</div>
-    {% endif %}
-
-    <div class="mb-3">
-      <label class="doc-cp-check d-flex align-items-center gap-2">
-        {{ form.scope_is_global }}
-        <span>Доступна всем авторизованным пользователям</span>
-      </label>
-    </div>
-
-    <div class="doc-acl-grid">
-      <div class="doc-acl-roles">
-        <label class="doc-filter-label">Роли</label>
-        {{ form.scope_roles }}
-      </div>
+    <div class="task-edit-card__header">
       <div>
-        <label class="doc-filter-label">Отделы</label>
-        {{ form.scope_departments }}
+        <div class="task-edit-card__title">{{ title }}</div>
+        <div style="font-size:12px;color:#74728a;margin-top:2px;">{{ folder.short_name }}</div>
       </div>
-      <div style="grid-column:1/-1">
-        <label class="doc-filter-label">Пользователи</label>
-        {{ form.scope_users }}
-      </div>
+      <a href="{% url 'documents:folder_access_list' document_type %}" class="acl-close" title="{% t 'common.back' 'Назад' %}">
+        <i class="bi bi-x-lg"></i>
+      </a>
     </div>
 
-    <p class="text-muted small mt-3">
-      Пустая матрица без флага «всем» — папка видна всем (как без зоны). Дочерние папки наследуют только отображение в дереве через предков.
-    </p>
+    <form method="post" class="acl-form">
+      {% csrf_token %}
 
-    <div class="d-flex gap-2 mt-4">
-      <a href="{% url 'documents:folder_access_list' document_type %}" class="doc-btn doc-btn--ghost">Отмена</a>
-      <button type="submit" class="doc-btn doc-btn--primary">Сохранить</button>
-    </div>
-  </form>
+      {% if form.errors %}
+        <div style="background:#fef2f2;border-radius:10px;padding:12px 16px;color:#dc2626;font-size:13px;">
+          {{ form.errors }}
+        </div>
+      {% endif %}
+
+      <label class="acl-global">
+        {{ form.scope_is_global }}
+        <span>{% t 'onec.acl_global_title' 'Доступна всем авторизованным пользователям' %}</span>
+      </label>
+
+      <div class="acl-row">
+        <div class="acl-field">
+          <div class="acl-label">{% t 'onec.acl_roles' 'Роли' %}</div>
+          <div class="acl-box">{{ form.scope_roles }}</div>
+        </div>
+        <div class="acl-field">
+          <div class="acl-label">{% t 'onec.acl_departments' 'Отделы' %}</div>
+          <div class="acl-box">{{ form.scope_departments }}</div>
+        </div>
+      </div>
+
+      <div class="acl-field">
+        <div class="acl-label">{% t 'onec.acl_users' 'Пользователи' %}</div>
+        <div class="acl-box">{{ form.scope_users }}</div>
+      </div>
+
+      <p class="acl-hint">
+        {% t 'onec.acl_info_text' 'Пустая матрица без флага «всем» — папка видна всем (как без зоны). Дочерние папки наследуют только отображение в дереве через предков.' %}
+      </p>
+
+      <div class="acl-footer">
+        <a href="{% url 'documents:folder_access_list' document_type %}" class="acl-btn acl-btn--ghost">
+          {% t 'common.cancel' 'Отмена' %}
+        </a>
+        <button type="submit" class="acl-btn acl-btn--primary">
+          <i class="bi bi-check-lg"></i> {% t 'common.save' 'Сохранить' %}
+        </button>
+      </div>
+    </form>
+
+  </div>
 </div>
 {% endblock %}

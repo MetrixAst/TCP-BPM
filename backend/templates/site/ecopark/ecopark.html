@@ -5,30 +5,307 @@
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
 <link rel="stylesheet" href="{% static 'site/css/apps/ecopark.css' %}?v=eco01">
+<style>
+/* ── тулбар — как у менеджера задач ── */
+.eco-toolbar {
+  background: #fff;
+  border-radius: 18px;
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px !important;
+}
+.eco-toolbar__left {
+  font-size: 22px;
+  font-weight: 700;
+  color: #25233f;
+}
+.eco-toolbar__right {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── кастомный select в стиле таска ── */
+.eco-tsel { position: relative; display: inline-block; }
+.eco-tsel__wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.eco-tsel__label {
+  font-size: 11px;
+  color: #74728a;
+  font-weight: 500;
+  line-height: 1;
+}
+.eco-tsel__btn {
+  height: 36px;
+  padding: 0 30px 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #f5f3fa;
+  color: #25233f;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  outline: none;
+  min-width: 120px;
+  text-align: left;
+}
+.eco-tsel__btn:focus { box-shadow: 0 0 0 2px rgba(47,107,237,.2); }
+.eco-tsel__val {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.eco-tsel__ico {
+  position: absolute; right: 10px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px; color: #8b88a0;
+  transition: transform .2s; pointer-events: none;
+}
+.eco-tsel.is-open .eco-tsel__ico { transform: translateY(-50%) rotate(180deg); }
+.eco-tsel__drop {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 160px;
+  z-index: 200;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(15,23,42,.16);
+  padding: 6px;
+}
+.eco-tsel.is-open .eco-tsel__drop { display: block; }
+.eco-tsel__opt {
+  width: 100%; min-height: 34px; padding: 8px 12px;
+  border: 0; background: none; border-radius: 10px;
+  cursor: pointer; font-size: 13px; color: #25233f;
+  text-align: left; display: block;
+}
+.eco-tsel__opt:hover { background: #f5f3fa; }
+.eco-tsel__opt.is-sel { color: #2f6bed; font-weight: 600; background: #f5f3fa; }
+
+/* ── кнопка Найти ── */
+.eco-btn-find {
+  height: 36px; padding: 0 16px;
+  border: 0; border-radius: 999px;
+  background: #2f6bed; color: #fff;
+  font-size: 13px; font-weight: 500;
+  cursor: pointer; display: inline-flex;
+  align-items: center; gap: 6px;
+  white-space: nowrap; text-decoration: none;
+  align-self: flex-end;
+}
+.eco-btn-find:hover { background: #2458c7; color: #fff; }
+
+.eco-btn-add {
+  height: 36px; 
+  padding: 0 16px;
+  border: 0; 
+  border-radius: 999px;
+  background: #2f6bed; 
+  color: #fff;
+  font-size: 13px; 
+  font-weight: 500;
+  cursor: pointer; 
+  display: inline-flex;
+  align-items: center; 
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap; 
+  text-decoration: none;
+  align-self: flex-end;
+}
+.eco-btn-add:hover { background: #2458c7; color: #fff; }
+/* меньше расстояние между тулбаром и KPI */
+.eco-toolbar + .eco-kpi-grid {
+  margin-top: 0 !important;
+}
+/* ── убрать старый hero ── */
+.eco-hero { display: none !important; }
+
+/* ── паддинги в строках таблицы ── */
+.fin-table tbody tr td:first-child {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+.eco-work-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: #25233f;
+  text-decoration: none;
+  display: block;
+  margin-bottom: 3px;
+}
+.eco-work-link:hover { color: #2f6bed; }
+.eco-work-meta {
+  font-size: 11px;
+  color: #74728a;
+  margin-bottom: 4px;
+}
+.eco-object-tag {
+  display: inline-flex; align-items: center;
+  height: 18px; padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px; font-weight: 500;
+  background: #f0eff6; color: #74728a;
+}
+
+/* ── размеры таблицы под таск ── */
+.fin-table { font-size: 13px; }
+.fin-table thead th {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #74728a !important;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  height: 40px;
+}
+.fin-table tbody td {
+  font-size: 13px;
+  color: #25233f;
+}
+.fin-table tbody tr:hover { background: #faf9fd; }
+
+/* ── KPI уменьшить ── */
+.eco-kpi-card {
+  padding: 14px 18px !important;
+}
+.eco-kpi-card__label {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #74728a !important;
+  margin-bottom: 6px !important;
+}
+.eco-kpi-card__value {
+  font-size: 26px !important;
+}
+
+/* ── заголовок таблицы ── */
+.fin-table-title { font-size: 13px !important; font-weight: 700 !important; }
+.fin-table-subtitle { font-size: 12px !important; }
+
+/* ── бейджи статуса ── */
+.eco-badge {
+  display: inline-flex; align-items: center;
+  height: 24px; padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.eco-badge--done     { background:#e6f7ee; color:#16a34a; }
+.eco-badge--progress { background:#e8f0fe; color:#2563eb; }
+.eco-badge--pending  { background:#f0eff6; color:#25233f; }
+.eco-badge--overdue  { background:#feecec; color:#ef4444; }
+
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="eco-page">
 
-  <header class="eco-hero">
-    <div>
-      <span class="eco-hero__eyebrow"><i class="bi bi-tools"></i> Эксплуатация</span>
-      <h1 class="eco-hero__title">Реестр работ</h1>
-      <p class="eco-hero__sub">Обслуживание объектов ТРЦ: заявки, исполнители, документы</p>
-      <nav aria-label="breadcrumb" class="mt-2">
-        <ol class="eco-breadcrumb">
-          <li><a href="{% url 'dashboard:dashboard' %}">Главная</a></li>
-          <li>Эксплуатация</li>
-        </ol>
-      </nav>
-    </div>
-    <div class="eco-hero__actions">
-      <a href="{% url 'ecopark:create' %}" class="fin-btn fin-btn--primary">
+  {# ── Тулбар: заголовок + фильтры + кнопка ── #}
+  <div class="eco-toolbar">
+    <div class="eco-toolbar__left">Реестр работ</div>
+
+    <div class="eco-toolbar__right">
+      <form method="get" id="eco-filter-form" style="display:contents;">
+
+        <div class="eco-tsel__wrap">
+          <span class="eco-tsel__label">Объект</span>
+          <div class="eco-tsel" id="tsel-object">
+            <input type="hidden" name="object" value="{{ request.GET.object }}">
+            <button type="button" class="eco-tsel__btn">
+              <span class="eco-tsel__val">
+                {% if request.GET.object %}{{ request.GET.object }}{% else %}Все{% endif %}
+              </span>
+              <i class="bi bi-chevron-down eco-tsel__ico"></i>
+            </button>
+            <div class="eco-tsel__drop">
+              <button type="button" class="eco-tsel__opt {% if not request.GET.object %}is-sel{% endif %}" data-value="">Все</button>
+              {% for obj in objects %}
+                <button type="button" class="eco-tsel__opt {% if request.GET.object == obj.name %}is-sel{% endif %}" data-value="{{ obj.name }}">{{ obj.name }}</button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div class="eco-tsel__wrap">
+          <span class="eco-tsel__label">Исполнитель</span>
+          <div class="eco-tsel" id="tsel-executor">
+            <input type="hidden" name="executor" value="{{ request.GET.executor }}">
+            <button type="button" class="eco-tsel__btn">
+              <span class="eco-tsel__val">
+                {% if request.GET.executor %}{{ request.GET.executor }}{% else %}Все{% endif %}
+              </span>
+              <i class="bi bi-chevron-down eco-tsel__ico"></i>
+            </button>
+            <div class="eco-tsel__drop">
+              <button type="button" class="eco-tsel__opt {% if not request.GET.executor %}is-sel{% endif %}" data-value="">Все</button>
+              {% for ex in executors %}
+                <button type="button" class="eco-tsel__opt {% if request.GET.executor == ex.name %}is-sel{% endif %}" data-value="{{ ex.name }}">{{ ex.name }}</button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div class="eco-tsel__wrap">
+          <span class="eco-tsel__label">Статус</span>
+          <div class="eco-tsel" id="tsel-status">
+            <input type="hidden" name="status" value="{{ request.GET.status }}">
+            <button type="button" class="eco-tsel__btn" style="min-width:110px;">
+              <span class="eco-tsel__val">
+                {% if request.GET.status == 'done' %}Выполнен
+                {% elif request.GET.status == 'progress' %}В процессе
+                {% elif request.GET.status == 'pending' %}Ожидает
+                {% elif request.GET.status == 'overdue' %}Просрочен
+                {% else %}Все{% endif %}
+              </span>
+              <i class="bi bi-chevron-down eco-tsel__ico"></i>
+            </button>
+            <div class="eco-tsel__drop">
+              <button type="button" class="eco-tsel__opt {% if not request.GET.status %}is-sel{% endif %}" data-value="">Все</button>
+              <button type="button" class="eco-tsel__opt {% if request.GET.status == 'done' %}is-sel{% endif %}" data-value="done">Выполнен</button>
+              <button type="button" class="eco-tsel__opt {% if request.GET.status == 'progress' %}is-sel{% endif %}" data-value="progress">В процессе</button>
+              <button type="button" class="eco-tsel__opt {% if request.GET.status == 'pending' %}is-sel{% endif %}" data-value="pending">Ожидает</button>
+              <button type="button" class="eco-tsel__opt {% if request.GET.status == 'overdue' %}is-sel{% endif %}" data-value="overdue">Просрочен</button>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="eco-btn-find">
+          <i class="bi bi-search"></i> Найти
+        </button>
+
+        {% if request.GET.object or request.GET.executor or request.GET.status %}
+          <a href="{% url 'ecopark:home' %}" class="eco-btn-find" style="background:#f5f3fa;color:#25233f;">
+            <i class="bi bi-x-lg"></i>
+          </a>
+        {% endif %}
+
+      </form>
+
+      <a href="{% url 'ecopark:create' %}" class="eco-btn-add">
         <i class="bi bi-plus-lg"></i> Добавить работу
       </a>
     </div>
-  </header>
+  </div>
 
+  {# ── KPI ── #}
   <div class="eco-kpi-grid">
     <div class="eco-kpi-card">
       <span class="eco-kpi-card__label">Всего работ</span>
@@ -48,76 +325,14 @@
     </div>
   </div>
 
-  <section class="fin-filter-card">
-    <form method="get" class="fin-filter-form">
-      <div class="fin-field fin-field--wide">
-        <label class="fin-label">Объект</label>
-        <div class="fin-custom-select">
-          <input type="hidden" name="object" value="">
-          <button type="button" class="fin-custom-select__button">
-            <span class="fin-custom-select__value">Все</span>
-            <span class="fin-custom-select__arrow"></span>
-          </button>
-          <div class="fin-custom-select__dropdown">
-            <button type="button" class="fin-custom-select__option" data-value="">Все</button>
-            {% for obj in objects %}
-              <button type="button" class="fin-custom-select__option" data-value="{{ obj }}">{{ obj }}</button>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-
-      <div class="fin-field fin-field--wide">
-        <label class="fin-label">Исполнитель</label>
-        <div class="fin-custom-select">
-          <input type="hidden" name="executor" value="">
-          <button type="button" class="fin-custom-select__button">
-            <span class="fin-custom-select__value">Все</span>
-            <span class="fin-custom-select__arrow"></span>
-          </button>
-          <div class="fin-custom-select__dropdown">
-            <button type="button" class="fin-custom-select__option" data-value="">Все</button>
-            {% for ex in executors %}
-              <button type="button" class="fin-custom-select__option" data-value="{{ ex }}">{{ ex }}</button>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-
-      <div class="fin-field fin-field--narrow">
-        <label class="fin-label">Статус</label>
-        <div class="fin-custom-select">
-          <input type="hidden" name="status" value="">
-          <button type="button" class="fin-custom-select__button">
-            <span class="fin-custom-select__value">Все</span>
-            <span class="fin-custom-select__arrow"></span>
-          </button>
-          <div class="fin-custom-select__dropdown">
-            <button type="button" class="fin-custom-select__option" data-value="">Все</button>
-            <button type="button" class="fin-custom-select__option" data-value="done">Выполнен</button>
-            <button type="button" class="fin-custom-select__option" data-value="progress">В процессе</button>
-            <button type="button" class="fin-custom-select__option" data-value="pending">Ожидает</button>
-            <button type="button" class="fin-custom-select__option" data-value="overdue">Просрочен</button>
-          </div>
-        </div>
-      </div>
-
-      <button type="submit" class="fin-btn fin-btn--primary">
-        <i class="bi bi-search"></i> Найти
-      </button>
-    </form>
-  </section>
-
+  {# ── Таблица ── #}
   <section class="fin-table-card">
     <div class="fin-table-head">
       <div>
         <div class="fin-table-title">Наименование работ</div>
-        <div class="fin-table-subtitle">{{ works|length }} запис{{ works|length|pluralize:"ь,и,ей" }}</div>
-      </div>
-      <div class="fin-legend">
-        <span><i class="is-success"></i> Выполнен</span>
-        <span><i class="is-warning"></i> В процессе</span>
-        <span><i class="is-danger"></i> Просрочен</span>
+        <div class="fin-table-subtitle">
+          {{ works|length }} {% plural_t works|length 'finances.records_plural' 'запись|записи|записей' %}
+        </div>
       </div>
     </div>
 
@@ -134,17 +349,19 @@
         </thead>
         <tbody>
           {% for work in works %}
-            <tr>
-              <td>
+            <tr onclick="location.href='{% url 'ecopark:item' work.id %}'" style="cursor:pointer;">
+              <td style="padding-top:10px;padding-bottom:10px;">
                 <a href="{% url 'ecopark:item' work.id %}" class="eco-work-link">{{ work.title }}</a>
                 <div class="eco-work-meta">{% bpm_date work.date %}</div>
-                <span class="eco-object-tag">{{ work.object }}</span>
+                {% if work.eco_object %}
+                  <span class="eco-object-tag">{{ work.eco_object.name }}</span>
+                {% endif %}
               </td>
-              <td>{{ work.executor }}</td>
-              <td>{{ work.responsible }}</td>
-              <td class="eco-amount">{{ work.amount_fmt }} ₸</td>
+              <td>{{ work.executor.name|default:"—" }}</td>
+              <td>{{ work.responsible|default:"—" }}</td>
+              <td style="font-weight:600;white-space:nowrap;">{{ work.amount|floatformat:0 }} ₸</td>
               <td>
-                <span class="eco-badge eco-badge--{{ work.status }}">{{ work.status_label }}</span>
+                <span class="eco-badge eco-badge--{{ work.status }}">{{ work.get_status_display }}</span>
               </td>
             </tr>
           {% empty %}
@@ -167,5 +384,47 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'site/js/apps/finance-filters.js' %}?v=fe65"></script>
+<script>
+(function () {
+  var sels = Array.prototype.slice.call(document.querySelectorAll('.eco-tsel'));
+
+  function closeAll(except) {
+    sels.forEach(function (s) { if (s !== except) s.classList.remove('is-open'); });
+  }
+
+  sels.forEach(function (sel) {
+    var btn    = sel.querySelector('.eco-tsel__btn');
+    var valEl  = sel.querySelector('.eco-tsel__val');
+    var hidden = sel.querySelector('input[type="hidden"]');
+    var opts   = Array.prototype.slice.call(sel.querySelectorAll('.eco-tsel__opt'));
+
+    btn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      var was = sel.classList.contains('is-open');
+      closeAll(sel);
+      sel.classList.toggle('is-open', !was);
+    });
+
+    opts.forEach(function (opt) {
+      opt.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        var val = opt.getAttribute('data-value') || '';
+        if (hidden) hidden.value = val;
+        if (valEl)  valEl.textContent = opt.textContent.trim();
+        opts.forEach(function (o) { o.classList.remove('is-sel'); });
+        opt.classList.add('is-sel');
+        sel.classList.remove('is-open');
+        document.getElementById('eco-filter-form').submit();
+      });
+    });
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.eco-tsel')) closeAll(null);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeAll(null);
+  });
+})();
+</script>
 {% endblock %}

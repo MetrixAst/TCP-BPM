@@ -45,6 +45,48 @@ def _document_spec():
     return AttachmentSpec('document', get_object, get_file, get_title, can_view, can_edit)
 
 
+def _inner_document_spec():
+    from .models import Document, InnerDocument
+    from account.role_permissions import RolePermissions, PermissionEnums
+
+    def get_object(request, pk):
+        return InnerDocument.objects.select_related('parent').filter(pk=pk).first()
+
+    def get_file(obj):
+        return obj.document
+
+    def get_title(obj):
+        return obj.title or (obj.document.name.split('/')[-1] if obj.document else '')
+
+    def can_view(request, obj):
+        if obj is None or obj.parent_id is None:
+            return False
+        return Document.get_by_id(request, obj.parent_id, exception=False) is not None
+
+    def can_edit(request, obj):
+        if obj is None or obj.parent_id is None:
+            return False
+
+        if not RolePermissions.checkPermission(request.user.role, PermissionEnums.EDIT_DOCUMENT):
+            return False
+
+        parent = obj.parent
+
+        if parent.author_id == request.user.id:
+            return True
+
+        return parent.coordinators.filter(id=request.user.id).exists()
+
+    return AttachmentSpec(
+        'inner_document',
+        get_object,
+        get_file,
+        get_title,
+        can_view,
+        can_edit,
+    )
+
+
 def _task_file_spec():
     from tasks.models import Task, TaskFile
     from account.role_permissions import RolePermissions, PermissionEnums
@@ -105,10 +147,10 @@ def _hr_document_spec():
 
 
 register(_document_spec())
+register(_inner_document_spec())
 register(_task_file_spec())
 register(_hr_document_spec())
 
-
 def _hr_cert_spec():
     from hr.models import EmployeeCertification
     from account.role_permissions import RolePermissions, PermissionEnums
@@ -233,36 +275,3 @@ def _hr_permit_spec():
  
 register(_hr_cert_spec())
 register(_hr_permit_spec())
-
-
-def _ticket_attachment_spec():
-    from tickets.models import TicketAttachment, TicketMessage
-    from account.role_permissions import RolePermissions, PermissionEnums
- 
-    def get_object(request, pk):
-        return TicketAttachment.objects.select_related('request', 'uploaded_by').filter(pk=pk).first()
- 
-    def get_file(obj):
-        return obj.file
- 
-    def get_title(obj):
-        return obj.filename or (obj.file.name.split('/')[-1] if obj.file else '')
- 
-    def can_view(request, obj):
-        if obj is None:
-            return False
-        return TicketMessage.can_view(obj.request, request.user)
- 
-    def can_edit(request, obj):
-        if obj is None:
-            return False
-        # Редактировать могут менеджеры или загрузивший файл
-        from tickets.models import user_is_manager
-        if user_is_manager(request.user):
-            return True
-        return obj.uploaded_by_id == request.user.id
- 
-    return AttachmentSpec('ticket_att', get_object, get_file, get_title, can_view, can_edit)
- 
- 
-register(_ticket_attachment_spec())

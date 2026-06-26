@@ -39,3 +39,51 @@ msgstr "Approval"
 
 msgid "Документ"
 msgstr "Document"
+
+msgid "Принять"
+msgstr "Accept"
+
+msgid "Отклонить"
+msgstr "Reject"
+
+msgid "Отмена"
+msgstr "Cancel"
+
+msgid "Завершить"
+msgstr "Complete"
+
+msgid "На доработку"
+msgstr "Send for Revision"
+
+msgid "Переоткрыть"
+msgstr "Reopen"
+
+msgid "Новая задача"
+msgstr "New task"
+
+msgid "Создана новая задача"
+msgstr "New task created"
+
+msgid "Задача принята"
+msgstr "Task accepted"
+
+msgid "Задача принята к исполнению"
+msgstr "Task accepted for execution"
+
+msgid "Задача отклонена"
+msgstr "Task rejected"
+
+msgid "Задача была отклонена"
+msgstr "Task was rejected"
+
+msgid "Задача отправлена на доработку"
+msgstr "Task sent for revision"
+
+msgid "Задача требует доработки"
+msgstr "Task requires revision"
+
+msgid "Задача завершена"
+msgstr "Task completed"
+
+msgid "Задача успешно завершена"
+msgstr "Task successfully completed"

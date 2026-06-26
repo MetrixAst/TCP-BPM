@@ -98,7 +98,7 @@
           <span class="dash-notif-title">{{ current.title }}</span>
           {% if current.text %}<span class="dash-notif-text">{{ current.text }}</span>{% endif %}
         </div>
-        {% if current.created_date %}<span class="dash-notif-date">{{ current.created_date|date:"d.m.Y H:i" }}</span>{% endif %}
+        {% if current.created_date %}<span class="dash-notif-date">{% bpm_date current.created_date time=True %}</span>{% endif %}
       </a>
       {% else %}
       <div class="dash-notif-item">
@@ -107,7 +107,7 @@
           <span class="dash-notif-title">{{ current.title }}</span>
           {% if current.text %}<span class="dash-notif-text">{{ current.text }}</span>{% endif %}
         </div>
-        {% if current.created_date %}<span class="dash-notif-date">{{ current.created_date|date:"d.m.Y H:i" }}</span>{% endif %}
+        {% if current.created_date %}<span class="dash-notif-date">{% bpm_date current.created_date time=True %}</span>{% endif %}
       </div>
       {% endif %}
       {% endfor %}

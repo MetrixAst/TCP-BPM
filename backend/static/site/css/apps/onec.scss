@@ -1942,450 +1942,454 @@ body.onec-invoice-body {
   .bpm-dropdown__item.is-active .bpm-dropdown__check {
     opacity: 1;
   }
+/* ════════════════════════════
+   SUPPLIER FORM — TASK MANAGER STYLE
+   ════════════════════════════ */
 
-  // ============================================================================
-// ФОРМА СОЗДАНИЯ/РЕДАКТИРОВАНИЯ ТИПА — стиль Task Manager
-// ============================================================================
-
-body.onec-modal-body {
-  .bpm-sidebar,
-  #bpmSidebar,
-  .bpm-topbar,
-  #bpmTopbar {
-    display: none !important;
-  }
-
-  .bpm-main,
-  #bpmMain {
-    margin-left: 0 !important;
-    width: 100vw !important;
-    max-width: 100vw !important;
-  }
-
-  .bpm-content {
-    padding: 0 !important;
+   .onec-create-page {
     min-height: 100vh !important;
+    width: 100vw !important;
+    max-width: none !important;
+    padding: 48px 24px !important;
     background: transparent !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    overflow-y: auto !important;
+    box-sizing: border-box !important;
   }
-}
-
-.onec-create-page {
-  min-height: 100vh;
-  width: 100vw;
-  padding: 48px 24px;
-  background: rgba(0, 0, 0, 0.35);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  overflow-y: auto;
-}
-
-.onec-create-card {
-  width: 760px;
-  max-width: calc(100vw - 48px);
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
-  padding: 20px;
-}
-
-// ── Шапка формы ──────────────────────────────────────────────────────────
-.onec-create-card__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 22px;
-  padding-bottom: 0;
-}
-
-.onec-create-card__title {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #25233f;
-}
-
-.onec-create-card__close {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #f5f3fa;
-  color: #25233f;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  font-size: 20px;
-  line-height: 1;
-  flex-shrink: 0;
-
-  &:hover {
-    background: #ece9f4;
-    color: #25233f;
-    text-decoration: none;
-  }
-}
-
-// ── Заголовки секций ─────────────────────────────────────────────────────
-.onec-create-card__section-title {
-  margin: 0 0 12px;
-  color: #25233f;
-  font-size: 13px;
-  font-weight: 700;
-
-  &--items {
-    margin-top: 20px;
-    display: flex;
-    align-items: center;
-    gap: 0;
-  }
-}
-
-.onec-section-hint {
-  font-size: 11px;
-  font-weight: 400;
-  color: #74728a;
-  margin-left: 8px;
-}
-
-// ── Сетка полей ──────────────────────────────────────────────────────────
-.onec-form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 4px;
-}
-
-.onec-form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 4px;
-}
-
-.onec-form-field--full {
-  grid-column: 1 / -1;
-}
-
-// ── Лейбл ────────────────────────────────────────────────────────────────
-.onec-label {
-  display: block;
-  font-size: 11px;
-  font-weight: 500;
-  color: #74728a;
-  line-height: 1.2;
-
-  span {
-    color: #ef4444;
-  }
-}
-
-// ── Инпуты в форме типа ───────────────────────────────────────────────────
-#counterpartyTypeForm {
-  .onec-input {
-    width: 100%;
-    height: 32px;
-    min-height: 32px;
+  
+  #supplierForm.onec-create-card {
+    width: 760px !important;
+    max-width: calc(100vw - 48px) !important;
+    background: #fff !important;
     border: 0 !important;
-    border-radius: 999px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18) !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
+  }
+  
+  #supplierForm .onec-create-card__header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    margin-bottom: 22px !important;
+  }
+  
+  #supplierForm .onec-create-card__title {
+    margin: 0 !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+    font-weight: 600 !important;
+    color: #25233f !important;
+  }
+  
+  #supplierForm .onec-create-card__close {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
     background: #f5f3fa !important;
     color: #25233f !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-decoration: none !important;
+    border: 0 !important;
+    font-size: 18px !important;
+    line-height: 1 !important;
+    flex-shrink: 0 !important;
+  }
+  
+  #supplierForm .onec-create-card__close:hover {
+    background: #ece9f4 !important;
+    color: #25233f !important;
+    text-decoration: none !important;
+  }
+  
+  #supplierForm .onec-create-card__section-title {
+    margin: 0 0 12px !important;
+    color: #25233f !important;
     font-size: 13px !important;
-    font-weight: 500;
+    font-weight: 700 !important;
+  }
+  
+  #supplierForm .onec-create-card__section-title--items {
+    margin-top: 24px !important;
+  }
+  
+  #supplierForm .onec-form-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px 16px !important;
+  }
+  
+  #supplierForm .onec-form-field {
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    margin-bottom: 8px !important;
+  }
+  
+  #supplierForm .onec-form-field--full {
+    grid-column: 1 / -1 !important;
+  }
+  
+  #supplierForm .onec-label {
+    display: block !important;
+    margin: 0 0 8px !important;
+    color: #74728a !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    font-weight: 500 !important;
+  }
+  
+  /* inputs/selects exactly like task manager */
+  #supplierForm input:not([type="file"]):not([type="checkbox"]):not([type="radio"]),
+  #supplierForm select,
+  #supplierForm textarea {
+    width: 100% !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background-color: #f5f3fa !important;
+    color: #25233f !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
     padding: 0 16px !important;
     outline: none !important;
     box-shadow: none !important;
-    box-sizing: border-box;
-
-    &::placeholder { color: #9a98aa; }
-    &:focus { box-shadow: 0 0 0 2px rgba(47, 107, 237, 0.15) !important; }
-    &--error { box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important; }
+    box-sizing: border-box !important;
   }
-}
-
-// ── Подсказки под полями ──────────────────────────────────────────────────
-.onec-field-hint {
-  font-size: 11px;
-  color: #74728a;
-  margin-top: 2px;
-  line-height: 1.4;
-}
-
-// ── Моно-инпут (код) ──────────────────────────────────────────────────────
-.onec-input--mono {
-  font-family: monospace !important;
-  letter-spacing: 0.02em;
-}
-
-// ── Чекбокс «Тип активен» ─────────────────────────────────────────────────
-.onec-cp-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
-
-  input[type="checkbox"] { display: none; }
-
-  &__box {
-    width: 20px;
-    height: 20px;
-    border-radius: 6px;
-    background: #f5f3fa;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: background .15s;
-
-    i { font-size: 12px; color: #fff; opacity: 0; transition: opacity .15s; }
+  
+  #supplierForm input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):focus,
+  #supplierForm select:focus,
+  #supplierForm textarea:focus {
+    box-shadow: 0 0 0 2px rgba(54, 100, 220, 0.15) !important;
   }
-
-  &__label {
-    font-size: 13px;
-    font-weight: 500;
-    color: #25233f;
+  
+  #supplierForm input::placeholder,
+  #supplierForm textarea::placeholder {
+    color: #9a98aa !important;
   }
-
-  input:checked + .onec-cp-check__box {
-    background: #2f6bed;
-    i { opacity: 1; }
+  
+  /* normal selects */
+  #supplierForm select:not([multiple]) {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B6880' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 14px center !important;
+    background-size: 12px 8px !important;
+    padding-right: 36px !important;
+    cursor: pointer !important;
   }
-}
-
-// ── Переключатель Глобальный / Ограниченный ───────────────────────────────
-.onec-acl-toggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-
-  @media (max-width: 600px) { grid-template-columns: 1fr; }
-}
-
-.onec-acl-toggle__option {
-  cursor: pointer;
-  input { display: none; }
-}
-
-.onec-acl-toggle__box {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 16px;
-  border: 2px solid #eceaf3;
-  border-radius: 12px;
-  transition: border-color .15s, background .15s;
-  cursor: pointer;
-
-  i {
-    font-size: 20px;
-    opacity: 0.5;
-    margin-bottom: 4px;
-    color: #25233f;
+  
+  /* category / textarea */
+  #supplierForm select[multiple],
+  #supplierForm select[size],
+  #supplierForm textarea {
+    height: 92px !important;
+    min-height: 92px !important;
+    border-radius: 14px !important;
+    resize: none !important;
+    padding: 12px 16px !important;
+    line-height: 1.45 !important;
+    background-image: none !important;
   }
-
-  b {
-    font-size: 13px;
-    font-weight: 600;
-    color: #25233f;
+  
+  /* checkbox */
+  #supplierForm input[type="checkbox"] {
+    width: 18px !important;
+    height: 18px !important;
+    accent-color: #2f6bed !important;
   }
-
-  small {
-    font-size: 12px;
-    color: #74728a;
-    line-height: 1.4;
+  
+  /* footer like task manager */
+  #supplierForm .onec-create-footer {
+    margin-top: 18px !important;
+    padding-top: 14px !important;
+    border-top: 1px solid #f0eef6 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 14px !important;
   }
-}
-
-.onec-acl-toggle__option input:checked + .onec-acl-toggle__box {
-  border-color: #2f6bed;
-  background: rgba(47, 107, 237, 0.04);
-
-  i { opacity: 1; color: #2f6bed; }
-  b { color: #2f6bed; }
-}
-
-// ── Секции ролей / отделов / пользователей ───────────────────────────────
-.onec-acl-section {
-  margin-bottom: 4px;
-}
-
-.onec-acl-section__title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #74728a;
-  margin-bottom: 8px;
-}
-
-// ── Чекбоксы ролей ────────────────────────────────────────────────────────
-.onec-acl-checkboxes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 8px;
-}
-
-.onec-acl-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  padding: 5px 12px;
-  border: 1px solid #eceaf3;
-  border-radius: 999px;
-  background: #faf9fd;
-  transition: background .12s, border-color .12s;
-  user-select: none;
-
-  &:has(input:checked) {
-    background: #eef2ff;
-    border-color: #2f6bed;
-    color: #2f6bed;
-    font-weight: 600;
+  
+  #supplierForm .onec-btn {
+    height: 32px !important;
+    padding: 0 16px !important;
+    border-radius: 999px !important;
+    border: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    line-height: 1 !important;
+  }
+  
+  #supplierForm .onec-btn--ghost {
+    background: transparent !important;
+    color: #25233f !important;
+  }
+  
+  #supplierForm .onec-btn--ghost:hover {
+    background: #f5f3fa !important;
+    color: #25233f !important;
+    text-decoration: none !important;
+  }
+  
+  #supplierForm .onec-btn--primary {
+    background: #2f6bed !important;
+    color: #fff !important;
+  }
+  
+  #supplierForm .onec-btn--primary:hover {
+    background: #2458c7 !important;
+    color: #fff !important;
+  }
+  
+  #supplierForm .onec-btn i {
+    font-size: 14px !important;
+    line-height: 1 !important;
+  }
+  
+  /* Select2 if some fields become select2 */
+  #supplierForm .select2-container {
+    width: 100% !important;
+  }
+  
+  #supplierForm .select2-container--default .select2-selection--single,
+  #supplierForm .select2-container--bootstrap4 .select2-selection--single {
+    height: 32px !important;
+    min-height: 32px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: #f5f3fa !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  
+  #supplierForm .select2-selection__rendered {
+    height: 32px !important;
+    line-height: 32px !important;
+    padding-left: 16px !important;
+    padding-right: 34px !important;
+    color: #25233f !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+  }
+  
+  #supplierForm .select2-selection__arrow {
+    height: 32px !important;
+    right: 10px !important;
+  }
+  
+  @media (max-width: 900px) {
+    .onec-create-page {
+      padding: 24px 12px !important;
+    }
+  
+    #supplierForm.onec-create-card {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+  
+    #supplierForm .onec-form-grid {
+      grid-template-columns: 1fr !important;
+    }
+  
+    #supplierForm .onec-form-field--full {
+      grid-column: auto !important;
+    }
   }
 
-  input { display: none; }
+  /* ════════════════════════════
+   SUPPLIER SELECT2 — TASK MANAGER DROPDOWN STYLE
+   ════════════════════════════ */
+
+#supplierForm .select2-container {
+  width: 100% !important;
 }
 
-// ── Мультиселект (отделы / пользователи) ─────────────────────────────────
-.onec-acl-multiselect {
-  width: 100%;
-  min-height: 110px;
-  border: 1px solid #eceaf3 !important;
-  border-radius: 12px !important;
+#supplierForm .select2-container--default .select2-selection--single,
+#supplierForm .select2-container--bootstrap4 .select2-selection--single {
+  width: 100% !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f5f3fa !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  outline: none !important;
+}
+
+#supplierForm .select2-container--default.select2-container--focus .select2-selection--single,
+#supplierForm .select2-container--default.select2-container--open .select2-selection--single {
+  box-shadow: 0 0 0 2px rgba(54, 100, 220, 0.15) !important;
+}
+
+#supplierForm .select2-selection--single .select2-selection__rendered {
+  height: 32px !important;
+  line-height: 32px !important;
+  padding-left: 16px !important;
+  padding-right: 36px !important;
+  color: #25233f !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+#supplierForm .select2-selection--single .select2-selection__placeholder {
+  color: #9a98aa !important;
+}
+
+#supplierForm .select2-selection--single .select2-selection__arrow {
+  position: absolute !important;
+  top: 0 !important;
+  right: 14px !important;
+  width: 16px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+#supplierForm .select2-selection--single .select2-selection__arrow b {
+  display: none !important;
+}
+
+#supplierForm .select2-selection--single .select2-selection__arrow::after {
+  content: "" !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-left: 4px solid transparent !important;
+  border-right: 4px solid transparent !important;
+  border-top: 5px solid #8b88a0 !important;
+  display: block !important;
+  transition: transform .15s ease !important;
+}
+
+#supplierForm .select2-container--open .select2-selection--single .select2-selection__arrow::after {
+  transform: rotate(180deg) !important;
+}
+
+/* Multiple select */
+#supplierForm .select2-container--default .select2-selection--multiple,
+#supplierForm .select2-container--bootstrap4 .select2-selection--multiple {
+  min-height: 32px !important;
+  height: 32px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f5f3fa !important;
+  box-shadow: none !important;
+  padding: 0 10px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+#supplierForm .select2-selection--multiple .select2-selection__rendered {
+  width: 100% !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 4px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important;
+}
+
+#supplierForm .select2-selection--multiple .select2-selection__rendered::-webkit-scrollbar {
+  display: none !important;
+}
+
+#supplierForm .select2-selection--multiple .select2-selection__choice {
+  height: 22px !important;
+  margin: 0 !important;
+  padding: 0 8px 0 6px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #e7e4f0 !important;
+  color: #25233f !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+  font-size: 12px !important;
+  line-height: 22px !important;
+}
+
+#supplierForm .select2-selection--multiple .select2-selection__choice__remove {
+  position: static !important;
+  margin: 0 6px 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #2f6bed !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+}
+
+#supplierForm .select2-selection--multiple .select2-search--inline,
+#supplierForm .select2-selection--multiple .select2-search__field {
+  width: 1px !important;
+  min-width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+}
+
+/* Dropdown inside supplier form */
+#supplierForm .select2-dropdown {
+  margin-top: 4px !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16) !important;
+  overflow: hidden !important;
+  background: #fff !important;
+}
+
+#supplierForm .select2-results__options {
+  max-height: 220px !important;
   padding: 6px !important;
-  font-size: 13px;
-  background: #fff;
-  color: #25233f;
-  outline: none;
-
-  option {
-    padding: 5px 8px;
-    border-radius: 6px;
-  }
-
-  option:checked {
-    background: #eef2ff;
-    color: #2f6bed;
-  }
+  background: #fff !important;
 }
 
-// ── Инфобокс ──────────────────────────────────────────────────────────────
-.onec-acl-info-box {
-  display: flex;
-  gap: 12px;
-  padding: 14px 16px;
-  background: #f5f7ff;
-  border-left: 3px solid #2f6bed;
-  border-radius: 0 10px 10px 0;
-  margin: 20px 0 4px;
-  font-size: 13px;
-
-  b { display: block; color: #25233f; font-weight: 700; margin-bottom: 4px; }
-  p { margin: 0; color: #74728a; font-size: 12px; line-height: 1.5; }
+#supplierForm .select2-results__option {
+  min-height: 34px !important;
+  padding: 8px 12px !important;
+  border-radius: 10px !important;
+  color: #25233f !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  background: transparent !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
-.onec-acl-info-box__icon {
-  font-size: 16px;
-  color: #2f6bed;
-  flex-shrink: 0;
-  margin-top: 2px;
+#supplierForm .select2-results__option--highlighted,
+#supplierForm .select2-results__option--highlighted[aria-selected] {
+  background: #2f6bed !important;
+  color: #fff !important;
 }
 
-// ── Футер формы ───────────────────────────────────────────────────────────
-.onec-create-footer {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid #f0eef6;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.onec-btn--ghost {
-  height: 32px;
-  padding: 0 16px;
-  border-radius: 999px;
-  background: transparent;
-  color: #25233f;
-  font-size: 13px;
-  font-weight: 500;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-  border: 0;
-
-  &:hover { background: #f5f3fa; color: #25233f; text-decoration: none; }
-}
-
-.onec-btn--danger-ghost {
-  height: 32px;
-  padding: 0 16px;
-  border-radius: 999px;
-  background: transparent;
-  color: #ef4444;
-  font-size: 13px;
-  font-weight: 500;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  border: 0;
-
-  &:hover { background: #feecec; color: #ef4444; text-decoration: none; }
-}
-
-.onec-btn--primary {
-  height: 32px;
-  padding: 0 18px;
-  border-radius: 999px;
-  background: #2f6bed;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  border: 0;
-  text-decoration: none;
-
-  &:hover { background: #2458c7; color: #fff; text-decoration: none; }
-}
-
-// ── Ошибки формы ──────────────────────────────────────────────────────────
-.onec-form-errors {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
-}
-
-.onec-form-error {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: #feecec;
-  color: #ef4444;
-  font-size: 13px;
-
-  i { flex-shrink: 0; }
-}
-
-// ── Адаптив ───────────────────────────────────────────────────────────────
-@media (max-width: 600px) {
-  .onec-create-page { padding: 24px 12px; }
-  .onec-create-card { width: 100%; max-width: 100%; }
-  .onec-form-grid { grid-template-columns: 1fr; }
+#supplierForm .select2-results__option[aria-selected="true"] {
+  background: #f5f3fa !important;
+  color: #2f6bed !important;
+  font-weight: 600 !important;
 }

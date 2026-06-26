@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe53">
@@ -108,7 +109,7 @@
         <div><span>Контрагент</span><strong>{{ invoice.counterparty.short_name|default:"—" }}</strong></div>
         <div><span>Договор</span><strong>{{ invoice.contract_number|default:"—" }}</strong></div>
         <div><span>Период</span><strong>{{ invoice.period|date:"m.Y"|default:"—" }}</strong></div>
-        <div><span>Отправлен через</span><strong>{{ invoice.get_sent_via_display|default:"—" }}</strong></div>
+        <div><span>{% t 'invoice.sent_via' 'Отправлен через' %}</span><strong>{{ invoice.get_sent_via_display|default:"—" }}</strong></div>
         <div><span>Дата отправки</span><strong>{{ invoice.sent_at|date:"d.m.Y H:i"|default:"—" }}</strong></div>
         <div class="is-wide"><span>Комментарий</span><strong>{{ invoice.comment|default:"—" }}</strong></div>
       </div>

@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block title %}Бюджет | metriX BPM{% endblock %}
 
@@ -21,7 +22,6 @@
   <header class="fin-page-hero">
     <div>
       <h1 class="fin-page-hero__title">Бюджетирование</h1>
-      <p class="fin-page-hero__sub">{{ year }} · {{ month }} мес. · план / факт / прогноз</p>
     </div>
   </header>
 
@@ -76,7 +76,7 @@
     <div class="fin-table-head">
       <div>
         <div class="fin-table-title">Статьи бюджета</div>
-        <div class="fin-table-subtitle">{{ rows|length }} категори{{ rows|length|pluralize:"я,и,й" }}</div>
+        <div class="fin-table-subtitle">{{ rows|length }} {% plural_t rows|length 'finances.categories_plural' 'категория|категории|категорий' %}</div>
       </div>
       <div class="fin-legend">
         <span class="fin-legend__dot fin-legend__dot--success"></span>В норме

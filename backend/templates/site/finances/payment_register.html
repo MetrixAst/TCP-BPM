@@ -1,5 +1,6 @@
 {% extends "site/base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=9999">
@@ -163,7 +164,7 @@
               <td><strong>{{ obj.balance|floatformat:2 }}</strong></td>
               <td>{{ obj.planned_date|date:"d.m.Y"|default:"—" }}</td>
               <td>{{ obj.actual_date|date:"d.m.Y"|default:"—" }}</td>
-              <td>{% if obj.overdue_days %}{{ obj.overdue_days }} дн.{% else %}—{% endif %}</td>
+              <td>{% if obj.overdue_days %}{{ obj.overdue_days }} {% t 'common.days_short' 'дн.' %}{% else %}—{% endif %}</td>
               <td>
                 <span class="fin-status fin-status--{{ item.color }}">
                   {{ obj.get_status_display }}

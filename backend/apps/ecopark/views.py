@@ -1,98 +1,57 @@
-from django.shortcuts import redirect, render
+import json
+import os
+from django.http import Http404, JsonResponse
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+from documents import onlyoffice
+from django.shortcuts import redirect, render, get_object_or_404
+from .models import EcoObject, EcoExecutor, EcoWork
 
 
 def _fmt_amount(value):
     return f'{int(value):,}'.replace(',', ' ')
 
 
-def _demo_works():
-    return [
-        {
-            'id': 1,
-            'title': 'Замена расходников эскалатора',
-            'object': 'Эскалатор',
-            'date': '12.11.2024',
-            'executor': 'ТОО Cisco',
-            'responsible': 'Баянгазиева Алия',
-            'amount': 125_430,
-            'status': 'done',
-            'status_label': 'Выполнен',
-        },
-        {
-            'id': 2,
-            'title': 'Проверка насосной станции',
-            'object': 'Сантехника',
-            'date': '18.01.2025',
-            'executor': 'ИП Калиева',
-            'responsible': 'Бекбердиев Кайрат',
-            'amount': 89_200,
-            'status': 'progress',
-            'status_label': 'В процессе',
-        },
-        {
-            'id': 3,
-            'title': 'Ремонт освещения 1 этажа',
-            'object': '1 этаж электроника',
-            'date': '05.02.2025',
-            'executor': 'ОАО Казахтелеком',
-            'responsible': 'Тажиева Оля',
-            'amount': 214_800,
-            'status': 'pending',
-            'status_label': 'Ожидает',
-        },
-        {
-            'id': 4,
-            'title': 'Устранение протечки (4 этаж)',
-            'object': 'Трубы на 4 этаже',
-            'date': '10.03.2025',
-            'executor': 'ТОО Рога и копыта',
-            'responsible': 'Рашидова Рахиля',
-            'amount': 67_500,
-            'status': 'overdue',
-            'status_label': 'Просрочен',
-        },
-    ]
+def home(request):
+    works = EcoWork.objects.select_related('eco_object', 'executor').all()
 
+    obj_filter = request.GET.get('object')
+    exec_filter = request.GET.get('executor')
+    status_filter = request.GET.get('status')
 
-def _kpi_from_works(works):
-    total = len(works)
-    done = sum(1 for w in works if w['status'] == 'done')
-    progress = sum(1 for w in works if w['status'] == 'progress')
-    total_sum = sum(w['amount'] for w in works)
-    return {
-        'total': total,
-        'done': done,
-        'progress': progress,
-        'total_sum': total_sum,
-        'total_sum_fmt': _fmt_amount(total_sum),
+    # Фильтруем по имени (строке), а не по id — иначе ValueError
+    if obj_filter:
+        works = works.filter(eco_object__name=obj_filter)
+    if exec_filter:
+        works = works.filter(executor__name=exec_filter)
+    if status_filter:
+        works = works.filter(status=status_filter)
+
+    all_works = EcoWork.objects.all()
+    kpi = {
+        'total': all_works.count(),
+        'done': all_works.filter(status='done').count(),
+        'progress': all_works.filter(status='progress').count(),
+        'total_sum_fmt': _fmt_amount(sum(w.amount for w in all_works)),
     }
 
-
-def _enrich_work(work):
-    row = dict(work)
-    row['amount_fmt'] = _fmt_amount(row['amount'])
-    return row
-
-
-def home(request):
-    works = [_enrich_work(w) for w in _demo_works()]
     context = {
         'works': works,
-        'kpi': _kpi_from_works(works),
-        'objects': sorted({w['object'] for w in works}),
-        'executors': sorted({w['executor'] for w in works}),
+        'kpi': kpi,
+        'objects': EcoObject.objects.filter(is_active=True),
+        'executors': EcoExecutor.objects.filter(is_active=True),
     }
     return render(request, 'site/ecopark/ecopark.html', context)
 
 
 def item(request, pk):
-    works = {w['id']: _enrich_work(w) for w in _demo_works()}
-    work = works.get(pk) or works[1]
-    history = [
-        {**work, 'date': '15.07.2022 11:51'},
-        {**work, 'date': '02.06.2022 09:30', 'amount': 28_100, 'amount_fmt': _fmt_amount(28_100)},
-        {**work, 'date': '11.03.2022 14:12', 'amount': 31_200, 'amount_fmt': _fmt_amount(31_200)},
-    ]
+    work = get_object_or_404(
+        EcoWork.objects.select_related('eco_object', 'executor'), pk=pk
+    )
+    history = EcoWork.objects.select_related('eco_object', 'executor').filter(
+        eco_object=work.eco_object
+    ).exclude(pk=pk).order_by('-date')
+
     context = {
         'work': work,
         'history': history,
@@ -102,9 +61,104 @@ def item(request, pk):
 
 def create(request):
     if request.method == 'POST':
+        title = request.POST.get('title')
+        object_id = request.POST.get('object')
+        executor_id = request.POST.get('executor')
+        responsible = request.POST.get('responsible')
+        amount = request.POST.get('amount') or 0
+        status = request.POST.get('status', 'pending')
+        document = request.FILES.get('document')
+
+        EcoWork.objects.create(
+            title=title,
+            eco_object_id=object_id or None,
+            executor_id=executor_id or None,
+            responsible=responsible,
+            amount=amount,
+            status=status,
+            document=document,
+        )
         return redirect('ecopark:home')
+
     context = {
-        'objects': ['Эскалатор', '1 этаж электроника', 'Трубы на 4 этаже', 'Сантехника'],
-        'executors': ['ТОО Рога и копыта', 'ИП Асылбеков', 'ИП Калиева', 'ОАО Казахтелеком'],
+        'objects': EcoObject.objects.filter(is_active=True),
+        'executors': EcoExecutor.objects.filter(is_active=True),
     }
     return render(request, 'site/ecopark/ecopark_create.html', context)
+
+
+def work_editor(request, pk):
+    work = get_object_or_404(EcoWork, pk=pk)
+    if not work.document:
+        raise Http404('У работы нет файла')
+    title = work.title or os.path.basename(work.document.name)
+    download_url = work.document.url
+    back_url = reverse('ecopark:item', args=[pk])
+
+    if not onlyoffice.is_enabled():
+        return render(request, 'site/documents/onlyoffice_editor.html', {
+            'title': title, 'download_url': download_url, 'onlyoffice_disabled': True
+        })
+
+    if not onlyoffice.is_supported(work.document.name):
+        return render(request, 'site/documents/onlyoffice_editor.html', {
+            'title': title, 'download_url': download_url, 'onlyoffice_unsupported': True
+        })
+
+    callback_url = reverse('ecopark:work_editor_callback', args=[pk])
+    config = onlyoffice.build_config(request, pk, work.document, title, False, callback_url)
+
+    return render(request, 'site/documents/onlyoffice_editor.html', {
+        'title': title,
+        'download_url': download_url,
+        'back_url': back_url,
+        'oo_api_url': onlyoffice.public_api_url(),
+        'oo_config_json': json.dumps(config, ensure_ascii=False),
+        'oo_can_edit': False,
+    })
+
+
+@csrf_exempt
+def work_editor_callback(request, pk):
+    return JsonResponse({'error': 0})
+
+
+def edit(request, pk):
+    work = get_object_or_404(EcoWork, pk=pk)
+    if request.method == 'POST':
+        work.title = request.POST.get('title', work.title)
+        work.eco_object_id = request.POST.get('object') or None
+        work.executor_id = request.POST.get('executor') or None
+        work.responsible = request.POST.get('responsible', work.responsible)
+        work.amount = request.POST.get('amount') or 0
+        work.status = request.POST.get('status', work.status)
+        if request.FILES.get('document'):
+            if work.document:
+                work.document.delete(save=False)
+            work.document = request.FILES.get('document')
+        work.save()
+        return redirect('ecopark:item', pk=pk)
+
+    context = {
+        'work': work,
+        'objects': EcoObject.objects.filter(is_active=True),
+        'executors': EcoExecutor.objects.filter(is_active=True),
+    }
+    return render(request, 'site/ecopark/ecopark_edit.html', context)
+
+
+def delete(request, pk):
+    if request.method == 'POST':
+        work = get_object_or_404(EcoWork, pk=pk)
+        if work.document:
+            work.document.delete(save=False)
+        work.delete()
+    return redirect('ecopark:home')
+
+
+def work_delete_doc(request, pk):
+    if request.method == 'POST':
+        work = get_object_or_404(EcoWork, pk=pk)
+        if work.document:
+            work.document.delete(save=True)
+    return redirect('ecopark:item', pk=pk)

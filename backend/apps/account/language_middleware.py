@@ -4,12 +4,6 @@ SUPPORTED_LANGS = {'ru', 'kk', 'en'}
 DEFAULT_LANG = 'ru'
 LANG_COOKIE = 'bpm_lang'
 
-LANG_MAP = {
-    'ru': 'ru',
-    'kk': 'kk',
-    'en': 'en',
-}
-
 class LanguageMiddleware:
     """
     Saves language preference in a cookie so it persists across pages.
@@ -30,14 +24,10 @@ class LanguageMiddleware:
 
         request.current_lang = current_lang
 
-        # ── Активируем Django translation для gettext_lazy
-        translation.activate(LANG_MAP.get(current_lang, DEFAULT_LANG))
-        request.LANGUAGE_CODE = translation.get_language()
+        # ── Активируем Django gettext для правильного перевода lazy строк ──
+        translation.activate(current_lang)
 
         response = self.get_response(request)
-
-        # Деактивируем после запроса
-        translation.deactivate()
 
         # Persist new language choice in cookie (1 year)
         if lang_param in SUPPORTED_LANGS:
@@ -48,4 +38,5 @@ class LanguageMiddleware:
                 httponly=False,
                 samesite='Lax',
             )
+
         return response

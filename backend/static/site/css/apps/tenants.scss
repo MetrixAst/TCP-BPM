@@ -178,27 +178,391 @@ $tenant-border: #eceaf3;
     border: 1px solid #fecaca;
   }
 }
+/* ═════════════════════════════
+   TENANT MODAL — TASK STYLE
+   ═════════════════════════════ */
 
-.tenant-modal {
-  .modal-content {
-    border: 1px solid $tenant-border;
-    border-radius: 16px;
+   .tenant-modal {
+    .modal-dialog {
+      max-width: 760px !important;
+    }
+  
+    .modal-content {
+      border: 0 !important;
+      border-radius: 16px !important;
+      background: #fff !important;
+      box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18) !important;
+      overflow: visible !important;
+    }
+  
+    .modal-header {
+      padding: 20px 24px !important;
+      border-bottom: 1px solid #f0eef6 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+    }
+  
+    .modal-title {
+      margin: 0 !important;
+      font-size: 13px !important;
+      line-height: 1.2 !important;
+      font-weight: 600 !important;
+      color: $tenant-text !important;
+    }
+  
+    .btn-close {
+      width: 28px !important;
+      height: 28px !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: 0 !important;
+      border-radius: 50% !important;
+      background-color: $tenant-field-bg !important;
+      opacity: 1 !important;
+      box-shadow: none !important;
+      background-size: 11px 11px !important;
+  
+      &:hover {
+        background-color: #ece9f4 !important;
+      }
+    }
+  
+    .modal-body {
+      padding: 24px !important;
+      max-height: calc(100vh - 210px) !important;
+      overflow-y: auto !important;
+  
+      &::-webkit-scrollbar {
+        width: 4px;
+      }
+  
+      &::-webkit-scrollbar-thumb {
+        background: #d9d6e8;
+        border-radius: 999px;
+      }
+    }
+  
+    .tenant-form-section {
+      margin-bottom: 24px;
+  
+      &:last-child {
+        margin-bottom: 0;
+      }
+  
+      &__title {
+        margin: 0 0 12px !important;
+        color: $tenant-text !important;
+        font-size: 13px !important;
+        line-height: 1.2 !important;
+        font-weight: 700 !important;
+        text-transform: none !important;
+        letter-spacing: 0 !important;
+      }
+    }
+  
+    .tenant-form-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 16px 16px !important;
+  
+      @media (max-width: 576px) {
+        grid-template-columns: 1fr !important;
+      }
+    }
+  
+    .tenant-form-grid--full {
+      grid-column: 1 / -1 !important;
+    }
+  
+    .tenant-form-field {
+      min-width: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 0 !important;
+    }
+  
+    .tenant-form-label {
+      display: block !important;
+      margin: 0 0 8px !important;
+      color: $tenant-muted !important;
+      font-size: 11px !important;
+      line-height: 1.2 !important;
+      font-weight: 500 !important;
+  
+      span {
+        color: #ef4444 !important;
+      }
+    }
+  
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    select,
+    textarea {
+      width: 100% !important;
+      height: 32px !important;
+      min-height: 32px !important;
+      border: 0 !important;
+      border-radius: 999px !important;
+      background: $tenant-field-bg !important;
+      color: $tenant-text !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      padding: 0 16px !important;
+      outline: none !important;
+      box-shadow: none !important;
+      box-sizing: border-box !important;
+  
+      &::placeholder {
+        color: #9a98aa !important;
+      }
+  
+      &:focus {
+        box-shadow: 0 0 0 2px rgba(54, 100, 220, 0.15) !important;
+      }
+    }
+  
+    select:not([multiple]) {
+      appearance: none !important;
+      -webkit-appearance: none !important;
+      background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238b88a0' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+      background-repeat: no-repeat !important;
+      background-position: right 14px center !important;
+      background-size: 12px 8px !important;
+      padding-right: 36px !important;
+      cursor: pointer !important;
+    }
+  
+    textarea {
+      height: 92px !important;
+      min-height: 92px !important;
+      border-radius: 14px !important;
+      resize: none !important;
+      padding: 12px 16px !important;
+      line-height: 1.45 !important;
+    }
+  
+    .modal-footer {
+      padding: 14px 24px 20px !important;
+      border-top: 1px solid #f0eef6 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-end !important;
+      gap: 14px !important;
+    }
+  
+    .tenant-btn {
+      height: 32px !important;
+      padding: 0 16px !important;
+      border-radius: 999px !important;
+      border: 0 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      text-decoration: none !important;
+      cursor: pointer !important;
+      white-space: nowrap !important;
+      line-height: 1 !important;
+      box-shadow: none !important;
+  
+      &--light {
+        background: transparent !important;
+        color: $tenant-text !important;
+  
+        &:hover {
+          background: $tenant-field-bg !important;
+          color: $tenant-text !important;
+        }
+      }
+  
+      &--primary {
+        background: $tenant-primary !important;
+        color: #fff !important;
+  
+        &:hover {
+          background: #2458c7 !important;
+          color: #fff !important;
+        }
+      }
+    }
+  
+    /* Select2 field */
+    .select2-container {
+      width: 100% !important;
+    }
+  
+    .select2-container--default .select2-selection--single,
+    .select2-container--bootstrap4 .select2-selection--single {
+      height: 32px !important;
+      min-height: 32px !important;
+      border: 0 !important;
+      border-radius: 999px !important;
+      background: $tenant-field-bg !important;
+      box-shadow: none !important;
+      display: flex !important;
+      align-items: center !important;
+    }
+  
+    .select2-selection__rendered {
+      height: 32px !important;
+      line-height: 32px !important;
+      padding-left: 16px !important;
+      padding-right: 34px !important;
+      color: $tenant-text !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+    }
+  
+    .select2-selection__arrow {
+      height: 32px !important;
+      right: 10px !important;
+    }
+  }
+  
+  /* Select2 dropdown — как у менеджера задач */
+  .tenant-select2-dropdown {
+    border: 0 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16) !important;
+    overflow: hidden !important;
+    background: #fff !important;
+  
+    .select2-results__options {
+      max-height: 220px !important;
+      padding: 6px !important;
+    }
+  
+    .select2-results__option {
+      min-height: 34px !important;
+      padding: 8px 12px !important;
+      border-radius: 10px !important;
+      color: $tenant-text !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      display: flex !important;
+      align-items: center !important;
+      background: transparent !important;
+    }
+  
+    .select2-results__option--highlighted,
+    .select2-results__option--highlighted[aria-selected] {
+      background: $tenant-primary !important;
+      color: #fff !important;
+    }
+  
+    .select2-results__option[aria-selected="true"] {
+      background: $tenant-field-bg !important;
+      color: $tenant-primary !important;
+      font-weight: 600 !important;
+    }
   }
 
-  .modal-header,
-  .modal-footer {
-    padding: 16px 20px;
-    border-color: $tenant-border;
-  }
+  /* ═════════════════════════════
+   TENANT DATEPICKER — TASK STYLE
+   ═════════════════════════════ */
 
-  .modal-body {
-    padding: 20px;
-    max-height: 70vh;
-    overflow-y: auto;
-  }
+.datepicker-dropdown {
+  border: 0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18) !important;
+  padding: 12px !important;
+  background: #fff !important;
+  font-family: inherit !important;
+  overflow: hidden !important;
+  z-index: 2000 !important;
+}
 
-  .modal-title {
-    font-size: 16px;
-    font-weight: 600;
-  }
+.datepicker table {
+  width: 260px !important;
+  margin: 0 !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+.datepicker table tr th {
+  height: 36px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #25233f !important;
+  text-align: center !important;
+}
+
+.datepicker table tr th.prev,
+.datepicker table tr th.next {
+  width: 36px !important;
+  color: #74728a !important;
+  font-size: 18px !important;
+}
+
+.datepicker table tr th.prev:hover,
+.datepicker table tr th.next:hover,
+.datepicker table tr th.datepicker-switch:hover {
+  background: #f5f3fa !important;
+}
+
+.datepicker table tr th.dow {
+  height: 30px !important;
+  color: #74728a !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.datepicker table tr td {
+  width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  line-height: 36px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  border-radius: 50% !important;
+  font-size: 13px !important;
+  color: #25233f !important;
+  background: transparent !important;
+}
+
+.datepicker table tr td.day:hover,
+.datepicker table tr td.focused {
+  background: #eef2ff !important;
+  color: #2f6bed !important;
+}
+
+.datepicker table tr td.active,
+.datepicker table tr td.active:hover,
+.datepicker table tr td.active.disabled,
+.datepicker table tr td.active.disabled:hover {
+  background: #2f6bed !important;
+  color: #fff !important;
+  text-shadow: none !important;
+}
+
+.datepicker table tr td.today {
+  background: #f5f3fa !important;
+  color: #2f6bed !important;
+  font-weight: 700 !important;
+}
+
+.datepicker table tr td.old,
+.datepicker table tr td.new {
+  color: #b8b5c6 !important;
+}
+
+.datepicker .datepicker-switch {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #25233f !important;
+}
+
+.datepicker tfoot tr th {
+  height: 36px !important;
+  border-radius: 10px !important;
+  color: #2f6bed !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+.datepicker tfoot tr th:hover {
+  background: #f5f3fa !important;
 }

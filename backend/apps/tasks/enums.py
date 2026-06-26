@@ -11,7 +11,7 @@ class TaskStatusEnum(CustomEnum):
 
     @classmethod
     def get_full(cls):
-        return {
+        full = {
             cls.CREATED.value[0]: {
                 'title': str(cls.CREATED.value[1]),
                 'color': 'neutral',
@@ -33,10 +33,12 @@ class TaskStatusEnum(CustomEnum):
                 'color': 'success',
             },
         }
+        return full
 
     @classmethod
     def get_info(cls, status):
-        return cls.get_full().get(status, {})
+        res = cls.get_full()
+        return res.get(status, {})
 
     @classmethod
     def get_actions(cls, status):
@@ -148,8 +150,16 @@ class PriorityEnum(CustomEnum):
     HIGH     = ("high",     _("Высокий"))
     CRITICAL = ("critical", _("Критический"))
 
+    @classmethod
+    def list(cls):
+        return [(item.value[0], str(item.value[1])) for item in cls]
+
 
 class TaskTypeEnum(CustomEnum):
     ASSIGNMENT = ("assignment", _("Поручение"))
-    APPROVAL   = ("approval",  _("Согласование"))
-    DOCUMENT   = ("document",  _("Документ"))
+    APPROVAL   = ("approval",   _("Согласование"))
+    DOCUMENT   = ("document",   _("Документ"))
+
+    @classmethod
+    def list(cls):
+        return [(item.value[0], str(item.value[1])) for item in cls]
