@@ -7,49 +7,78 @@
 
 {% block content %}
 
-<div class="dash-header">
-  <div>
-    <h1 class="dash-title">Добро пожаловать{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}</h1>
-    <p class="dash-subtitle">Обзор задач, документов и уведомлений</p>
+<div class="dash-hero">
+  <div class="dash-hero__content">
+    <p class="dash-hero__eyebrow">
+      Добро пожаловать{% if request.user.first_name %},
+        <span class="bpm-no-translate">{{ request.user.first_name }}</span>
+      {% endif %}
+    </p>
+
+    <h1 class="dash-hero__title">Обзор задач, документов и уведомлений</h1>
+
+    <p class="dash-hero__date">
+      <i class="bi bi-calendar3"></i>
+      <span class="bpm-no-translate">{% now "d E Y" %}</span>
+    </p>
+
+    {% if today_checkin_status is not None %}
+      <div class="dash-checkin">
+        {% if today_checkin_status == 'completed' %}
+          <span class="dash-checkin__btn dash-checkin__btn--done">
+            <i class="bi bi-check-circle-fill"></i>
+            День завершён
+          </span>
+        {% elif today_checkin_status == 'checked_in' %}
+          <a href="{% url 'hr:attendance_checkin' %}" class="dash-checkin__btn dash-checkin__btn--checkout">
+            <i class="bi bi-box-arrow-right"></i>
+            Завершить день
+          </a>
+        {% else %}
+          <a href="{% url 'hr:attendance_checkin' %}" class="dash-checkin__btn dash-checkin__btn--checkin">
+            <i class="bi bi-box-arrow-in-right"></i>
+            Отметиться за сегодня
+          </a>
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
+
+  {% if task_statistic %}
+  <div class="dash-hero__stats">
+    {% for current in task_statistic %}
+    <a href="{% url 'tasks:by_type' current.slug %}" class="dash-hero-stat{% if current.slug == 'created' or current.slug == 'accepted' %} dash-hero-stat--accent{% endif %}">
+      <span class="dash-hero-stat__value">{{ current.count }}</span>
+      <span class="dash-hero-stat__label">{{ current.title }}</span>
+
+      {% if current.slug == 'created' and current.count > 0 %}
+      <span class="dash-hero-stat__badge">Новые</span>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
 </div>
 
 <div class="dash-grid">
-
-  <!-- Task Stats -->
-  {% if task_statistic %}
-  <section class="dash-section dash-section--full">
-    <h2 class="dash-section-title">Задачи</h2>
-    <div class="dash-task-grid">
-      {% for current in task_statistic %}
-      <a href="{% url 'tasks:by_type' current.slug %}" class="dash-task-card">
-        <div class="dash-task-icon">
-          <i class="bi bi-{{ current.icon }}"></i>
-        </div>
-        <div class="dash-task-body">
-          <span class="dash-task-label">{{ current.title }}</span>
-          <span class="dash-task-count">{{ current.count }}</span>
-        </div>
-      </a>
-      {% endfor %}
-    </div>
-  </section>
-  {% endif %}
 
   <!-- Documents -->
   {% if documents %}
   <section class="dash-section">
     <h2 class="dash-section-title">Документы</h2>
+
     <div class="dash-card">
       {% for current in documents %}
       <a href="{% url 'documents:document' current.id %}" class="dash-doc-item">
         <div class="dash-doc-icon">
           <i class="bi bi-file-earmark-text"></i>
         </div>
+
         <div class="dash-doc-body">
-          <span class="dash-doc-number">{{ current.number }}</span>
-          <span class="dash-doc-title">{{ current.title }}</span>
+          <span class="dash-doc-number bpm-no-translate">{{ current.number }}</span>
+          <span class="dash-doc-title bpm-no-translate">{{ current.title }}</span>
         </div>
+
         <span class="dash-doc-status dash-doc-status--{{ current.status_info.color|default:'neutral' }}">
           {{ current.status_info.title }}
         </span>
@@ -68,27 +97,44 @@
   {% if notifications %}
   <section class="dash-section">
     <h2 class="dash-section-title">Уведомления</h2>
+
     <div class="dash-card">
       {% for current in notifications %}
-      {% if current.url %}
-      <a href="{{ current.url }}" class="dash-notif-item">
-        <div class="dash-notif-icon"><i class="bi bi-bell"></i></div>
-        <div class="dash-notif-body">
-          <span class="dash-notif-title">{{ current.title }}</span>
-          {% if current.text %}<span class="dash-notif-text">{{ current.text }}</span>{% endif %}
+        {% if current.url %}
+        <a href="{{ current.url }}" class="dash-notif-item">
+          <div class="dash-notif-icon">
+            <i class="bi bi-bell"></i>
+          </div>
+
+          <div class="dash-notif-body">
+            <span class="dash-notif-title bpm-no-translate">{{ current.title }}</span>
+            {% if current.text %}
+            <span class="dash-notif-text bpm-no-translate">{{ current.text }}</span>
+            {% endif %}
+          </div>
+
+          {% if current.created_date %}
+          <span class="dash-notif-date bpm-no-translate">{{ current.created_date }}</span>
+          {% endif %}
+        </a>
+        {% else %}
+        <div class="dash-notif-item">
+          <div class="dash-notif-icon">
+            <i class="bi bi-bell"></i>
+          </div>
+
+          <div class="dash-notif-body">
+            <span class="dash-notif-title bpm-no-translate">{{ current.title }}</span>
+            {% if current.text %}
+            <span class="dash-notif-text bpm-no-translate">{{ current.text }}</span>
+            {% endif %}
+          </div>
+
+          {% if current.created_date %}
+          <span class="dash-notif-date bpm-no-translate">{{ current.created_date }}</span>
+          {% endif %}
         </div>
-        {% if current.created_date %}<span class="dash-notif-date">{{ current.created_date }}</span>{% endif %}
-      </a>
-      {% else %}
-      <div class="dash-notif-item">
-        <div class="dash-notif-icon"><i class="bi bi-bell"></i></div>
-        <div class="dash-notif-body">
-          <span class="dash-notif-title">{{ current.title }}</span>
-          {% if current.text %}<span class="dash-notif-text">{{ current.text }}</span>{% endif %}
-        </div>
-        {% if current.created_date %}<span class="dash-notif-date">{{ current.created_date }}</span>{% endif %}
-      </div>
-      {% endif %}
+        {% endif %}
       {% endfor %}
     </div>
   </section>
@@ -98,6 +144,7 @@
   {% if menu %}
   <section class="dash-section dash-section--full dash-section--quick">
     <h2 class="dash-section-title">Быстрый доступ</h2>
+
     <div class="dash-quick-grid">
       {% for current in menu %}
         {% if not current.submenu and current.icon and current.url and current.url != '#' %}
@@ -105,6 +152,7 @@
           <div class="dash-quick-icon">
             <i class="bi bi-{{ current.icon }}"></i>
           </div>
+
           <span class="dash-quick-label">{{ current.title }}</span>
         </a>
         {% endif %}

@@ -1,8 +1,21 @@
+/**
+ * Клиентский переводчик BPM: шаблоны остаются на русском,
+ * при lang=kk|en подставляет текст из window.BPM_TRANSLATIONS.
+ *
+ * FIX [UAT-01]: убран substring replace — теперь только exact match.
+ * Пользовательский контент: названия задач, ФИО, комментарии — не затрагивается.
+ * Элементы с классом bpm-no-translate и их потомки пропускаются.
+ */
 (function (window) {
   'use strict';
 
   var SKIP_TAGS = {
-    SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, CODE: 1, PRE: 1, TEXTAREA: 1,
+    SCRIPT: 1,
+    STYLE: 1,
+    NOSCRIPT: 1,
+    CODE: 1,
+    PRE: 1,
+    TEXTAREA: 1,
   };
 
   var ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
@@ -15,7 +28,7 @@
   }
 
   function normalize(text) {
-    return text.replace(/\s+/g, ' ').trim();
+    return String(text || '').replace(/\s+/g, ' ').trim();
   }
 
   function getMap(lang) {
@@ -26,39 +39,57 @@
     return null;
   }
 
-  // Только полное совпадение — никаких подстрок
   function translateText(text, map) {
+    if (!map) return text;
+
     var norm = normalize(text);
-    if (!norm || !map) return text;
-    if (map[norm] !== undefined) {
-      var lead  = text.match(/^\s*/)[0];
-      var trail = text.match(/\s*$/)[0];
+    if (!norm) return text;
+
+    if (Object.prototype.hasOwnProperty.call(map, norm)) {
+      var lead = String(text).match(/^\s*/)[0];
+      var trail = String(text).match(/\s*$/)[0];
       return lead + map[norm] + trail;
     }
+
     return text;
   }
 
   function shouldSkipNode(node) {
     var p = node.parentElement;
+
     while (p) {
+      if (p.hasAttribute && p.hasAttribute('data-i18n-skip')) return true;
       if (p.classList && p.classList.contains('bpm-no-translate')) return true;
       if (SKIP_TAGS[p.tagName]) return true;
       p = p.parentElement;
     }
+
+    return false;
+  }
+
+  function shouldSkipElement(el) {
+    if (!el) return true;
+    if (el.hasAttribute && el.hasAttribute('data-i18n-skip')) return true;
+    if (el.classList && el.classList.contains('bpm-no-translate')) return true;
+    if (SKIP_TAGS[el.tagName]) return true;
     return false;
   }
 
   function translateAttributes(el, map) {
     ATTRS.forEach(function (attr) {
       if (!el.hasAttribute(attr)) return;
-      var val  = el.getAttribute(attr);
+
+      var val = el.getAttribute(attr);
       var next = translateText(val, map);
-      if (next !== val) el.setAttribute(attr, next);
+
+      if (next !== val) {
+        el.setAttribute(attr, next);
+      }
     });
   }
 
   function walkRoot(root, map) {
-    if (!root) return;
+    if (!root || !map) return;
 
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: function (node) {
@@ -71,24 +102,24 @@
     var node;
     while ((node = walker.nextNode())) {
       var next = translateText(node.nodeValue, map);
-      if (next !== node.nodeValue) node.nodeValue = next;
+      if (next !== node.nodeValue) {
+        node.nodeValue = next;
+      }
     }
 
     root.querySelectorAll('*').forEach(function (el) {
-      if (el.hasAttribute('data-i18n-skip')) return;
-      if (el.classList.contains('bpm-no-translate')) return;
-    
+      if (shouldSkipElement(el)) return;
+
       translateAttributes(el, map);
-    
+
       if (el.tagName === 'OPTION') {
-        var current = normalize(el.textContent);
-        if (map[current]) {
-          el.textContent = map[current];
+        var next = translateText(el.textContent, map);
+        if (next !== el.textContent) {
+          el.textContent = next;
         }
       }
     });
   }
-
 
   function refreshSelect2Placeholders(map) {
     if (!map) return;
@@ -98,24 +129,22 @@
 
     $('select.select2-hidden-accessible').each(function () {
       var $sel = $(this);
-
-      // Берём текущий placeholder из rendered .select2-selection__placeholder
       var $ph = $sel.next('.select2-container').find('.select2-selection__placeholder');
+
       if (!$ph.length) return;
 
       var current = normalize($ph.text());
       if (!current || !map[current]) return;
 
-      // Обновляем placeholder через Select2 settings
       var settings = $sel.data('select2');
       if (settings && settings.options && settings.options.options) {
         var opts = settings.options.options;
+
         if (opts.placeholder && typeof opts.placeholder === 'string') {
           opts.placeholder = map[normalize(opts.placeholder)] || opts.placeholder;
         }
       }
 
-      // Перерисовываем selection (самый надёжный способ)
       $ph.text(map[current]);
     });
   }
@@ -124,22 +153,34 @@
     lang = lang || currentLang();
 
     if (lang === 'ru') {
+      document.documentElement.lang = 'ru';
       document.documentElement.classList.add('i18n-ready');
       document.documentElement.removeAttribute('data-i18n-pending');
       return;
     }
 
     var map = getMap(lang);
+
     if (!map) {
       document.documentElement.classList.add('i18n-ready');
+      document.documentElement.removeAttribute('data-i18n-pending');
       return;
     }
 
-    // Переводим все зоны
-    walkRoot(document.getElementById('bpmSidebar'), map);
-    walkRoot(document.getElementById('bpmMain'),    map);
-    walkRoot(document.querySelector('.bpm-topbar'), map);
-    walkRoot(document.querySelector('.auth-page'),  map);
+    var roots = [
+      document.getElementById('bpmSidebar'),
+      document.getElementById('bpmMain'),
+      document.querySelector('.bpm-topbar'),
+      document.querySelector('.auth-page'),
+    ].filter(Boolean);
+
+    if (!roots.length) {
+      roots = [document.body];
+    }
+
+    roots.forEach(function (root) {
+      walkRoot(root, map);
+    });
 
     if (document.title) {
       document.title = translateText(document.title, map);
@@ -149,9 +190,6 @@
     document.documentElement.classList.add('i18n-ready');
     document.documentElement.removeAttribute('data-i18n-pending');
 
-    // Select2 инициализируется после DOMContentLoaded в tasks.js.
-    // Запускаем обновление плейсхолдеров с небольшой задержкой,
-    // чтобы Select2 точно успел отрисоваться.
     setTimeout(function () {
       refreshSelect2Placeholders(map);
     }, 150);
@@ -159,16 +197,25 @@
 
   window.BPM.t = function (key, fallback) {
     if (window.BPM_I18N[key]) return window.BPM_I18N[key];
+
     var lang = currentLang();
     if (lang === 'ru') return fallback !== undefined ? fallback : key;
+
     var map = getMap(lang);
-    if (map && fallback && map[normalize(fallback)]) return map[normalize(fallback)];
+    if (map && fallback && map[normalize(fallback)]) {
+      return map[normalize(fallback)];
+    }
+
     return fallback !== undefined ? fallback : key;
   };
 
   function boot() {
     var lang = currentLang();
-    if (lang !== 'ru') document.documentElement.setAttribute('data-i18n-pending', '1');
+
+    if (lang !== 'ru') {
+      document.documentElement.setAttribute('data-i18n-pending', '1');
+    }
+
     window.BPM.applyTranslations(lang);
   }
 
