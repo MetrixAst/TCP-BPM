@@ -342,21 +342,21 @@ class MenuItem:
                 # ]),
                 MenuItem('ecopark', 'ecopark:home', 'water', 'Эксплуатация'),
                 MenuItem('tickets', 'tickets:kanban', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket'),
-                # MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
+                MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
             RoleEnums.OWNER.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
                 MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
                 # MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
-                # MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
+                MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
             RoleEnums.CFO.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
                 MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
                 # MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
-                # MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
+                MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
             RoleEnums.CHIEF_ACCOUNTANT.value: [
