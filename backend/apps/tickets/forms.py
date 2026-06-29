@@ -24,7 +24,7 @@ class StaffTicketForm(CustomModelForm):
 
     tenant = Select2FieldDefault(queryset=Tenant.objects.all(), required=False, placeholder='Арендатор')
     department = TreeField(queryset=Department.objects.all(), required=False)
-    assignee = UserSelect2Field(required=False, all=True, placeholder='Сначала выберите отдел')
+    assignee = UserSelect2Field(required=False, all=True,)
 
     class Meta:
         model = ServiceRequest
@@ -44,7 +44,7 @@ class TicketAssignForm(CustomModelForm):
     """Маршрутизация заявки сотрудником: отдел / ответственный / приоритет."""
 
     department = TreeField(queryset=Department.objects.all(), required=False)
-    assignee = UserSelect2Field(required=False, all=True, placeholder='Сначала выберите отдел')
+    assignee = UserSelect2Field(required=False, all=True)
 
     class Meta:
         model = ServiceRequest
