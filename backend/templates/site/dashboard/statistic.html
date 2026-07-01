@@ -4,7 +4,7 @@
 {% block body_classes %}reports-indicators-page{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/reports.css' %}?v=ra02">
+<link rel="stylesheet" href="{% static 'site/css/apps/reports.css' %}?v=ra04">
 {% endblock %}
 
 {% block content %}
@@ -19,57 +19,216 @@
         </nav>
     </div>
     <div class="stat-page-header__right">
-        <select class="stat-select" disabled title="Доступно после подключения аналитики">
-            <option>Все бутики</option>
-        </select>
-    </div>
-</div>
-
-<div class="stat-notice" role="status">
-    <i class="bi bi-info-circle"></i>
-    <div>
-        <strong>Интеграция с системой аналитики не подключена</strong>
-        <span>Показатели продаж, посещаемости и конверсии появятся после настройки источника данных (POS / footfall).</span>
+        <form method="get" class="d-flex align-items-center gap-2">
+            <label class="stat-period-label">Период:</label>
+            <select name="period" class="stat-select" onchange="this.form.submit()">
+                <option value="7"   {% if period_days == 7   %}selected{% endif %}>7 дней</option>
+                <option value="30"  {% if period_days == 30  %}selected{% endif %}>30 дней</option>
+                <option value="90"  {% if period_days == 90  %}selected{% endif %}>90 дней</option>
+                <option value="180" {% if period_days == 180 %}selected{% endif %}>180 дней</option>
+            </select>
+        </form>
     </div>
 </div>
 
 <section class="stat-kpi-grid" aria-label="Ключевые показатели">
     {% for kpi in kpi_cards %}
-    <article class="stat-kpi-card stat-kpi-card--empty">
+    <article class="stat-kpi-card">
         <div class="stat-kpi-icon stat-kpi-icon--{{ kpi.color }}">
             <i class="bi {{ kpi.icon }}"></i>
         </div>
         <div class="stat-kpi-body">
             <span class="stat-kpi-label">{{ kpi.label }}</span>
-            <span class="stat-kpi-value stat-kpi-value--empty">—</span>
-            <span class="stat-kpi-sub stat-kpi-sub--neutral">нет данных</span>
+            <span class="stat-kpi-value">{{ kpi.value }}</span>
+            <span class="stat-kpi-sub stat-kpi-sub--{{ kpi.sub_color }}">{{ kpi.sub }}</span>
         </div>
     </article>
     {% endfor %}
 </section>
 
-<section class="stat-charts-empty" aria-label="Графики продаж">
-    <h2 class="stat-section-title">Графики продаж</h2>
-    <div class="stat-charts-empty__panel">
-        <i class="bi bi-graph-up"></i>
-        <p>Графики будут доступны после подключения аналитики</p>
+<section class="stat-card" aria-label="Динамика платежей">
+    <h2 class="stat-section-title">Динамика платежей (последние 6 месяцев)</h2>
+    <div class="stat-chart-wrap">
+        <canvas id="paymentChart"></canvas>
     </div>
 </section>
 
-<section class="stat-stats-table" aria-label="Статистика за 30 дней">
-    <h2 class="stat-section-title">Статистика за 30 дней</h2>
-    <div class="stat-stats-head">
-        <span>Дата</span>
-        <span>Посещений</span>
-        <span>Кол-во чеков</span>
-        <span>Средний чек</span>
-        <span>Сумма продаж</span>
-        <span class="text-end">Конверсия</span>
-    </div>
-    <div class="stat-stats-empty">
-        <i class="bi bi-bar-chart-line"></i>
-        <strong>Нет данных за выбранный период</strong>
-        <span>Таблица заполнится автоматически из системы аналитики</span>
-    </div>
-</section>
+<div class="stat-two-col">
+
+    <section class="stat-card">
+        <h2 class="stat-section-title">Топ должников</h2>
+        {% if top_debtors %}
+        <table class="stat-table">
+            <thead>
+                <tr>
+                    <th>Арендатор</th>
+                    <th class="text-end">Задолженность</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in top_debtors %}
+                <tr>
+                    <td>{{ row.tenant__name|default:"—" }}</td>
+                    <td class="text-end text-danger fw-semibold">{{ row.debt|floatformat:0 }} ₸</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="stat-empty">
+            <i class="bi bi-check-circle text-success"></i>
+            <span>Просроченных платежей нет</span>
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="stat-card">
+        <h2 class="stat-section-title">Заявки арендаторов</h2>
+        {% if tickets_status_rows %}
+        <table class="stat-table">
+            <thead>
+                <tr>
+                    <th>Статус</th>
+                    <th class="text-end">Кол-во</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in tickets_status_rows %}
+                <tr>
+                    <td>{{ row.status }}</td>
+                    <td class="text-end fw-semibold">{{ row.count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="stat-empty">
+            <i class="bi bi-inbox"></i>
+            <span>Нет заявок за период</span>
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+
+<div class="stat-two-col">
+
+    <section class="stat-card">
+        <h2 class="stat-section-title">Эксплуатация (за {{ period_days }} дней)</h2>
+        {% if eco_status_rows %}
+        <table class="stat-table">
+            <thead>
+                <tr>
+                    <th>Статус</th>
+                    <th class="text-end">Кол-во</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in eco_status_rows %}
+                <tr>
+                    <td>{{ row.status }}</td>
+                    <td class="text-end fw-semibold">{{ row.count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if eco_amount %}
+        <div class="stat-total-row">
+            Сумма работ: <strong>{{ eco_amount|floatformat:0 }} ₸</strong>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="stat-empty">
+            <i class="bi bi-tools"></i>
+            <span>Нет работ за период</span>
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="stat-card">
+        <h2 class="stat-section-title">Сводка</h2>
+        <table class="stat-table">
+            <tbody>
+                <tr>
+                    <td>Всего арендаторов</td>
+                    <td class="text-end fw-semibold">{{ total_tenants }}</td>
+                </tr>
+                <tr>
+                    <td>Активных сотрудников</td>
+                    <td class="text-end fw-semibold">{{ employees_total }}</td>
+                </tr>
+                <tr>
+                    <td>Сбор платежей (тек. мес.)</td>
+                    <td class="text-end fw-semibold {% if collection_rate >= 80 %}text-success{% else %}text-warning{% endif %}">
+                        {{ collection_rate }}%
+                    </td>
+                </tr>
+                <tr>
+                    <td>Просрочено</td>
+                    <td class="text-end fw-semibold {% if overdue_count > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ overdue_count }} арендаторов
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const payments = JSON.parse('{{ chart_payments_json|escapejs }}');
+
+    const ctx = document.getElementById('paymentChart');
+    if (!ctx || !payments.labels.length) return;
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: payments.labels,
+            datasets: [
+                {
+                    label: 'Начислено',
+                    data: payments.charged,
+                    backgroundColor: 'rgba(99,102,241,0.25)',
+                    borderColor: 'rgba(99,102,241,1)',
+                    borderWidth: 1.5,
+                    borderRadius: 6,
+                },
+                {
+                    label: 'Оплачено',
+                    data: payments.paid,
+                    backgroundColor: 'rgba(34,197,94,0.25)',
+                    borderColor: 'rgba(34,197,94,1)',
+                    borderWidth: 1.5,
+                    borderRadius: 6,
+                },
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('ru-RU')} ₸`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: {
+                        callback: (v) => v.toLocaleString('ru-RU') + ' ₸'
+                    },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                }
+            }
+        }
+    });
+})();
+</script>
 {% endblock %}
