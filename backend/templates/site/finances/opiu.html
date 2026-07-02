@@ -4,124 +4,364 @@
 {% block title %}ОПиУ | metriX BPM{% endblock %}
 
 {% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe55-opiu">
+<style>
+/* ============================================================
+   ОПиУ список — стиль как «Заявки на отпуск» (leaves)
+   ============================================================ */
+.opiu-page {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #25233f;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+/* Верхний блок: заголовок + кнопка (белый) */
+.opiu-page__top {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 22px;
+}
+.opiu-page__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+.opiu-page__title {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: 700;
+    color: #25233f;
+}
+
+/* Полоса фильтров (белая, отдельно) */
+.opiu-page__filters {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: flex-end;   /* всё выравнивается по нижнему краю */
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.opiu-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 0 0 auto;          /* поля не растягиваются */
+}
+.opiu-field__label { font-size: 11px; color: #74728a; font-weight: 500; line-height: 1; }
+
+.opiu-input {
+    height: 36px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: #f5f3fa;
+    color: #25233f;
+    font-size: 13px;
+    font-weight: 500;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.opiu-input:focus { box-shadow: 0 0 0 2px rgba(47,107,237,.14); }
+.opiu-input--year  { width: 90px; }
+.opiu-input--month { width: 72px; }
+
+/* Кнопки */
+.opiu-btn {
+    height: 36px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+    transition: background .15s ease;
+    flex: 0 0 auto;
+}
+.opiu-btn i { font-size: 14px; }
+.opiu-btn--primary { background: #2f6bed; color: #fff; }
+.opiu-btn--primary:hover { background: #2458c7; color: #fff; }
+.opiu-btn--outline { background: #f5f3fa; color: #25233f; }
+.opiu-btn--outline:hover { background: #ece9f4; color: #25233f; }
+.opiu-btn--danger { background: #feecec; color: #ef4444; }
+.opiu-btn--danger:hover { background: #fedada; color: #ef4444; }
+.opiu-btn--icon { width: 36px; padding: 0; }
+
+/* Панель с таблицей */
+.opiu-panel {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 22px;
+}
+.opiu-period-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: #25233f;
+    margin: 0 0 4px;
+}
+.opiu-period-sub {
+    font-size: 12px;
+    color: #74728a;
+    margin: 0 0 18px;
+}
+
+/* Таблица (как leaves-table) */
+.opiu-table-wrap { overflow-x: auto; }
+.opiu-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    font-family: inherit;
+}
+.opiu-table__th {
+    height: 44px;
+    padding: 0 18px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #74728a;
+    border-bottom: 1px solid #eceaf3;
+    white-space: nowrap;
+}
+.opiu-table__th.text-right { text-align: right; }
+.opiu-table__td {
+    height: 48px;
+    padding: 0 18px;
+    border-bottom: 1px solid #f0eef6;
+    vertical-align: middle;
+    color: #25233f;
+}
+.opiu-table__td.text-right { text-align: right; }
+.opiu-table__row:last-child .opiu-table__td { border-bottom: 0; }
+.opiu-table__row:hover { background: #faf9fd; }
+.opiu-table__row--section .opiu-table__td { background: #f7f6fc; }
+.opiu-table__row--section .opiu-table__td strong { font-weight: 700; }
+
+.opiu-amount { font-weight: 600; }
+.opiu-muted  { color: #74728a; }
+.opiu-success { color: #16a34a; font-weight: 600; }
+.opiu-danger  { color: #ef4444; font-weight: 600; }
+
+.opiu-badge {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.opiu-badge--success { background: #e6f7ee; color: #16a34a; }
+.opiu-badge--danger  { background: #feecec; color: #ef4444; }
+
+.opiu-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 48px 20px;
+    color: #74728a;
+}
+.opiu-empty__icon { font-size: 40px; margin-bottom: 12px; color: #c8c7d3; }
+.opiu-empty__title { font-size: 15px; font-weight: 700; color: #25233f; }
+.opiu-empty__text { margin-top: 6px; font-size: 13px; color: #9a98aa; }
+
+/* ── select2 в фильтрах ОПиУ (как в leaves/tasks) ── */
+#opiuPage .select2-container {
+    width: 140px !important;
+    display: block !important;
+}
+#opiuPage .select2-container--default .select2-selection--single,
+#opiuPage .select2-container--bootstrap4 .select2-selection--single {
+    height: 36px !important;
+    min-height: 36px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: #f5f3fa !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+}
+#opiuPage .select2-selection__rendered {
+    height: 36px !important;
+    line-height: 36px !important;
+    padding-left: 14px !important;
+    padding-right: 32px !important;
+    color: #25233f !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+}
+#opiuPage .select2-selection__arrow {
+    height: 36px !important;
+    right: 10px !important;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected],
+.select2-container--bootstrap4 .select2-results__option--highlighted[aria-selected] {
+    background: #2f6bed !important;
+    color: #fff !important;
+}
+.select2-dropdown {
+    border: 0 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 16px 40px rgba(15,23,42,.16) !important;
+    overflow: hidden !important;
+}
+.select2-results__options { padding: 6px !important; }
+.select2-results__option {
+    min-height: 34px !important;
+    padding: 8px 12px !important;
+    border-radius: 10px !important;
+    font-size: 13px !important;
+}
+
+@media (max-width: 900px) {
+    .opiu-page__filters { align-items: stretch; }
+    .opiu-input--year, .opiu-input--month { width: 100%; }
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<section class="fin-page">
+<div class="opiu-page" id="opiuPage">
 
-  <div class="fin-filter-card">
-    <div class="fin-filter-card__header" style="display:flex;align-items:center;justify-content:space-between;">
-      <h1 class="fin-page-title">Отчёт о прибылях и убытках (ОПиУ)</h1>
-      <div style="display:flex;gap:.5rem;">
-        {% if can_edit %}
-        <a href="{% url 'finances:opiu_create' %}" class="fin-btn fin-btn--primary">
-          <i class="bi bi-plus-lg"></i> Добавить отчёт
-        </a>
-        {% if statement %}
-        <a href="{% url 'finances:opiu_edit' statement.pk %}" class="fin-btn fin-btn--light">
-          <i class="bi bi-pencil"></i> Редактировать
-        </a>
-        <form method="POST" action="{% url 'finances:opiu_delete' statement.pk %}" style="display:inline;" onsubmit="return confirm('Удалить отчёт?')">
-          {% csrf_token %}
-          <button type="submit" class="fin-btn fin-btn--danger">
-            <i class="bi bi-trash"></i> Удалить
-          </button>
-        </form>
-        {% endif %}
-        {% endif %}
-      </div>
-    </div>
-
-    <form method="GET" class="fin-filter-form">
-      <div class="fin-field">
-        <label class="fin-label">Период</label>
-        <select name="period_type" class="fin-input">
-          {% for val, label in period_choices %}
-            <option value="{{ val }}" {% if period_type == val %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="fin-field">
-        <label class="fin-label">Год</label>
-        <input type="number" name="year" value="{{ year }}" class="fin-input" style="width:90px">
-      </div>
-      <div class="fin-field">
-        <label class="fin-label">Месяц</label>
-        <input type="number" name="month" value="{{ month }}" min="1" max="12" class="fin-input" style="width:70px">
-      </div>
-      <button type="submit" class="fin-btn fin-btn--primary">Показать</button>
-      <a href="?year={{ prev_year }}&month={{ prev_month }}&period_type={{ period_type }}" class="fin-btn fin-btn--light"><i class="bi bi-chevron-left"></i></a>
-      <a href="?year={{ year }}&month={{ month }}&period_type={{ period_type }}&export=xlsx" class="fin-btn fin-btn--light" style="white-space:nowrap;">
-        <i class="bi bi-download"></i> Excel
-      </a>
-      <a href="?year={{ next_year }}&month={{ next_month }}&period_type={{ period_type }}" class="fin-btn fin-btn--light"><i class="bi bi-chevron-right"></i></a>
-    </form>
-  </div>
-
-  <div class="fin-table-card">
-    <div class="fin-table-head">
-      <div>
-        <div class="fin-table-title">
-          {% if statement %}{{ statement.get_period_label }}{% else %}{{ month }}.{{ year }}{% endif %}
+    <div class="opiu-page__top">
+        <div class="opiu-page__header">
+            <h1 class="opiu-page__title">Отчёт о прибылях и убытках (ОПиУ)</h1>
+            {% if can_edit %}
+            <a href="{% url 'finances:opiu_create' %}" class="opiu-btn opiu-btn--primary">
+                <i class="bi bi-plus-lg"></i> Добавить отчёт
+            </a>
+            {% endif %}
         </div>
-        <div class="fin-table-subtitle">План / Факт / Прогноз / Отклонение</div>
-      </div>
     </div>
 
-    <div class="fin-table-wrap">
-      <table class="fin-table">
-        <thead>
-          <tr>
-            <th>Показатель</th>
-            <th class="text-right">План</th>
-            <th class="text-right">Факт</th>
-            <th class="text-right">Прогноз</th>
-            <th class="text-right">Отклонение</th>
-            <th class="text-right">% отклонения</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in rows %}
-          <tr class="fin-row {% if row.is_margin %}fin-row--info{% else %}fin-row--secondary{% endif %}">
-            <td><strong>{{ row.label }}</strong></td>
-            <td class="text-right fin-amount">
-              {% if row.is_margin %}—{% else %}{{ row.plan|floatformat:0 }} ₸{% endif %}
-            </td>
-            <td class="text-right fin-amount">
-              {% if row.is_margin %}{{ row.fact|floatformat:2 }}%{% else %}{{ row.fact|floatformat:0 }} ₸{% endif %}
-            </td>
-            <td class="text-right fin-muted">
-              {% if row.is_margin %}—{% elif row.forecast is not None %}{{ row.forecast|floatformat:0 }} ₸{% else %}—{% endif %}
-            </td>
-            <td class="text-right">
-              {% if row.is_margin or row.variance is None %}—{% else %}
-                <span class="fin-amount {% if row.variance > 0 %}fin-success{% elif row.variance < 0 %}fin-danger{% else %}fin-muted{% endif %}">
-                  {% if row.variance > 0 %}+{% endif %}{{ row.variance|floatformat:0 }} ₸
-                </span>
-              {% endif %}
-            </td>
-            <td class="text-right">
-              {% if row.variance_pct is not None %}
-                <span class="fin-badge {% if row.variance_pct >= 0 %}fin-badge--success{% else %}fin-badge--danger{% endif %}">
-                  {% if row.variance_pct > 0 %}+{% endif %}{{ row.variance_pct }}%
-                </span>
-              {% else %}—{% endif %}
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6" class="fin-empty-state">
-              <i class="bi bi-graph-up"></i>
-              <strong>Нет данных за выбранный период</strong>
-              <span>Добавьте отчёт ОПиУ в админ-панели</span>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+    <form method="GET" class="opiu-page__filters" id="opiuFilterForm">
+        <div class="opiu-field">
+            <span class="opiu-field__label">Период</span>
+            <select name="period_type" class="opiu-select2">
+                {% for val, label in period_choices %}
+                <option value="{{ val }}" {% if period_type == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
-</section>
+        <div class="opiu-field">
+            <span class="opiu-field__label">Год</span>
+            <input type="number" name="year" value="{{ year }}" class="opiu-input opiu-input--year">
+        </div>
+
+        <div class="opiu-field">
+            <span class="opiu-field__label">Месяц</span>
+            <input type="number" name="month" value="{{ month }}" min="1" max="12" class="opiu-input opiu-input--month">
+        </div>
+
+        <button type="submit" class="opiu-btn opiu-btn--primary">Показать</button>
+
+        <a href="?year={{ prev_year }}&month={{ prev_month }}&period_type={{ period_type }}"
+           class="opiu-btn opiu-btn--outline opiu-btn--icon"><i class="bi bi-chevron-left"></i></a>
+
+        <a href="?year={{ year }}&month={{ month }}&period_type={{ period_type }}&export=xlsx"
+           class="opiu-btn opiu-btn--outline"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+
+        <a href="?year={{ next_year }}&month={{ next_month }}&period_type={{ period_type }}"
+           class="opiu-btn opiu-btn--outline opiu-btn--icon"><i class="bi bi-chevron-right"></i></a>
+
+        {% if can_edit and statement %}
+        <a href="{% url 'finances:opiu_edit' statement.pk %}" class="opiu-btn opiu-btn--outline">
+            <i class="bi bi-pencil"></i> Редактировать
+        </a>
+        {% endif %}
+    </form>
+
+    <div class="opiu-panel">
+
+        <div class="opiu-table-wrap">
+            <table class="opiu-table">
+                <thead>
+                    <tr>
+                        <th class="opiu-table__th">Показатель</th>
+                        <th class="opiu-table__th text-right">План</th>
+                        <th class="opiu-table__th text-right">Факт</th>
+                        <th class="opiu-table__th text-right">Прогноз</th>
+                        <th class="opiu-table__th text-right">Отклонение</th>
+                        <th class="opiu-table__th text-right">% отклонения</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr class="opiu-table__row {% if row.is_margin %}opiu-table__row--section{% endif %}">
+                        <td class="opiu-table__td"><strong>{{ row.label }}</strong></td>
+                        <td class="opiu-table__td text-right opiu-amount">
+                            {% if row.is_margin %}—{% else %}{{ row.plan|floatformat:0 }} ₸{% endif %}
+                        </td>
+                        <td class="opiu-table__td text-right opiu-amount">
+                            {% if row.is_margin %}{{ row.fact|floatformat:2 }}%{% else %}{{ row.fact|floatformat:0 }} ₸{% endif %}
+                        </td>
+                        <td class="opiu-table__td text-right opiu-muted">
+                            {% if row.is_margin %}—{% elif row.forecast is not None %}{{ row.forecast|floatformat:0 }} ₸{% else %}—{% endif %}
+                        </td>
+                        <td class="opiu-table__td text-right">
+                            {% if row.is_margin or row.variance is None %}—{% else %}
+                            <span class="opiu-amount {% if row.variance > 0 %}opiu-success{% elif row.variance < 0 %}opiu-danger{% else %}opiu-muted{% endif %}">
+                                {% if row.variance > 0 %}+{% endif %}{{ row.variance|floatformat:0 }} ₸
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="opiu-table__td text-right">
+                            {% if row.variance_pct is not None %}
+                            <span class="opiu-badge {% if row.variance_pct >= 0 %}opiu-badge--success{% else %}opiu-badge--danger{% endif %}">
+                                {% if row.variance_pct > 0 %}+{% endif %}{{ row.variance_pct }}%
+                            </span>
+                            {% else %}—{% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="opiu-table__td" style="border-bottom:0">
+                            <div class="opiu-empty">
+                                <i class="bi bi-graph-up opiu-empty__icon"></i>
+                                <div class="opiu-empty__title">Нет данных за выбранный период</div>
+                                <div class="opiu-empty__text">Добавьте отчёт ОПиУ через кнопку выше</div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script>
+(function () {
+    if (window.jQuery && jQuery.fn.select2) {
+        jQuery('#opiuPage .opiu-select2').select2({
+            minimumResultsForSearch: Infinity,
+            width: '140px'
+        });
+    }
+})();
+</script>
 {% endblock %}

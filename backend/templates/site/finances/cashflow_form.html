@@ -1,94 +1,173 @@
 {% extends "site/base.html" %}
 {% load static %}
 
-{% block title %}{{ title }} | metriX BPM{% endblock %}
+{% block title %}{{ title }} — metriX BPM{% endblock %}
+
+{% block body_classes %}task-edit-body{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
-<link rel="stylesheet" href="{% static 'site/css/apps/fin-pages.css' %}?v=fp01">
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999" />
+<style>
+  /* select2 стрелка как в task_edit */
+  .select2-container--default .select2-selection--multiple { position: relative; }
+  .select2-container--default .select2-selection--multiple::after {
+      content: "";
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #8d8d99;
+      pointer-events: none;
+  }
+  .task-edit-grid--2 { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 900px) {
+      .task-edit-grid--2 { grid-template-columns: 1fr; }
+  }
+  /* Поле даты с иконкой календаря */
+  .cf-date-wrap { position: relative; }
+  .cf-date-wrap .bi-calendar-event {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #8d8d99;
+      font-size: 14px;
+      pointer-events: none;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<section class="fin-page">
 
-  <div class="fin-filter-card">
-    <div class="fin-filter-card__header" style="display:flex;align-items:center;justify-content:space-between;">
-      <h1 class="fin-page-title">{{ title }}</h1>
-      <a href="{{ back_url }}" class="fin-btn fin-btn--light">
-        <i class="bi bi-arrow-left"></i> Назад
+<div class="task-edit-page">
+
+  <div class="task-edit-card">
+
+    <div class="task-edit-card__header">
+      <h1 class="task-edit-card__title">{{ title }}</h1>
+
+      <a href="{{ back_url }}" class="task-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
       </a>
     </div>
-  </div>
 
-  {% if messages %}
-  <div style="margin-bottom:1rem;">
-    {% for msg in messages %}
-    <div style="padding:.75rem 1rem;border-radius:8px;background:#fee2e2;color:#991b1b;margin-bottom:.5rem;">
-      {{ msg }}
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <div class="fin-table-card">
-    <form method="POST">
+    <form method="POST" class="task-edit-form" id="taskEditForm">
       {% csrf_token %}
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+      <div class="task-edit-card__body">
 
-        <div class="fin-field">
-          <label class="fin-label">Направление</label>
-          {{ form.direction }}
-        </div>
-        <div class="fin-field">
-          <label class="fin-label">Тип деятельности</label>
-          {{ form.flow_type }}
-        </div>
-        <div class="fin-field">
-          <label class="fin-label">Сумма ₸</label>
-          {{ form.amount }}
-        </div>
-        <div class="fin-field">
-          <label class="fin-label">Дата операции</label>
-          {{ form.transaction_date }}
-        </div>
-        <div class="fin-field">
-          <label class="fin-label">Контрагент</label>
-          {{ form.counterparty }}
-        </div>
-        <div class="fin-field">
-          <label class="fin-label">Статья бюджета</label>
-          {{ form.budget_category }}
-        </div>
-        <div class="fin-field">
-          <label class="fin-label">Номер документа</label>
-          {{ form.document_number }}
-        </div>
+        {% if messages %}
+          {% for msg in messages %}
+            <div class="task-edit-field__error" style="margin-bottom:8px">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Операция</h2>
+
+          <div class="task-edit-grid task-edit-grid--2">
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Направление</label>
+              {{ form.direction }}
+            </div>
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Тип деятельности</label>
+              {{ form.flow_type }}
+            </div>
+
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Сумма ₸</label>
+              {{ form.amount }}
+            </div>
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Дата операции</label>
+              <div class="cf-date-wrap">
+                <input type="text"
+                       id="cfDate"
+                       name="{{ form.transaction_date.html_name }}"
+                       value="{{ form.transaction_date.value|default:'' }}"
+                       class="cf-datepicker"
+                       placeholder="дд.мм.гггг"
+                       autocomplete="off">
+                <i class="bi bi-calendar-event"></i>
+              </div>
+            </div>
+
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Контрагент</label>
+              {{ form.counterparty }}
+            </div>
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Статья бюджета</label>
+              {{ form.budget_category }}
+            </div>
+
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Номер документа</label>
+              {{ form.document_number }}
+            </div>
+          </div>
+        </section>
+
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Назначение платежа</h2>
+          <div class="task-edit-field">
+            {{ form.description }}
+          </div>
+        </section>
+
+        {% if form.errors %}
+          <div class="task-edit-field__error">
+            {% for field, errors in form.errors.items %}
+              {% for error in errors %}<div>{{ field }}: {{ error }}</div>{% endfor %}
+            {% endfor %}
+          </div>
+        {% endif %}
 
       </div>
 
-      <div class="fin-field" style="margin-bottom:1.5rem;">
-        <label class="fin-label">Назначение платежа</label>
-        {{ form.description }}
-      </div>
-
-      {% if form.errors %}
-      <div style="padding:.75rem 1rem;border-radius:8px;background:#fee2e2;color:#991b1b;margin-bottom:1rem;">
-        {% for field, errors in form.errors.items %}
-          {% for error in errors %}<div>{{ field }}: {{ error }}</div>{% endfor %}
-        {% endfor %}
-      </div>
-      {% endif %}
-
-      <div style="display:flex;gap:1rem;">
-        <button type="submit" class="fin-btn fin-btn--primary">
-          <i class="bi bi-check-lg"></i> Сохранить
-        </button>
-        <a href="{{ back_url }}" class="fin-btn fin-btn--light">Отмена</a>
+      <div class="task-edit-card__footer">
+        <a href="{{ back_url }}" class="task-edit-btn task-edit-btn--cancel">Отмена</a>
+        <button type="submit" class="task-edit-btn task-edit-btn--save">Сохранить</button>
       </div>
 
     </form>
+
   </div>
 
-</section>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script>
+(function () {
+    if (window.jQuery && jQuery.fn.select2) {
+        jQuery('#taskEditForm select').each(function () {
+            jQuery(this).select2({
+                minimumResultsForSearch: 10,
+                width: '100%',
+                dropdownParent: jQuery('.task-edit-card')
+            });
+        });
+    }
+    // Датапикер как в форме задачи
+    if (window.jQuery && jQuery.fn.datepicker) {
+        jQuery('#cfDate').datepicker({
+            format: 'dd.mm.yyyy',
+            language: 'ru',
+            autoclose: true,
+            todayHighlight: true,
+            weekStart: 1,
+            orientation: 'bottom auto'
+        });
+    }
+})();
+</script>
 {% endblock %}
