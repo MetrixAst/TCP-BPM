@@ -93,7 +93,10 @@
 
     var node;
     while ((node = walker.nextNode())) {
-      var next = translateText(node.nodeValue, map, keysSorted);
+      if (!node._bpmOriginal) {
+        node._bpmOriginal = node.nodeValue;
+      }
+      var next = translateText(node._bpmOriginal, map, keysSorted);
       if (next !== node.nodeValue) {
         node.nodeValue = next;
       }
@@ -101,10 +104,20 @@
 
     root.querySelectorAll('*').forEach(function (el) {
       if (el.hasAttribute('data-i18n-skip')) return;
-      translateAttributes(el, map, keysSorted);
+      ATTRS.forEach(function (attr) {
+        if (!el.hasAttribute(attr)) return;
+        var origAttr = 'data-orig-' + attr;
+        if (!el.hasAttribute(origAttr)) {
+          el.setAttribute(origAttr, el.getAttribute(attr));
+        }
+        var val = el.getAttribute(origAttr);
+        var next = translateText(val, map, keysSorted);
+        if (next !== el.getAttribute(attr)) el.setAttribute(attr, next);
+      });
     });
   }
 
+  window.BPM._walkTextNodes = walkTextNodes;
   window.BPM.applyTranslations = function (lang) {
     lang = lang || currentLang();
     if (lang === 'ru') {
@@ -120,11 +133,8 @@
       return;
     }
 
-    var root = document.getElementById('bpmMain') || document.body;
+    var root = document.body;
     walkTextNodes(root, map, bundle.keysSorted);
-
-    var loginRoot = document.querySelector('.auth-page');
-    if (loginRoot) walkTextNodes(loginRoot, map, bundle.keysSorted);
 
     if (document.title) {
       document.title = translateText(document.title, map, bundle.keysSorted);
@@ -146,12 +156,44 @@
     return fallback !== undefined ? fallback : key;
   };
 
+  function saveOriginals() {
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: function(node) {
+        if (!node.nodeValue || !normalize(node.nodeValue)) return NodeFilter.FILTER_REJECT;
+        if (shouldSkipNode(node)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var node;
+    while ((node = walker.nextNode())) {
+      if (!node._bpmOriginal) {
+        node._bpmOriginal = node.nodeValue;
+      }
+    }
+    document.querySelectorAll('*').forEach(function(el) {
+      ATTRS.forEach(function(attr) {
+        if (!el.hasAttribute(attr)) return;
+        var origAttr = 'data-orig-' + attr;
+        if (!el.hasAttribute(origAttr)) {
+          el.setAttribute(origAttr, el.getAttribute(attr));
+        }
+      });
+    });
+  }
+
   function boot() {
     var lang = currentLang();
     if (lang !== 'ru') {
       document.documentElement.setAttribute('data-i18n-pending', '1');
     }
+    saveOriginals();
     window.BPM.applyTranslations(lang);
+    if (lang !== 'ru') {
+      setTimeout(function() {
+        saveOriginals();
+        window.BPM.applyTranslations(lang);
+      }, 300);
+    }
   }
 
   if (document.readyState === 'loading') {
@@ -159,4 +201,11 @@
   } else {
     boot();
   }
+
+  window.BPM.switchLang = function (lang) {
+    document.cookie = 'bpm_lang=' + lang + ';path=/;max-age=' + (60*60*24*365) + ';samesite=Lax';
+    var url = new URL(window.location.href);
+    url.searchParams.delete('lang');
+    window.location.href = url.toString();
+  };
 })(window);

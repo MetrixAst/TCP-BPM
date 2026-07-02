@@ -85,7 +85,28 @@ def main():
     by_text_kk = {k: v['kk'] for k, v in by_text.items()}
     by_text_en = {k: v['en'] for k, v in by_text.items()}
 
-    # Сортировка по длине ключа (длинные фразы первыми — меньше ложных замен)
+    for entry in by_text.values():
+        ru_val = entry['ru']
+        kk_val = entry.get('kk', ru_val)
+        en_val = entry.get('en', ru_val)
+
+        if kk_val and kk_val != ru_val:
+            kk_key = _norm(kk_val)
+            if kk_key not in by_text_en:
+                by_text_en[kk_key] = en_val
+            if kk_key not in by_text_kk:
+                by_text_kk[kk_key] = kk_val  
+
+        if en_val and en_val != ru_val:
+            en_key = _norm(en_val)
+            if en_key not in by_text_kk:
+                by_text_kk[en_key] = kk_val
+            if en_key not in by_text_en:
+                by_text_en[en_key] = en_val  
+
+    all_keys = set(by_text.keys()) | set(by_text_kk.keys()) | set(by_text_en.keys())
+    keys_sorted = sorted(all_keys, key=len, reverse=True)
+
     keys_sorted = sorted(by_text.keys(), key=len, reverse=True)
 
     payload = {

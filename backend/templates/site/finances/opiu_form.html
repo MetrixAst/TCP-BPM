@@ -1,0 +1,141 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe55-opiu">
+{% endblock %}
+
+{% block content %}
+<section class="fin-page">
+
+  <div class="fin-filter-card">
+    <div class="fin-filter-card__header" style="display:flex;align-items:center;justify-content:space-between;">
+      <h1 class="fin-page-title">{{ title }}</h1>
+      <a href="{{ back_url }}" class="fin-btn fin-btn--light">
+        <i class="bi bi-arrow-left"></i> Назад
+      </a>
+    </div>
+  </div>
+
+  {% if messages %}
+  <div style="margin-bottom:1rem;">
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }}" style="padding:.75rem 1rem;border-radius:8px;background:#fee2e2;color:#991b1b;margin-bottom:.5rem;">
+      {{ msg }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="fin-table-card">
+    <form method="POST">
+      {% csrf_token %}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+
+        <div class="fin-field">
+          <label class="fin-label">Тип периода</label>
+          {{ form.period_type }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Год</label>
+          {{ form.year }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Месяц (1-12)</label>
+          {{ form.month }}
+        </div>
+
+      </div>
+
+      <hr style="border:none;border-top:1px solid #e8ebf2;margin:1.5rem 0;">
+
+      <h3 style="font-size:.875rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem;">Выручка</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+        <div class="fin-field">
+          <label class="fin-label">План ₸</label>
+          {{ form.revenue_plan }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Факт ₸</label>
+          {{ form.revenue_fact }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Прогноз ₸</label>
+          {{ form.revenue_forecast }}
+        </div>
+      </div>
+
+      <h3 style="font-size:.875rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem;">EBITDA</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+        <div class="fin-field">
+          <label class="fin-label">План ₸</label>
+          {{ form.ebitda_plan }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Факт ₸</label>
+          {{ form.ebitda_fact }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Прогноз ₸</label>
+          {{ form.ebitda_forecast }}
+        </div>
+      </div>
+
+      <h3 style="font-size:.875rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem;">Операционная прибыль</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+        <div class="fin-field">
+          <label class="fin-label">План ₸</label>
+          {{ form.operating_profit_plan }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Факт ₸</label>
+          {{ form.operating_profit_fact }}
+        </div>
+      </div>
+
+      <h3 style="font-size:.875rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem;">Чистая прибыль</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+        <div class="fin-field">
+          <label class="fin-label">План ₸</label>
+          {{ form.net_profit_plan }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Факт ₸</label>
+          {{ form.net_profit_fact }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Прогноз ₸</label>
+          {{ form.net_profit_forecast }}
+        </div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid #e8ebf2;margin:1.5rem 0;">
+
+      <div class="fin-field" style="margin-bottom:1.5rem;">
+        <label class="fin-label">Примечание</label>
+        {{ form.note }}
+      </div>
+
+      {% if form.errors %}
+      <div style="padding:.75rem 1rem;border-radius:8px;background:#fee2e2;color:#991b1b;margin-bottom:1rem;">
+        {% for field, errors in form.errors.items %}
+          {% for error in errors %}<div>{{ field }}: {{ error }}</div>{% endfor %}
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div style="display:flex;gap:1rem;">
+        <button type="submit" class="fin-btn fin-btn--primary">
+          <i class="bi bi-check-lg"></i> Сохранить
+        </button>
+        <a href="{{ back_url }}" class="fin-btn fin-btn--light">Отмена</a>
+      </div>
+
+    </form>
+  </div>
+
+</section>
+{% endblock %}

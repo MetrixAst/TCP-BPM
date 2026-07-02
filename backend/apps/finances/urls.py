@@ -58,4 +58,11 @@ urlpatterns = [
     path('filters/', views.get_finance_filters, name='get_finance_filters'),
 
     path('dashboard/balances/', views.dashboard_balances, name='dashboard_balances'),
+
+    path('opiu/create/', views.financial_statement_create, name='opiu_create'),
+    path('opiu/<int:pk>/edit/', views.financial_statement_edit, name='opiu_edit'),
+    path('opiu/<int:pk>/delete/', views.financial_statement_delete, name='opiu_delete'),
+    path('cashflow/create/', views.cashflow_create, name='cashflow_create'),
+    path('cashflow/<int:pk>/edit/', views.cashflow_edit, name='cashflow_edit'),
+    path('cashflow/<int:pk>/delete/', views.cashflow_delete, name='cashflow_delete'),
 ]

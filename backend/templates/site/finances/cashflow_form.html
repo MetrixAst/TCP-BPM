@@ -1,0 +1,94 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
+<link rel="stylesheet" href="{% static 'site/css/apps/fin-pages.css' %}?v=fp01">
+{% endblock %}
+
+{% block content %}
+<section class="fin-page">
+
+  <div class="fin-filter-card">
+    <div class="fin-filter-card__header" style="display:flex;align-items:center;justify-content:space-between;">
+      <h1 class="fin-page-title">{{ title }}</h1>
+      <a href="{{ back_url }}" class="fin-btn fin-btn--light">
+        <i class="bi bi-arrow-left"></i> Назад
+      </a>
+    </div>
+  </div>
+
+  {% if messages %}
+  <div style="margin-bottom:1rem;">
+    {% for msg in messages %}
+    <div style="padding:.75rem 1rem;border-radius:8px;background:#fee2e2;color:#991b1b;margin-bottom:.5rem;">
+      {{ msg }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="fin-table-card">
+    <form method="POST">
+      {% csrf_token %}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+
+        <div class="fin-field">
+          <label class="fin-label">Направление</label>
+          {{ form.direction }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Тип деятельности</label>
+          {{ form.flow_type }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Сумма ₸</label>
+          {{ form.amount }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Дата операции</label>
+          {{ form.transaction_date }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Контрагент</label>
+          {{ form.counterparty }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Статья бюджета</label>
+          {{ form.budget_category }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Номер документа</label>
+          {{ form.document_number }}
+        </div>
+
+      </div>
+
+      <div class="fin-field" style="margin-bottom:1.5rem;">
+        <label class="fin-label">Назначение платежа</label>
+        {{ form.description }}
+      </div>
+
+      {% if form.errors %}
+      <div style="padding:.75rem 1rem;border-radius:8px;background:#fee2e2;color:#991b1b;margin-bottom:1rem;">
+        {% for field, errors in form.errors.items %}
+          {% for error in errors %}<div>{{ field }}: {{ error }}</div>{% endfor %}
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div style="display:flex;gap:1rem;">
+        <button type="submit" class="fin-btn fin-btn--primary">
+          <i class="bi bi-check-lg"></i> Сохранить
+        </button>
+        <a href="{{ back_url }}" class="fin-btn fin-btn--light">Отмена</a>
+      </div>
+
+    </form>
+  </div>
+
+</section>
+{% endblock %}

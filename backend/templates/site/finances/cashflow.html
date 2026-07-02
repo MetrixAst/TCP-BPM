@@ -12,11 +12,16 @@
 {% block content %}
 <section class="fin-page fin-page--cashflow">
 
-  <header class="fin-page-hero">
+  <header class="fin-page-hero" style="display:flex;align-items:center;justify-content:space-between;">
     <div>
       <h1 class="fin-page-hero__title">Реестр ДДС</h1>
       <p class="fin-page-hero__sub">Движение денежных средств по операционной, инвестиционной и финансовой деятельности</p>
     </div>
+    {% if can_edit %}
+    <a href="{% url 'finances:cashflow_create' %}" class="fin-btn fin-btn--primary">
+      <i class="bi bi-plus-lg"></i> Добавить запись
+    </a>
+    {% endif %}
   </header>
 
   <div class="fin-filter-card">
@@ -105,6 +110,7 @@
             <th>Тип</th>
             <th>Статья</th>
             <th>Документ</th>
+            {% if can_edit %}<th></th>{% endif %}
           </tr>
         </thead>
         <tbody>
@@ -135,10 +141,23 @@
               {% if rec.budget_category %}{{ rec.budget_category.name }}{% else %}—{% endif %}
             </td>
             <td class="fin-muted">{{ rec.document_number|default:"—" }}</td>
+            {% if can_edit %}
+            <td style="white-space:nowrap;">
+              <a href="{% url 'finances:cashflow_edit' rec.pk %}" class="fin-btn fin-btn--light fin-btn--sm">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="POST" action="{% url 'finances:cashflow_delete' rec.pk %}" style="display:inline;" onsubmit="return confirm('Удалить запись?')">
+                {% csrf_token %}
+                <button type="submit" class="fin-btn fin-btn--danger fin-btn--sm">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </td>
+            {% endif %}
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6">
+            <td colspan="{% if can_edit %}7{% else %}6{% endif %}">
               <div class="fin-empty-state">
                 <i class="bi bi-cash-stack"></i>
                 <strong>Операций не найдено</strong>

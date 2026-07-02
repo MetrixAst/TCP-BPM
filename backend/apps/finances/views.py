@@ -845,6 +845,9 @@ def financial_statement(request):
         'next_year':   next_year,
         'next_month':  next_month,
     }
+    can_edit, _ = _get_budget_access(request.user)
+    context['can_edit'] = can_edit
+
     if request.GET.get('export') == 'xlsx':
         from .services.excel import export_financial_statement
         export_qs = FinancialStatement.objects.filter(period_type=period_type, year=year)
@@ -895,6 +898,7 @@ def cashflow_register(request):
         request.user,
     )[:200]
 
+    can_edit, _ = _get_budget_access(request.user)
     context = _finance_filter_context({
         'records':        records,
         'date_from':      date_from,
@@ -908,6 +912,7 @@ def cashflow_register(request):
         'total_inflow':   total_inflow,
         'total_outflow':  total_outflow,
         'net_flow':       total_inflow - total_outflow,
+        'can_edit':       can_edit,
     })
     return render(request, 'site/finances/cashflow.html', context)
 
@@ -1701,3 +1706,218 @@ def scenario_detail_json(request, pk):
         'risk_level': scenario.risk_level,
         'projected_cashflow': scenario.projected_cashflow,
     })
+
+    # ── UAT-05: Пользовательский ввод ОПиУ и ДДС ─────────────────────────────────
+
+@need_permission(PermissionEnums.FINANCE_REPORTS)
+def financial_statement_create(request):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1><p>Создание ОПиУ доступно только CFO, Owner и Administrator.</p>')
+
+    today = date.today()
+
+    class FinancialStatementForm(django_forms.ModelForm):
+        class Meta:
+            model = FinancialStatement
+            fields = [
+                'period_type', 'year', 'month', 'quarter',
+                'revenue_plan', 'revenue_fact', 'revenue_forecast',
+                'ebitda_plan', 'ebitda_fact', 'ebitda_forecast',
+                'operating_profit_plan', 'operating_profit_fact',
+                'net_profit_plan', 'net_profit_fact', 'net_profit_forecast',
+                'note',
+            ]
+            widgets = {
+                'period_type': django_forms.Select(attrs={'class': 'fin-input'}),
+                'year': django_forms.NumberInput(attrs={'class': 'fin-input', 'style': 'width:90px'}),
+                'month': django_forms.NumberInput(attrs={'class': 'fin-input', 'min': 1, 'max': 12, 'style': 'width:70px'}),
+                'quarter': django_forms.NumberInput(attrs={'class': 'fin-input', 'min': 1, 'max': 4, 'style': 'width:70px'}),
+                'revenue_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'revenue_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'revenue_forecast': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'ebitda_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'ebitda_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'ebitda_forecast': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'operating_profit_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'operating_profit_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'net_profit_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'net_profit_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'net_profit_forecast': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'note': django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 3}),
+            }
+
+    initial = {
+        'year': today.year,
+        'month': today.month,
+        'period_type': FinancialStatement.Period.MONTHLY,
+    }
+
+    form = FinancialStatementForm(request.POST or None, initial=initial)
+    if request.method == 'POST' and form.is_valid():
+        try:
+            statement = form.save()
+            messages.success(request, f'Отчёт ОПиУ за {statement.get_period_label()} создан.')
+            return redirect('finances:opiu')
+        except Exception as e:
+            messages.error(request, f'Ошибка: {e}')
+
+    context = {
+        'form': form,
+        'title': 'Новый отчёт ОПиУ',
+        'back_url': '/finances/opiu/',
+    }
+    return render(request, 'site/finances/opiu_form.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_REPORTS)
+def financial_statement_edit(request, pk):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1><p>Редактирование ОПиУ доступно только CFO, Owner и Administrator.</p>')
+
+    statement = get_object_or_404(FinancialStatement, pk=pk)
+
+    class FinancialStatementForm(django_forms.ModelForm):
+        class Meta:
+            model = FinancialStatement
+            fields = [
+                'period_type', 'year', 'month', 'quarter',
+                'revenue_plan', 'revenue_fact', 'revenue_forecast',
+                'ebitda_plan', 'ebitda_fact', 'ebitda_forecast',
+                'operating_profit_plan', 'operating_profit_fact',
+                'net_profit_plan', 'net_profit_fact', 'net_profit_forecast',
+                'note',
+            ]
+            widgets = {
+                'period_type': django_forms.Select(attrs={'class': 'fin-input'}),
+                'year': django_forms.NumberInput(attrs={'class': 'fin-input', 'style': 'width:90px'}),
+                'month': django_forms.NumberInput(attrs={'class': 'fin-input', 'min': 1, 'max': 12, 'style': 'width:70px'}),
+                'quarter': django_forms.NumberInput(attrs={'class': 'fin-input', 'min': 1, 'max': 4, 'style': 'width:70px'}),
+                'revenue_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'revenue_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'revenue_forecast': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'ebitda_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'ebitda_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'ebitda_forecast': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'operating_profit_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'operating_profit_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'net_profit_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'net_profit_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'net_profit_forecast': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'note': django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 3}),
+            }
+
+    form = FinancialStatementForm(request.POST or None, instance=statement)
+    if request.method == 'POST' and form.is_valid():
+        try:
+            form.save()
+            messages.success(request, 'Отчёт ОПиУ обновлён.')
+            return redirect('finances:opiu')
+        except Exception as e:
+            messages.error(request, f'Ошибка: {e}')
+
+    context = {
+        'form': form,
+        'statement': statement,
+        'title': f'Редактировать ОПиУ — {statement.get_period_label()}',
+        'back_url': '/finances/opiu/',
+    }
+    return render(request, 'site/finances/opiu_form.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_REPORTS)
+def cashflow_create(request):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1><p>Создание записи ДДС доступно только CFO, Owner и Administrator.</p>')
+
+    from onec.models import Counterparty
+
+    class CashFlowForm(django_forms.ModelForm):
+        class Meta:
+            model = CashFlowRecord
+            fields = [
+                'direction', 'flow_type', 'amount', 'transaction_date',
+                'description', 'document_number', 'counterparty', 'budget_category',
+            ]
+            widgets = {
+                'direction': django_forms.Select(attrs={'class': 'fin-input'}),
+                'flow_type': django_forms.Select(attrs={'class': 'fin-input'}),
+                'amount': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01', 'min': '0'}),
+                'transaction_date': django_forms.DateInput(attrs={'class': 'fin-input', 'type': 'date'}),
+                'description': django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 2}),
+                'document_number': django_forms.TextInput(attrs={'class': 'fin-input'}),
+                'counterparty': django_forms.Select(attrs={'class': 'fin-input'}),
+                'budget_category': django_forms.Select(attrs={'class': 'fin-input'}),
+            }
+
+    initial = {'transaction_date': date.today()}
+    form = CashFlowForm(request.POST or None, initial=initial)
+    if request.method == 'POST' and form.is_valid():
+        record = form.save()
+        messages.success(request, f'Запись ДДС от {record.transaction_date} добавлена.')
+        return redirect('finances:cashflow')
+
+    context = {
+        'form': form,
+        'title': 'Новая запись ДДС',
+        'back_url': '/finances/cashflow/',
+    }
+    return render(request, 'site/finances/cashflow_form.html', context)
+
+@need_permission(PermissionEnums.FINANCE_REPORTS)
+def financial_statement_delete(request, pk):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1>')
+    statement = get_object_or_404(FinancialStatement, pk=pk)
+    if request.method == 'POST':
+        statement.delete()
+        messages.success(request, 'Отчёт ОПиУ удалён.')
+    return redirect('finances:opiu')
+
+
+@need_permission(PermissionEnums.FINANCE_REPORTS)
+def cashflow_edit(request, pk):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1>')
+    record = get_object_or_404(CashFlowRecord, pk=pk)
+
+    class CashFlowForm(django_forms.ModelForm):
+        class Meta:
+            model = CashFlowRecord
+            fields = ['direction', 'flow_type', 'amount', 'transaction_date',
+                      'description', 'document_number', 'counterparty', 'budget_category']
+            widgets = {
+                'direction': django_forms.Select(attrs={'class': 'fin-input'}),
+                'flow_type': django_forms.Select(attrs={'class': 'fin-input'}),
+                'amount': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'transaction_date': django_forms.DateInput(attrs={'class': 'fin-input', 'type': 'date'}),
+                'description': django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 2}),
+                'document_number': django_forms.TextInput(attrs={'class': 'fin-input'}),
+                'counterparty': django_forms.Select(attrs={'class': 'fin-input'}),
+                'budget_category': django_forms.Select(attrs={'class': 'fin-input'}),
+            }
+
+    form = CashFlowForm(request.POST or None, instance=record)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Запись ДДС обновлена.')
+        return redirect('finances:cashflow')
+
+    context = {'form': form, 'title': 'Редактировать запись ДДС', 'back_url': '/finances/cashflow/'}
+    return render(request, 'site/finances/cashflow_form.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_REPORTS)
+def cashflow_delete(request, pk):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1>')
+    record = get_object_or_404(CashFlowRecord, pk=pk)
+    if request.method == 'POST':
+        record.delete()
+        messages.success(request, 'Запись ДДС удалена.')
+    return redirect('finances:cashflow')

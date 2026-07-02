@@ -11,8 +11,26 @@
 <section class="fin-page">
 
   <div class="fin-filter-card">
-    <div class="fin-filter-card__header">
+    <div class="fin-filter-card__header" style="display:flex;align-items:center;justify-content:space-between;">
       <h1 class="fin-page-title">Отчёт о прибылях и убытках (ОПиУ)</h1>
+      <div style="display:flex;gap:.5rem;">
+        {% if can_edit %}
+        <a href="{% url 'finances:opiu_create' %}" class="fin-btn fin-btn--primary">
+          <i class="bi bi-plus-lg"></i> Добавить отчёт
+        </a>
+        {% if statement %}
+        <a href="{% url 'finances:opiu_edit' statement.pk %}" class="fin-btn fin-btn--light">
+          <i class="bi bi-pencil"></i> Редактировать
+        </a>
+        <form method="POST" action="{% url 'finances:opiu_delete' statement.pk %}" style="display:inline;" onsubmit="return confirm('Удалить отчёт?')">
+          {% csrf_token %}
+          <button type="submit" class="fin-btn fin-btn--danger">
+            <i class="bi bi-trash"></i> Удалить
+          </button>
+        </form>
+        {% endif %}
+        {% endif %}
+      </div>
     </div>
 
     <form method="GET" class="fin-filter-form">
