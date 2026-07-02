@@ -109,7 +109,7 @@
     "attendance_my": "Менің қатысуым",
     "onec": "1С",
     "onec_counterparties": "Контрагенттер",
-    "ecopark": "Эксплуатация",
+    "ecopark": "Пайдалану",
     "requistions": "Жалға алушылар өтінімдері",
     "requistions_short": "Өтінімдер",
     "tickets": "Жалға алушылар өтінімдері",
@@ -209,7 +209,8 @@
     "records_plural": "жазба|жазба|жазба",
     "categories_plural": "санат|санат|санат",
     "first_500": "(алғашқы 500 көрсетілген)",
-    "models_plural": "модель|модель|модель"
+    "models_plural": "модель|модель|модель",
+    "operations": "Операциялар"
   },
   "dashboard": {
     "welcome": "Қош келдіңіз",

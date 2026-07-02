@@ -210,7 +210,8 @@
     "records_plural": "record|records",
     "categories_plural": "category|categories",
     "first_500": "(first 500 shown)",
-    "models_plural": "model|models"
+    "models_plural": "model|models",
+    "operations": "Operations"
   },
   "dashboard": {
     "welcome": "Welcome",
