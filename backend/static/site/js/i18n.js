@@ -1,6 +1,6 @@
 /**
  * Клиентский переводчик BPM: шаблоны остаются на русском,
- * при lang=kk|en подставляет текст из window.BPM_TRANSLATIONS (i18n-bundle.js).
+ * при lang=kk|en подставляет текст из window.BPM_TRANSLATIONS.
  */
 (function (window) {
   'use strict';
@@ -24,7 +24,7 @@
   }
 
   function normalize(text) {
-    return text.replace(/\s+/g, ' ').trim();
+    return String(text || '').replace(/\s+/g, ' ').trim();
   }
 
   function getMap(lang) {
@@ -35,35 +35,22 @@
     return null;
   }
 
-  function translateText(text, map, keysSorted) {
+  function translateText(text, map) {
+    if (!map) return text;
     var norm = normalize(text);
-    if (!norm || !map) return text;
-
-    if (map[norm] !== undefined) {
-      return preserveEdges(text, norm, map[norm]);
-    }
-
-    if (keysSorted) {
-      for (var i = 0; i < keysSorted.length; i++) {
-        var key = keysSorted[i];
-        if (key.length < 2) continue;
-        if (norm.indexOf(key) !== -1 && map[key]) {
-          return text.split(key).join(map[key]);
-        }
-      }
+    if (!norm) return text;
+    if (Object.prototype.hasOwnProperty.call(map, norm)) {
+      var lead = String(text).match(/^\s*/)[0];
+      var trail = String(text).match(/\s*$/)[0];
+      return lead + map[norm] + trail;
     }
     return text;
-  }
-
-  function preserveEdges(original, norm, translated) {
-    var lead = original.match(/^\s*/)[0];
-    var trail = original.match(/\s*$/)[0];
-    return lead + translated + trail;
   }
 
   function shouldSkipNode(node) {
     var p = node.parentElement;
     while (p) {
+      if (p.hasAttribute && p.hasAttribute('data-i18n-skip')) return true;
       if (p.classList && p.classList.contains('bpm-no-translate')) return true;
       if (SKIP_TAGS[p.tagName]) return true;
       p = p.parentElement;
@@ -71,21 +58,20 @@
     return false;
   }
 
-  function translateAttributes(el, map, keysSorted) {
-    ATTRS.forEach(function (attr) {
-      if (!el.hasAttribute(attr)) return;
-      var val = el.getAttribute(attr);
-      var next = translateText(val, map, keysSorted);
-      if (next !== val) el.setAttribute(attr, next);
-    });
+  function shouldSkipElement(el) {
+    if (!el) return true;
+    if (el.hasAttribute && el.hasAttribute('data-i18n-skip')) return true;
+    if (el.classList && el.classList.contains('bpm-no-translate')) return true;
+    if (SKIP_TAGS[el.tagName]) return true;
+    return false;
   }
 
-  function walkTextNodes(root, map, keysSorted) {
+  function walkRoot(root, map) {
+    if (!root || !map) return;
+
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: function (node) {
-        if (!node.nodeValue || !normalize(node.nodeValue)) {
-          return NodeFilter.FILTER_REJECT;
-        }
+        if (!node.nodeValue || !normalize(node.nodeValue)) return NodeFilter.FILTER_REJECT;
         if (shouldSkipNode(node)) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
@@ -96,14 +82,15 @@
       if (!node._bpmOriginal) {
         node._bpmOriginal = node.nodeValue;
       }
-      var next = translateText(node._bpmOriginal, map, keysSorted);
+      var next = translateText(node._bpmOriginal, map);
       if (next !== node.nodeValue) {
         node.nodeValue = next;
       }
     }
 
     root.querySelectorAll('*').forEach(function (el) {
-      if (el.hasAttribute('data-i18n-skip')) return;
+      if (shouldSkipElement(el)) return;
+
       ATTRS.forEach(function (attr) {
         if (!el.hasAttribute(attr)) return;
         var origAttr = 'data-orig-' + attr;
@@ -111,38 +98,79 @@
           el.setAttribute(origAttr, el.getAttribute(attr));
         }
         var val = el.getAttribute(origAttr);
-        var next = translateText(val, map, keysSorted);
+        var next = translateText(val, map);
         if (next !== el.getAttribute(attr)) el.setAttribute(attr, next);
       });
+
+      if (el.tagName === 'OPTION') {
+        if (!el._bpmOriginalText) {
+          el._bpmOriginalText = el.textContent;
+        }
+        var next = translateText(el._bpmOriginalText, map);
+        if (next !== el.textContent) {
+          el.textContent = next;
+        }
+      }
     });
   }
 
-  window.BPM._walkTextNodes = walkTextNodes;
+  function refreshSelect2Placeholders(map) {
+    if (!map) return;
+    if (typeof window.jQuery === 'undefined' || !window.jQuery.fn.select2) return;
+    var $ = window.jQuery;
+    $('select.select2-hidden-accessible').each(function () {
+      var $sel = $(this);
+      var $ph = $sel.next('.select2-container').find('.select2-selection__placeholder');
+      if (!$ph.length) return;
+      var current = normalize($ph.text());
+      if (!current || !map[current]) return;
+      $ph.text(map[current]);
+    });
+  }
+
   window.BPM.applyTranslations = function (lang) {
     lang = lang || currentLang();
+
     if (lang === 'ru') {
+      document.documentElement.lang = 'ru';
       document.documentElement.classList.add('i18n-ready');
       document.documentElement.removeAttribute('data-i18n-pending');
       return;
     }
 
-    var bundle = window.BPM_TRANSLATIONS;
     var map = getMap(lang);
     if (!map) {
       document.documentElement.classList.add('i18n-ready');
+      document.documentElement.removeAttribute('data-i18n-pending');
       return;
     }
 
-    var root = document.body;
-    walkTextNodes(root, map, bundle.keysSorted);
+    var roots = [
+      document.getElementById('bpmSidebar'),
+      document.getElementById('bpmMain'),
+      document.querySelector('.bpm-topbar'),
+      document.querySelector('.auth-page'),
+    ].filter(Boolean);
+
+    if (!roots.length) {
+      roots = [document.body];
+    }
+
+    roots.forEach(function (root) {
+      walkRoot(root, map);
+    });
 
     if (document.title) {
-      document.title = translateText(document.title, map, bundle.keysSorted);
+      document.title = translateText(document.title, map);
     }
 
     document.documentElement.lang = lang;
     document.documentElement.classList.add('i18n-ready');
     document.documentElement.removeAttribute('data-i18n-pending');
+
+    setTimeout(function () {
+      refreshSelect2Placeholders(map);
+    }, 150);
   };
 
   window.BPM.t = function (key, fallback) {
@@ -156,41 +184,14 @@
     return fallback !== undefined ? fallback : key;
   };
 
-  function saveOriginals() {
-    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-      acceptNode: function(node) {
-        if (!node.nodeValue || !normalize(node.nodeValue)) return NodeFilter.FILTER_REJECT;
-        if (shouldSkipNode(node)) return NodeFilter.FILTER_REJECT;
-        return NodeFilter.FILTER_ACCEPT;
-      }
-    });
-    var node;
-    while ((node = walker.nextNode())) {
-      if (!node._bpmOriginal) {
-        node._bpmOriginal = node.nodeValue;
-      }
-    }
-    document.querySelectorAll('*').forEach(function(el) {
-      ATTRS.forEach(function(attr) {
-        if (!el.hasAttribute(attr)) return;
-        var origAttr = 'data-orig-' + attr;
-        if (!el.hasAttribute(origAttr)) {
-          el.setAttribute(origAttr, el.getAttribute(attr));
-        }
-      });
-    });
-  }
-
   function boot() {
     var lang = currentLang();
     if (lang !== 'ru') {
       document.documentElement.setAttribute('data-i18n-pending', '1');
     }
-    saveOriginals();
     window.BPM.applyTranslations(lang);
     if (lang !== 'ru') {
-      setTimeout(function() {
-        saveOriginals();
+      setTimeout(function () {
         window.BPM.applyTranslations(lang);
       }, 300);
     }
@@ -208,4 +209,5 @@
     url.searchParams.delete('lang');
     window.location.href = url.toString();
   };
+
 })(window);
