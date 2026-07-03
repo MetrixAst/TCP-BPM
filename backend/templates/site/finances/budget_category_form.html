@@ -1,0 +1,66 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
+{% endblock %}
+
+{% block content %}
+<section class="fin-page">
+  <div class="fin-filter-card">
+    <div class="fin-filter-card__header" style="display:flex;align-items:center;justify-content:space-between;">
+      <h1 class="fin-page-title">{{ title }}</h1>
+      <a href="{{ back_url }}" class="fin-btn fin-btn--light">
+        <i class="bi bi-arrow-left"></i> Назад
+      </a>
+    </div>
+  </div>
+
+  <div class="fin-table-card">
+    <form method="POST">
+      {% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+        <div class="fin-field">
+          <label class="fin-label">Название</label>
+          {{ form.name }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Тип</label>
+          {{ form.category_type }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Родительская категория</label>
+          {{ form.parent }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Код</label>
+          {{ form.code }}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">Порядок</label>
+          {{ form.order }}
+        </div>
+      </div>
+      <div class="fin-field" style="margin-bottom:1.5rem;">
+        <label class="fin-label">Описание</label>
+        {{ form.description }}
+      </div>
+      {% if form.errors %}
+      <div style="padding:.75rem;border-radius:8px;background:#fee2e2;color:#991b1b;margin-bottom:1rem;">
+        {% for field, errors in form.errors.items %}
+          {% for error in errors %}<div>{{ error }}</div>{% endfor %}
+        {% endfor %}
+      </div>
+      {% endif %}
+      <div style="display:flex;gap:1rem;">
+        <button type="submit" class="fin-btn fin-btn--primary">
+          <i class="bi bi-check-lg"></i> Сохранить
+        </button>
+        <a href="{{ back_url }}" class="fin-btn fin-btn--light">Отмена</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

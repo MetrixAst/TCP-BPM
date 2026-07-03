@@ -1921,3 +1921,78 @@ def cashflow_delete(request, pk):
         record.delete()
         messages.success(request, 'Запись ДДС удалена.')
     return redirect('finances:cashflow')
+
+@need_permission(PermissionEnums.FINANCE_BUDGET)
+def budget_category_create(request):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1>')
+
+    class BudgetCategoryForm(django_forms.ModelForm):
+        class Meta:
+            model = BudgetCategory
+            fields = ['name', 'category_type', 'parent', 'code', 'order', 'description']
+            widgets = {
+                'name': django_forms.TextInput(attrs={'class': 'fin-input'}),
+                'category_type': django_forms.Select(attrs={'class': 'fin-input'}),
+                'parent': django_forms.Select(attrs={'class': 'fin-input'}),
+                'code': django_forms.TextInput(attrs={'class': 'fin-input'}),
+                'order': django_forms.NumberInput(attrs={'class': 'fin-input'}),
+                'description': django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 2}),
+            }
+
+    form = BudgetCategoryForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Статья бюджета создана.')
+        return redirect('finances:budget_list')
+
+    context = {'form': form, 'title': 'Новая статья бюджета', 'back_url': '/finances/budget-plan/'}
+    return render(request, 'site/finances/budget_category_form.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_BUDGET)
+def budget_category_edit(request, pk):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1>')
+
+    category = get_object_or_404(BudgetCategory, pk=pk)
+
+    class BudgetCategoryForm(django_forms.ModelForm):
+        class Meta:
+            model = BudgetCategory
+            fields = ['name', 'category_type', 'parent', 'code', 'order', 'description']
+            widgets = {
+                'name': django_forms.TextInput(attrs={'class': 'fin-input'}),
+                'category_type': django_forms.Select(attrs={'class': 'fin-input'}),
+                'parent': django_forms.Select(attrs={'class': 'fin-input'}),
+                'code': django_forms.TextInput(attrs={'class': 'fin-input'}),
+                'order': django_forms.NumberInput(attrs={'class': 'fin-input'}),
+                'description': django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 2}),
+            }
+
+    form = BudgetCategoryForm(request.POST or None, instance=category)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Статья бюджета обновлена.')
+        return redirect('finances:budget_list')
+
+    context = {'form': form, 'title': f'Редактировать: {category.name}', 'back_url': '/finances/budget-plan/'}
+    return render(request, 'site/finances/budget_category_form.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_BUDGET)
+def budget_category_delete(request, pk):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1>')
+
+    category = get_object_or_404(BudgetCategory, pk=pk)
+    if request.method == 'POST':
+        try:
+            category.delete()
+            messages.success(request, 'Статья удалена.')
+        except Exception as e:
+            messages.error(request, f'Нельзя удалить: {e}')
+    return redirect('finances:budget_list')
