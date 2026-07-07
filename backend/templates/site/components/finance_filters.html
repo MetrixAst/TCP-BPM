@@ -1,5 +1,280 @@
 {% load static %}
 {# Глобальные финансовые фильтры (include: site/components/finance_filters.html). Контекст: finance_filter_tenants #}
+<style>
+/* ============================================================
+   Глобальные фин-фильтры — стиль проекта (ОПиУ/ДДС/leaves)
+   Все правила скопированы под .fin-global-filter, чтобы не задеть
+   fin-custom-select / fin-input / fin-btn на других страницах.
+   ============================================================ */
+
+/* КРИТИЧНО: снимаем обрезание — иначе выпадающее меню «Арендатор»
+   рендерится, но невидимо прячется под скруглённым краем родителя. */
+.fin-global-filter,
+.fin-global-filter.fin-filter-card {
+    overflow: visible !important;
+}
+
+.fin-global-filter {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 20; /* полоса фильтров всегда поверх карточек KPI ниже */
+}
+.fin-global-filter .fin-filter-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 0;
+}
+.fin-global-filter .fin-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 0 0 auto;
+}
+.fin-global-filter .fin-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #74728a;
+    line-height: 1;
+    margin: 0;
+}
+
+/* Кастомный select «Арендатор» */
+.fin-global-filter .fin-custom-select {
+    position: relative;
+    width: 150px;
+    z-index: 30;
+}
+.fin-global-filter .fin-custom-select__button {
+    width: 100%;
+    height: 36px;
+    padding: 0 34px 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: #f5f3fa;
+    color: #25233f;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    position: relative;
+    text-align: left;
+}
+.fin-global-filter .fin-custom-select__button:hover { background: #ece9f4; }
+.fin-global-filter .fin-custom-select__value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Стрелка — СОБСТВЕННЫЙ класс gf-arrow-shape, чтобы не пересекаться
+   с любыми правилами finances.css для .fin-custom-select__arrow.
+   Заодно гасим псевдоэлементы/глиф на самом .fin-custom-select__arrow. */
+.fin-global-filter .fin-custom-select__arrow {
+    all: unset;
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    display: block;
+    width: 0;
+    height: 0;
+}
+.fin-global-filter .fin-custom-select__arrow::before,
+.fin-global-filter .fin-custom-select__arrow::after {
+    content: none !important;
+}
+.fin-global-filter .gf-arrow-shape {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid #8d8d99;
+    pointer-events: none;
+    transition: transform .15s ease;
+}
+.fin-global-filter .fin-custom-select.gf-open .gf-arrow-shape {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.fin-global-filter .fin-custom-select__dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 100%;
+    max-height: 260px;
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 16px 40px rgba(15,23,42,.16);
+    padding: 6px;
+    z-index: 60;
+    display: none;
+}
+.fin-global-filter .fin-custom-select.gf-open .fin-custom-select__dropdown { display: block; }
+.fin-global-filter .fin-custom-select__option {
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    color: #25233f;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.fin-global-filter .fin-custom-select__option:hover,
+.fin-global-filter .fin-custom-select__option.is-active {
+    background: #2f6bed;
+    color: #fff;
+}
+
+/* Поля дат — текстовые, с датапикером (тот же вид, что на ОПиУ/ДДС) */
+.fin-global-filter .fin-field--date { position: relative; }
+.fin-global-filter .fin-date-input {
+    height: 36px;
+    width: 150px;
+    padding: 0 36px 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: #f5f3fa;
+    color: #25233f;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+}
+.fin-global-filter .fin-date-input:focus { box-shadow: 0 0 0 2px rgba(47,107,237,.14); }
+.fin-global-filter .fin-field--date .bi-calendar-event {
+    position: absolute;
+    right: 14px;
+    bottom: 10px;
+    color: #8d8d99;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+/* Кнопки */
+.fin-global-filter .fin-btn {
+    height: 36px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+    transition: background .15s ease;
+    flex: 0 0 auto;
+}
+.fin-global-filter .fin-btn--primary { background: #2f6bed; color: #fff; }
+.fin-global-filter .fin-btn--primary:hover { background: #2458c7; }
+.fin-global-filter .fin-btn--light { background: #f5f3fa; color: #25233f; }
+.fin-global-filter .fin-btn--light:hover { background: #ece9f4; }
+
+/* Хинт «Фильтры активны» — на том же уровне, что и кнопки */
+.fin-global-filter__hint {
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #2f6bed;
+    flex: 0 0 auto;
+}
+
+/* Датапикер (тот же вид, что на ОПиУ/ДДС) — уменьшенный, с !important
+   на случай если базовый bootstrap-datepicker.css уже задаёт свои размеры. */
+.datepicker.datepicker-dropdown {
+    border: 0 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18) !important;
+    padding: 10px !important;
+    z-index: 1100;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+.datepicker-dropdown table,
+.datepicker-dropdown .datepicker-days table,
+.datepicker-dropdown .datepicker-months table,
+.datepicker-dropdown .datepicker-years table {
+    width: 224px !important;
+    margin: 0 !important;
+    font-size: 12px !important;
+}
+.datepicker-dropdown table tr th {
+    border-radius: 8px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #25233f !important;
+    height: 28px !important;
+    padding: 0 !important;
+}
+.datepicker-dropdown table tr td {
+    box-sizing: border-box !important;
+    width: 28px !important;
+    height: 28px !important;
+    padding: 0 !important;
+    line-height: 28px !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    border-radius: 50% !important;
+    font-size: 12px !important;
+    color: #25233f !important;
+}
+.datepicker-dropdown table tr td.day:hover,
+.datepicker-dropdown table tr td.focused { background: #eef2ff !important; color: #3664dc !important; }
+.datepicker-dropdown table tr td.active,
+.datepicker-dropdown table tr td.active:hover { background: #2f6bed !important; color: #fff !important; text-shadow: none !important; }
+.datepicker-dropdown table tr td.today { background: #f6f4fa !important; color: #2f6bed !important; font-weight: 700 !important; }
+.datepicker-dropdown table tr td.today.active,
+.datepicker-dropdown table tr td.active.today,
+.datepicker-dropdown table tr td.today.active:hover {
+    background: #2f6bed !important;
+    color: #fff !important;
+    text-shadow: none !important;
+}
+.datepicker-dropdown table tr td.old,
+.datepicker-dropdown table tr td.new { color: #b8b5c6 !important; }
+.datepicker-dropdown .datepicker-switch,
+.datepicker-dropdown .prev,
+.datepicker-dropdown .next {
+    height: 28px !important;
+    line-height: 28px !important;
+    border-radius: 8px !important;
+    font-size: 12.5px !important;
+}
+.datepicker-dropdown .datepicker-switch:hover,
+.datepicker-dropdown .prev:hover,
+.datepicker-dropdown .next:hover { background: #f6f4fa !important; }
+.datepicker-dropdown .dow {
+    color: #77758a !important;
+    font-size: 10.5px !important;
+    font-weight: 600 !important;
+}
+
+@media (max-width: 900px) {
+    .fin-global-filter, .fin-global-filter .fin-filter-form { align-items: stretch; }
+    .fin-global-filter .fin-custom-select,
+    .fin-global-filter .fin-date-input { width: 100%; }
+}
+</style>
+
 <section class="fin-filter-card fin-global-filter">
   <form id="globalFilterForm" class="fin-filter-form" autocomplete="off">
 
@@ -9,7 +284,7 @@
         <input type="hidden" name="tenant" id="gf-tenant" value="">
         <button type="button" class="fin-custom-select__button">
           <span class="fin-custom-select__value">Все</span>
-          <i class="bi bi-chevron-down fin-custom-select__arrow"></i>
+          <span class="fin-custom-select__arrow"><span class="gf-arrow-shape"></span></span>
         </button>
         <div class="fin-custom-select__dropdown">
           <div class="fin-custom-select__option" data-value="">Все арендаторы</div>
@@ -24,14 +299,18 @@
 
     <div class="fin-field fin-field--date">
       <label class="fin-label">Период с</label>
-      <input type="date" name="period_from" id="gf-period-from"
-             class="fin-input fin-date-input" data-filter-key="period_from">
+      <input type="text" name="period_from" id="gf-period-from"
+             class="fin-input fin-date-input gf-datepicker" data-filter-key="period_from"
+             placeholder="дд.мм.гггг" autocomplete="off">
+      <i class="bi bi-calendar-event"></i>
     </div>
 
     <div class="fin-field fin-field--date">
       <label class="fin-label">По</label>
-      <input type="date" name="period_to" id="gf-period-to"
-             class="fin-input fin-date-input" data-filter-key="period_to">
+      <input type="text" name="period_to" id="gf-period-to"
+             class="fin-input fin-date-input gf-datepicker" data-filter-key="period_to"
+             placeholder="дд.мм.гггг" autocomplete="off">
+      <i class="bi bi-calendar-event"></i>
     </div>
 
     <button type="button" id="applyGlobalFilters" class="fin-btn fin-btn--primary">
@@ -46,3 +325,74 @@
     <i class="bi bi-funnel-fill"></i> Фильтры активны
   </div>
 </section>
+
+<script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
+<script>
+(function () {
+    /* ── Датапикер ─────────────────────────────────────────── */
+    function initDatepickers() {
+        if (window.jQuery && jQuery.fn.datepicker) {
+            jQuery('.gf-datepicker').datepicker({
+                format: 'dd.mm.yyyy',
+                language: 'ru',
+                autoclose: true,
+                todayHighlight: true,
+                weekStart: 1,
+                orientation: 'bottom auto'
+            });
+            return true;
+        }
+        return false;
+    }
+    if (!initDatepickers()) {
+        document.addEventListener('DOMContentLoaded', initDatepickers);
+        window.addEventListener('load', initDatepickers);
+    }
+
+    /* ── Независимый тоглер для «Арендатор» ──────────────────
+       Работает сам по себе, не полагаясь на внешний finance-filters.js.
+       Использует собственный класс gf-open, чтобы не конфликтовать
+       с любой чужой логикой, которая может дёргать is-open. */
+    function initTenantSelect() {
+        var wrap = document.querySelector('.fin-global-filter .fin-custom-select[data-filter-key="tenant"]');
+        if (!wrap || wrap.dataset.gfBound) return;
+        wrap.dataset.gfBound = '1';
+
+        var button  = wrap.querySelector('.fin-custom-select__button');
+        var valueEl  = wrap.querySelector('.fin-custom-select__value');
+        var hidden   = wrap.querySelector('input[type="hidden"]');
+        var options  = wrap.querySelectorAll('.fin-custom-select__option');
+
+        function close() { wrap.classList.remove('gf-open'); }
+        function open()  { wrap.classList.add('gf-open'); }
+
+        button.addEventListener('click', function (e) {
+            e.stopPropagation();
+            wrap.classList.toggle('gf-open');
+        });
+
+        options.forEach(function (opt) {
+            opt.addEventListener('click', function (e) {
+                e.stopPropagation();
+                options.forEach(function (o) { o.classList.remove('is-active'); });
+                opt.classList.add('is-active');
+                if (valueEl) valueEl.textContent = opt.textContent.trim();
+                if (hidden) {
+                    hidden.value = opt.dataset.value || '';
+                    hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                close();
+            });
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!wrap.contains(e.target)) close();
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') close();
+        });
+    }
+    initTenantSelect();
+    document.addEventListener('DOMContentLoaded', initTenantSelect);
+})();
+</script>
