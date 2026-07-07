@@ -1052,6 +1052,11 @@ def _compute_dashboard_kpis(request=None):
 
 @need_permission(PermissionEnums.FINANCE_DASHBOARD)
 def dashboard(request):
+    if request.GET.get('export') == 'xlsx':
+        from .services.excel import export_dashboard_kpis
+        kpis = _compute_dashboard_kpis(request)
+        return export_dashboard_kpis(kpis)
+
     context = _finance_filter_context(_compute_dashboard_kpis(request))
     context['can_manage'] = _can_manage_credit(request.user)
     return render(request, 'site/finances/dashboard.html', context)
