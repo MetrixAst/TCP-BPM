@@ -65,4 +65,8 @@ urlpatterns = [
     path('cashflow/create/', views.cashflow_create, name='cashflow_create'),
     path('cashflow/<int:pk>/edit/', views.cashflow_edit, name='cashflow_edit'),
     path('cashflow/<int:pk>/delete/', views.cashflow_delete, name='cashflow_delete'),
+
+    path('budget-plan/category/create/', views.budget_category_create, name='budget_category_create'),
+    path('budget-plan/category/<int:pk>/edit/', views.budget_category_edit, name='budget_category_edit'),
+    path('budget-plan/category/<int:pk>/delete/', views.budget_category_delete, name='budget_category_delete'),
 ]

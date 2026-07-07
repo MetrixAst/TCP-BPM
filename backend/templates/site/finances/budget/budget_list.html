@@ -65,7 +65,7 @@
       </a>
 
       {% if can_edit %}
-      <a href="/admin/finances/budgetcategory/add/" class="fin-btn fin-btn--primary" style="margin-left:auto">
+      <a href="{% url 'finances:budget_category_create' %}" class="fin-btn fin-btn--primary" style="margin-left:auto">
         <i class="bi bi-plus-lg"></i> Создать статью
       </a>
       {% endif %}
