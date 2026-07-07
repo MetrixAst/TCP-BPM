@@ -1,66 +1,130 @@
 {% extends "site/base.html" %}
 {% load static %}
 
-{% block title %}{{ title }} | metriX BPM{% endblock %}
+{% block title %}{{ title }} — metriX BPM{% endblock %}
+
+{% block body_classes %}task-edit-body{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999" />
+<style>
+  .task-edit-grid--2 { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 900px) {
+      .task-edit-grid--2 { grid-template-columns: 1fr; }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<section class="fin-page">
-  <div class="fin-filter-card">
-    <div class="fin-filter-card__header" style="display:flex;align-items:center;justify-content:space-between;">
-      <h1 class="fin-page-title">{{ title }}</h1>
-      <a href="{{ back_url }}" class="fin-btn fin-btn--light">
-        <i class="bi bi-arrow-left"></i> Назад
+
+<div class="task-edit-page">
+
+  <div class="task-edit-card">
+
+    <div class="task-edit-card__header">
+      <h1 class="task-edit-card__title">{{ title }}</h1>
+      <a href="{{ back_url }}" class="task-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
       </a>
     </div>
+
+    <form method="POST" class="task-edit-form" id="taskEditForm">
+      {% csrf_token %}
+
+      <div class="task-edit-card__body">
+
+        <section class="task-edit-section">
+          <div class="task-edit-grid task-edit-grid--2">
+
+            <div class="task-edit-field {% if form.name.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Название</label>
+              {{ form.name }}
+              {% for err in form.name.errors %}
+                <div class="task-edit-field__error">{{ err }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="task-edit-field {% if form.category_type.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Тип</label>
+              {{ form.category_type }}
+              {% for err in form.category_type.errors %}
+                <div class="task-edit-field__error">{{ err }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="task-edit-field {% if form.parent.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Родительская категория</label>
+              {{ form.parent }}
+              {% for err in form.parent.errors %}
+                <div class="task-edit-field__error">{{ err }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="task-edit-field {% if form.code.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Код</label>
+              {{ form.code }}
+              {% for err in form.code.errors %}
+                <div class="task-edit-field__error">{{ err }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="task-edit-field {% if form.order.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label">Порядок</label>
+              {{ form.order }}
+              {% for err in form.order.errors %}
+                <div class="task-edit-field__error">{{ err }}</div>
+              {% endfor %}
+            </div>
+
+          </div>
+
+          <div class="task-edit-field {% if form.description.errors %}is-invalid{% endif %}">
+            <label class="task-edit-field__label">Описание</label>
+            {{ form.description }}
+            {% for err in form.description.errors %}
+              <div class="task-edit-field__error">{{ err }}</div>
+            {% endfor %}
+          </div>
+        </section>
+
+        {% if form.non_field_errors %}
+          <div class="task-edit-field__error">
+            {% for err in form.non_field_errors %}<div>{{ err }}</div>{% endfor %}
+          </div>
+        {% endif %}
+
+      </div>
+
+      <div class="task-edit-card__footer">
+        <a href="{{ back_url }}" class="task-edit-btn task-edit-btn--cancel">Отмена</a>
+        <button type="submit" class="task-edit-btn task-edit-btn--save">
+          Сохранить
+        </button>
+      </div>
+
+    </form>
+
   </div>
 
-  <div class="fin-table-card">
-    <form method="POST">
-      {% csrf_token %}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
-        <div class="fin-field">
-          <label class="fin-label">Название</label>
-          {{ form.name }}
-        </div>
-        <div class="fin-field">
-          <label class="fin-label">Тип</label>
-          {{ form.category_type }}
-        </div>
-        <div class="fin-field">
-          <label class="fin-label">Родительская категория</label>
-          {{ form.parent }}
-        </div>
-        <div class="fin-field">
-          <label class="fin-label">Код</label>
-          {{ form.code }}
-        </div>
-        <div class="fin-field">
-          <label class="fin-label">Порядок</label>
-          {{ form.order }}
-        </div>
-      </div>
-      <div class="fin-field" style="margin-bottom:1.5rem;">
-        <label class="fin-label">Описание</label>
-        {{ form.description }}
-      </div>
-      {% if form.errors %}
-      <div style="padding:.75rem;border-radius:8px;background:#fee2e2;color:#991b1b;margin-bottom:1rem;">
-        {% for field, errors in form.errors.items %}
-          {% for error in errors %}<div>{{ error }}</div>{% endfor %}
-        {% endfor %}
-      </div>
-      {% endif %}
-      <div style="display:flex;gap:1rem;">
-        <button type="submit" class="fin-btn fin-btn--primary">
-          <i class="bi bi-check-lg"></i> Сохранить
-        </button>
-        <a href="{{ back_url }}" class="fin-btn fin-btn--light">Отмена</a>
-      </div>
-    </form>
-  </div>
-</section>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script>
+(function () {
+    if (window.jQuery && jQuery.fn.select2) {
+        jQuery('#taskEditForm select').each(function () {
+            jQuery(this).select2({
+                minimumResultsForSearch: Infinity,
+                width: '100%',
+                dropdownParent: jQuery('.task-edit-card')
+            });
+        });
+    }
+})();
+</script>
 {% endblock %}

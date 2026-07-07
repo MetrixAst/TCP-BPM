@@ -1,79 +1,223 @@
 {% extends "site/base.html" %}
 {% load static %}
+{% load site_tags %}
 
 {% block title %}{{ category.name }} | Бюджет | metriX BPM{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe54-budget">
+<style>
+/* ============================================================
+   Карточка статьи бюджета — стиль проекта
+   ============================================================ */
+.bgtd-page {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #25233f;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.bgtd-top {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+.bgtd-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: #74728a;
+    text-decoration: none;
+    margin-bottom: 10px;
+}
+.bgtd-back:hover { color: #2f6bed; }
+.bgtd-title { margin: 0 0 8px; font-size: 22px; font-weight: 700; color: #25233f; }
+.bgtd-sub { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #74728a; margin: 0; }
+
+.bgtd-badge {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.bgtd-badge--success { background: #e6f7ee; color: #16a34a; }
+.bgtd-badge--warning  { background: #fff4e5; color: #b45309; }
+.bgtd-badge--danger   { background: #feecec; color: #ef4444; }
+
+.bgtd-btn {
+    height: 36px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+}
+.bgtd-btn--primary { background: #2f6bed; color: #fff; }
+.bgtd-btn--primary:hover { background: #2458c7; color: #fff; }
+
+.bgtd-panel { background: #fff; border-radius: 18px; padding: 18px 22px; }
+.bgtd-panel__head { margin-bottom: 16px; }
+.bgtd-panel__title { font-size: 16px; font-weight: 700; color: #25233f; margin: 0; }
+.bgtd-panel__sub { font-size: 12px; color: #74728a; margin: 2px 0 0; }
+
+.bgtd-table-wrap { overflow-x: auto; }
+.bgtd-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.bgtd-table__th {
+    height: 44px;
+    padding: 0 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #74728a;
+    border-bottom: 1px solid #eceaf3;
+    white-space: nowrap;
+}
+.bgtd-table__th.text-right { text-align: right; }
+.bgtd-table__td {
+    height: 52px;
+    padding: 0 14px;
+    border-bottom: 1px solid #f0eef6;
+    vertical-align: middle;
+    color: #25233f;
+    position: relative;
+}
+.bgtd-table__td.text-right { text-align: right; }
+.bgtd-table__row:last-child .bgtd-table__td { border-bottom: 0; }
+.bgtd-table__row:hover { background: #faf9fd; }
+.bgtd-table__row--danger .bgtd-table__td:first-child::before,
+.bgtd-table__row--success .bgtd-table__td:first-child::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 8px; bottom: 8px;
+    width: 3px; border-radius: 0 3px 3px 0;
+}
+.bgtd-table__row--danger  .bgtd-table__td:first-child::before { background: #ef4444; }
+.bgtd-table__row--success .bgtd-table__td:first-child::before { background: #16a34a; }
+
+.bgtd-amount { font-weight: 600; }
+.bgtd-muted  { color: #74728a; }
+.bgtd-success { color: #16a34a; font-weight: 600; }
+.bgtd-danger  { color: #ef4444; font-weight: 600; }
+
+.bgtd-progress-wrap { display: flex; align-items: center; gap: 8px; min-width: 130px; }
+.bgtd-progress { flex: 1; height: 6px; border-radius: 999px; background: #eceaf3; overflow: hidden; }
+.bgtd-progress__bar { height: 100%; border-radius: 999px; }
+.bgtd-progress__bar--success { background: #16a34a; }
+.bgtd-progress__bar--warning { background: #f59e0b; }
+.bgtd-progress__bar--danger  { background: #ef4444; }
+.bgtd-progress-label { font-size: 12px; font-weight: 600; color: #74728a; white-space: nowrap; }
+
+.bgtd-actions { display: inline-flex; gap: 6px; }
+.bgtd-action-btn {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: #f5f3fa;
+    color: #25233f;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    border: 0;
+    cursor: pointer;
+    font-size: 13px;
+}
+.bgtd-action-btn:hover { background: #ece9f4; }
+.bgtd-action-btn--danger { background: #feecec; color: #ef4444; }
+.bgtd-action-btn--danger:hover { background: #fedada; }
+
+.bgtd-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 48px 20px;
+    color: #74728a;
+}
+.bgtd-empty i { font-size: 40px; margin-bottom: 12px; color: #c8c7d3; }
+.bgtd-empty strong { font-size: 15px; font-weight: 700; color: #25233f; }
+.bgtd-empty span { margin-top: 6px; font-size: 13px; color: #9a98aa; }
+</style>
 {% endblock %}
 
 {% block content %}
-<section class="fin-page">
+<div class="bgtd-page">
 
-  <div class="fin-filter-card">
-    <div class="fin-filter-card__header">
-      <div>
-        <a href="{% url 'finances:budget_list' %}" class="fin-back-link">
-          <i class="bi bi-arrow-left"></i> Назад к списку
-        </a>
-        <h1 class="fin-page-title">{{ category.name }}</h1>
-        <p class="fin-page-subtitle">
-          {% if category.category_type == 'income' %}
-            <span class="fin-status fin-status--success">Доход</span>
-          {% else %}
-            <span class="fin-status fin-status--warning">Расход</span>
-          {% endif %}
-          {% if category.description %}
-            &nbsp;·&nbsp; {{ category.description }}
-          {% endif %}
-        </p>
-      </div>
-      {% if can_edit %}
-      <div>
-        <a href="{% url 'finances:budget_item_create' category.pk %}" class="fin-btn fin-btn--primary">
-          <i class="bi bi-plus-lg"></i> Добавить запись
-        </a>
-      </div>
-      {% endif %}
+  <div class="bgtd-top">
+    <div>
+      <a href="{% url 'finances:budget_list' %}" class="bgtd-back">
+        <i class="bi bi-arrow-left"></i> Назад к списку
+      </a>
+      <h1 class="bgtd-title">{{ category.name }}</h1>
+      <p class="bgtd-sub">
+        {% if category.category_type == 'income' %}
+          <span class="bgtd-badge bgtd-badge--success">Доход</span>
+        {% else %}
+          <span class="bgtd-badge bgtd-badge--warning">Расход</span>
+        {% endif %}
+        {% if category.description %}
+          <span>{{ category.description }}</span>
+        {% endif %}
+      </p>
     </div>
+    {% if can_edit %}
+    <a href="{% url 'finances:budget_item_create' category.pk %}" class="bgtd-btn bgtd-btn--primary">
+      <i class="bi bi-plus-lg"></i> Добавить запись
+    </a>
+    {% endif %}
   </div>
 
-  <div class="fin-table-card">
-    <div class="fin-table-head">
-      <div>
-        <div class="fin-table-title">Записи бюджета</div>
-        <div class="fin-table-subtitle">{{ rows|length }} запис{{ rows|length|pluralize:"ь,и,ей" }}</div>
-      </div>
+  <div class="bgtd-panel">
+    <div class="bgtd-panel__head">
+      <h2 class="bgtd-panel__title">Записи бюджета</h2>
+      <p class="bgtd-panel__sub">{{ rows|length }} {% plural_t rows|length 'finances.records_plural' 'запись|записи|записей' %}</p>
     </div>
 
-    <div class="fin-table-wrap">
-      <table class="fin-table">
+    <div class="bgtd-table-wrap">
+      <table class="bgtd-table">
         <thead>
           <tr>
-            <th>Год</th>
-            <th>Период</th>
-            <th>Месяц / Квартал</th>
-            <th class="text-right">План</th>
-            <th class="text-right">Факт</th>
-            <th class="text-right">Прогноз</th>
-            <th class="text-right">Отклонение</th>
-            <th>% освоения</th>
-            <th>Статус</th>
-            {% if can_edit %}<th>Действия</th>{% endif %}
+            <th class="bgtd-table__th">Год</th>
+            <th class="bgtd-table__th">Период</th>
+            <th class="bgtd-table__th">Месяц / Квартал</th>
+            <th class="bgtd-table__th text-right">План</th>
+            <th class="bgtd-table__th text-right">Факт</th>
+            <th class="bgtd-table__th text-right">Прогноз</th>
+            <th class="bgtd-table__th text-right">Отклонение</th>
+            <th class="bgtd-table__th">% освоения</th>
+            <th class="bgtd-table__th">Статус</th>
+            {% if can_edit %}<th class="bgtd-table__th">Действия</th>{% endif %}
           </tr>
         </thead>
 
         <tbody>
           {% for row in rows %}
-          <tr class="fin-row {% if row.overrun %}fin-row--danger{% elif row.exec_pct >= 80 %}fin-row--success{% else %}fin-row--secondary{% endif %}">
+          <tr class="bgtd-table__row {% if row.overrun %}bgtd-table__row--danger{% elif row.exec_pct >= 80 %}bgtd-table__row--success{% endif %}">
 
-            <td>{{ row.item.year }}</td>
+            <td class="bgtd-table__td">{{ row.item.year }}</td>
 
-            <td>
-              <span class="fin-badge fin-badge--neutral">{{ row.item.period_type }}</span>
+            <td class="bgtd-table__td">
+              <span class="bgtd-badge" style="background:#f5f3fa;color:#74728a;">{{ row.item.period_type }}</span>
             </td>
 
-            <td>
+            <td class="bgtd-table__td">
               {% if row.item.period_type == 'monthly' %}
                 {{ row.item.month }} мес.
               {% else %}
@@ -81,45 +225,45 @@
               {% endif %}
             </td>
 
-            <td class="text-right fin-amount">{{ row.item.plan|floatformat:0 }} ₸</td>
-            <td class="text-right fin-amount">{{ row.item.fact|floatformat:0 }} ₸</td>
-            <td class="text-right fin-amount fin-muted">{{ row.item.forecast|floatformat:0 }} ₸</td>
+            <td class="bgtd-table__td text-right bgtd-amount">{{ row.item.plan|floatformat:0 }} ₸</td>
+            <td class="bgtd-table__td text-right bgtd-amount">{{ row.item.fact|floatformat:0 }} ₸</td>
+            <td class="bgtd-table__td text-right bgtd-amount bgtd-muted">{{ row.item.forecast|floatformat:0 }} ₸</td>
 
-            <td class="text-right">
-              <span class="fin-amount {% if row.overrun %}fin-danger{% elif row.variance < 0 and category.category_type == 'expense' %}fin-success{% else %}fin-muted{% endif %}">
+            <td class="bgtd-table__td text-right">
+              <span class="bgtd-amount {% if row.overrun %}bgtd-danger{% elif row.variance < 0 and category.category_type == 'expense' %}bgtd-success{% else %}bgtd-muted{% endif %}">
                 {% if row.variance > 0 %}+{% endif %}{{ row.variance|floatformat:0 }} ₸
               </span>
             </td>
 
-            <td>
-              <div class="fin-progress-wrap">
-                <div class="fin-progress">
-                  <div class="fin-progress__bar {% if row.overrun %}fin-progress__bar--danger{% elif row.exec_pct >= 80 %}fin-progress__bar--success{% else %}fin-progress__bar--warning{% endif %}"
+            <td class="bgtd-table__td">
+              <div class="bgtd-progress-wrap">
+                <div class="bgtd-progress">
+                  <div class="bgtd-progress__bar {% if row.overrun %}bgtd-progress__bar--danger{% elif row.exec_pct >= 80 %}bgtd-progress__bar--success{% else %}bgtd-progress__bar--warning{% endif %}"
                        style="width: {% if row.exec_pct > 100 %}100{% else %}{{ row.exec_pct|floatformat:0 }}{% endif %}%">
                   </div>
                 </div>
-                <span class="fin-progress-label">{{ row.exec_pct }}%</span>
+                <span class="bgtd-progress-label">{{ row.exec_pct }}%</span>
               </div>
             </td>
 
-            <td>
+            <td class="bgtd-table__td">
               {% if row.overrun %}
-                <span class="fin-status fin-status--danger">Перерасход</span>
+                <span class="bgtd-badge bgtd-badge--danger">Перерасход</span>
               {% else %}
-                <span class="fin-status fin-status--success">В норме</span>
+                <span class="bgtd-badge bgtd-badge--success">В норме</span>
               {% endif %}
             </td>
 
             {% if can_edit %}
-            <td>
-              <div class="fin-actions">
-                <a href="{% url 'finances:budget_item_edit' row.item.pk %}" class="fin-action-btn">
+            <td class="bgtd-table__td">
+              <div class="bgtd-actions">
+                <a href="{% url 'finances:budget_item_edit' row.item.pk %}" class="bgtd-action-btn">
                   <i class="bi bi-pencil"></i>
                 </a>
                 <form action="{% url 'finances:budget_item_delete' row.item.pk %}" method="POST"
                       onsubmit="return confirm('Удалить запись бюджета?');" style="display:inline">
                   {% csrf_token %}
-                  <button type="submit" class="fin-action-btn fin-action-btn--danger">
+                  <button type="submit" class="bgtd-action-btn bgtd-action-btn--danger">
                     <i class="bi bi-trash"></i>
                   </button>
                 </form>
@@ -129,10 +273,12 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="{% if can_edit %}10{% else %}9{% endif %}" class="fin-empty-state">
-              <i class="bi bi-bar-chart"></i>
-              <strong>Записей не найдено</strong>
-              <span>По этой категории ещё нет записей бюджета</span>
+            <td colspan="{% if can_edit %}10{% else %}9{% endif %}" class="bgtd-table__td" style="border-bottom:0">
+              <div class="bgtd-empty">
+                <i class="bi bi-bar-chart"></i>
+                <strong>Записей не найдено</strong>
+                <span>По этой категории ещё нет записей бюджета</span>
+              </div>
             </td>
           </tr>
           {% endfor %}
@@ -141,7 +287,7 @@
     </div>
   </div>
 
-</section>
+</div>
 {% endblock %}
 
 {% block scripts %}
