@@ -1247,14 +1247,24 @@ def dashboard_drilldown(request):
 
 @need_permission(PermissionEnums.FINANCE_SCENARIOS)
 def credit_model_list(request):
-    models_qs = CreditModel.objects.all()
-    can_create = _can_manage_credit(request.user)
+    can_manage = _can_manage_credit(request.user)
 
-    context = {
-        'credit_models': models_qs,
-        'can_create':    can_create,
+    if request.method == 'POST' and request.POST.get('delete_id'):
+        try:
+            cm = CreditModel.objects.get(pk=request.POST['delete_id'])
+            cm.delete()
+            messages.success(request, 'Сценарий удалён.')
+        except CreditModel.DoesNotExist:
+            pass
+        return redirect('finances:credit_model_list')
+
+    models_qs = CreditModel.objects.all().order_by('-year', 'scenario')
+    context = _finance_filter_context({
+        'credit_models':    models_qs,
+        'can_create':       can_manage,
         'scenario_choices': CreditModel.Scenario.choices,
-    }
+        'show_form':        False,
+    })
     return render(request, 'site/finances/credit_model.html', context)
 
 
@@ -1266,53 +1276,50 @@ def credit_model_create(request):
     import json
 
     class CreditModelForm(django_forms.ModelForm):
-        projected_income_json   = django_forms.CharField(
+        projected_income_json = django_forms.CharField(
             label='Прогноз доходов (JSON)', required=False,
+            widget=django_forms.Textarea(attrs={
+                'class': 'fin-input fin-textarea', 'rows': 4,
+                'placeholder': '{"2026-01": 1500000, "2026-02": 1600000}',
+            })
         )
         projected_expenses_json = django_forms.CharField(
             label='Прогноз расходов (JSON)', required=False,
+            widget=django_forms.Textarea(attrs={
+                'class': 'fin-input fin-textarea', 'rows': 4,
+                'placeholder': '{"2026-01": 900000, "2026-02": 950000}',
+            })
         )
         projected_cashflow_json = django_forms.CharField(
             label='Прогноз ДДС (JSON)', required=False,
+            widget=django_forms.Textarea(attrs={
+                'class': 'fin-input fin-textarea', 'rows': 4,
+                'placeholder': '{"2026-01": 600000, "2026-02": 650000}',
+            })
         )
 
         class Meta:
             model = CreditModel
             fields = [
-                'name', 'scenario', 'period_start', 'period_end',
-                'loan_amount', 'loan_rate',
+                'name', 'scenario', 'year', 'description',
+                'loan_amount', 'loan_rate', 'loan_term_months',
+                'annual_debt_service', 'risk_level', 'risk_notes',
+                'period_start', 'period_end', 'financial_statement',
             ]
             widgets = {
-                'name': django_forms.TextInput(attrs={
-                    'class': 'fin-input',
-                    'placeholder': 'Например: Базовый сценарий Q2',
-                }),
-                'scenario': django_forms.Select(attrs={'class': 'fin-input'}),
-                'period_start': django_forms.DateInput(attrs={
-                    'type': 'date', 'class': 'fin-input',
-                }),
-                'period_end': django_forms.DateInput(attrs={
-                    'type': 'date', 'class': 'fin-input',
-                }),
-                'loan_amount': django_forms.NumberInput(attrs={
-                    'class': 'fin-input', 'step': '0.01', 'min': '0',
-                }),
-                'loan_rate': django_forms.NumberInput(attrs={
-                    'class': 'fin-input', 'step': '0.01', 'min': '0',
-                }),
-                'projected_income_json': django_forms.Textarea(attrs={
-                    'class': 'fin-input fin-textarea',
-                    'rows': 4,
-                    'placeholder': '{"2026-05": 15000000}',
-                }),
-                'projected_expenses_json': django_forms.Textarea(attrs={
-                    'class': 'fin-input fin-textarea',
-                    'rows': 4,
-                }),
-                'projected_cashflow_json': django_forms.Textarea(attrs={
-                    'class': 'fin-input fin-textarea',
-                    'rows': 4,
-                }),
+                'name':                django_forms.TextInput(attrs={'class': 'fin-input', 'placeholder': 'Базовый сценарий Q2'}),
+                'scenario':            django_forms.Select(attrs={'class': 'fin-input'}),
+                'year':                django_forms.NumberInput(attrs={'class': 'fin-input', 'min': 2000, 'max': 2100}),
+                'description':         django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 2}),
+                'loan_amount':         django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01', 'min': '0'}),
+                'loan_rate':           django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01', 'min': '0'}),
+                'loan_term_months':    django_forms.NumberInput(attrs={'class': 'fin-input', 'min': '1'}),
+                'annual_debt_service': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01', 'min': '0'}),
+                'risk_level':          django_forms.Select(attrs={'class': 'fin-input'}),
+                'risk_notes':          django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 2}),
+                'period_start':        django_forms.DateInput(attrs={'type': 'date', 'class': 'fin-input'}),
+                'period_end':          django_forms.DateInput(attrs={'type': 'date', 'class': 'fin-input'}),
+                'financial_statement': django_forms.Select(attrs={'class': 'fin-input'}),
             }
 
         def _parse_json_field(self, raw, field_name):
@@ -1325,35 +1332,33 @@ def credit_model_create(request):
 
         def clean(self):
             cleaned = super().clean()
-            cleaned['projected_income']   = self._parse_json_field(
-                cleaned.get('projected_income_json', ''), 'доходов'
-            )
-            cleaned['projected_expenses'] = self._parse_json_field(
-                cleaned.get('projected_expenses_json', ''), 'расходов'
-            )
-            cleaned['projected_cashflow'] = self._parse_json_field(
-                cleaned.get('projected_cashflow_json', ''), 'ДДС'
-            )
+            cleaned['projected_income']   = self._parse_json_field(cleaned.get('projected_income_json', ''), 'доходов')
+            cleaned['projected_expenses'] = self._parse_json_field(cleaned.get('projected_expenses_json', ''), 'расходов')
+            cleaned['projected_cashflow'] = self._parse_json_field(cleaned.get('projected_cashflow_json', ''), 'ДДС')
             return cleaned
 
-    form = CreditModelForm(request.POST or None)
+    form = CreditModelForm(request.POST or None, initial={'year': date.today().year})
     if request.method == 'POST' and form.is_valid():
         cm = form.save(commit=False)
         cm.projected_income   = form.cleaned_data['projected_income']
         cm.projected_expenses = form.cleaned_data['projected_expenses']
         cm.projected_cashflow = form.cleaned_data['projected_cashflow']
+        cm.forecast_pnl       = {}
+        cm.forecast_cashflow  = {}
         cm.calculate_dscr()
         cm.save()
         messages.success(request, f'Сценарий «{cm.name}» создан. DSCR: {cm.dscr or "—"}')
         return redirect('finances:credit_model_list')
 
-    context = {
-        'form':       form,
-        'title':      'Новый кредитный сценарий',
-        'show_form':  True,
-    }
+    context = _finance_filter_context({
+        'form':             form,
+        'title':            'Новый кредитный сценарий',
+        'show_form':        True,
+        'can_create':       True,
+        'credit_models':    CreditModel.objects.none(),
+        'scenario_choices': CreditModel.Scenario.choices,
+    })
     return render(request, 'site/finances/credit_model.html', context)
-
 
 # ── BE-6.4: Аналитика аренды ──────────────────────────────────────────────────
 
