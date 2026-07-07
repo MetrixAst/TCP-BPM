@@ -4,130 +4,387 @@
 
 {% block title %}{% if show_form %}Новый сценарий{% else %}Кредитная модель{% endif %} | metriX BPM{% endblock %}
 
+{% block body_classes %}{% if show_form %}task-edit-body{% endif %}{% endblock %}
+
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
-<link rel="stylesheet" href="{% static 'site/css/apps/fin-pages.css' %}?v=fp01">
+{% if show_form %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999" />
+<style>
+  .task-edit-grid--2 { grid-template-columns: 1fr 1fr; }
+  .task-edit-grid--2 .task-edit-field--wide { grid-column: 1 / -1; }
+  @media (max-width: 900px) {
+      .task-edit-grid--2 { grid-template-columns: 1fr; }
+  }
+
+  /* Поле даты с иконкой календаря (period_start / period_end) */
+  .cm-date-wrap { position: relative; }
+  .cm-date-wrap .cm-datepicker { padding-right: 36px; }
+  .cm-date-wrap .bi-calendar-event {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #8d8d99;
+      font-size: 14px;
+      pointer-events: none;
+  }
+
+  /* Датапикер (тот же вид, что на ОПиУ/ДДС) */
+  .datepicker-dropdown {
+      border: 0 !important;
+      border-radius: 14px !important;
+      box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18) !important;
+      padding: 10px !important;
+      z-index: 1100;
+  }
+  .datepicker-dropdown table {
+      width: 224px !important;
+      margin: 0 !important;
+      font-size: 12px !important;
+  }
+  .datepicker-dropdown table tr th {
+      border-radius: 8px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      color: #25233f !important;
+      height: 28px !important;
+      padding: 0 !important;
+  }
+  .datepicker-dropdown table tr td {
+      box-sizing: border-box !important;
+      width: 28px !important;
+      height: 28px !important;
+      padding: 0 !important;
+      line-height: 28px !important;
+      text-align: center !important;
+      vertical-align: middle !important;
+      border-radius: 50% !important;
+      font-size: 12px !important;
+      color: #25233f !important;
+  }
+  .datepicker-dropdown table tr td.day:hover,
+  .datepicker-dropdown table tr td.focused { background: #eef2ff !important; color: #3664dc !important; }
+  .datepicker-dropdown table tr td.active,
+  .datepicker-dropdown table tr td.active:hover { background: #2f6bed !important; color: #fff !important; text-shadow: none !important; }
+  .datepicker-dropdown table tr td.today { background: #f6f4fa !important; color: #2f6bed !important; font-weight: 700 !important; }
+  .datepicker-dropdown table tr td.today.active,
+  .datepicker-dropdown table tr td.active.today { background: #2f6bed !important; color: #fff !important; }
+  .datepicker-dropdown table tr td.old,
+  .datepicker-dropdown table tr td.new { color: #b8b5c6 !important; }
+  .datepicker-dropdown .datepicker-switch,
+  .datepicker-dropdown .prev,
+  .datepicker-dropdown .next {
+      height: 28px !important;
+      line-height: 28px !important;
+      border-radius: 8px !important;
+      font-size: 12.5px !important;
+  }
+  .datepicker-dropdown .datepicker-switch:hover,
+  .datepicker-dropdown .prev:hover,
+  .datepicker-dropdown .next:hover { background: #f6f4fa !important; }
+  .datepicker-dropdown .dow {
+      color: #77758a !important;
+      font-size: 10.5px !important;
+      font-weight: 600 !important;
+  }
+</style>
+{% else %}
+<style>
+/* ============================================================
+   Кредитная модель — список — стиль проекта
+   ============================================================ */
+.cm-page {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #25233f;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.cm-top {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+.cm-title { margin: 0; font-size: 24px; font-weight: 700; color: #25233f; }
+.cm-sub { margin: 6px 0 0; font-size: 13px; color: #74728a; }
+
+.cm-btn {
+    height: 36px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+}
+.cm-btn--primary { background: #2f6bed; color: #fff; }
+.cm-btn--primary:hover { background: #2458c7; color: #fff; }
+
+.cm-panel { background: #fff; border-radius: 18px; padding: 18px 22px; }
+.cm-panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.cm-panel__title { font-size: 16px; font-weight: 700; color: #25233f; margin: 0; }
+.cm-panel__sub { font-size: 12px; color: #74728a; margin: 2px 0 0; }
+.cm-legend { display: flex; align-items: center; gap: 14px; font-size: 12px; color: #74728a; }
+.cm-legend__item { display: inline-flex; align-items: center; gap: 6px; }
+.cm-legend__dot { width: 9px; height: 9px; border-radius: 50%; }
+.cm-legend__dot--success { background: #16a34a; }
+.cm-legend__dot--warning { background: #f59e0b; }
+.cm-legend__dot--danger  { background: #ef4444; }
+
+.cm-table-wrap { overflow-x: auto; }
+.cm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cm-table__th {
+    height: 44px;
+    padding: 0 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #74728a;
+    border-bottom: 1px solid #eceaf3;
+    white-space: nowrap;
+}
+.cm-table__th.text-right { text-align: right; }
+.cm-table__td {
+    height: 56px;
+    padding: 0 14px;
+    border-bottom: 1px solid #f0eef6;
+    vertical-align: middle;
+    color: #25233f;
+    position: relative;
+    white-space: nowrap;
+}
+.cm-table__td.text-right { text-align: right; }
+.cm-table__row:last-child .cm-table__td { border-bottom: 0; }
+.cm-table__row:hover { background: #faf9fd; }
+.cm-table__row--success .cm-table__td:first-child::before,
+.cm-table__row--warning .cm-table__td:first-child::before,
+.cm-table__row--danger  .cm-table__td:first-child::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 10px; bottom: 10px;
+    width: 3px; border-radius: 0 3px 3px 0;
+}
+.cm-table__row--success .cm-table__td:first-child::before { background: #16a34a; }
+.cm-table__row--warning .cm-table__td:first-child::before { background: #f59e0b; }
+.cm-table__row--danger  .cm-table__td:first-child::before { background: #ef4444; }
+
+.cm-amount { font-weight: 600; }
+.cm-muted  { color: #74728a; }
+
+.cm-badge {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #f5f3fa;
+    color: #74728a;
+}
+.cm-status {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.cm-status--success { background: #e6f7ee; color: #16a34a; }
+.cm-status--warning  { background: #fff4e5; color: #b45309; }
+.cm-status--danger   { background: #feecec; color: #ef4444; }
+
+.cm-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 48px 20px;
+    color: #74728a;
+}
+.cm-empty i { font-size: 40px; margin-bottom: 12px; color: #c8c7d3; }
+.cm-empty strong { font-size: 15px; font-weight: 700; color: #25233f; }
+.cm-empty a { color: #2f6bed; font-weight: 600; text-decoration: none; }
+.cm-empty a:hover { text-decoration: underline; }
+</style>
+{% endif %}
 {% endblock %}
 
 {% block content %}
-<section class="fin-page">
 
-  <div class="fin-filter-card">
-    <div class="fin-filter-card__header">
-      <div>
-        {% if show_form %}
-        <a href="{% url 'finances:credit_model_list' %}" class="fin-back-link">
-          <i class="bi bi-arrow-left"></i> Назад к списку
-        </a>
-        <h1 class="fin-page-title">{{ title }}</h1>
-        {% else %}
-        <h1 class="fin-page-title">Кредитная модель</h1>
-        <p class="fin-page-subtitle">Сценарии финансирования: DSCR, свободный CF, уровень риска</p>
-        {% endif %}
-      </div>
-      {% if can_create and not show_form %}
-      <a href="{% url 'finances:credit_model_create' %}" class="fin-btn fin-btn--primary">
-        <i class="bi bi-plus-lg"></i> Создать сценарий
+{% if show_form %}
+
+<div class="task-edit-page">
+
+  <div class="task-edit-card">
+
+    <div class="task-edit-card__header">
+      <h1 class="task-edit-card__title">{{ title }}</h1>
+      <a href="{% url 'finances:credit_model_list' %}" class="task-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
       </a>
-      {% endif %}
     </div>
-  </div>
 
-  {% if show_form %}
-  <div class="fin-table-card fin-form-card">
-    <div class="fin-table-head" style="margin-bottom:16px;">
-      <div>
-        <div class="fin-table-title">Параметры сценария</div>
-        <div class="fin-table-subtitle">После сохранения рассчитаются DSCR и свободный денежный поток</div>
-      </div>
-    </div>
-    <form method="POST">
+    <form method="POST" class="task-edit-form" id="taskEditForm">
       {% csrf_token %}
-      <div class="fin-form-grid">
-        {% for field in form %}
-        <div class="fin-form-field {% if field.errors %}fin-form-field--error{% endif %} {% if 'json' in field.name %}fin-form-field--wide{% endif %}">
-          <label class="fin-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {{ field }}
-          {% for err in field.errors %}
-            <span class="fin-field-error">{{ err }}</span>
-          {% endfor %}
+
+      <div class="task-edit-card__body">
+
+        <div style="font-size:13px;color:#74728a;margin-bottom:18px;">
+          После сохранения рассчитаются DSCR и свободный денежный поток
         </div>
-        {% endfor %}
+
+        <section class="task-edit-section">
+          <div class="task-edit-grid task-edit-grid--2">
+            {% for field in form %}
+            <div class="task-edit-field {% if field.errors %}is-invalid{% endif %} {% if 'json' in field.name %}task-edit-field--wide{% endif %}">
+              <label class="task-edit-field__label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {% if field.name == 'period_start' or field.name == 'period_end' %}
+                <div class="cm-date-wrap">
+                  <input type="text"
+                         id="{{ field.id_for_label }}"
+                         name="{{ field.html_name }}"
+                         value="{{ field.value|default:'' }}"
+                         class="cm-datepicker"
+                         placeholder="дд.мм.гггг"
+                         autocomplete="off">
+                  <i class="bi bi-calendar-event"></i>
+                </div>
+              {% else %}
+                {{ field }}
+              {% endif %}
+              {% for err in field.errors %}
+                <div class="task-edit-field__error">{{ err }}</div>
+              {% endfor %}
+            </div>
+            {% endfor %}
+          </div>
+        </section>
+
+        {% if form.non_field_errors %}
+          <div class="task-edit-field__error">
+            {% for err in form.non_field_errors %}<div>{{ err }}</div>{% endfor %}
+          </div>
+        {% endif %}
+
       </div>
-      <div class="fin-form-actions">
-        <a href="{% url 'finances:credit_model_list' %}" class="fin-btn fin-btn--light">Отмена</a>
-        <button type="submit" class="fin-btn fin-btn--primary">
+
+      <div class="task-edit-card__footer">
+        <a href="{% url 'finances:credit_model_list' %}" class="task-edit-btn task-edit-btn--cancel">Отмена</a>
+        <button type="submit" class="task-edit-btn task-edit-btn--save">
           <i class="bi bi-calculator"></i> Рассчитать и сохранить
         </button>
       </div>
+
     </form>
+
   </div>
 
-  {% else %}
+</div>
 
-  <div class="fin-table-card">
-    <div class="fin-table-head">
+{% else %}
+
+<div class="cm-page">
+
+  <div class="cm-top">
+    <div>
+      <h1 class="cm-title">Кредитная модель</h1>
+    </div>
+    {% if can_create %}
+    <a href="{% url 'finances:credit_model_create' %}" class="cm-btn cm-btn--primary">
+      <i class="bi bi-plus-lg"></i> Создать сценарий
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="cm-panel">
+    <div class="cm-panel__head">
       <div>
-        <div class="fin-table-title">Сценарии</div>
-        <div class="fin-table-subtitle">{{ credit_models|length }} {% plural_t credit_models|length 'finances.models_plural' 'модель|модели|моделей' %}</div>
+        <h2 class="cm-panel__title">Сценарии</h2>
+        <p class="cm-panel__sub">{{ credit_models|length }} {% plural_t credit_models|length 'finances.models_plural' 'модель|модели|моделей' %}</p>
       </div>
-      <div class="fin-legend">
-        <span class="fin-legend__dot fin-legend__dot--success"></span>Низкий риск
-        <span class="fin-legend__dot fin-legend__dot--warning"></span>Средний
-        <span class="fin-legend__dot fin-legend__dot--danger"></span>Высокий
+      <div class="cm-legend">
+        <span class="cm-legend__item"><span class="cm-legend__dot cm-legend__dot--success"></span>Низкий риск</span>
+        <span class="cm-legend__item"><span class="cm-legend__dot cm-legend__dot--warning"></span>Средний</span>
+        <span class="cm-legend__item"><span class="cm-legend__dot cm-legend__dot--danger"></span>Высокий</span>
       </div>
     </div>
 
-    <div class="fin-table-wrap">
-      <table class="fin-table">
+    <div class="cm-table-wrap">
+      <table class="cm-table">
         <thead>
           <tr>
-            <th>Название</th>
-            <th>Сценарий</th>
-            <th>Период</th>
-            <th class="text-right">Кредит</th>
-            <th class="text-right">Ставка</th>
-            <th class="text-right">DSCR</th>
-            <th class="text-right">Свободный CF</th>
-            <th>Риск</th>
+            <th class="cm-table__th">Название</th>
+            <th class="cm-table__th">Сценарий</th>
+            <th class="cm-table__th">Период</th>
+            <th class="cm-table__th text-right">Кредит</th>
+            <th class="cm-table__th text-right">Ставка</th>
+            <th class="cm-table__th text-right">DSCR</th>
+            <th class="cm-table__th text-right">Свободный CF</th>
+            <th class="cm-table__th">Риск</th>
           </tr>
         </thead>
         <tbody>
           {% for cm in credit_models %}
-          <tr class="fin-row fin-row--{% if cm.risk_level == 'low' %}success{% elif cm.risk_level == 'high' %}danger{% else %}warning{% endif %}">
-            <td><strong>{{ cm.name }}</strong></td>
-            <td>
-              <span class="fin-badge fin-badge--neutral">{{ cm.get_scenario_display }}</span>
+          <tr class="cm-table__row cm-table__row--{% if cm.risk_level == 'low' %}success{% elif cm.risk_level == 'high' %}danger{% else %}warning{% endif %}">
+            <td class="cm-table__td"><strong>{{ cm.name }}</strong></td>
+            <td class="cm-table__td">
+              <span class="cm-badge">{{ cm.get_scenario_display }}</span>
             </td>
-            <td class="fin-muted">
+            <td class="cm-table__td cm-muted">
               {{ cm.period_start|date:"d.m.Y" }} — {{ cm.period_end|date:"d.m.Y" }}
             </td>
-            <td class="text-right fin-amount">{{ cm.loan_amount|floatformat:0 }} ₸</td>
-            <td class="text-right fin-muted">{{ cm.loan_rate }}%</td>
-            <td class="text-right">
+            <td class="cm-table__td text-right cm-amount">{{ cm.loan_amount|floatformat:0 }} ₸</td>
+            <td class="cm-table__td text-right cm-muted">{{ cm.loan_rate }}%</td>
+            <td class="cm-table__td text-right">
               <strong>{% if cm.dscr %}{{ cm.dscr }}{% else %}—{% endif %}</strong>
             </td>
-            <td class="text-right fin-amount">
+            <td class="cm-table__td text-right cm-amount">
               {% if cm.free_cashflow %}{{ cm.free_cashflow|floatformat:0 }} ₸{% else %}—{% endif %}
             </td>
-            <td>
+            <td class="cm-table__td">
               {% if cm.risk_level == 'low' %}
-                <span class="fin-status fin-status--success">Низкий</span>
+                <span class="cm-status cm-status--success">Низкий</span>
               {% elif cm.risk_level == 'high' %}
-                <span class="fin-status fin-status--danger">Высокий</span>
+                <span class="cm-status cm-status--danger">Высокий</span>
               {% else %}
-                <span class="fin-status fin-status--warning">Средний</span>
+                <span class="cm-status cm-status--warning">Средний</span>
               {% endif %}
             </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="8" class="fin-empty-state">
-              <i class="bi bi-bank"></i>
-              <strong>Сценарии не созданы</strong>
-              {% if can_create %}
-              <span><a href="{% url 'finances:credit_model_create' %}">Создайте первый сценарий</a></span>
-              {% endif %}
+            <td colspan="8" class="cm-table__td" style="border-bottom:0;white-space:normal;">
+              <div class="cm-empty">
+                <i class="bi bi-bank"></i>
+                <strong>Сценарии не созданы</strong>
+                {% if can_create %}
+                <span><a href="{% url 'finances:credit_model_create' %}">Создайте первый сценарий</a></span>
+                {% endif %}
+              </div>
             </td>
           </tr>
           {% endfor %}
@@ -136,7 +393,38 @@
     </div>
   </div>
 
-  {% endif %}
+</div>
 
-</section>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{% if show_form %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script>
+(function () {
+    if (window.jQuery && jQuery.fn.select2) {
+        jQuery('#taskEditForm select').each(function () {
+            jQuery(this).select2({
+                minimumResultsForSearch: Infinity,
+                width: '100%',
+                dropdownParent: jQuery('.task-edit-card')
+            });
+        });
+    }
+    if (window.jQuery && jQuery.fn.datepicker) {
+        jQuery('.cm-datepicker').datepicker({
+            format: 'dd.mm.yyyy',
+            language: 'ru',
+            autoclose: true,
+            todayHighlight: true,
+            weekStart: 1,
+            orientation: 'bottom auto'
+        });
+    }
+})();
+</script>
+{% endif %}
 {% endblock %}
