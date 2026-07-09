@@ -9,7 +9,7 @@ const _storage = FlutterSecureStorage();
 final router = GoRouter(
   initialLocation: '/',
   redirect: (context, state) async {
-    final token = await _storage.read(key: 'auth_token');
+    final token = await _storage.read(key: 'auth_access_token'); // было 'auth_token'
     final loggingIn = state.matchedLocation == '/login';
 
     if (token == null && !loggingIn) return '/login';
