@@ -77,3 +77,12 @@ upload_to_linear.py
 docs/
 backend/I18N.md
 ТЗ.md
+
+# Flutter/Dart
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/ios/Pods/
