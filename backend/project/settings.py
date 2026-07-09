@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'addits',
     'enbek',
     'onec',
+    'mobile_api',
     'audit',
     'rest_framework',
     'drf_spectacular',
