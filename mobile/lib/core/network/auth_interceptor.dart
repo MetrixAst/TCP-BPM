@@ -4,13 +4,21 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class AuthInterceptor extends Interceptor {
   final Dio dio;
   final FlutterSecureStorage storage;
+  final Dio? refreshDio; // позволяет подменить в тестах
 
   static const _accessKey = 'auth_access_token';
   static const _refreshKey = 'auth_refresh_token';
 
   bool _isRefreshing = false;
 
-  AuthInterceptor({required this.dio, required this.storage});
+  AuthInterceptor({
+    required this.dio,
+    required this.storage,
+    this.refreshDio,
+  });
+
+  Dio get _refreshClient =>
+      refreshDio ?? Dio(BaseOptions(baseUrl: dio.options.baseUrl));
 
   @override
   Future<void> onRequest(
@@ -44,8 +52,7 @@ class AuthInterceptor extends Interceptor {
 
     _isRefreshing = true;
     try {
-      final refreshDio = Dio(BaseOptions(baseUrl: dio.options.baseUrl));
-      final response = await refreshDio.post(
+      final response = await _refreshClient.post(
         '/api/token/refresh/',
         data: {'refresh': refreshToken},
       );
@@ -53,7 +60,6 @@ class AuthInterceptor extends Interceptor {
       final newAccess = response.data['access'] as String;
       await storage.write(key: _accessKey, value: newAccess);
 
-      // Повторяем оригинальный запрос с новым токеном
       final retryOptions = err.requestOptions;
       retryOptions.headers['Authorization'] = 'Bearer $newAccess';
 
@@ -70,7 +76,5 @@ class AuthInterceptor extends Interceptor {
   Future<void> _globalLogout() async {
     await storage.delete(key: _accessKey);
     await storage.delete(key: _refreshKey);
-    // go_router redirect сам перекинет на /login при следующей навигации,
-    // т.к. token в storage больше нет
   }
 }
