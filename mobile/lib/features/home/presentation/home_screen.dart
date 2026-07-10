@@ -23,6 +23,11 @@ class HomeScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text('Home screen (заглушка)'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => context.push('/profile'),
+              child: const Text('Профиль'),
+            ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => _logout(context),
