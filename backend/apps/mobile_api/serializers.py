@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from hr.enums import CheckInEnum
 
 
 class EmployeeInfoSerializer(serializers.Serializer):
@@ -37,3 +38,17 @@ class ProfileSerializer(serializers.Serializer):
 
 class PushTokenSerializer(serializers.Serializer):
     fcm = serializers.CharField(max_length=230)
+
+
+class AttendanceCheckinSerializer(serializers.Serializer):
+    event_type = serializers.ChoiceField(choices=CheckInEnum.choices)
+    photo = serializers.ImageField()
+    latitude = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
+    longitude = serializers.DecimalField(max_digits=10, decimal_places=7, required=False, allow_null=True)
+
+
+class AttendanceRecordOutSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    event_type = serializers.CharField()
+    timestamp = serializers.DateTimeField()
+    location_address = serializers.CharField()
