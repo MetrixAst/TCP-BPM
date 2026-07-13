@@ -6,6 +6,10 @@ import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_result.dart';
 import '../data/auth_repository.dart';
 
+import '../../push/data/push_service.dart';
+import '../../push/data/push_repository.dart';
+
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -21,6 +25,8 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _errorMessage;
 
   late final AuthRepository _authRepository;
+  late final PushService _pushService;
+  late final PushRepository _pushRepository;
 
   @override
   void initState() {
@@ -29,6 +35,8 @@ class _LoginScreenState extends State<LoginScreen> {
       dio: DioClient().dio,
       storage: const FlutterSecureStorage(),
     );
+    _pushService = PushService();
+    _pushRepository = PushRepository(dio: DioClient().dio);
   }
 
   @override
@@ -57,7 +65,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
     switch (result) {
       case Success():
-        if (mounted) context.go('/');
+        if (mounted) {
+          final fcmToken = await _pushService.getToken();
+          if (fcmToken != null) {
+            try {
+              await _pushRepository.registerToken(fcmToken);
+            } catch (_) {
+              // не блокируем вход, если push не зарегистрировался
+            }
+          }
+          if (mounted) context.go('/');
+        }
       case Failure(:final message):
         setState(() => _errorMessage = message);
     }

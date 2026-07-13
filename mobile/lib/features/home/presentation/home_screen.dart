@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../core/network/dio_client.dart';
+import '../../profile/data/logout_repository.dart';
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   Future<void> _logout(BuildContext context) async {
-    const storage = FlutterSecureStorage();
-    await storage.delete(key: 'auth_access_token');
-    await storage.delete(key: 'auth_refresh_token');
+    final logoutRepository = LogoutRepository(
+      dio: DioClient().dio,
+      storage: const FlutterSecureStorage(),
+    );
+    await logoutRepository.logout();
 
     if (context.mounted) {
       context.go('/login');
