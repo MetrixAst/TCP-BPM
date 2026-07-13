@@ -33,6 +33,10 @@ class HomeScreen extends StatelessWidget {
               onPressed: () => context.push('/profile'),
               child: const Text('Профиль'),
             ),
+            ElevatedButton(
+              onPressed: () => context.push('/checkin'),
+              child: const Text('Чек-ин'),
+            ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => _logout(context),
