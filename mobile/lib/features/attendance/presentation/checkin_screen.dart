@@ -7,6 +7,11 @@ import '../../../core/network/api_result.dart';
 import '../data/attendance_repository.dart';
 import '../data/checkin_capture_service.dart';
 import '../data/checkin_event_type.dart';
+import '../../../core/theme/metrix_colors.dart';
+import '../../../shared/spacing.dart';
+import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_card.dart';
+import '../../../shared/widgets/app_top_bar.dart';
 
 class CheckinScreen extends StatefulWidget {
   const CheckinScreen({super.key});
@@ -94,94 +99,99 @@ class _CheckinScreenState extends State<CheckinScreen> {
       }
     });
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Чек-ин')),
+      backgroundColor: MetrixColors.surfaceMuted,
+      appBar: const AppTopBar(title: 'Чек-ин'),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            DropdownButtonFormField<CheckinEventType>(
-              initialValue: _selectedType,
-              decoration: const InputDecoration(labelText: 'Тип отметки'),
-              items: CheckinEventType.values
-                  .map((type) => DropdownMenuItem(
-                value: type,
-                child: Text(type.label),
-              ))
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) setState(() => _selectedType = value);
-              },
-            ),
-            const SizedBox(height: 24),
-            if (_capturedPhoto != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(_capturedPhoto!, height: 240, fit: BoxFit.cover),
-              )
-            else
-              Container(
-                height: 240,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Center(
-                  child: Icon(Icons.camera_alt_outlined, size: 48, color: Colors.grey),
-                ),
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Тип отметки', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: MetrixColors.textMuted)),
+                  const SizedBox(height: AppSpacing.xs),
+                  DropdownButtonFormField<CheckinEventType>(
+                    initialValue: _selectedType,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: MetrixColors.surfaceMuted,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: MetrixColors.border),
+                      ),
+                    ),
+                    items: CheckinEventType.values
+                        .map((type) => DropdownMenuItem(value: type, child: Text(type.label)))
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) setState(() => _selectedType = value);
+                    },
+                  ),
+                ],
               ),
-            const SizedBox(height: 12),
-            if (_latitude != null && _longitude != null)
-              Text(
-                'Координаты: ${_latitude!.toStringAsFixed(5)}, ${_longitude!.toStringAsFixed(5)}',
-                style: Theme.of(context).textTheme.bodySmall,
-                textAlign: TextAlign.center,
-              )
-            else if (_capturedPhoto != null)
-              Text(
-                'Геолокация недоступна',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.orange),
-                textAlign: TextAlign.center,
-              ),
-            const SizedBox(height: 24),
-            OutlinedButton.icon(
-              onPressed: _isCapturing ? null : _handleCapture,
-              icon: _isCapturing
-                  ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-                  : const Icon(Icons.camera_alt),
-              label: Text(_capturedPhoto == null ? 'Сделать фото' : 'Переснять'),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
+            AppCard(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: _capturedPhoto != null
+                        ? Image.file(_capturedPhoto!, height: 220, width: double.infinity, fit: BoxFit.cover)
+                        : Container(
+                      height: 220,
+                      width: double.infinity,
+                      color: MetrixColors.surfaceMuted,
+                      child: const Icon(Icons.camera_alt_outlined, size: 44, color: MetrixColors.textMuted),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  if (_latitude != null && _longitude != null)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.location_on, size: 16, color: MetrixColors.accent),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${_latitude!.toStringAsFixed(5)}, ${_longitude!.toStringAsFixed(5)}',
+                          style: const TextStyle(fontSize: 12, color: MetrixColors.textMuted),
+                        ),
+                      ],
+                    )
+                  else if (_capturedPhoto != null)
+                    const Text('Геолокация недоступна', style: TextStyle(fontSize: 12, color: MetrixColors.warning)),
+                  const SizedBox(height: AppSpacing.sm),
+                  AppButton(
+                    label: _capturedPhoto == null ? 'Сделать фото' : 'Переснять',
+                    variant: AppButtonVariant.secondary,
+                    icon: Icons.camera_alt,
+                    isLoading: _isCapturing,
+                    onPressed: _handleCapture,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
             if (_errorMessage != null)
-              Text(
-                _errorMessage!,
-                style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Text(_errorMessage!, style: const TextStyle(color: MetrixColors.danger), textAlign: TextAlign.center),
               ),
             if (_successMessage != null)
-              Text(
-                _successMessage!,
-                style: const TextStyle(color: Colors.green),
-                textAlign: TextAlign.center,
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Text(_successMessage!, style: const TextStyle(color: MetrixColors.accent), textAlign: TextAlign.center),
               ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: (_isSubmitting || _capturedPhoto == null) ? null : _handleSubmit,
-              child: _isSubmitting
-                  ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-                  : const Text('Отправить отметку'),
+            AppButton(
+              label: 'Отправить отметку',
+              isLoading: _isSubmitting,
+              onPressed: _capturedPhoto == null ? null : _handleSubmit,
             ),
           ],
         ),
