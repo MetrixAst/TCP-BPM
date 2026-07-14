@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:metrix_app/features/attendance/data/attendance_repository.dart';
 import 'package:metrix_app/core/network/api_result.dart';
+import 'package:metrix_app/features/attendance/data/attendance_today_status.dart';
 
 class MockDio extends Mock implements Dio {}
 
@@ -161,9 +162,9 @@ void main() {
   });
 
   group('getToday', () {
-    test('возвращает список отметок за сегодня', () async {
+    test('возвращает список из 4 типов, один завершён', () async {
       when(() => dio.get('/api/v1/mobile/attendance/today/')).thenAnswer(
-            (_) async => Response(
+        (_) async => Response(
           requestOptions: RequestOptions(path: '/api/v1/mobile/attendance/today/'),
           statusCode: 200,
           data: {
@@ -176,12 +177,17 @@ void main() {
 
       final result = await repository.getToday();
 
-      expect(result, isA<Success<List<dynamic>>>());
+      expect(result, isA<Success<List<AttendanceTodayStatus>>>());
+      final success = result as Success<List<AttendanceTodayStatus>>;
+      expect(success.data.length, 4);
+      final completed = success.data.where((s) => s.isCompleted).toList();
+      expect(completed.length, 1);
+      expect(completed.first.type.value, 'day_start');
     });
 
-    test('пустой список, если отметок ещё нет', () async {
+    test('все 4 типа возвращаются, но ни один не завершён, если отметок ещё нет', () async {
       when(() => dio.get('/api/v1/mobile/attendance/today/')).thenAnswer(
-            (_) async => Response(
+        (_) async => Response(
           requestOptions: RequestOptions(path: '/api/v1/mobile/attendance/today/'),
           statusCode: 200,
           data: {'marks': []},
@@ -190,9 +196,10 @@ void main() {
 
       final result = await repository.getToday();
 
-      expect(result, isA<Success<List<dynamic>>>());
-      final success = result as Success<List<dynamic>>;
-      expect(success.data, isEmpty);
+      expect(result, isA<Success<List<AttendanceTodayStatus>>>());
+      final success = result as Success<List<AttendanceTodayStatus>>;
+      expect(success.data.length, 4);
+      expect(success.data.every((s) => !s.isCompleted), isTrue);
     });
   });
 }
