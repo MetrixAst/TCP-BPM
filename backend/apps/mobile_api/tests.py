@@ -15,7 +15,8 @@ from rest_framework.test import APITestCase
 from account.models import UserAccount, Department, Employee
 from hr.models import AttendanceRecord
 from hr.enums import CheckInEnum
-
+from tickets.models import ServiceRequest
+from tenants.models import Tenant
 
 
 class MobileApiMeTests(APITestCase):
@@ -227,3 +228,221 @@ class AttendanceCheckinApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['marks'], [])
+
+class TicketsApiTests(APITestCase):
+    def setUp(self):
+        self.department = Department.objects.create(name='Тестовый отдел для тикетов')
+
+        # Внутренний сотрудник (менеджер) — видит все заявки
+        self.manager_user = UserAccount.objects.create_user(
+            username='manager_tickets',
+            password='testpass123',
+            role='administrator',
+        )
+
+        # Арендатор — видит только свои заявки
+        self.tenant = Tenant.objects.create(
+            name='Тестовый арендатор',
+            area=50.0,
+            price=1000.0,
+            phone='+77001234567',
+            email='tenant@test.kz',
+            address='ул. Тестовая, 1',
+            contact='Иван Иванов',
+        )
+        self.tenant_user = UserAccount.objects.create_user(
+            username='tenant_tickets',
+            password='testpass123',
+            role='tenant',
+            tenant=self.tenant,
+        )
+
+        self.list_url = reverse('mobile_api:tickets-list-create')
+
+    def test_list_requires_auth(self):
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_create_ticket_with_photo_returns_201(self):
+        self.client.force_authenticate(user=self.manager_user)
+
+        response = self.client.post(
+            self.list_url,
+            {
+                'title': 'Сломан кондиционер',
+                'description': 'Не охлаждает, дует тёплым воздухом',
+                'category': 'hvac',
+                'priority': 'high',
+                'room': '305',
+                'photo': _make_test_image(),
+            },
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(ServiceRequest.objects.count(), 1)
+        ticket = ServiceRequest.objects.first()
+        self.assertEqual(ticket.title, 'Сломан кондиционер')
+        self.assertEqual(ticket.category, 'hvac')
+        self.assertTrue(ticket.photo)
+
+    def test_create_ticket_without_photo_succeeds(self):
+        self.client.force_authenticate(user=self.manager_user)
+
+        response = self.client.post(
+            self.list_url,
+            {
+                'title': 'Нужна уборка',
+                'description': 'Пролили кофе на ковёр',
+                'category': 'cleaning',
+            },
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_ticket_missing_required_field_returns_400(self):
+        self.client.force_authenticate(user=self.manager_user)
+
+        response = self.client.post(
+            self.list_url,
+            {'description': 'Без темы'},
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_list_filters_by_status(self):
+        self.client.force_authenticate(user=self.manager_user)
+
+        ServiceRequest.objects.create(
+            author=self.manager_user, title='Новая заявка',
+            description='...', category='other', status='new',
+        )
+        ServiceRequest.objects.create(
+            author=self.manager_user, title='Заявка в работе',
+            description='...', category='other', status='in_progress',
+        )
+
+        response = self.client.get(self.list_url, {'status': 'new'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data['results']
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['status'], 'new')
+
+    def test_list_filters_by_category(self):
+        self.client.force_authenticate(user=self.manager_user)
+
+        ServiceRequest.objects.create(
+            author=self.manager_user, title='Электрика',
+            description='...', category='electrical',
+        )
+        ServiceRequest.objects.create(
+            author=self.manager_user, title='Сантехника',
+            description='...', category='plumbing',
+        )
+
+        response = self.client.get(self.list_url, {'category': 'electrical'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data['results']
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['category'], 'electrical')
+
+    def test_list_is_paginated(self):
+        self.client.force_authenticate(user=self.manager_user)
+
+        for i in range(25):
+            ServiceRequest.objects.create(
+                author=self.manager_user, title=f'Заявка {i}',
+                description='...', category='other',
+            )
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('results', response.data)
+        self.assertIn('count', response.data)
+        self.assertEqual(response.data['count'], 25)
+        self.assertEqual(len(response.data['results']), 20)  # page_size
+
+    def test_tenant_sees_only_own_tickets(self):
+        # Заявка от менеджера
+        ServiceRequest.objects.create(
+            author=self.manager_user, title='Заявка менеджера',
+            description='...', category='other',
+        )
+        # Заявка от арендатора
+        ServiceRequest.objects.create(
+            author=self.tenant_user, tenant=self.tenant, title='Заявка арендатора',
+            description='...', category='other',
+        )
+
+        self.client.force_authenticate(user=self.tenant_user)
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data['results']
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['title'], 'Заявка арендатора')
+
+    def test_manager_sees_all_tickets(self):
+        ServiceRequest.objects.create(
+            author=self.manager_user, title='Заявка менеджера',
+            description='...', category='other',
+        )
+        ServiceRequest.objects.create(
+            author=self.tenant_user, tenant=self.tenant, title='Заявка арендатора',
+            description='...', category='other',
+        )
+
+        self.client.force_authenticate(user=self.manager_user)
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 2)
+
+    def test_detail_returns_full_ticket_info(self):
+        self.client.force_authenticate(user=self.manager_user)
+        ticket = ServiceRequest.objects.create(
+            author=self.manager_user, title='Детальная заявка',
+            description='Полное описание проблемы', category='it',
+        )
+
+        detail_url = reverse('mobile_api:tickets-detail', args=[ticket.id])
+        response = self.client.get(detail_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['title'], 'Детальная заявка')
+        self.assertEqual(response.data['description'], 'Полное описание проблемы')
+        self.assertIn('attachments', response.data)
+
+    def test_detail_not_found_returns_404(self):
+        self.client.force_authenticate(user=self.manager_user)
+
+        detail_url = reverse('mobile_api:tickets-detail', args=[99999])
+        response = self.client.get(detail_url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_tenant_cannot_see_others_ticket_detail(self):
+        other_tenant = Tenant.objects.create(
+            name='Другой арендатор',
+            area=50.0,
+            price=1000.0,
+            phone='+77009876543',
+            email='other_tenant@test.kz',
+            address='ул. Другая, 2',
+            contact='Пётр Петров',
+        )
+        other_ticket = ServiceRequest.objects.create(
+            author=self.manager_user, tenant=other_tenant, title='Чужая заявка',
+            description='...', category='other',
+        )
+
+        self.client.force_authenticate(user=self.tenant_user)
+        detail_url = reverse('mobile_api:tickets-detail', args=[other_ticket.id])
+        response = self.client.get(detail_url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
