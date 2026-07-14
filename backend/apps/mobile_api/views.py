@@ -133,12 +133,12 @@ class AttendanceCheckinView(APIView):
 
 
 class AttendanceTodayView(APIView):
-    """GET /api/v1/mobile/attendance/today/ — статус отметок за сегодня."""
+    """GET /api/v1/mobile/attendance/today/ — статус отметок за сегодня, включая фото."""
 
     permission_classes = [permissions.IsAuthenticated]
 
     @extend_schema(
-        responses={200: OpenApiResponse(description='Список отметок за сегодня')},
+        responses={200: OpenApiResponse(description='Список отметок за сегодня с фото')},
     )
     def get(self, request):
         employee = getattr(request.user, 'employee_info', None)
@@ -148,12 +148,21 @@ class AttendanceTodayView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        summary = AttendanceRecord.get_daily_summary(employee, date.today())
-        events = summary.get('details', {})
+        records = AttendanceRecord.objects.filter(
+            employee=employee,
+            timestamp__date=date.today(),
+        ).order_by('timestamp')
 
-        marks = [
-            {'type': key, 'time': ts.isoformat()}
-            for key, ts in events.items()
-        ]
+        marks = []
+        for record in records:
+            photo_url = None
+            if record.photo:
+                photo_url = request.build_absolute_uri(record.photo.url)
+            marks.append({
+                'type': record.event_type,
+                'time': record.timestamp.isoformat(),
+                'photo': photo_url,
+                'location_address': record.location_address,
+            })
 
         return Response({'marks': marks})
