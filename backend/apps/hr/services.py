@@ -5,6 +5,11 @@ from django.db import transaction
 from account.models import Employee
 from hr.enbek_client import EnbekClient
 from hr.models import Vacation, SickLeave, EmploymentContract
+from django.core.files.base import ContentFile
+from django.core.exceptions import ValidationError
+
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
+
 
 logger = logging.getLogger(__name__)
 
@@ -153,3 +158,41 @@ class EnbekSyncService:
             if value not in (None, ""):
                 return value
         return None
+
+def _round_geo_coord(value):
+    if value is None:
+        return None
+    try:
+        return Decimal(str(value)).quantize(Decimal('0.0000001'), rounding=ROUND_HALF_UP)
+    except (TypeError, ValueError, InvalidOperation):
+        return None
+
+
+def create_attendance_checkin(*, employee, event_type, photo_file, latitude=None, longitude=None, ip_address=None):
+    """
+    Общая бизнес-логика чек-ина посещаемости.
+    Используется и web-view (session-auth), и mobile JWT-endpoint.
+    photo_file — уже готовый Django File/ContentFile объект.
+    """
+    from .models import AttendanceRecord
+
+    lat = _round_geo_coord(latitude)
+    lng = _round_geo_coord(longitude)
+
+    location_address = ''
+    if lat is not None and lng is not None:
+        from .geocoding import reverse_geocode
+        location_address = reverse_geocode(lat, lng)
+
+    record = AttendanceRecord(
+        employee=employee,
+        event_type=event_type,
+        ip_address=ip_address,
+        photo=photo_file,
+        latitude=lat,
+        longitude=lng,
+        location_address=location_address,
+    )
+    record.full_clean()
+    record.save()
+    return record
