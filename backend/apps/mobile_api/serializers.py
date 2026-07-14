@@ -43,7 +43,7 @@ class ServiceRequestListSerializer(serializers.Serializer):
     category = serializers.CharField()
     priority = serializers.CharField()
     status = serializers.CharField()
-    room = serializers.CharField(allow_blank=True)
+    room = serializers.CharField(allow_blank=True, allow_null=True)
     created_at = serializers.DateTimeField()
     photo = serializers.SerializerMethodField()
 
