@@ -5,6 +5,7 @@ import '../features/auth/presentation/login_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/attendance/presentation/checkin_screen.dart';
+import '../features/attendance/presentation/today_status_screen.dart';
 
 const _storage = FlutterSecureStorage();
 
@@ -23,5 +24,6 @@ final router = GoRouter(
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
     GoRoute(path: '/checkin', builder: (context, state) => const CheckinScreen()),
+    GoRoute(path: '/attendance/today', builder: (context, state) => const TodayStatusScreen()),
   ],
 );

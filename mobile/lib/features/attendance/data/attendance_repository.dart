@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 
 import '../../../core/network/api_result.dart';
-import 'attendance_mark.dart';
+import 'attendance_today_status.dart';
 
 class AttendanceRepository {
   final Dio dio;
@@ -31,17 +31,14 @@ class AttendanceRepository {
     }
   }
 
-  Future<ApiResult<List<AttendanceMark>>> getToday() async {
-    try {
-      final response = await dio.get('/api/v1/mobile/attendance/today/');
-      final marksJson = response.data['marks'] as List<dynamic>;
-      final marks = marksJson
-          .map((m) => AttendanceMark.fromJson(m as Map<String, dynamic>))
-          .toList();
-      return Success(marks);
-    } on DioException catch (e) {
-      return Failure(_errorMessage(e), statusCode: e.response?.statusCode);
-    }
+  Future<ApiResult<List<AttendanceTodayStatus>>> getToday() async {
+      try {
+        final response = await dio.get('/api/v1/mobile/attendance/today/');
+        final marksJson = response.data['marks'] as List<dynamic>;
+        return Success(buildTodayStatus(marksJson));
+      } on DioException catch (e) {
+        return Failure(_errorMessage(e), statusCode: e.response?.statusCode);
+      }
   }
 
   String _errorMessage(DioException e) {
