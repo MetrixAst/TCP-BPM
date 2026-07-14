@@ -15,7 +15,7 @@ from account.role_permissions import MenuItem
 from hr.models import AttendanceRecord
 from hr.services import create_attendance_checkin
 
-from tickets.models import ServiceRequest
+from tickets.models import ServiceRequest, TicketMessage
 
 from .serializers import (
     ProfileSerializer,
@@ -25,6 +25,8 @@ from .serializers import (
     ServiceRequestListSerializer,
     ServiceRequestDetailSerializer,
     ServiceRequestCreateSerializer,
+    TicketMessageSerializer,
+    TicketMessageCreateSerializer,
 )
 
 
@@ -255,4 +257,58 @@ class TicketDetailView(APIView):
 
         return Response(
             ServiceRequestDetailSerializer(ticket, context={'request': request}).data
+        )
+
+class TicketMessagesView(APIView):
+    """
+    GET  /api/v1/mobile/tickets/{id}/messages/ — сообщения чата заявки.
+    POST /api/v1/mobile/tickets/{id}/messages/ — отправка сообщения.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _get_ticket_or_404(self, request, pk):
+        ticket = ServiceRequest.objects.filter(pk=pk).first()
+        if ticket is None:
+            return None
+        if not TicketMessage.can_view(ticket, request.user):
+            return None
+        return ticket
+
+    @extend_schema(
+        responses={200: OpenApiResponse(description='Сообщения чата заявки')},
+    )
+    def get(self, request, pk):
+        ticket = self._get_ticket_or_404(request, pk)
+        if ticket is None:
+            return Response({'error': 'Заявка не найдена'}, status=status.HTTP_404_NOT_FOUND)
+
+        messages = ticket.messages.select_related('author').order_by('id')
+
+        paginator = TicketPagination()
+        page = paginator.paginate_queryset(messages, request)
+        serializer = TicketMessageSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
+    @extend_schema(
+        request=TicketMessageCreateSerializer,
+        responses={201: OpenApiResponse(description='Сообщение отправлено')},
+    )
+    def post(self, request, pk):
+        ticket = self._get_ticket_or_404(request, pk)
+        if ticket is None:
+            return Response({'error': 'Заявка не найдена'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = TicketMessageCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        message = TicketMessage.objects.create(
+            request=ticket,
+            author=request.user,
+            text=serializer.validated_data['text'],
+        )
+
+        return Response(
+            TicketMessageSerializer(message).data,
+            status=status.HTTP_201_CREATED,
         )
