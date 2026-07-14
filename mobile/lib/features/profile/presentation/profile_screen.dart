@@ -7,6 +7,11 @@ import '../../../core/network/api_result.dart';
 import '../data/profile_dto.dart';
 import '../data/profile_repository.dart';
 import '../data/logout_repository.dart';
+import '../../../core/theme/metrix_colors.dart';
+import '../../../shared/spacing.dart';
+import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_card.dart';
+import '../../../shared/widgets/app_top_bar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -74,11 +79,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final baseUrl = DioClient().dio.options.baseUrl;
     return '$baseUrl$avatarPath';
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Профиль')),
+      backgroundColor: MetrixColors.surfaceMuted,
+      appBar: const AppTopBar(title: 'Профиль'),
       body: _buildBody(),
     );
   }
@@ -90,16 +95,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (_errorMessage != null) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadProfile,
-              child: const Text('Повторить'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: MetrixColors.danger, size: 40),
+              const SizedBox(height: AppSpacing.sm),
+              Text(_errorMessage!, style: const TextStyle(color: MetrixColors.danger), textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.md),
+              AppButton(label: 'Повторить', variant: AppButtonVariant.secondary, onPressed: _loadProfile),
+            ],
+          ),
         ),
       );
     }
@@ -107,50 +114,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final profile = _profile!;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          CircleAvatar(
-            radius: 48,
-            backgroundImage: _fullAvatarUrl(profile.avatar) != null
-                ? NetworkImage(_fullAvatarUrl(profile.avatar)!)
-                : null,
-            child: _fullAvatarUrl(profile.avatar) == null
-                ? const Icon(Icons.person, size: 48)
-                : null,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            profile.fullName,
-            style: Theme.of(context).textTheme.titleLarge,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            profile.role,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          if (profile.employee?.position != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              profile.employee!.position!,
-              style: Theme.of(context).textTheme.bodySmall,
+          AppCard(
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 44,
+                  backgroundColor: MetrixColors.surfaceMuted,
+                  backgroundImage: _fullAvatarUrl(profile.avatar) != null
+                      ? NetworkImage(_fullAvatarUrl(profile.avatar)!)
+                      : null,
+                  child: _fullAvatarUrl(profile.avatar) == null
+                      ? const Icon(Icons.person, size: 44, color: MetrixColors.textMuted)
+                      : null,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(profile.fullName, style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
+                const SizedBox(height: AppSpacing.xs),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: MetrixColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    profile.role,
+                    style: const TextStyle(color: MetrixColors.primary, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                if (profile.employee?.position != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(profile.employee!.position!, style: const TextStyle(color: MetrixColors.textMuted, fontSize: 13)),
+                ],
+              ],
             ),
-          ],
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isLoggingOut ? null : _handleLogout,
-              child: _isLoggingOut
-                  ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-                  : const Text('Выйти'),
-            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          AppButton(
+            label: 'Выйти',
+            variant: AppButtonVariant.danger,
+            icon: Icons.logout,
+            isLoading: _isLoggingOut,
+            onPressed: _handleLogout,
           ),
         ],
       ),
