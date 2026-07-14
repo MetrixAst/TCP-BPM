@@ -15,7 +15,7 @@ from rest_framework.test import APITestCase
 from account.models import UserAccount, Department, Employee
 from hr.models import AttendanceRecord
 from hr.enums import CheckInEnum
-from tickets.models import ServiceRequest
+from tickets.models import ServiceRequest, TicketMessage
 from tenants.models import Tenant
 
 
@@ -444,5 +444,149 @@ class TicketsApiTests(APITestCase):
         self.client.force_authenticate(user=self.tenant_user)
         detail_url = reverse('mobile_api:tickets-detail', args=[other_ticket.id])
         response = self.client.get(detail_url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+class TicketMessagesApiTests(APITestCase):
+    def setUp(self):
+        self.manager_user = UserAccount.objects.create_user(
+            username='manager_chat',
+            password='testpass123',
+            role='administrator',
+        )
+
+        self.tenant = Tenant.objects.create(
+            name='Арендатор для чата',
+            area=50.0,
+            price=1000.0,
+            phone='+77001112233',
+            email='chat_tenant@test.kz',
+            address='ул. Чатовая, 3',
+            contact='Сергей Сергеев',
+        )
+        self.tenant_user = UserAccount.objects.create_user(
+            username='tenant_chat',
+            password='testpass123',
+            role='tenant',
+            tenant=self.tenant,
+        )
+
+        self.stranger_user = UserAccount.objects.create_user(
+            username='stranger_chat',
+            password='testpass123',
+            role='tenant',
+        )
+
+        self.ticket = ServiceRequest.objects.create(
+            author=self.tenant_user,
+            tenant=self.tenant,
+            title='Заявка с чатом',
+            description='Описание проблемы',
+            category='other',
+        )
+
+        self.messages_url = reverse('mobile_api:tickets-messages', args=[self.ticket.id])
+
+    def test_messages_require_auth(self):
+        response = self.client.get(self.messages_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_author_can_view_empty_chat(self):
+        self.client.force_authenticate(user=self.tenant_user)
+        response = self.client.get(self.messages_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], [])
+
+    def test_author_can_send_message(self):
+        self.client.force_authenticate(user=self.tenant_user)
+
+        response = self.client.post(
+            self.messages_url,
+            {'text': 'У меня проблема с кондиционером'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(TicketMessage.objects.filter(request=self.ticket).count(), 1)
+        message = TicketMessage.objects.first()
+        self.assertEqual(message.text, 'У меня проблема с кондиционером')
+        self.assertEqual(message.author, self.tenant_user)
+
+    def test_manager_can_view_and_reply(self):
+        self.client.force_authenticate(user=self.tenant_user)
+        self.client.post(self.messages_url, {'text': 'Вопрос от арендатора'}, format='json')
+
+        self.client.force_authenticate(user=self.manager_user)
+        response = self.client.post(
+            self.messages_url,
+            {'text': 'Ответ от менеджера'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        list_response = self.client.get(self.messages_url)
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(list_response.data['results']), 2)
+
+    def test_stranger_cannot_view_chat(self):
+        self.client.force_authenticate(user=self.stranger_user)
+        response = self.client.get(self.messages_url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_stranger_cannot_send_message(self):
+        self.client.force_authenticate(user=self.stranger_user)
+
+        response = self.client.post(
+            self.messages_url,
+            {'text': 'Попытка чужого сообщения'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(TicketMessage.objects.count(), 0)
+
+    def test_assignee_can_view_chat(self):
+        self.ticket.assignee = self.manager_user
+        self.ticket.save(update_fields=['assignee'])
+
+        assignee_user = UserAccount.objects.create_user(
+            username='assignee_chat',
+            password='testpass123',
+            role='staff',
+        )
+        self.ticket.assignee = assignee_user
+        self.ticket.save(update_fields=['assignee'])
+
+        self.client.force_authenticate(user=assignee_user)
+        response = self.client.get(self.messages_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_send_message_missing_text_returns_400(self):
+        self.client.force_authenticate(user=self.tenant_user)
+
+        response = self.client.post(self.messages_url, {}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_messages_ordered_chronologically(self):
+        self.client.force_authenticate(user=self.tenant_user)
+        self.client.post(self.messages_url, {'text': 'Первое сообщение'}, format='json')
+        self.client.post(self.messages_url, {'text': 'Второе сообщение'}, format='json')
+
+        response = self.client.get(self.messages_url)
+
+        results = response.data['results']
+        self.assertEqual(results[0]['text'], 'Первое сообщение')
+        self.assertEqual(results[1]['text'], 'Второе сообщение')
+
+    def test_messages_for_nonexistent_ticket_returns_404(self):
+        self.client.force_authenticate(user=self.manager_user)
+
+        bad_url = reverse('mobile_api:tickets-messages', args=[99999])
+        response = self.client.get(bad_url)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
