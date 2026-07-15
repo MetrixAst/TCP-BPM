@@ -8,7 +8,7 @@ from account.models import UserAccount
 from account.role_permissions import RoleEnums
 from .models import Task
 from .enums import TaskStatusEnum
-
+from .serializers import TaskSerializer
 
 class TaskWorkflowTestCase(TestCase):
     def setUp(self):
@@ -89,3 +89,64 @@ class TaskWorkflowTestCase(TestCase):
             type('R', (), {'user': outsider})(),
         )
         self.assertNotIn(self.task, qs_out)
+
+class TaskSerializerMobileFieldsTestCase(TestCase):
+    def setUp(self):
+        self.author = UserAccount.objects.create_user(
+            username='ser_author',
+            password='pass',
+            role=RoleEnums.STAFF.value,
+        )
+
+    def test_status_display_and_color_present(self):
+        task = Task.objects.create(
+            author=self.author,
+            title='Serializer task',
+            deadline=date.today() + timedelta(days=3),
+            status=TaskStatusEnum.CREATED.value[0],
+        )
+
+        data = TaskSerializer(task).data
+
+        self.assertEqual(data['status_display'], 'Создана')
+        self.assertEqual(data['status_color'], 'neutral')
+
+    def test_status_color_reflects_rejected_state(self):
+        task = Task.objects.create(
+            author=self.author,
+            title='Rejected task',
+            deadline=date.today() + timedelta(days=3),
+            status=TaskStatusEnum.REJECTED.value[0],
+        )
+
+        data = TaskSerializer(task).data
+
+        self.assertEqual(data['status_color'], 'danger')
+
+    def test_priority_display_present(self):
+        task = Task.objects.create(
+            author=self.author,
+            title='Priority task',
+            deadline=date.today() + timedelta(days=3),
+            status=TaskStatusEnum.CREATED.value[0],
+            priority='critical',
+        )
+
+        data = TaskSerializer(task).data
+
+        self.assertEqual(data['priority_display'], 'Критический')
+
+    def test_existing_status_display_still_returns_plain_title(self):
+        # Регрессионный тест: убеждаемся, что старое поле status_display
+        # не сломалось при добавлении status_color рядом с ним.
+        task = Task.objects.create(
+            author=self.author,
+            title='Regression task',
+            deadline=date.today() + timedelta(days=3),
+            status=TaskStatusEnum.COMPLETED.value[0],
+        )
+
+        data = TaskSerializer(task).data
+
+        self.assertEqual(data['status_display'], 'Завершена')
+        self.assertIsInstance(data['status_display'], str)
