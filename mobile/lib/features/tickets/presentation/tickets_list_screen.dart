@@ -136,6 +136,16 @@ class _TicketsListScreenState extends State<TicketsListScreen> {
           Expanded(child: _buildBody()),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: MetrixColors.primary,
+        onPressed: () async {
+          final created = await context.push<bool>('/tickets/create');
+          if (created == true) {
+            _load(reset: true);
+          }
+        },
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
     );
   }
 
