@@ -236,6 +236,14 @@ class TicketListCreateView(APIView):
             photo=data.get('photo'),
         )
 
+        from tickets.models import ServiceRequestHistory
+        ServiceRequestHistory.objects.create(
+            request=ticket,
+            user=request.user,
+            status=ticket.status,
+            comment='Заявка создана',
+        )
+
         return Response(
             ServiceRequestDetailSerializer(ticket, context={'request': request}).data,
             status=status.HTTP_201_CREATED,
