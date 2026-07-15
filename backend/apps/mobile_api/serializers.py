@@ -2,7 +2,26 @@ from rest_framework import serializers
 
 from tickets.models import ServiceRequest, TicketAttachment
 from hr.enums import CheckInEnum
+from tickets.models import TicketMessage
 
+
+class TicketMessageSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    author = serializers.SerializerMethodField()
+    text = serializers.CharField()
+    created_at = serializers.DateTimeField()
+
+    def get_author(self, obj):
+        if obj.author is None:
+            return None
+        return {
+            'id': obj.author.id,
+            'full_name': obj.author.get_name,
+        }
+
+
+class TicketMessageCreateSerializer(serializers.Serializer):
+    text = serializers.CharField(max_length=2000)
 
 class TicketAttachmentSerializer(serializers.Serializer):
     id = serializers.IntegerField()

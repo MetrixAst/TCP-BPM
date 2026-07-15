@@ -4,6 +4,7 @@ from .views import (
     DeviceView, MeView,
     AttendanceCheckinView, AttendanceTodayView,
     TicketListCreateView, TicketDetailView,
+    TicketMessagesView,
 )
 
 app_name = 'mobile_api'
@@ -15,4 +16,5 @@ urlpatterns = [
     path('attendance/today/', AttendanceTodayView.as_view(), name='attendance-today'),
     path('tickets/', TicketListCreateView.as_view(), name='tickets-list-create'),
     path('tickets/<int:pk>/', TicketDetailView.as_view(), name='tickets-detail'),
+    path('tickets/<int:pk>/messages/', TicketMessagesView.as_view(), name='tickets-messages'),
 ]
