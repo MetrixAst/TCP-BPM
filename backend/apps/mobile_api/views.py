@@ -6,8 +6,20 @@ from rest_framework.views import APIView
 from account.models import NotificationIndicator, PushToken
 from account.role_permissions import MenuItem
 
-from .serializers import ProfileSerializer, PushTokenSerializer
+from datetime import date
 
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.parsers import MultiPartParser
+
+from hr.models import AttendanceRecord
+from hr.services import create_attendance_checkin
+
+from .serializers import (
+    ProfileSerializer,
+    PushTokenSerializer,
+    AttendanceCheckinSerializer,
+    AttendanceRecordOutSerializer,
+)
 
 def _serialize_menu_item(item):
     return {
@@ -79,3 +91,69 @@ class DeviceView(APIView):
             qs = qs.filter(fcm=fcm)
         deleted_count, _ = qs.delete()
         return Response({'deleted': deleted_count}, status=status.HTTP_200_OK)
+
+class AttendanceCheckinView(APIView):
+    """POST /api/v1/mobile/attendance/checkin/ — чек-ин с фото (multipart) + гео, JWT."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    @extend_schema(
+        request=AttendanceCheckinSerializer,
+        responses={201: OpenApiResponse(description='Отметка сохранена')},
+    )
+    def post(self, request):
+        employee = getattr(request.user, 'employee_info', None)
+        if not employee:
+            return Response(
+                {'error': 'Профиль сотрудника не найден'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = AttendanceCheckinSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        try:
+            record = create_attendance_checkin(
+                employee=employee,
+                event_type=data['event_type'],
+                photo_file=data['photo'],
+                latitude=data.get('latitude'),
+                longitude=data.get('longitude'),
+                ip_address=request.META.get('REMOTE_ADDR'),
+            )
+        except DjangoValidationError as e:
+            return Response({'error': e.messages[0]}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            AttendanceRecordOutSerializer(record).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class AttendanceTodayView(APIView):
+    """GET /api/v1/mobile/attendance/today/ — статус отметок за сегодня."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        responses={200: OpenApiResponse(description='Список отметок за сегодня')},
+    )
+    def get(self, request):
+        employee = getattr(request.user, 'employee_info', None)
+        if not employee:
+            return Response(
+                {'error': 'Профиль сотрудника не найден'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        summary = AttendanceRecord.get_daily_summary(employee, date.today())
+        events = summary.get('details', {})
+
+        marks = [
+            {'type': key, 'time': ts.isoformat()}
+            for key, ts in events.items()
+        ]
+
+        return Response({'marks': marks})
