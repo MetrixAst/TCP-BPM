@@ -130,6 +130,12 @@ class HomeScreen extends StatelessWidget {
                     subtitle: 'Отметка посещаемости',
                     onTap: () => context.push('/checkin'),
                   ),
+                  _ListRow(
+                    icon: Icons.checklist_rounded,
+                    title: 'Статус дня',
+                    subtitle: 'Мои отметки за сегодня',
+                    onTap: () => context.push('/attendance/today'),
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xl),
