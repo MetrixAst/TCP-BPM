@@ -142,6 +142,12 @@ class HomeScreen extends StatelessWidget {
                     subtitle: 'Список обращений',
                     onTap: () => context.push('/tickets'),
                   ),
+                  _ListRow(
+                    icon: Icons.checklist_rtl_outlined,
+                    title: 'Мои задачи',
+                    subtitle: 'Список поручений',
+                    onTap: () => context.push('/tasks'),
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xl),
