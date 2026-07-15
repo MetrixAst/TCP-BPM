@@ -52,6 +52,7 @@ urlpatterns = [
     path('api/v1/', include('project.api_urls')),
     path('api/search/', global_search, name='global_search'),
     path('', include(('dashboard.urls', 'dashboard'))),
+    path('api/esigner/', include(('esigner.urls', 'esigner'))),
 ]
 
 

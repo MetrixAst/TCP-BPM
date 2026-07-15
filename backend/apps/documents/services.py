@@ -150,6 +150,13 @@ def document(request, pk):
     inner_documents = current.inner_documents.all()
     files_count = (1 if current.document else 0) + inner_documents.count()
 
+    from django.contrib.contenttypes.models import ContentType
+    from esigner.models import ESignerSigning
+    esigner_signing = ESignerSigning.objects.filter(
+        content_type=ContentType.objects.get_for_model(Document),
+        object_id=current.pk,
+    ).first()
+
     context = {
         'document': current,
         'inner_documents': inner_documents,
@@ -158,6 +165,7 @@ def document(request, pk):
         'actions': current.actions(request),
         'type_config': DocumentTypeEnum.get_config(current.document_type),
         'addit_form': InnerDocumentForm(),
+        'esigner_signing': esigner_signing,
     }
 
     return render(request, 'site/documents/document.html', context)
