@@ -1,25 +1,32 @@
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from datetime import date
+
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser
+from rest_framework.pagination import PageNumberPagination
+
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 from account.models import NotificationIndicator, PushToken
 from account.role_permissions import MenuItem
 
-from datetime import date
-
-from django.core.exceptions import ValidationError as DjangoValidationError
-from rest_framework.parsers import MultiPartParser
-
 from hr.models import AttendanceRecord
 from hr.services import create_attendance_checkin
+
+from tickets.models import ServiceRequest
 
 from .serializers import (
     ProfileSerializer,
     PushTokenSerializer,
     AttendanceCheckinSerializer,
     AttendanceRecordOutSerializer,
+    ServiceRequestListSerializer,
+    ServiceRequestDetailSerializer,
+    ServiceRequestCreateSerializer,
 )
+
 
 def _serialize_menu_item(item):
     return {
@@ -91,6 +98,7 @@ class DeviceView(APIView):
             qs = qs.filter(fcm=fcm)
         deleted_count, _ = qs.delete()
         return Response({'deleted': deleted_count}, status=status.HTTP_200_OK)
+
 
 class AttendanceCheckinView(APIView):
     """POST /api/v1/mobile/attendance/checkin/ — чек-ин с фото (multipart) + гео, JWT."""
@@ -166,3 +174,85 @@ class AttendanceTodayView(APIView):
             })
 
         return Response({'marks': marks})
+
+
+class TicketPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+class TicketListCreateView(APIView):
+    """
+    GET  /api/v1/mobile/tickets/ — список + фильтры (status/category), пагинация.
+    POST /api/v1/mobile/tickets/ — создание с фото (multipart).
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter('status', str, required=False),
+            OpenApiParameter('category', str, required=False),
+        ],
+        responses={200: OpenApiResponse(description='Список заявок с пагинацией')},
+    )
+    def get(self, request):
+        qs = ServiceRequest.get_available_queryset(request)
+
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+
+        category_filter = request.query_params.get('category')
+        if category_filter:
+            qs = qs.filter(category=category_filter)
+
+        paginator = TicketPagination()
+        page = paginator.paginate_queryset(qs, request)
+        serializer = ServiceRequestListSerializer(page, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
+
+    @extend_schema(
+        request=ServiceRequestCreateSerializer,
+        responses={201: OpenApiResponse(description='Заявка создана')},
+    )
+    def post(self, request):
+        serializer = ServiceRequestCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        ticket = ServiceRequest.objects.create(
+            author=request.user,
+            tenant=getattr(request.user, 'tenant', None),
+            title=data['title'],
+            description=data['description'],
+            category=data['category'],
+            priority=data.get('priority', ServiceRequest.PRIORITIES[1][0]),
+            room=data.get('room', ''),
+            photo=data.get('photo'),
+        )
+
+        return Response(
+            ServiceRequestDetailSerializer(ticket, context={'request': request}).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class TicketDetailView(APIView):
+    """GET /api/v1/mobile/tickets/{id}/ — детали заявки."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        responses={200: OpenApiResponse(description='Детали заявки')},
+    )
+    def get(self, request, pk):
+        ticket = ServiceRequest.get_available_queryset(request).filter(pk=pk).first()
+        if ticket is None:
+            return Response({'error': 'Заявка не найдена'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(
+            ServiceRequestDetailSerializer(ticket, context={'request': request}).data
+        )

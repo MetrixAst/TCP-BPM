@@ -1,5 +1,58 @@
 from rest_framework import serializers
+
+from tickets.models import ServiceRequest, TicketAttachment
 from hr.enums import CheckInEnum
+
+
+class TicketAttachmentSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    file = serializers.SerializerMethodField()
+    original_name = serializers.CharField()
+    created_at = serializers.DateTimeField()
+
+    def get_file(self, obj):
+        request = self.context.get('request')
+        if obj.file and request:
+            return request.build_absolute_uri(obj.file.url)
+        return None
+
+
+class ServiceRequestListSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    number = serializers.CharField()
+    title = serializers.CharField()
+    category = serializers.CharField()
+    priority = serializers.CharField()
+    status = serializers.CharField()
+    room = serializers.CharField(allow_blank=True)
+    created_at = serializers.DateTimeField()
+    photo = serializers.SerializerMethodField()
+
+    def get_photo(self, obj):
+        request = self.context.get('request')
+        if obj.photo and request:
+            return request.build_absolute_uri(obj.photo.url)
+        return None
+
+
+class ServiceRequestDetailSerializer(ServiceRequestListSerializer):
+    description = serializers.CharField()
+    updated_at = serializers.DateTimeField()
+    attachments = serializers.SerializerMethodField()
+
+    def get_attachments(self, obj):
+        return TicketAttachmentSerializer(
+            obj.attachments.all(), many=True, context=self.context
+        ).data
+
+
+class ServiceRequestCreateSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=160)
+    description = serializers.CharField(max_length=3000)
+    category = serializers.ChoiceField(choices=ServiceRequest.CATEGORIES)
+    priority = serializers.ChoiceField(choices=ServiceRequest.PRIORITIES, required=False)
+    room = serializers.CharField(max_length=60, required=False, allow_blank=True)
+    photo = serializers.ImageField(required=False, allow_null=True)
 
 
 class EmployeeInfoSerializer(serializers.Serializer):
