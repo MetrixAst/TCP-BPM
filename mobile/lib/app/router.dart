@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/material.dart';
 
 import '../features/auth/presentation/login_screen.dart';
 import '../features/home/presentation/home_screen.dart';
@@ -9,6 +10,7 @@ import '../features/attendance/presentation/today_status_screen.dart';
 import '../features/tickets/presentation/tickets_list_screen.dart';
 import '../features/tickets/presentation/create_ticket_screen.dart';
 import '../features/tickets/presentation/ticket_detail_screen.dart';
+import '../features/tasks/presentation/tasks_list_screen.dart';
 
 const _storage = FlutterSecureStorage();
 
@@ -35,6 +37,17 @@ final router = GoRouter(
       builder: (context, state) {
         final id = int.parse(state.pathParameters['id']!);
         return TicketDetailScreen(ticketId: id);
+      },
+    ),
+    GoRoute(path: '/tasks', builder: (context, state) => const TasksListScreen()),
+    GoRoute(
+      path: '/tasks/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id'];
+        return Scaffold(
+          appBar: AppBar(title: Text('Задача #$id')),
+          body: const Center(child: Text('Детали задачи (следующий тикет)')),
+        );
       },
     ),
   ],
