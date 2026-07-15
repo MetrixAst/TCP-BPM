@@ -29,6 +29,10 @@ class TaskSerializer(serializers.ModelSerializer):
         required=False,
     )
     status_display = serializers.SerializerMethodField()
+    status_display = serializers.SerializerMethodField()
+    status_color = serializers.SerializerMethodField()
+    priority_display = serializers.SerializerMethodField()
+    available_actions = serializers.SerializerMethodField()
     available_actions = serializers.SerializerMethodField()
     executor_id = serializers.PrimaryKeyRelatedField(
         queryset=UserAccount.objects.all(),
@@ -45,7 +49,9 @@ class TaskSerializer(serializers.ModelSerializer):
             'text',
             'status',
             'status_display',
+            'status_color',
             'priority',
+            'priority_display',
             'deadline',
             'date',
             'views',
@@ -70,6 +76,19 @@ class TaskSerializer(serializers.ModelSerializer):
     def get_status_display(self, obj):
         info = obj.status_info
         return info.get('title', obj.status) if isinstance(info, dict) else obj.status
+
+    def get_status_display(self, obj):
+        info = obj.status_info
+        return info.get('title', obj.status) if isinstance(info, dict) else obj.status
+
+    def get_status_color(self, obj):
+        info = obj.status_info
+        return info.get('color', 'neutral') if isinstance(info, dict) else 'neutral'
+
+    def get_priority_display(self, obj):
+        from .enums import PriorityEnum
+        labels = dict(PriorityEnum.list())
+        return labels.get(obj.priority, obj.priority)
 
     def get_available_actions(self, obj):
         request = self.context.get('request')
