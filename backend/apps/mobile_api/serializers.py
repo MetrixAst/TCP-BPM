@@ -58,10 +58,16 @@ class ServiceRequestDetailSerializer(ServiceRequestListSerializer):
     description = serializers.CharField()
     updated_at = serializers.DateTimeField()
     attachments = serializers.SerializerMethodField()
+    history = serializers.SerializerMethodField()
 
     def get_attachments(self, obj):
         return TicketAttachmentSerializer(
             obj.attachments.all(), many=True, context=self.context
+        ).data
+
+    def get_history(self, obj):
+        return ServiceRequestHistoryEntrySerializer(
+            obj.history.all(), many=True
         ).data
 
 
@@ -124,3 +130,15 @@ class AttendanceRecordOutSerializer(serializers.Serializer):
     event_type = serializers.CharField()
     timestamp = serializers.DateTimeField()
     location_address = serializers.CharField()
+
+class ServiceRequestHistoryEntrySerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    status = serializers.CharField()
+    comment = serializers.CharField(allow_null=True, allow_blank=True)
+    created_at = serializers.DateTimeField()
+    user = serializers.SerializerMethodField()
+
+    def get_user(self, obj):
+        if obj.user is None:
+            return None
+        return obj.user.get_name
