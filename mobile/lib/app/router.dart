@@ -8,6 +8,7 @@ import '../features/profile/presentation/profile_screen.dart';
 import '../features/attendance/presentation/checkin_screen.dart';
 import '../features/attendance/presentation/today_status_screen.dart';
 import '../features/tickets/presentation/tickets_list_screen.dart';
+import '../features/tickets/presentation/create_ticket_screen.dart';
 
 const _storage = FlutterSecureStorage();
 
@@ -28,6 +29,7 @@ final router = GoRouter(
     GoRoute(path: '/checkin', builder: (context, state) => const CheckinScreen()),
     GoRoute(path: '/attendance/today', builder: (context, state) => const TodayStatusScreen()),
     GoRoute(path: '/tickets', builder: (context, state) => const TicketsListScreen()),
+    GoRoute(path: '/tickets/create', builder: (context, state) => const CreateTicketScreen()),
     GoRoute(
       path: '/tickets/:id',
       builder: (context, state) => Scaffold(
