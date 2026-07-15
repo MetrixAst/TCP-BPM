@@ -4,11 +4,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_result.dart';
+import '../../../core/theme/metrix_colors.dart';
+import '../../../shared/spacing.dart';
+import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_card.dart';
+import '../../../shared/widgets/app_text_field.dart';
 import '../data/auth_repository.dart';
-
 import '../../push/data/push_service.dart';
 import '../../push/data/push_repository.dart';
-
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -60,7 +63,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (!mounted) return;
-
     setState(() => _isLoading = false);
 
     switch (result) {
@@ -70,9 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
           if (fcmToken != null) {
             try {
               await _pushRepository.registerToken(fcmToken);
-            } catch (_) {
-              // не блокируем вход, если push не зарегистрировался
-            }
+            } catch (_) {}
           }
           if (mounted) context.go('/');
         }
@@ -84,66 +84,112 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: MetrixColors.surfaceMuted,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'metriX',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleLarge,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: AppSpacing.xxl),
+              // Брендинг-блок как на вебе, адаптированный для узкого экрана
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppSpacing.xl,
+                  horizontal: AppSpacing.lg,
+                ),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [MetrixColors.primary, MetrixColors.primaryHover],
                   ),
-                  const SizedBox(height: 32),
-                  TextFormField(
-                    controller: _usernameController,
-                    decoration: const InputDecoration(labelText: 'Логин'),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Введите логин';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: const InputDecoration(labelText: 'Пароль'),
-                    obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Введите пароль';
-                      }
-                      return null;
-                    },
-                  ),
-                  if (_errorMessage != null) ...[
-                    const SizedBox(height: 12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.dashboard_rounded, color: Colors.white, size: 36),
+                    const SizedBox(height: AppSpacing.sm),
+                    RichText(
+                      text: const TextSpan(
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w800,
+                          fontSize: 22,
+                        ),
+                        children: [
+                          TextSpan(text: 'metri', style: TextStyle(color: Colors.white)),
+                          TextSpan(text: 'X', style: TextStyle(color: Color(0xFFB4D0FF))),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
+                      'Управление бизнес-процессами',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        fontSize: 13,
+                        fontFamily: 'Inter',
+                      ),
                     ),
                   ],
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogin,
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Войти'),
-                  ),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: AppSpacing.lg),
+              AppCard(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Вход в систему',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      AppTextField(
+                        controller: _usernameController,
+                        label: 'Логин',
+                        icon: Icons.person_outline,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Введите логин';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      AppTextField(
+                        controller: _passwordController,
+                        label: 'Пароль',
+                        icon: Icons.lock_outline,
+                        obscureText: true,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Введите пароль';
+                          }
+                          return null;
+                        },
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          _errorMessage!,
+                          style: const TextStyle(color: MetrixColors.danger, fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.md),
+                      AppButton(
+                        label: 'Войти',
+                        isLoading: _isLoading,
+                        onPressed: _handleLogin,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
