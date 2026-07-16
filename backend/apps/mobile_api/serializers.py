@@ -3,7 +3,23 @@ from rest_framework import serializers
 from tickets.models import ServiceRequest, TicketAttachment
 from hr.enums import CheckInEnum
 from tickets.models import TicketMessage
+from account.models import Notification
 
+
+class NotificationSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    title = serializers.CharField()
+    text = serializers.CharField()
+    created_date = serializers.DateTimeField()
+    target_type = serializers.CharField(allow_null=True)
+    target_id = serializers.IntegerField(allow_null=True)
+    url = serializers.CharField(allow_null=True)
+    is_read = serializers.SerializerMethodField()
+
+    def get_is_read(self, obj):
+        unread_target_ids = self.context.get('unread_targets', set())
+        key = (obj.target_type, obj.target_id)
+        return key not in unread_target_ids
 
 class TicketMessageSerializer(serializers.Serializer):
     id = serializers.IntegerField()

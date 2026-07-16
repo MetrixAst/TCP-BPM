@@ -9,7 +9,7 @@ from rest_framework.pagination import PageNumberPagination
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 
-from account.models import NotificationIndicator, PushToken
+from account.models import NotificationIndicator, PushToken, Notification
 from account.role_permissions import MenuItem
 
 from hr.models import AttendanceRecord
@@ -27,6 +27,7 @@ from .serializers import (
     ServiceRequestCreateSerializer,
     TicketMessageSerializer,
     TicketMessageCreateSerializer,
+    NotificationSerializer,
 )
 
 
@@ -320,3 +321,44 @@ class TicketMessagesView(APIView):
             TicketMessageSerializer(message).data,
             status=status.HTTP_201_CREATED,
         )
+
+class NotificationsListView(APIView):
+    """GET /api/v1/mobile/notifications/ — лента уведомлений с флагом прочтения."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        responses={200: OpenApiResponse(description='Лента уведомлений пользователя')},
+    )
+    def get(self, request):
+        notifications = Notification.objects.filter(users=request.user).order_by('-id')
+
+        unread = NotificationIndicator.objects.filter(user=request.user).values_list(
+            'target_type', 'target_id'
+        )
+        unread_targets = set(unread)
+
+        paginator = TicketPagination()
+        page = paginator.paginate_queryset(notifications, request)
+        serializer = NotificationSerializer(
+            page, many=True, context={'unread_targets': unread_targets}
+        )
+        return paginator.get_paginated_response(serializer.data)
+
+
+class NotificationReadView(APIView):
+    """POST /api/v1/mobile/notifications/{id}/read/ — отметить прочитанным."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        responses={200: OpenApiResponse(description='Уведомление отмечено прочитанным')},
+    )
+    def post(self, request, pk):
+        notification = Notification.objects.filter(pk=pk, users=request.user).first()
+        if notification is None:
+            return Response({'error': 'Уведомление не найдено'}, status=status.HTTP_404_NOT_FOUND)
+
+        NotificationIndicator.readed(request.user, notification.target_id, notification.target_type)
+
+        return Response({'success': True})

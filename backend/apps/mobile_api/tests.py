@@ -2,7 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from account.models import PushToken, UserAccount
+from account.models import PushToken, UserAccount, Notification, NotificationIndicator
 
 import io
 
@@ -590,3 +590,133 @@ class TicketMessagesApiTests(APITestCase):
         response = self.client.get(bad_url)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class NotificationsApiTests(APITestCase):
+    def setUp(self):
+        self.user = UserAccount.objects.create_user(
+            username='notif_user',
+            password='testpass123',
+            role='staff',
+        )
+        self.other_user = UserAccount.objects.create_user(
+            username='notif_other',
+            password='testpass123',
+            role='staff',
+        )
+
+        self.list_url = reverse('mobile_api:notifications-list')
+
+    def test_list_requires_auth(self):
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_list_returns_only_own_notifications(self):
+        notif1 = Notification.objects.create(title='Моё уведомление', text='Текст 1')
+        notif1.users.add(self.user)
+
+        notif2 = Notification.objects.create(title='Чужое уведомление', text='Текст 2')
+        notif2.users.add(self.other_user)
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data['results']
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['title'], 'Моё уведомление')
+
+    def test_notification_unread_by_default_when_indicator_exists(self):
+        notif = Notification.objects.create(
+            title='Задача назначена', text='...',
+            target_type='task', target_id=42,
+        )
+        notif.users.add(self.user)
+        NotificationIndicator.objects.create(
+            user=self.user, target_type='task', target_id=42,
+        )
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.list_url)
+
+        results = response.data['results']
+        self.assertEqual(results[0]['is_read'], False)
+
+    def test_notification_read_when_no_indicator(self):
+        notif = Notification.objects.create(
+            title='Старое уведомление', text='...',
+            target_type='task', target_id=99,
+        )
+        notif.users.add(self.user)
+        # индикатора нет -> уже прочитано (или прочитали ранее)
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.list_url)
+
+        results = response.data['results']
+        self.assertEqual(results[0]['is_read'], True)
+
+    def test_mark_as_read_removes_indicator(self):
+        notif = Notification.objects.create(
+            title='Отметить прочитанным', text='...',
+            target_type='task', target_id=7,
+        )
+        notif.users.add(self.user)
+        NotificationIndicator.objects.create(
+            user=self.user, target_type='task', target_id=7,
+        )
+
+        self.client.force_authenticate(user=self.user)
+        read_url = reverse('mobile_api:notifications-read', args=[notif.id])
+        response = self.client.post(read_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(
+            NotificationIndicator.objects.filter(
+                user=self.user, target_type='task', target_id=7
+            ).exists()
+        )
+
+    def test_mark_as_read_for_nonexistent_notification_returns_404(self):
+        self.client.force_authenticate(user=self.user)
+        read_url = reverse('mobile_api:notifications-read', args=[99999])
+        response = self.client.post(read_url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_cannot_mark_others_notification_as_read(self):
+        notif = Notification.objects.create(title='Чужое', text='...')
+        notif.users.add(self.other_user)
+
+        self.client.force_authenticate(user=self.user)
+        read_url = reverse('mobile_api:notifications-read', args=[notif.id])
+        response = self.client.post(read_url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_data_payload_includes_notification_id_target_and_url(self):
+        from unittest.mock import patch
+
+        notif = Notification.objects.create(
+            title='Push тест', text='Текст пуша',
+            target_type='task', target_id=15,
+        )
+        notif.users.add(self.user)
+
+        with patch('account.tasks.config') as mock_config, \
+             patch('account.tasks.FCMNotification') as mock_fcm_class, \
+             patch('account.models.PushToken.objects.filter') as mock_filter:
+            mock_config.side_effect = lambda key: f'fake-{key}'
+            mock_filter.return_value.values_list.return_value = ['fake-token']
+            mock_fcm_instance = mock_fcm_class.return_value
+
+            from account.tasks import send_notifications_task
+            send_notifications_task(notif.id)
+
+            call_kwargs = mock_fcm_instance.notify.call_args.kwargs
+            data_payload = call_kwargs['data_payload']
+
+            self.assertEqual(data_payload['notification_id'], str(notif.id))
+            self.assertEqual(data_payload['target_type'], 'task')
+            self.assertEqual(data_payload['target_id'], '15')
+            self.assertIn('url', data_payload)

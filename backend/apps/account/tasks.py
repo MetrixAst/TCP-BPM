@@ -28,11 +28,11 @@ def send_notifications_task(notification_id):
 
         if len(registration_ids) > 0:
             data = {
-                'id': str(notification.id),
+                'notification_id': str(notification.id),
                 'title': notification.title,
                 'target_type': notification.target_type,
                 'target_id': str(notification.target_id),
-                'url': notification.url,
+                'url': notification.url or '',
             }
 
 
