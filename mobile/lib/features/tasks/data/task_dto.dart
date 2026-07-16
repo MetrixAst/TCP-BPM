@@ -1,3 +1,6 @@
+import 'task_action_dto.dart';
+import 'task_history_dto.dart';
+
 class TaskUserDto {
   final int id;
   final String username;
@@ -28,7 +31,8 @@ class TaskDto {
   final int views;
   final TaskUserDto author;
   final TaskUserDto? executor;
-  final List<String> availableActions;
+  final List<TaskActionDto> availableActions;
+  final List<TaskHistoryEntryDto> history;
 
   const TaskDto({
     required this.id,
@@ -45,6 +49,7 @@ class TaskDto {
     required this.author,
     this.executor,
     required this.availableActions,
+    required this.history,
   });
 
   factory TaskDto.fromJson(Map<String, dynamic> json) {
@@ -65,7 +70,10 @@ class TaskDto {
           ? TaskUserDto.fromJson(json['executor'] as Map<String, dynamic>)
           : null,
       availableActions: (json['available_actions'] as List<dynamic>? ?? [])
-          .map((a) => a.toString())
+          .map((a) => TaskActionDto.fromJson(a as Map<String, dynamic>))
+          .toList(),
+      history: (json['history'] as List<dynamic>? ?? [])
+          .map((h) => TaskHistoryEntryDto.fromJson(h as Map<String, dynamic>))
           .toList(),
     );
   }

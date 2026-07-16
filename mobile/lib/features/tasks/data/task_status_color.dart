@@ -16,3 +16,19 @@ Color taskStatusColor(String colorKey) {
       return MetrixColors.textMuted;
   }
 }
+
+Color taskActionColor(String colorKey) {
+  switch (colorKey) {
+    case 'primary':
+      return MetrixColors.primary;
+    case 'danger':
+      return MetrixColors.danger;
+    case 'success':
+      return MetrixColors.accent;
+    case 'warning':
+      return MetrixColors.warning;
+    case 'outline-dark':
+    default:
+      return MetrixColors.textMuted;
+  }
+}

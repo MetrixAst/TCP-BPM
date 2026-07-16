@@ -1,5 +1,4 @@
 from rest_framework import serializers
-
 from account.models import UserAccount
 from .models import Task
 from .enums import TaskStatusEnum, PriorityEnum
@@ -11,6 +10,23 @@ class UserBriefSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserAccount
         fields = ('id', 'username', 'name')
+
+
+class TaskHistoryEntrySerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    status = serializers.CharField()
+    status_display = serializers.SerializerMethodField()
+    date = serializers.DateTimeField()
+    user = serializers.SerializerMethodField()
+
+    def get_status_display(self, obj):
+        info = obj.status_info
+        return info.get('title', obj.status) if isinstance(info, dict) else obj.status
+
+    def get_user(self, obj):
+        if obj.user is None:
+            return None
+        return obj.user.get_name
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -29,11 +45,10 @@ class TaskSerializer(serializers.ModelSerializer):
         required=False,
     )
     status_display = serializers.SerializerMethodField()
-    status_display = serializers.SerializerMethodField()
     status_color = serializers.SerializerMethodField()
     priority_display = serializers.SerializerMethodField()
     available_actions = serializers.SerializerMethodField()
-    available_actions = serializers.SerializerMethodField()
+    history = serializers.SerializerMethodField()
     executor_id = serializers.PrimaryKeyRelatedField(
         queryset=UserAccount.objects.all(),
         source='executor',
@@ -61,6 +76,7 @@ class TaskSerializer(serializers.ModelSerializer):
             'co_executor_ids',
             'observer_ids',
             'available_actions',
+            'history',
         )
         read_only_fields = (
             'id',
@@ -77,16 +93,11 @@ class TaskSerializer(serializers.ModelSerializer):
         info = obj.status_info
         return info.get('title', obj.status) if isinstance(info, dict) else obj.status
 
-    def get_status_display(self, obj):
-        info = obj.status_info
-        return info.get('title', obj.status) if isinstance(info, dict) else obj.status
-
     def get_status_color(self, obj):
         info = obj.status_info
         return info.get('color', 'neutral') if isinstance(info, dict) else 'neutral'
 
     def get_priority_display(self, obj):
-        from .enums import PriorityEnum
         labels = dict(PriorityEnum.list())
         return labels.get(obj.priority, obj.priority)
 
@@ -95,6 +106,11 @@ class TaskSerializer(serializers.ModelSerializer):
         if not request or not request.user.is_authenticated:
             return []
         return obj.actions(request)
+
+    def get_history(self, obj):
+        return TaskHistoryEntrySerializer(
+            obj.history.all().order_by('-id'), many=True
+        ).data
 
     def create(self, validated_data):
         co_executors = validated_data.pop('co_executors', [])
