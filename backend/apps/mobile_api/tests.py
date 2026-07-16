@@ -17,7 +17,201 @@ from hr.models import AttendanceRecord
 from hr.enums import CheckInEnum
 from tickets.models import ServiceRequest, TicketMessage
 from tenants.models import Tenant
+from .models import IdempotencyKey
+from mobile_api.models import IdempotencyKey
 
+class IdempotencyKeyTestCase(APITestCase):
+    def setUp(self):
+        self.department = Department.objects.create(name='Отдел для idempotency')
+        self.user = UserAccount.objects.create_user(
+            username='idem_user',
+            password='testpass123',
+            role='staff',
+        )
+        self.employee = Employee.objects.create(
+            user=self.user,
+            department=self.department,
+        )
+        self.client.force_authenticate(user=self.user)
+        self.checkin_url = reverse('mobile_api:attendance-checkin')
+
+    def test_checkin_without_idempotency_key_works_as_before(self):
+        response = self.client.post(
+            self.checkin_url,
+            {
+                'event_type': CheckInEnum.DAY_START.value,
+                'photo': _make_test_image(),
+            },
+            format='multipart',
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_repeated_checkin_with_same_key_returns_same_response_no_duplicate(self):
+        idempotency_key = 'test-key-checkin-001'
+
+        response1 = self.client.post(
+            self.checkin_url,
+            {
+                'event_type': CheckInEnum.DAY_START.value,
+                'photo': _make_test_image(),
+            },
+            format='multipart',
+            HTTP_IDEMPOTENCY_KEY=idempotency_key,
+        )
+        self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
+        first_record_id = response1.data['id']
+
+        # Повтор с тем же ключом — не должен создать вторую запись,
+        # даже если тело запроса технически валидно (другое фото).
+        response2 = self.client.post(
+            self.checkin_url,
+            {
+                'event_type': CheckInEnum.DAY_START.value,
+                'photo': _make_test_image(),
+            },
+            format='multipart',
+            HTTP_IDEMPOTENCY_KEY=idempotency_key,
+        )
+        self.assertEqual(response2.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response2.data['id'], first_record_id)
+
+        self.assertEqual(
+            AttendanceRecord.objects.filter(employee=self.employee).count(), 1,
+        )
+
+    def test_different_keys_create_different_records(self):
+        response1 = self.client.post(
+            self.checkin_url,
+            {'event_type': CheckInEnum.DAY_START.value, 'photo': _make_test_image()},
+            format='multipart',
+            HTTP_IDEMPOTENCY_KEY='key-A',
+        )
+        self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
+
+        response2 = self.client.post(
+            self.checkin_url,
+            {'event_type': CheckInEnum.LUNCH_START.value, 'photo': _make_test_image()},
+            format='multipart',
+            HTTP_IDEMPOTENCY_KEY='key-B',
+        )
+        self.assertEqual(response2.status_code, status.HTTP_201_CREATED)
+
+        self.assertEqual(
+            AttendanceRecord.objects.filter(employee=self.employee).count(), 2,
+        )
+
+    def test_failed_request_not_cached(self):
+        idempotency_key = 'test-key-failed-001'
+
+        # Первая попытка — без фото, должна упасть с 400
+        response1 = self.client.post(
+            self.checkin_url,
+            {'event_type': CheckInEnum.DAY_START.value},
+            format='multipart',
+            HTTP_IDEMPOTENCY_KEY=idempotency_key,
+        )
+        self.assertEqual(response1.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Повтор с тем же ключом, но уже с фото — должен пройти успешно,
+        # раз неудачный ответ не кешировался.
+        response2 = self.client.post(
+            self.checkin_url,
+            {
+                'event_type': CheckInEnum.DAY_START.value,
+                'photo': _make_test_image(),
+            },
+            format='multipart',
+            HTTP_IDEMPOTENCY_KEY=idempotency_key,
+        )
+        self.assertEqual(response2.status_code, status.HTTP_201_CREATED)
+
+    def test_same_key_different_users_are_independent(self):
+        other_user = UserAccount.objects.create_user(
+            username='idem_other',
+            password='testpass123',
+            role='staff',
+        )
+        other_employee = Employee.objects.create(
+            user=other_user,
+            department=self.department,
+        )
+
+        idempotency_key = 'shared-key-001'
+
+        self.client.force_authenticate(user=self.user)
+        response1 = self.client.post(
+            self.checkin_url,
+            {'event_type': CheckInEnum.DAY_START.value, 'photo': _make_test_image()},
+            format='multipart',
+            HTTP_IDEMPOTENCY_KEY=idempotency_key,
+        )
+        self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
+
+        self.client.force_authenticate(user=other_user)
+        response2 = self.client.post(
+            self.checkin_url,
+            {'event_type': CheckInEnum.DAY_START.value, 'photo': _make_test_image()},
+            format='multipart',
+            HTTP_IDEMPOTENCY_KEY=idempotency_key,
+        )
+        self.assertEqual(response2.status_code, status.HTTP_201_CREATED)
+
+        self.assertEqual(AttendanceRecord.objects.filter(employee=self.employee).count(), 1)
+        self.assertEqual(AttendanceRecord.objects.filter(employee=other_employee).count(), 1)
+
+    def test_idempotency_key_stored_scoped_to_endpoint(self):
+        idempotency_key = 'test-key-scope-001'
+
+        self.client.post(
+            self.checkin_url,
+            {'event_type': CheckInEnum.DAY_START.value, 'photo': _make_test_image()},
+            format='multipart',
+            HTTP_IDEMPOTENCY_KEY=idempotency_key,
+        )
+
+        stored = IdempotencyKey.objects.filter(key=idempotency_key, user=self.user).first()
+        self.assertIsNotNone(stored)
+        self.assertEqual(stored.endpoint, 'attendance-checkin')
+        self.assertEqual(stored.status_code, 201)
+
+
+class TicketMessageIdempotencyTestCase(APITestCase):
+    def setUp(self):
+        self.user = UserAccount.objects.create_user(
+            username='idem_chat_user',
+            password='testpass123',
+            role='administrator',
+        )
+        self.ticket = ServiceRequest.objects.create(
+            author=self.user,
+            title='Заявка для idempotency чата',
+            description='...',
+            category='other',
+        )
+        self.client.force_authenticate(user=self.user)
+        self.messages_url = reverse('mobile_api:tickets-messages', args=[self.ticket.id])
+
+    def test_repeated_message_with_same_key_not_duplicated(self):
+        idempotency_key = 'test-key-message-001'
+
+        response1 = self.client.post(
+            self.messages_url,
+            {'text': 'Привет из офлайн-очереди'},
+            format='json',
+            HTTP_IDEMPOTENCY_KEY=idempotency_key,
+        )
+        self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
+
+        response2 = self.client.post(
+            self.messages_url,
+            {'text': 'Привет из офлайн-очереди'},
+            format='json',
+            HTTP_IDEMPOTENCY_KEY=idempotency_key,
+        )
+        self.assertEqual(response2.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response2.data['id'], response1.data['id'])
+
+        self.assertEqual(TicketMessage.objects.filter(request=self.ticket).count(), 1)
 
 class MobileApiMeTests(APITestCase):
     def setUp(self):

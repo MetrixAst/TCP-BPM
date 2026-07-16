@@ -16,6 +16,7 @@ from hr.models import AttendanceRecord
 from hr.services import create_attendance_checkin
 
 from tickets.models import ServiceRequest, TicketMessage
+from .idempotency import idempotent
 
 from .serializers import (
     ProfileSerializer,
@@ -108,6 +109,8 @@ class AttendanceCheckinView(APIView):
 
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser]
+
+    @idempotent('attendance-checkin')
 
     @extend_schema(
         request=AttendanceCheckinSerializer,
@@ -298,7 +301,8 @@ class TicketMessagesView(APIView):
         page = paginator.paginate_queryset(messages, request)
         serializer = TicketMessageSerializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
-
+    
+    @idempotent('ticket-message-create')
     @extend_schema(
         request=TicketMessageCreateSerializer,
         responses={201: OpenApiResponse(description='Сообщение отправлено')},

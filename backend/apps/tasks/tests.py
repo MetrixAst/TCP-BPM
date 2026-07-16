@@ -9,6 +9,10 @@ from account.role_permissions import RoleEnums
 from .models import Task
 from .enums import TaskStatusEnum
 from .serializers import TaskSerializer
+from rest_framework.test import APIClient
+from rest_framework import status
+
+from mobile_api.models import IdempotencyKey
 
 class TaskWorkflowTestCase(TestCase):
     def setUp(self):
@@ -150,3 +154,71 @@ class TaskSerializerMobileFieldsTestCase(TestCase):
 
         self.assertEqual(data['status_display'], 'Завершена')
         self.assertIsInstance(data['status_display'], str)
+
+class TaskTransitionIdempotencyTestCase(TestCase):
+    def setUp(self):
+        self.author = UserAccount.objects.create_user(
+            username='idem_task_author',
+            password='pass',
+            role=RoleEnums.STAFF.value,
+        )
+        self.executor = UserAccount.objects.create_user(
+            username='idem_task_executor',
+            password='pass',
+            role=RoleEnums.STAFF.value,
+        )
+        self.task = Task.objects.create(
+            author=self.author,
+            executor=self.executor,
+            title='Idempotency transition task',
+            deadline=date.today() + timedelta(days=5),
+            status=TaskStatusEnum.CREATED.value[0],
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.executor)
+        self.transition_url = reverse('task-transition', args=[self.task.id])
+
+    @patch('account.models.send_notifications_task.delay')
+    def test_repeated_transition_with_same_key_applies_once(self, _mock_delay):
+        idempotency_key = 'test-key-transition-001'
+
+        response1 = self.client.post(
+            self.transition_url,
+            {'action': 'accept'},
+            format='json',
+            HTTP_IDEMPOTENCY_KEY=idempotency_key,
+        )
+        self.assertEqual(response1.status_code, status.HTTP_200_OK)
+        self.assertEqual(response1.data['status'], TaskStatusEnum.ACCEPTED.value[0])
+
+        response2 = self.client.post(
+            self.transition_url,
+            {'action': 'accept'},
+            format='json',
+            HTTP_IDEMPOTENCY_KEY=idempotency_key,
+        )
+        self.assertEqual(response2.status_code, status.HTTP_200_OK)
+        self.assertEqual(response2.data, response1.data)
+
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, TaskStatusEnum.ACCEPTED.value[0])
+
+    @patch('account.models.send_notifications_task.delay')
+    def test_without_key_repeated_transition_processes_normally(self, _mock_delay):
+        response1 = self.client.post(
+            self.transition_url, {'action': 'accept'}, format='json',
+        )
+        self.assertEqual(response1.status_code, status.HTTP_200_OK)
+
+    def test_idempotency_key_recorded_with_correct_endpoint(self):
+        with patch('account.models.send_notifications_task.delay'):
+            self.client.post(
+                self.transition_url,
+                {'action': 'accept'},
+                format='json',
+                HTTP_IDEMPOTENCY_KEY='test-key-scope-task',
+            )
+
+        stored = IdempotencyKey.objects.filter(key='test-key-scope-task').first()
+        self.assertIsNotNone(stored)
+        self.assertEqual(stored.endpoint, 'task-transition')
