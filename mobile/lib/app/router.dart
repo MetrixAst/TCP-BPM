@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-//import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../features/auth/presentation/login_screen.dart';
 import '../features/home/presentation/home_screen.dart';
@@ -12,10 +12,13 @@ import '../features/tickets/presentation/create_ticket_screen.dart';
 import '../features/tickets/presentation/ticket_detail_screen.dart';
 import '../features/tasks/presentation/tasks_list_screen.dart';
 import '../features/tasks/presentation/task_detail_screen.dart';
+import '../features/notifications/presentation/notifications_screen.dart';
+
 
 const _storage = FlutterSecureStorage();
-
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 final router = GoRouter(
+  navigatorKey: rootNavigatorKey,
   initialLocation: '/',
   redirect: (context, state) async {
     final token = await _storage.read(key: 'auth_access_token');
@@ -48,5 +51,7 @@ final router = GoRouter(
         return TaskDetailScreen(taskId: id);
       },
     ),
+
+    GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
   ],
 );

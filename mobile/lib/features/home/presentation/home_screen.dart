@@ -7,8 +7,31 @@ import '../../../core/theme/metrix_colors.dart';
 import '../../../shared/spacing.dart';
 import '../../profile/data/logout_repository.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _unreadCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnreadCount();
+  }
+
+  Future<void> _loadUnreadCount() async {
+    try {
+      final response = await DioClient().dio.get('/api/v1/mobile/me/');
+      final badges = response.data['badges'] as Map<String, dynamic>;
+      final counts = badges['counts'] as Map<String, dynamic>;
+      final total = counts.values.fold<int>(0, (sum, v) => sum + (v as int));
+      if (mounted) setState(() => _unreadCount = total);
+    } catch (_) {}
+  }
 
   Future<void> _logout(BuildContext context) async {
     final logoutRepository = LogoutRepository(
@@ -50,7 +73,6 @@ class HomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: AppSpacing.lg),
-              // Шапка — монограмма + приветствие + иконка выхода справа
               Row(
                 children: [
                   Container(
@@ -92,6 +114,51 @@ class HomeScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Material(
+                        color: MetrixColors.surface,
+                        borderRadius: BorderRadius.circular(11),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(11),
+                          onTap: () async {
+                            await context.push('/notifications');
+                            _loadUnreadCount();
+                          },
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: MetrixColors.border),
+                              borderRadius: BorderRadius.circular(11),
+                            ),
+                            child: const Icon(Icons.notifications_outlined, size: 18, color: MetrixColors.text),
+                          ),
+                        ),
+                      ),
+                      if (_unreadCount > 0)
+                        Positioned(
+                          top: -4,
+                          right: -4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            constraints: const BoxConstraints(minWidth: 18),
+                            decoration: BoxDecoration(
+                              color: MetrixColors.danger,
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(color: MetrixColors.surfaceMuted, width: 2),
+                            ),
+                            child: Text(
+                              _unreadCount > 9 ? '9+' : '$_unreadCount',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
                   Material(
                     color: MetrixColors.surface,
                     borderRadius: BorderRadius.circular(11),
@@ -112,7 +179,6 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.xl),
-
               const _SectionLabel('РАЗДЕЛЫ'),
               const SizedBox(height: AppSpacing.sm),
               _ListGroup(
@@ -130,18 +196,21 @@ class HomeScreen extends StatelessWidget {
                     subtitle: 'Отметка посещаемости',
                     onTap: () => context.push('/checkin'),
                   ),
+                  const _RowDivider(),
                   _ListRow(
                     icon: Icons.checklist_rounded,
                     title: 'Статус дня',
                     subtitle: 'Мои отметки за сегодня',
                     onTap: () => context.push('/attendance/today'),
                   ),
+                  const _RowDivider(),
                   _ListRow(
                     icon: Icons.build_outlined,
                     title: 'Заявки',
                     subtitle: 'Список обращений',
                     onTap: () => context.push('/tickets'),
                   ),
+                  const _RowDivider(),
                   _ListRow(
                     icon: Icons.checklist_rtl_outlined,
                     title: 'Мои задачи',
