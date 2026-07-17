@@ -45,6 +45,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _handleScanQr(BuildContext context) async {
+    final result = await context.push<String>('/qr-scanner');
+    if (result != null && context.mounted) {
+      context.push('/tickets/create?room=${Uri.encodeComponent(result)}');
+    }
+  }
+
   String _greeting() {
     final hour = DateTime.now().hour;
     if (hour < 6) return 'Доброй ночи';
@@ -216,6 +223,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: 'Мои задачи',
                     subtitle: 'Список поручений',
                     onTap: () => context.push('/tasks'),
+                  ),
+                  const _RowDivider(),
+                  _ListRow(
+                    icon: Icons.qr_code_scanner_rounded,
+                    title: 'Сканировать QR',
+                    subtitle: 'Быстрая заявка по объекту',
+                    onTap: () => _handleScanQr(context),
                   ),
                 ],
               ),

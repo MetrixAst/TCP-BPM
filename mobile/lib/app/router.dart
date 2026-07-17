@@ -13,6 +13,7 @@ import '../features/tickets/presentation/ticket_detail_screen.dart';
 import '../features/tasks/presentation/tasks_list_screen.dart';
 import '../features/tasks/presentation/task_detail_screen.dart';
 import '../features/notifications/presentation/notifications_screen.dart';
+import '../features/qr/presentation/qr_scanner_screen.dart';
 
 
 const _storage = FlutterSecureStorage();
@@ -35,7 +36,13 @@ final router = GoRouter(
     GoRoute(path: '/checkin', builder: (context, state) => const CheckinScreen()),
     GoRoute(path: '/attendance/today', builder: (context, state) => const TodayStatusScreen()),
     GoRoute(path: '/tickets', builder: (context, state) => const TicketsListScreen()),
-    GoRoute(path: '/tickets/create', builder: (context, state) => const CreateTicketScreen()),
+    GoRoute(
+      path: '/tickets/create',
+      builder: (context, state) {
+        final room = state.uri.queryParameters['room'];
+        return CreateTicketScreen(prefilledRoom: room);
+      },
+    ),
     GoRoute(
       path: '/tickets/:id',
       builder: (context, state) {
@@ -53,5 +60,6 @@ final router = GoRouter(
     ),
 
     GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
+    GoRoute(path: '/qr-scanner', builder: (context, state) => const QrScannerScreen()),
   ],
 );

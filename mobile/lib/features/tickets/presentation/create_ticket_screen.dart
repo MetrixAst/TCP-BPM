@@ -16,7 +16,9 @@ import '../data/tickets_repository.dart';
 import '../data/ticket_enums.dart';
 
 class CreateTicketScreen extends StatefulWidget {
-  const CreateTicketScreen({super.key});
+  final String? prefilledRoom;
+
+  const CreateTicketScreen({super.key, this.prefilledRoom});
 
   @override
   State<CreateTicketScreen> createState() => _CreateTicketScreenState();
@@ -43,6 +45,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   void initState() {
     super.initState();
     _repository = TicketsRepository(dio: DioClient().dio);
+    if (widget.prefilledRoom != null) {
+      _roomController.text = widget.prefilledRoom!;
+    }
   }
 
   @override
