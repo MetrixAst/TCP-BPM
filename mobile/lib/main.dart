@@ -8,6 +8,12 @@ import 'core/network/dio_client.dart';
 import 'features/push/data/push_repository.dart';
 import 'features/push/data/push_service.dart';
 import 'features/push/data/deep_link_resolver.dart';
+import 'core/database/app_database.dart';
+import 'core/database/outbox_repository.dart';
+import 'core/database/sync_worker.dart';
+import 'features/attendance/data/attendance_repository.dart';
+import 'features/tickets/data/ticket_detail_repository.dart';
+import 'features/tasks/data/tasks_repository.dart';
 
 /// Обработчик push, пришедших когда приложение полностью закрыто (terminated)
 /// или в фоне (background). Должен быть top-level функцией.
@@ -72,6 +78,18 @@ void main() async {
       _handleDeepLink(initialMessage.data);
     });
   }
+  
+  final db = AppDatabase.instance;
+  final outboxRepo = OutboxRepository(db: db);
+  final syncWorker = SyncWorker(
+    outboxRepo: outboxRepo,
+    attendanceRepo: AttendanceRepository(dio: DioClient().dio),
+    ticketRepo: TicketDetailRepository(dio: DioClient().dio),
+    tasksRepo: TasksRepository(dio: DioClient().dio),
+  );
+  syncWorker.startListening();
+  // Попробуем синхронизировать сразу при старте, если сеть уже есть
+  syncWorker.syncNow();
 
   runApp(const MetrixApp());
 }

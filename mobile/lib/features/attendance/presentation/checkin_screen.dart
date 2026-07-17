@@ -12,6 +12,9 @@ import '../../../shared/spacing.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/app_top_bar.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../../../core/database/app_database.dart';
+import '../../../core/database/outbox_repository.dart';
 
 class CheckinScreen extends StatefulWidget {
   const CheckinScreen({super.key});
@@ -22,6 +25,7 @@ class CheckinScreen extends StatefulWidget {
 
 class _CheckinScreenState extends State<CheckinScreen> {
   late final AttendanceRepository _repository;
+  late final OutboxRepository _outboxRepo;
   final CheckinCaptureService _captureService = CheckinCaptureService();
 
   CheckinEventType? _selectedType;
@@ -42,6 +46,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
     super.initState();
     _repository = AttendanceRepository(dio: DioClient().dio);
     _loadTodayStatus();
+    _outboxRepo = OutboxRepository(db: AppDatabase.instance);
   }
 
   Future<void> _loadTodayStatus() async {
@@ -103,6 +108,34 @@ class _CheckinScreenState extends State<CheckinScreen> {
       _errorMessage = null;
       _successMessage = null;
     });
+
+    final connectivity = await Connectivity().checkConnectivity();
+    final isOffline = connectivity.every((r) => r == ConnectivityResult.none);
+
+    if (isOffline) {
+      await _outboxRepo.enqueue(
+        type: OutboxOperationType.checkin,
+        payload: {
+          'event_type': type.value,
+          'latitude': _latitude,
+          'longitude': _longitude,
+        },
+        filePath: photo.path,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _successMessage = 'Нет сети — отметка сохранена и будет отправлена позже';
+        _capturedPhoto = null;
+        _latitude = null;
+        _longitude = null;
+        _completedTypes = {..._completedTypes, type};
+        final available = CheckinEventType.values.where((t) => !_completedTypes.contains(t));
+        _selectedType = available.isNotEmpty ? available.first : null;
+      });
+      return;
+    }
 
     final result = await _repository.checkin(
       eventType: type.value,

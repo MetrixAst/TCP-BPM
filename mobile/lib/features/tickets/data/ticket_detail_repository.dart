@@ -31,11 +31,18 @@ class TicketDetailRepository {
     }
   }
 
-  Future<ApiResult<TicketMessageDto>> sendMessage(int ticketId, String text) async {
+  Future<ApiResult<TicketMessageDto>> sendMessage(
+    int ticketId,
+    String text, {
+    String? idempotencyKey,
+  }) async {
     try {
       final response = await dio.post(
         '/api/v1/mobile/tickets/$ticketId/messages/',
         data: {'text': text},
+        options: idempotencyKey != null
+            ? Options(headers: {'Idempotency-Key': idempotencyKey})
+            : null,
       );
       return Success(TicketMessageDto.fromJson(response.data as Map<String, dynamic>));
     } on DioException catch (e) {

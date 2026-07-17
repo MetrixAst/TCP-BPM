@@ -3,6 +3,9 @@ import 'package:dio/dio.dart';
 import '../../../core/network/api_result.dart';
 import 'ticket_dto.dart';
 import 'dart:io';
+import 'dart:convert';
+import '../../../core/database/app_database.dart';
+import 'package:drift/drift.dart';
 
 class TicketsPage {
   final List<TicketDto> results;
@@ -34,14 +37,58 @@ class TicketsRepository {
           .map((t) => TicketDto.fromJson(t as Map<String, dynamic>))
           .toList();
 
+      // Кэшируем первую страницу без фильтров — именно её показываем офлайн
+      if (page == 1 && status == null && category == null) {
+        await _cacheTickets(results);
+      }
+
       return Success(TicketsPage(
         results: results,
         count: data['count'] as int,
         next: data['next'] as String?,
       ));
     } on DioException catch (e) {
+      // Если сети нет и это первая страница без фильтров — отдаём кэш
+      if (page == 1 && status == null && category == null) {
+        final cached = await _readCachedTickets();
+        if (cached.isNotEmpty) {
+          return Success(TicketsPage(results: cached, count: cached.length, next: null));
+        }
+      }
       return Failure(_errorMessage(e), statusCode: e.response?.statusCode);
     }
+  }
+
+  Future<void> _cacheTickets(List<TicketDto> tickets) async {
+    final db = AppDatabase.instance;
+    await db.batch((batch) {
+      batch.deleteAll(db.cachedTickets);
+      batch.insertAll(
+        db.cachedTickets,
+        tickets.map((t) => CachedTicketsCompanion.insert(
+              id: Value(t.id),
+              dataJson: jsonEncode({
+                'id': t.id,
+                'number': t.number,
+                'title': t.title,
+                'category': t.category,
+                'priority': t.priority,
+                'status': t.status,
+                'room': t.room,
+                'created_at': t.createdAt,
+                'photo': t.photo,
+              }),
+            )),
+      );
+    });
+  }
+
+  Future<List<TicketDto>> _readCachedTickets() async {
+    final db = AppDatabase.instance;
+    final rows = await db.select(db.cachedTickets).get();
+    return rows
+        .map((r) => TicketDto.fromJson(jsonDecode(r.dataJson) as Map<String, dynamic>))
+        .toList();
   }
 
   Future<ApiResult<TicketDto>> createTicket({

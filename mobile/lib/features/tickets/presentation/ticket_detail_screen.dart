@@ -13,6 +13,9 @@ import '../data/ticket_detail_repository.dart';
 import '../data/ticket_detail_dto.dart';
 import '../data/ticket_message_dto.dart';
 import '../data/ticket_enums.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../../../core/database/app_database.dart';
+import '../../../core/database/outbox_repository.dart';
 
 class TicketDetailScreen extends StatefulWidget {
   final int ticketId;
@@ -25,6 +28,7 @@ class TicketDetailScreen extends StatefulWidget {
 
 class _TicketDetailScreenState extends State<TicketDetailScreen> {
   late final TicketDetailRepository _repository;
+  late final OutboxRepository _outboxRepo;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -44,6 +48,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     _loadMyUserId();
     _load();
     _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) => _refreshMessages());
+    _outboxRepo = OutboxRepository(db: AppDatabase.instance);
   }
 
   Future<void> _loadMyUserId() async {
@@ -126,6 +131,30 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     if (text.isEmpty) return;
 
     setState(() => _isSending = true);
+
+    final connectivity = await Connectivity().checkConnectivity();
+    final isOffline = connectivity.every((r) => r == ConnectivityResult.none);
+
+    if (isOffline) {
+      await _outboxRepo.enqueue(
+        type: OutboxOperationType.ticketMessage,
+        payload: {
+          'ticket_id': widget.ticketId,
+          'text': text,
+        },
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _isSending = false;
+        _messageController.clear();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Нет сети — сообщение будет отправлено позже')),
+      );
+      return;
+    }
+
     final result = await _repository.sendMessage(widget.ticketId, text);
 
     if (!mounted) return;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_result.dart';
@@ -30,6 +31,8 @@ class _TasksListScreenState extends State<TasksListScreen> {
   int _currentPage = 1;
   bool _hasMore = true;
   int? _myUserId;
+  static const _storage = FlutterSecureStorage();
+  static const _userIdCacheKey = 'cached_my_user_id';
 
   TaskStatus? _statusFilter;
   TaskPriority? _priorityFilter;
@@ -60,8 +63,14 @@ class _TasksListScreenState extends State<TasksListScreen> {
     switch (profileResult) {
       case Success(:final data):
         _myUserId = data.id;
+        await _storage.write(key: _userIdCacheKey, value: data.id.toString());
       case Failure():
-        break; // не блокируем, просто не будет фильтра "мои"
+        // Сети нет — берём последний известный userId из кэша,
+        // чтобы вкладка "Мои" продолжала работать офлайн.
+        final cached = await _storage.read(key: _userIdCacheKey);
+        if (cached != null) {
+          _myUserId = int.tryParse(cached);
+        }
     }
 
     _load(reset: true);

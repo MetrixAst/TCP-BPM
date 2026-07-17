@@ -11,6 +11,9 @@ import '../data/task_dto.dart';
 import '../data/task_action_dto.dart';
 import '../data/task_status_color.dart';
 import '../data/task_history_dto.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../../../core/database/app_database.dart';
+import '../../../core/database/outbox_repository.dart';
 
 class TaskDetailScreen extends StatefulWidget {
   final int taskId;
@@ -23,6 +26,7 @@ class TaskDetailScreen extends StatefulWidget {
 
 class _TaskDetailScreenState extends State<TaskDetailScreen> {
   late final TasksRepository _repository;
+  late final OutboxRepository _outboxRepo;
 
   bool _isLoading = true;
   bool _isPerformingAction = false;
@@ -34,6 +38,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     super.initState();
     _repository = TasksRepository(dio: DioClient().dio);
     _load();
+    _outboxRepo = OutboxRepository(db: AppDatabase.instance);
   }
 
   Future<void> _load() async {
@@ -59,6 +64,26 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
 
   Future<void> _handleAction(TaskActionDto taskAction) async {
     setState(() => _isPerformingAction = true);
+
+    final connectivity = await Connectivity().checkConnectivity();
+    final isOffline = connectivity.every((r) => r == ConnectivityResult.none);
+
+    if (isOffline) {
+      await _outboxRepo.enqueue(
+        type: OutboxOperationType.taskTransition,
+        payload: {
+          'task_id': widget.taskId,
+          'action': taskAction.action,
+        },
+      );
+
+      if (!mounted) return;
+      setState(() => _isPerformingAction = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Нет сети — действие будет выполнено позже')),
+      );
+      return;
+    }
 
     final result = await _repository.transition(widget.taskId, taskAction.action);
 

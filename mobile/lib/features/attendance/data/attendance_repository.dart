@@ -15,6 +15,7 @@ class AttendanceRepository {
     required File photo,
     double? latitude,
     double? longitude,
+    String? idempotencyKey,
   }) async {
     try {
       final formData = FormData.fromMap({
@@ -24,7 +25,13 @@ class AttendanceRepository {
         if (longitude != null) 'longitude': longitude.toString(),
       });
 
-      await dio.post('/api/v1/mobile/attendance/checkin/', data: formData);
+      await dio.post(
+        '/api/v1/mobile/attendance/checkin/',
+        data: formData,
+        options: idempotencyKey != null
+            ? Options(headers: {'Idempotency-Key': idempotencyKey})
+            : null,
+      );
       return const Success(null);
     } on DioException catch (e) {
       return Failure(_errorMessage(e), statusCode: e.response?.statusCode);
