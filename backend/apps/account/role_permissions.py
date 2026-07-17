@@ -315,9 +315,9 @@ class MenuItem:
                     MenuItem('tenants_list', 'tenants:list', '', 'Арендаторы'),
                 ]),
                 MenuItem('purchases', 'documents:list', 'folder2', 'Закупки', url_param=['purchases']),
-                # MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu + [
-                #     MenuItem('bill', 'finances:bill', '', 'Счет компании'),
-                # ]),
+                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu + [
+                    MenuItem('bill', 'finances:bill', '', 'Счет компании'),
+                ]),
                 MenuItem('hr', '#hr', 'people', 'HR', submenu=[
                     MenuItem('my_profile', 'hr:my_profile', '', 'Личный профиль'),
                     MenuItem('org', 'hr:org', '', 'Орг. структура'),
@@ -348,14 +348,14 @@ class MenuItem:
             RoleEnums.OWNER.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
                 MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
-                # MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
+                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
             RoleEnums.CFO.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
                 MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
-                # MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
+                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
             ],
 
@@ -368,7 +368,7 @@ class MenuItem:
                     MenuItem('hr_permits', 'hr:permits_list', '', 'Допуски'),
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                 ]),
-                # MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_readonly_submenu),
+                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_readonly_submenu),
             ],
 
             RoleEnums.HR.value: [
