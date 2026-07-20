@@ -14,6 +14,7 @@ import '../features/tasks/presentation/tasks_list_screen.dart';
 import '../features/tasks/presentation/task_detail_screen.dart';
 import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/qr/presentation/qr_scanner_screen.dart';
+import '../features/finances/presentation/finances_screen.dart';
 
 
 const _storage = FlutterSecureStorage();
@@ -61,5 +62,6 @@ final router = GoRouter(
 
     GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
     GoRoute(path: '/qr-scanner', builder: (context, state) => const QrScannerScreen()),
+    GoRoute(path: '/finances', builder: (context, state) => const FinancesScreen()),
   ],
 );
