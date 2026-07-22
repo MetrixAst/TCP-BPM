@@ -17,6 +17,9 @@ db.sqlite3.bak.*
 *.db
 media/
 assets/
+!mobile/assets/
+!mobile/assets/fonts/
+!mobile/assets/fonts/*.ttf
 *.log
 
 # Virtualenv
