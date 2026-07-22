@@ -71,7 +71,9 @@ class CounterpartyAccessScopeTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Public')
         self.assertContains(response, 'Restricted')
-        self.assertNotContains(response, 'Hidden')
+        # Ищем именно название скрытого контрагента, а не служебную HTML-разметку
+        # вроде type="hidden"/id="typeHidden" на странице фильтра.
+        self.assertNotContains(response, 'Hidden CP')
 
     def test_staff_cannot_open_hidden_detail(self):
         from account.services.access_scope import (
