@@ -48,7 +48,7 @@ class OutboxRepository {
       OutboxItemsCompanion(
         status: const Value('pending'), // возвращаем в очередь для повтора
         lastError: Value(error),
-        attempts: Value.absent(),
+        attempts: const Value.absent(),
       ),
     );
   }

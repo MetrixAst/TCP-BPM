@@ -64,13 +64,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
               ),
             ),
           ),
-          Positioned(
+          const Positioned(
             bottom: 60,
             left: 0,
             right: 0,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: const Text(
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              child: Text(
                 'Наведите камеру на QR-код помещения',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white, fontSize: 14),
