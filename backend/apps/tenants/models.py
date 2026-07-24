@@ -4,7 +4,7 @@ from datetime import date
 
 class Room(models.Model):
     number = models.CharField("Номер помещения", max_length=30)
-    map_id = models.CharField("Идентификатор на карте", max_length=30)
+    map_id = models.CharField("Идентификатор на карте", max_length=30, unique=True)
     floor = models.IntegerField("Этаж")
 
     def __str__(self):

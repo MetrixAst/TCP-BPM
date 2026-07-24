@@ -1,8 +1,9 @@
 from django.contrib import messages
 from django.http import JsonResponse, Http404
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.db.models import Q
 from django.views.decorators.http import require_POST
+from django.http import HttpResponse
 import json
 
 from account.role_permissions import need_permission, PermissionEnums
@@ -11,6 +12,7 @@ from .forms import TenantForm
 from .models import Tenant, TenantCategory, Room
 from .serializers import TenantSerializer
 from addits.models import Comment
+from .qr_labels import generate_single_label_pdf, generate_batch_labels_pdf
 
 
 @need_permission(PermissionEnums.TENANTS)
@@ -157,3 +159,36 @@ def tenant_portal_access(request, pk):
         'username': user.username,
         'password': password,
     })
+
+
+@need_permission(PermissionEnums.TENANTS)
+def room_qr_label(request, pk):
+    """GET /tenants/rooms/<pk>/qr-label/ — PDF-наклейка для одного помещения."""
+    room = get_object_or_404(Room, pk=pk)
+    pdf_buffer = generate_single_label_pdf(room)
+
+    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="qr_room_{room.number}.pdf"'
+    return response
+
+
+@need_permission(PermissionEnums.TENANTS)
+def rooms_qr_labels_batch(request):
+    """
+    GET /tenants/rooms/qr-labels/ — PDF со всеми наклейками (лист А4, сетка).
+    Опционально ?floor=<N> для фильтра по этажу.
+    """
+    rooms = Room.objects.all().order_by('number')
+
+    floor = request.GET.get('floor')
+    if floor:
+        rooms = rooms.filter(floor=floor)
+
+    if not rooms.exists():
+        return HttpResponse('Помещения не найдены', status=404)
+
+    pdf_buffer = generate_batch_labels_pdf(rooms)
+
+    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="qr_labels_batch.pdf"'
+    return response

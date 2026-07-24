@@ -6,6 +6,8 @@ import '../../../core/network/dio_client.dart';
 import '../../../core/theme/metrix_colors.dart';
 import '../../../shared/spacing.dart';
 import '../../profile/data/logout_repository.dart';
+import '../../qr/data/qr_room_repository.dart';
+import '../../../core/network/api_result.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -70,8 +72,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _handleScanQr(BuildContext context) async {
     final result = await context.push<String>('/qr-scanner');
-    if (result != null && context.mounted) {
-      context.push('/tickets/create?room=${Uri.encodeComponent(result)}');
+    if (result == null || !context.mounted) return;
+
+    final mapId = parseRoomQr(result);
+    if (mapId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Неизвестный формат QR-кода')),
+      );
+      return;
+    }
+
+    final repository = QrRoomRepository(dio: DioClient().dio);
+    final roomResult = await repository.resolveRoom(mapId);
+
+    if (!context.mounted) return;
+
+    switch (roomResult) {
+      case Success(:final data):
+        context.push('/tickets/create?room=${Uri.encodeComponent(data.number)}');
+      case Failure(:final message):
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
     }
   }
 
