@@ -177,7 +177,7 @@ class EmployeeForm(CustomModelForm):
 
         dept_id = None
         if self.is_bound:
-            dept_id = self.data.get('department')
+            dept_id = self.data.get(self.add_prefix('department'))
         elif self.instance and self.instance.pk and self.instance.department_id:
             dept_id = self.instance.department_id
 

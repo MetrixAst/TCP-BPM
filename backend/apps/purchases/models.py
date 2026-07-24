@@ -49,7 +49,7 @@ class Supplier(models.Model):
 
     country = models.ForeignKey(Country, on_delete=models.SET_NULL, verbose_name="Страна", null=True, blank=True)
     city = models.ForeignKey(City, on_delete=models.SET_NULL, verbose_name="Город", null=True, blank=True)
-    category = models.ManyToManyField(SupplierCategory, verbose_name="Категории", blank=True)
+    category = models.CharField("Категории", max_length=200, null=True, blank=True)
 
     status = models.SlugField("Статус", choices=SupplierStatusEnum.list())
     check_status = models.SlugField("Результат проверки", choices=SupplierCheckedStatusEnum.list(), null=True, blank=True)
@@ -98,8 +98,7 @@ class Supplier(models.Model):
     
     @property
     def categories_list(self):
-        categories = list(self.category.all().values_list('title', flat=True))
-        return ", ".join(categories)
+        return self.category or ""
 
     @property
     def onec_counterparty_pk(self):

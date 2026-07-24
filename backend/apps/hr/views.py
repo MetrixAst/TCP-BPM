@@ -68,6 +68,7 @@ def structure(request):
 def employees(request):
 
     page = 1
+
     queryset = Employee.objects.all()
     is_hr, is_head, curr = get_registry_access(request.user)
     if is_head and not is_hr and curr:

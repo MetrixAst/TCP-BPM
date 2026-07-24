@@ -6,7 +6,7 @@ from .enums import SupplierStatusEnum, SupplierCheckedStatusEnum, SupplierFormEn
 
 class SupplierForm(CustomModelForm):
 
-    reg_date = forms.DateField(widget=forms.TextInput(attrs={'class':'form-control single_date_picker'}))
+    reg_date = forms.DateField(required=False, widget=forms.TextInput(attrs={'class':'form-control single_date_picker'}))
 
     class Meta:
         model = Supplier

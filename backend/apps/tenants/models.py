@@ -85,6 +85,8 @@ class Tenant(models.Model):
     
     @property
     def days(self):
+        if not self.end_date:
+            return None
         today = date.today()
         days = (self.end_date - today).days
 
@@ -93,8 +95,9 @@ class Tenant(models.Model):
     @property
     def status(self):
         days = self.days
-        
-        if days >= 150:
+        if days is None:
+            return 'gray'
+        elif days >= 150:
             return 'green'
         elif days >= 90:
             return 'yellow'

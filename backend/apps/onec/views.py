@@ -68,8 +68,6 @@ class CounterpartyListView(ListView):
         return queryset
 
     def dispatch(self, request, *args, **kwargs):
-        if request.method == 'GET' and not Counterparty.objects.exists():
-            seed_demo_counterparties(force=False)
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
