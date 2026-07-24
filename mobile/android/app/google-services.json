@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "733062895312",
+    "project_id": "metrix-abde2",
+    "storage_bucket": "metrix-abde2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:733062895312:android:3bdad676c1a289738370d5",
+        "android_client_info": {
+          "package_name": "com.metrix.metrix_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkED_OevDnyFILFAw7zsx24leQH_sI6M8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
