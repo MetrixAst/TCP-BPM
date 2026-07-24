@@ -17,9 +17,6 @@ db.sqlite3.bak.*
 *.db
 media/
 assets/
-!mobile/assets/
-!mobile/assets/fonts/
-!mobile/assets/fonts/*.ttf
 *.log
 
 # Virtualenv
@@ -80,27 +77,3 @@ upload_to_linear.py
 docs/
 backend/I18N.md
 ТЗ.md
-
-
-# Flutter/Dart
-mobile/build/
-mobile/.dart_tool/
-mobile/.flutter-plugins
-mobile/.flutter-plugins-dependencies
-mobile/android/.gradle/
-mobile/android/local.properties
-mobile/ios/Pods/
-
-# Flutter/Dart generated (never commit)
-mobile/.dart_tool/
-mobile/.flutter-plugins
-mobile/.flutter-plugins-dependencies
-mobile/build/
-mobile/android/.gradle/
-mobile/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
-mobile/ios/Runner/GeneratedPluginRegistrant.h
-mobile/ios/Runner/GeneratedPluginRegistrant.m
-mobile/ios/Flutter/ephemeral/
-mobile/ios/Pods/
-mobile/android/local.properties
-

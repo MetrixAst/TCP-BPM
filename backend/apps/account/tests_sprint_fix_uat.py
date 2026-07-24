@@ -15,7 +15,6 @@ from account.models import UserAccount
 from account.role_permissions import RoleEnums
 from tasks.enums import TaskStatusEnum
 from tasks.models import Task
-import unittest
 
 
 _COLLAB_TEMPLATES = copy.deepcopy(django_settings.TEMPLATES)
@@ -86,16 +85,6 @@ class SprintFixUATSmokeTest(TestCase):
         self.assertIn('columns', data)
         self.assertEqual(len(data['columns']), 5)
 
-    @unittest.skip(
-        "Тест проверяет наличие 'taskChecklist'/'taskLineItems' в HTML деталей "
-        "задачи. taskChecklist существует только как часть id='taskChecklistForm' "
-        "в static/site/js/apps/tasks.js, но соответствующая HTML-разметка "
-        "отсутствует в шаблонах (apps/tasks/templates/) — форма ничего не находит "
-        "через getElementById. taskLineItems не встречается нигде в проекте вообще. "
-        "Похоже на недоделанную фичу (чек-листы/лайн-айтемы в задачах). Нужно "
-        "решение продукта: либо доделать разметку, либо обновить тест под текущее "
-        "состояние страницы."
-    )
     def test_fix09_task_detail_with_workflow_blocks(self):
         task = Task.objects.create(
             author=self.admin,

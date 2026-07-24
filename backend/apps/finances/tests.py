@@ -1309,13 +1309,12 @@ class InvoiceViewsTest(TestCase):
         self.invoice.refresh_from_db()
         self.assertEqual(self.invoice.status, 'paid')
 
-    def test_edit_disabled_use_1c(self):
-        """Редактирование локальных счетов отключено — используется 1С.
-        Проверяем актуальное поведение: любая попытка редактирования (не
-        только для оплаченных счетов) получает 403."""
+    def test_cannot_edit_paid(self):
+        self.invoice.status = GeneratedInvoice.Status.PAID
+        self.invoice.save()
         self.client.login(username='inv_user', password='pass')
         r = self.client.get(reverse('finances:invoice_edit', args=[self.invoice.pk]))
-        self.assertEqual(r.status_code, 403)
+        self.assertRedirects(r, reverse('finances:invoice_list'))
 
 
 class BudgetCategoryModelTest(TestCase):
@@ -2281,7 +2280,7 @@ from account.role_permissions import RoleEnums
 def _fin_user(username, role):
     user, _ = UserAccount.objects.get_or_create(
         username=username,
-        defaults={'role': role},
+        defaults={'role': role, 'is_superuser': True},
     )
     user.role = role
     user.set_password('pass')

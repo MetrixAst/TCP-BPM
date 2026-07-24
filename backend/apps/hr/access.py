@@ -79,16 +79,18 @@ def need_hr_directory(view_method):
 
 
 def need_hr_registry(view_method):
-    """Кадровые реестры: документы, допуски, сертификации (HR, админ, бухгалтер, руководитель отдела)."""
+    """Кадровые реестры: документы, допуски, сертификации (HR, админ, бухгалтер)."""
+
     def _wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
             response = redirect('account:auth')
             response['Location'] += f'?next={request.path}'
             return response
-        is_hr, is_head, _ = get_registry_access(request.user)
-        if is_hr or is_head:
+        is_hr, _, _ = get_registry_access(request.user)
+        if is_hr:
             return view_method(request, *args, **kwargs)
         return HttpResponseForbidden('Permission Denied')
+
     _wrapper.__doc__ = view_method.__doc__
     _wrapper.__name__ = view_method.__name__
     return _wrapper

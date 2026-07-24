@@ -76,10 +76,9 @@ class HrApiPermission(BasePermission):
         if hasattr(role, 'value'):
             role = role.value
         if request.method in SAFE_METHODS:
-            return RolePermissions.checkPermission(role, PermissionEnums.HR) or RolePermissions.checkPermission(
-                role, PermissionEnums.HR_SELF
-            )
+            return RolePermissions.checkPermission(role, PermissionEnums.HR)
         return RolePermissions.checkPermission(role, PermissionEnums.HR_COMPANIES)
+
 
 class FinanceRegistersReadPermission(HasAppPermission):
     permission = PermissionEnums.FINANCE_REGISTERS

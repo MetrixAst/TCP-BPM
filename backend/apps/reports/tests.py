@@ -3,7 +3,6 @@ from django.urls import reverse
 
 from account.models import UserAccount
 from account.role_permissions import RoleEnums
-import unittest
 
 
 class ReportsIndicatorsViewTest(TestCase):
@@ -20,14 +19,6 @@ class ReportsIndicatorsViewTest(TestCase):
         r = self.client.get(reverse('reports:home'))
         self.assertEqual(r.status_code, 302)
 
-    @unittest.skip(
-        "Тест описывает нереализованную фичу: сообщение 'Интеграция с системой "
-        "аналитики не подключена' нигде не существует в коде/шаблонах. Страница "
-        "reports:home сейчас реально считает агрегаты из БД, а не показывает "
-        "заглушку. Нужно решение продукта: либо реализовать заглушку, либо "
-        "переписать тест под текущее поведение (проверить реальные вычисляемые "
-        "значения вместо жёстко захардкоженных чисел из теста)."
-    )
     def test_reports_no_demo_kpi_numbers(self):
         self.client.login(username='reports_user', password='pass')
         r = self.client.get(reverse('reports:home'))

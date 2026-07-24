@@ -48,7 +48,6 @@ from .access import (
     can_view_employee,
     filter_by_access,
 )
-from .services import create_attendance_checkin
 
 
 @need_hr_directory
@@ -1077,18 +1076,29 @@ def attendance_checkin(request):
             ext = format_str.split('/')[-1]
         else:
             imgstr = photo_base64
-            ext = 'jpg'
+            ext = 'jpg' 
+
         photo_name = f"checkin_{employee.id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{ext}"
         photo_file = ContentFile(base64.b64decode(imgstr), name=photo_name)
 
-        create_attendance_checkin(
+        location_address = ''
+        if latitude is not None and longitude is not None:
+            from .geocoding import reverse_geocode
+            location_address = reverse_geocode(latitude, longitude)
+
+        record = AttendanceRecord(
             employee=employee,
             event_type=event_type,
-            photo_file=photo_file,
+            ip_address=ip_address,
+            photo=photo_file,
             latitude=latitude,
             longitude=longitude,
-            ip_address=ip_address,
+            location_address=location_address,
         )
+        
+        record.full_clean()
+        record.save()
+
         return JsonResponse({'success': True, 'message': 'Отметка успешно сохранена'})
 
     except ValidationError as e:
