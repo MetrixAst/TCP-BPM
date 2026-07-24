@@ -21,7 +21,7 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
-    default='127.0.0.1,localhost,0.0.0.0',
+    default='127.0.0.1,localhost,0.0.0.0,10.0.2.2',
     cast=Csv(),
 )
 if DEBUG:
@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'addits',
     'enbek',
     'onec',
+    'mobile_api',
     'audit',
     'rest_framework',
     'drf_spectacular',

@@ -7,7 +7,7 @@ from django.core.exceptions import PermissionDenied
 from account.drf_permissions import TasksPermission
 from .models import Task
 from .serializers import TaskSerializer
-
+from mobile_api.idempotency import idempotent
 
 class TaskFilter(filters.FilterSet):
     status = filters.CharFilter(field_name='status')
@@ -34,6 +34,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save()
 
+    @idempotent('task-transition')
     @action(detail=True, methods=['post'])
     def transition(self, request, pk=None):
         task = self.get_object()

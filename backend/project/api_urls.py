@@ -22,4 +22,5 @@ router.register('finances/budget', BudgetItemViewSet, basename='finance-budget')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('mobile/', include('mobile_api.urls')),
 ]

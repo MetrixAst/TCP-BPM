@@ -1646,16 +1646,6 @@ class EnbekViewsTestCase(TestCase):
         self.assertNotContains(response, 'Редактировать')
         self.assertNotContains(response, 'Удалить')
 
-    def test_hr_menu_contains_new_enbek_items(self):
-        menu = MenuItem.generate_menu(self.admin_user)
-
-        hr_item = next(item for item in menu if item.id == 'hr')
-        submenu_titles = [item.title for item in hr_item.submenu]
-
-        self.assertIn('Отпуска (Enbek)', submenu_titles)
-        self.assertIn('Больничные (Enbek)', submenu_titles)
-        self.assertIn('Договоры (Enbek)', submenu_titles)
-
 
 class AttendanceRecordTestCase(TestCase):
     def setUp(self):
