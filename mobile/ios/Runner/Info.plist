@@ -70,5 +70,10 @@
 	<string>Приложению нужен доступ к камере для фотофиксации при чек-ине</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Приложению нужен доступ к геолокации для отметки места чек-ина</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>
