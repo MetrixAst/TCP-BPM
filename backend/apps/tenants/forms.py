@@ -1,4 +1,5 @@
 from django import forms
+from django.db import transaction
 
 from .models import Tenant, TenantCategory, Room
 
@@ -51,9 +52,13 @@ class TenantForm(forms.ModelForm):
             self.fields[field_name].required = True
 
         for field_name in ('phone', 'email', 'address', 'contact',
-                           'start_date', 'end_date', 'discount_date', 'increase_type'):
+                           'start_date', 'end_date', 'discount_date', 'increase_type',
+                           'discount', 'percent'):
             self.fields[field_name].required = False
+        for field_name in ('start_date', 'end_date', 'discount_date'):
+            self.fields[field_name].input_formats = ['%Y-%m-%d', '%d.%m.%Y']
 
+    @transaction.atomic
     def save(self, commit=True):
         instance = super().save(commit=False)
 
@@ -67,12 +72,13 @@ class TenantForm(forms.ModelForm):
         else:
             instance.room = None
 
-        category_title = (self.cleaned_data.get('category') or '').strip()
-        if category_title:
-            category_obj, _ = TenantCategory.objects.get_or_create(title=category_title)
-            instance.category = category_obj
-        else:
-            instance.category = None
+        category_title = (self.cleaned_data.get('category') or '').strip() or 'Прочее'
+        category_obj = TenantCategory.objects.filter(
+            title__iexact=category_title
+        ).first()
+        if category_obj is None:
+            category_obj = TenantCategory.objects.create(title=category_title)
+        instance.category = category_obj
 
         if commit:
             instance.save()

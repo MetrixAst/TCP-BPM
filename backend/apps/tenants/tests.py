@@ -3,6 +3,7 @@ from django.urls import reverse
 
 from account.models import UserAccount
 from account.role_permissions import RoleEnums
+from tenants.forms import TenantForm
 from tenants.models import Tenant, TenantCategory, Room
 
 
@@ -97,3 +98,30 @@ class TenantPortalAccessTest(TestCase):
         resp = self.client.post(reverse('tenants:portal_access', args=[self.tenant.id]))
         self.assertEqual(resp.status_code, 400)
         self.assertIn('уже используется', resp.json()['message'])
+
+
+class TenantOnboardingFormTest(TestCase):
+    def test_creates_room_and_default_category(self):
+        form = TenantForm(data={
+            'name': 'New tenant',
+            'room': 'A-101',
+            'category': '',
+            'area': '25',
+            'price': '1000',
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+        tenant = form.save()
+
+        self.assertEqual(tenant.room.number, 'A-101')
+        self.assertEqual(tenant.category.title, 'Прочее')
+
+    def test_accepts_localized_dates(self):
+        form = TenantForm(data={
+            'name': 'Dated tenant',
+            'room': 'A-102',
+            'area': '25',
+            'price': '1000',
+            'start_date': '27.07.2026',
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data['start_date'].isoformat(), '2026-07-27')

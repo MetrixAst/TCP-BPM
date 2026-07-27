@@ -1,5 +1,6 @@
 from django.shortcuts import redirect, render, get_object_or_404
 from account.role_permissions import need_permission, PermissionEnums, login_required as _login_required
+from django.core.exceptions import PermissionDenied
 from django.http import JsonResponse, HttpResponseForbidden, HttpResponse
 from django.contrib import messages
 from decimal import Decimal
@@ -15,7 +16,7 @@ from .models import (
 from .serializers import FinanceItemSerializer
 
 from datetime import date
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.utils import timezone
 
 from account.role_permissions import RoleEnums
@@ -31,12 +32,12 @@ def _finance_filter_context(extra=None):
     return ctx
 
 
-@need_permission(PermissionEnums.FINANCES)
+@need_permission(PermissionEnums.FINANCE_REGISTERS)
 def calendar(request):
     return redirect('finances:payment_calendar')
 
 
-@need_permission(PermissionEnums.FINANCES)
+@need_permission(PermissionEnums.FINANCE_REGISTERS)
 def calendar_action(request, action):
 
     if action == 'json':
@@ -52,6 +53,8 @@ def calendar_action(request, action):
             instance = get_or_none(FinanceItem, pk=pk)
 
         if action == 'delete':
+            if instance is None:
+                return JsonResponse({}, status=404)
             instance.delete()
 
             return JsonResponse({})
@@ -81,7 +84,7 @@ def budget_create(request):
     return redirect('finances:budget_list')
 
 
-@need_permission(PermissionEnums.FINANCES)
+@need_permission(PermissionEnums.FINANCE_INVOICES)
 def bill(request):
     """Счета компании (банковские) — данные из 1С пока не подключены."""
     return render(request, 'site/finances/bill.html', {
@@ -352,16 +355,24 @@ def invoice_edit(request, pk):
     return HttpResponseForbidden("Редактирование локальных счётов отключено. Используйте 1С.")
 
 
-@need_permission(PermissionEnums.FINANCE_INVOICES)
-def invoice_detail(request, pk):
+def _get_invoice_with_acl(request, pk, *, with_items=False):
     from account.services.access_scope import user_can_view_counterparty
 
-    invoice = get_object_or_404(
-        GeneratedInvoice.objects.select_related('tenant', 'counterparty').prefetch_related('items'),
-        pk=pk,
-    )
-    if invoice.counterparty_id and not user_can_view_counterparty(request.user, invoice.counterparty):
-        return HttpResponseForbidden('Нет доступа к этому счёту.')
+    queryset = GeneratedInvoice.objects.select_related('tenant', 'counterparty')
+    if with_items:
+        queryset = queryset.prefetch_related('items')
+    invoice = get_object_or_404(queryset, pk=pk)
+    if invoice.counterparty_id and not user_can_view_counterparty(
+        request.user,
+        invoice.counterparty,
+    ):
+        raise PermissionDenied('Нет доступа к этому счёту.')
+    return invoice
+
+
+@need_permission(PermissionEnums.FINANCE_INVOICES)
+def invoice_detail(request, pk):
+    invoice = _get_invoice_with_acl(request, pk, with_items=True)
     STATUS_COLORS = {
         GeneratedInvoice.Status.CREATED: 'secondary',
         GeneratedInvoice.Status.SENT: 'info',
@@ -379,10 +390,7 @@ def invoice_detail(request, pk):
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_pdf(request, pk):
     """PDF счёта: ?inline=1 — preview в браузере, иначе скачивание."""
-    invoice = get_object_or_404(
-        GeneratedInvoice.objects.select_related('tenant', 'counterparty').prefetch_related('items'),
-        pk=pk,
-    )
+    invoice = _get_invoice_with_acl(request, pk, with_items=True)
     from .services.invoice_pdf import build_invoice_pdf
 
     try:
@@ -406,7 +414,7 @@ def invoice_pdf(request, pk):
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_delete(request, pk):
-    invoice = get_object_or_404(GeneratedInvoice, pk=pk)
+    invoice = _get_invoice_with_acl(request, pk)
 
     if invoice.status == GeneratedInvoice.Status.PAID:
         messages.error(request, 'Оплаченный счёт нельзя удалить.')
@@ -420,7 +428,7 @@ def invoice_delete(request, pk):
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_send(request, pk):
-    invoice = get_object_or_404(GeneratedInvoice, pk=pk)
+    invoice = _get_invoice_with_acl(request, pk)
     if request.method == 'POST' and invoice.status == GeneratedInvoice.Status.CREATED:
         sent_via = request.POST.get('sent_via', GeneratedInvoice.SentVia.EMAIL)
 
@@ -468,7 +476,7 @@ def invoice_send(request, pk):
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_mark_viewed(request, pk):
-    invoice = get_object_or_404(GeneratedInvoice, pk=pk)
+    invoice = _get_invoice_with_acl(request, pk)
     if request.method == 'POST' and invoice.status == GeneratedInvoice.Status.SENT:
         invoice.status = GeneratedInvoice.Status.VIEWED
         invoice.save()
@@ -478,7 +486,7 @@ def invoice_mark_viewed(request, pk):
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_mark_paid(request, pk):
-    invoice = get_object_or_404(GeneratedInvoice, pk=pk)
+    invoice = _get_invoice_with_acl(request, pk)
     if request.method == 'POST' and invoice.status in [
         GeneratedInvoice.Status.SENT,
         GeneratedInvoice.Status.VIEWED,
@@ -508,7 +516,7 @@ def invoice_mark_paid(request, pk):
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_cancel(request, pk):
-    invoice = get_object_or_404(GeneratedInvoice, pk=pk)
+    invoice = _get_invoice_with_acl(request, pk)
     if request.method == 'POST' and invoice.status != GeneratedInvoice.Status.PAID:
         invoice.status = GeneratedInvoice.Status.CANCELLED
         invoice.save()
@@ -537,8 +545,10 @@ def budget_list(request):
     try:
         year  = int(request.GET.get('year',  today.year))
         month = int(request.GET.get('month', today.month))
+        quarter = int(request.GET.get('quarter', (today.month - 1) // 3 + 1))
     except (ValueError, TypeError):
-        year, month = today.year, today.month
+        year, month, quarter = today.year, today.month, (today.month - 1) // 3 + 1
+    quarter = min(max(quarter, 1), 4)
 
     period_type = request.GET.get('period_type', 'monthly')
     cat_type    = request.GET.get('cat_type', '')
@@ -568,6 +578,8 @@ def budget_list(request):
         )
         if period_type == 'monthly':
             qs = qs.filter(month=month)
+        elif period_type == 'quarterly':
+            qs = qs.filter(quarter=quarter)
 
         plan     = sum(i.plan     for i in qs) or Decimal('0')
         fact     = sum(i.fact     for i in qs) or Decimal('0')
@@ -612,6 +624,7 @@ def budget_list(request):
         'rows':        rows,
         'year':        year,
         'month':       month,
+        'quarter':     quarter,
         'period_type': period_type,
         'cat_type':    cat_type,
         'can_edit':    can_edit, 
@@ -634,6 +647,8 @@ def budget_list(request):
         )
         if period_type == 'monthly':
             export_qs = export_qs.filter(month=month)
+        elif period_type == 'quarterly':
+            export_qs = export_qs.filter(quarter=quarter)
         return export_budget(export_qs.select_related('category'))
 
     return render(request, 'site/finances/budget/budget_list.html', context)
@@ -811,8 +826,10 @@ def financial_statement(request):
     try:
         year  = int(request.GET.get('year', today.year))
         month = int(request.GET.get('month', today.month))
+        quarter = int(request.GET.get('quarter', (today.month - 1) // 3 + 1))
     except (ValueError, TypeError):
-        year, month = today.year, today.month
+        year, month, quarter = today.year, today.month, (today.month - 1) // 3 + 1
+    quarter = min(max(quarter, 1), 4)
 
     period_type = request.GET.get('period_type', FinancialStatement.Period.MONTHLY)
 
@@ -822,6 +839,8 @@ def financial_statement(request):
     )
     if period_type == FinancialStatement.Period.MONTHLY:
         qs = qs.filter(month=month)
+    elif period_type == FinancialStatement.Period.QUARTERLY:
+        qs = qs.filter(quarter=quarter)
     statement = qs.first()
 
     if month == 1:
@@ -838,6 +857,7 @@ def financial_statement(request):
         'rows':        _build_opiu_rows(statement),
         'year':        year,
         'month':       month,
+        'quarter':     quarter,
         'period_type': period_type,
         'period_choices': FinancialStatement.Period.choices,
         'prev_year':   prev_year,
@@ -853,6 +873,8 @@ def financial_statement(request):
         export_qs = FinancialStatement.objects.filter(period_type=period_type, year=year)
         if period_type == FinancialStatement.Period.MONTHLY:
             export_qs = export_qs.filter(month=month)
+        elif period_type == FinancialStatement.Period.QUARTERLY:
+            export_qs = export_qs.filter(quarter=quarter)
         return export_financial_statement(export_qs)
 
     return render(request, 'site/finances/opiu.html', context)
@@ -860,6 +882,9 @@ def financial_statement(request):
 
 @need_permission(PermissionEnums.FINANCE_REPORTS)
 def cashflow_register(request):
+    from account.services.access_scope import filter_counterparties_queryset
+    from onec.models import Counterparty
+
     today = date.today()
     date_from = request.GET.get('date_from') or today.replace(day=1).isoformat()
     date_to   = request.GET.get('date_to') or today.isoformat()
@@ -867,7 +892,16 @@ def cashflow_register(request):
     flow_type = request.GET.get('flow_type', '')
     counterparty_id = request.GET.get('counterparty', '')
 
-    qs = CashFlowRecord.objects.select_related('counterparty', 'budget_category').all()
+    allowed_counterparties = filter_counterparties_queryset(
+        Counterparty.objects.all(),
+        request.user,
+    )
+    qs = CashFlowRecord.objects.select_related(
+        'counterparty',
+        'budget_category',
+    ).filter(
+        Q(counterparty__isnull=True) | Q(counterparty__in=allowed_counterparties)
+    )
 
     try:
         qs = qs.filter(transaction_date__gte=date.fromisoformat(date_from))
@@ -886,13 +920,14 @@ def cashflow_register(request):
         from .services.excel import export_cashflow
         return export_cashflow(qs.order_by('-transaction_date', '-created_at'))
 
+    total_inflow = qs.filter(
+        direction=CashFlowRecord.Direction.INFLOW
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    total_outflow = qs.filter(
+        direction=CashFlowRecord.Direction.OUTFLOW
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
     records = qs.order_by('-transaction_date', '-created_at')[:500]
 
-    total_inflow = sum(r.amount for r in records if r.direction == CashFlowRecord.Direction.INFLOW)
-    total_outflow = sum(r.amount for r in records if r.direction == CashFlowRecord.Direction.OUTFLOW)
-
-    from account.services.access_scope import filter_counterparties_queryset
-    from onec.models import Counterparty
     counterparties = filter_counterparties_queryset(
         Counterparty.objects.order_by('short_name'),
         request.user,
@@ -1250,6 +1285,8 @@ def credit_model_list(request):
     can_manage = _can_manage_credit(request.user)
 
     if request.method == 'POST' and request.POST.get('delete_id'):
+        if not can_manage:
+            return HttpResponseForbidden('Нет прав на удаление кредитного сценария.')
         try:
             cm = CreditModel.objects.get(pk=request.POST['delete_id'])
             cm.delete()
@@ -1303,7 +1340,7 @@ def credit_model_create(request):
             fields = [
                 'name', 'scenario', 'year', 'description',
                 'loan_amount', 'loan_rate', 'loan_term_months',
-                'annual_debt_service', 'risk_level', 'risk_notes',
+                'risk_level', 'risk_notes',
                 'period_start', 'period_end', 'financial_statement',
             ]
             widgets = {
@@ -1314,7 +1351,6 @@ def credit_model_create(request):
                 'loan_amount':         django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01', 'min': '0'}),
                 'loan_rate':           django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01', 'min': '0'}),
                 'loan_term_months':    django_forms.NumberInput(attrs={'class': 'fin-input', 'min': '1'}),
-                'annual_debt_service': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01', 'min': '0'}),
                 'risk_level':          django_forms.Select(attrs={'class': 'fin-input'}),
                 'risk_notes':          django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 2}),
                 'period_start':        django_forms.DateInput(attrs={'type': 'date', 'class': 'fin-input'}),
@@ -1845,6 +1881,20 @@ def cashflow_create(request):
     from onec.models import Counterparty
 
     class CashFlowForm(django_forms.ModelForm):
+        def __init__(self, *args, user=None, **kwargs):
+            super().__init__(*args, **kwargs)
+            from account.services.access_scope import filter_counterparties_queryset
+            self.fields['counterparty'].queryset = filter_counterparties_queryset(
+                Counterparty.objects.order_by('short_name'),
+                user,
+            )
+
+        def clean_amount(self):
+            amount = self.cleaned_data['amount']
+            if amount <= 0:
+                raise django_forms.ValidationError('Сумма должна быть больше нуля.')
+            return amount
+
         class Meta:
             model = CashFlowRecord
             fields = [
@@ -1863,7 +1913,7 @@ def cashflow_create(request):
             }
 
     initial = {'transaction_date': date.today()}
-    form = CashFlowForm(request.POST or None, initial=initial)
+    form = CashFlowForm(request.POST or None, initial=initial, user=request.user)
     if request.method == 'POST' and form.is_valid():
         record = form.save()
         messages.success(request, f'Запись ДДС от {record.transaction_date} добавлена.')
@@ -1894,8 +1944,23 @@ def cashflow_edit(request, pk):
     if not can_edit:
         return HttpResponseForbidden('<h1>403</h1>')
     record = get_object_or_404(CashFlowRecord, pk=pk)
+    from onec.models import Counterparty
 
     class CashFlowForm(django_forms.ModelForm):
+        def __init__(self, *args, user=None, **kwargs):
+            super().__init__(*args, **kwargs)
+            from account.services.access_scope import filter_counterparties_queryset
+            self.fields['counterparty'].queryset = filter_counterparties_queryset(
+                Counterparty.objects.order_by('short_name'),
+                user,
+            )
+
+        def clean_amount(self):
+            amount = self.cleaned_data['amount']
+            if amount <= 0:
+                raise django_forms.ValidationError('Сумма должна быть больше нуля.')
+            return amount
+
         class Meta:
             model = CashFlowRecord
             fields = ['direction', 'flow_type', 'amount', 'transaction_date',
@@ -1903,7 +1968,7 @@ def cashflow_edit(request, pk):
             widgets = {
                 'direction': django_forms.Select(attrs={'class': 'fin-input'}),
                 'flow_type': django_forms.Select(attrs={'class': 'fin-input'}),
-                'amount': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'amount': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01', 'min': '0'}),
                 'transaction_date': django_forms.DateInput(attrs={'class': 'fin-input', 'type': 'date'}),
                 'description': django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 2}),
                 'document_number': django_forms.TextInput(attrs={'class': 'fin-input'}),
@@ -1911,7 +1976,7 @@ def cashflow_edit(request, pk):
                 'budget_category': django_forms.Select(attrs={'class': 'fin-input'}),
             }
 
-    form = CashFlowForm(request.POST or None, instance=record)
+    form = CashFlowForm(request.POST or None, instance=record, user=request.user)
     if request.method == 'POST' and form.is_valid():
         form.save()
         messages.success(request, 'Запись ДДС обновлена.')

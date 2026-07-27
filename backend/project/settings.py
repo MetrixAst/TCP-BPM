@@ -286,6 +286,11 @@ ONLYOFFICE_BACKEND_INTERNAL_URL = config('ONLYOFFICE_BACKEND_INTERNAL_URL', defa
 ONLYOFFICE_JWT_SECRET = config('ONLYOFFICE_JWT_SECRET', default='s4x3XgJV8c6CwHlgu3WkUEdaiTwGjdBW')
 ONLYOFFICE_JWT_ENABLED = config('ONLYOFFICE_JWT_ENABLED', default=True, cast=bool)
 ONLYOFFICE_CALLBACK_TIMEOUT = config('ONLYOFFICE_CALLBACK_TIMEOUT', default=30, cast=int)
+ONLYOFFICE_ALLOWED_DOWNLOAD_HOSTS = config(
+    'ONLYOFFICE_ALLOWED_DOWNLOAD_HOSTS',
+    default='',
+    cast=Csv(),
+)
 
 ESIGNER_URL = config('ESIGNER_URL', default='https://esigner.kz/back')
 ESIGNER_SIGN_BASE_URL = config('ESIGNER_SIGN_BASE_URL', default='https://sign.avantage.one')
@@ -294,3 +299,4 @@ ESIGNER_SECRET_KEY = config('ESIGNER_SECRET_KEY', default='')
 ESIGNER_COMPANY_ID = config('ESIGNER_COMPANY_ID', default=0, cast=int)
 ESIGNER_FOLDER_ID = config('ESIGNER_FOLDER_ID', default='')
 ESIGNER_TIMEOUT = config('ESIGNER_TIMEOUT', default=30, cast=int)
+ESIGNER_WEBHOOK_SECRET = config('ESIGNER_WEBHOOK_SECRET', default='')

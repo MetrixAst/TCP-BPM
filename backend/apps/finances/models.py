@@ -621,12 +621,15 @@ class CreditModel(models.Model):
     def _annual_debt_service(self):
         from decimal import Decimal
         P = self.loan_amount
+        term = Decimal(str(self.loan_term_months or 0))
+        if not P or term <= 0:
+            return Decimal('0.00')
         annual_rate = self.loan_rate / Decimal('100')
         if annual_rate == 0:
-            return P
+            months_in_year = min(term, Decimal('12'))
+            return (P * months_in_year / term).quantize(Decimal('0.01'))
         r = annual_rate / Decimal('12')
-        n = Decimal('12')
-        factor = r / (1 - (1 + r) ** (-n))
+        factor = r / (1 - (1 + r) ** (-term))
         return (P * factor * 12).quantize(Decimal('0.01'))
 
     def calculate_dscr(self):
@@ -642,6 +645,7 @@ class CreditModel(models.Model):
             return None
 
         debt_service = self._annual_debt_service()
+        self.annual_debt_service = debt_service
         self.free_cashflow = noi - debt_service
 
         if debt_service == 0:

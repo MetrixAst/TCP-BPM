@@ -1,11 +1,14 @@
 import json
 import logging
 import os
+from urllib.parse import urlparse
 
 import requests
 
 from django.conf import settings
-from django.shortcuts import redirect, render
+from django.contrib import messages
+from django.contrib.contenttypes.models import ContentType
+from django.shortcuts import get_object_or_404, redirect, render
 from .models import Document, InnerDocument
 
 from django.shortcuts import render
@@ -16,16 +19,27 @@ from .enums import DocumentTypeEnum
 from .services import documents_list, document, document_action, edit_document_by_type, create_folder
 from . import onlyoffice
 from . import attachments
+from esigner.models import ESignerSigning
 from esigner.services import send_for_signing
 
 from project.utils import get_or_error
 
 from django.core.files.base import ContentFile
-from django.http import Http404, JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
 logger = logging.getLogger(__name__)
+
+
+def _onlyoffice_download_url_allowed(download_url):
+    parsed = urlparse(download_url)
+    configured_host = urlparse(settings.ONLYOFFICE_DS_PUBLIC_URL).hostname
+    allowed_hosts = set(getattr(settings, 'ONLYOFFICE_ALLOWED_DOWNLOAD_HOSTS', []))
+    if configured_host:
+        allowed_hosts.add(configured_host)
+    return parsed.scheme in ('http', 'https') and parsed.hostname in allowed_hosts
+
 
 @need_permission(PermissionEnums.DOCUMENTS)
 def documents(request, document_type):
@@ -60,19 +74,43 @@ def document_esigner_send(request, pk):
         return redirect('documents:document', pk=pk)
 
     iin = request.POST.get('iin', '').strip()
-    if not iin:
+    if not (iin.isdigit() and len(iin) == 12):
+        messages.error(request, 'ИИН/БИН должен состоять из 12 цифр.')
+        return redirect('documents:document', pk=pk)
+    if not current.document:
+        messages.error(request, 'У документа нет файла для подписания.')
         return redirect('documents:document', pk=pk)
 
     is_company = request.POST.get('is_company') == 'on'
     signers = [{"bin_or_iin": iin, "is_company": is_company}]
 
-    signing = send_for_signing(current, "document", signers)
+    try:
+        signing = send_for_signing(current, "document", signers)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect('documents:document', pk=pk)
     return redirect(signing.sign_url)
 
 
-@need_permission(PermissionEnums.EDIT_DOCUMENT)
-def edit_document(request, document_type, pk):
-    return edit_document_by_type(request, pk, document_type)
+@need_permission(PermissionEnums.DOCUMENTS)
+def document_esigner_download(request, pk):
+    current = Document.get_by_id(request, pk, exception=True)
+    signing = get_object_or_404(
+        ESignerSigning,
+        content_type=ContentType.objects.get_for_model(current),
+        object_id=current.pk,
+        status=ESignerSigning.STATUS_COMPLETED,
+    )
+    if not signing.signed_pdf:
+        raise Http404('Подписанный PDF не найден')
+    response = FileResponse(
+        signing.signed_pdf.open('rb'),
+        content_type='application/pdf',
+        as_attachment=True,
+        filename=f'signed_{current.pk}.pdf',
+    )
+    response['Cache-Control'] = 'private, no-store'
+    return response
 
 
 @need_permission(PermissionEnums.EDIT_DOCUMENT)
@@ -167,12 +205,15 @@ def onlyoffice_callback(request, pk):
             auth = request.headers.get('Authorization', '')
             if auth.startswith('Bearer '):
                 token = auth[7:]
+        if not token:
+            return JsonResponse({'error': 1, 'message': 'Token required'}, status=403)
         try:
-            decoded = onlyoffice.decode(token) if token else None
+            decoded = onlyoffice.decode(token)
             if decoded and 'payload' in decoded:
                 decoded = decoded['payload']
-            if decoded:
-                body = decoded
+            if not decoded:
+                raise ValueError('Empty JWT payload')
+            body = decoded
         except Exception:
             logger.warning('ONLYOFFICE callback: invalid JWT for document %s', pk)
             return JsonResponse({'error': 1, 'message': 'Invalid token'}, status=403)
@@ -182,6 +223,8 @@ def onlyoffice_callback(request, pk):
     if status in (2, 6):
         download_url = body.get('url')
         if download_url:
+            if not _onlyoffice_download_url_allowed(download_url):
+                return JsonResponse({'error': 1, 'message': 'Download URL not allowed'}, status=403)
             try:
                 resp = requests.get(
                     download_url,
@@ -349,12 +392,15 @@ def onlyoffice_universal_callback(request, kind, pk):
             auth = request.headers.get('Authorization', '')
             if auth.startswith('Bearer '):
                 token = auth[7:]
+        if not token:
+            return JsonResponse({'error': 1, 'message': 'Token required'}, status=403)
         try:
-            decoded = onlyoffice.decode(token) if token else None
+            decoded = onlyoffice.decode(token)
             if decoded and 'payload' in decoded:
                 decoded = decoded['payload']
-            if decoded:
-                body = decoded
+            if not decoded:
+                raise ValueError('Empty JWT payload')
+            body = decoded
         except Exception:
             logger.warning('ONLYOFFICE callback: invalid JWT for %s %s', kind, pk)
             return JsonResponse({'error': 1, 'message': 'Invalid token'}, status=403)
@@ -363,6 +409,8 @@ def onlyoffice_universal_callback(request, kind, pk):
     if status in (2, 6):
         download_url = body.get('url')
         if download_url:
+            if not _onlyoffice_download_url_allowed(download_url):
+                return JsonResponse({'error': 1, 'message': 'Download URL not allowed'}, status=403)
             file_field = spec.get_file(obj)
             try:
                 resp = requests.get(

@@ -21,7 +21,9 @@ class ESignerSigning(models.Model):
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey("content_type", "object_id")
 
-    esigner_document_id = models.CharField("ID документа в eSigner", max_length=64)
+    esigner_document_id = models.CharField(
+        "ID документа в eSigner", max_length=64, unique=True
+    )
     esigner_folder_id = models.CharField("ID папки в eSigner", max_length=64)
     sign_hash = models.CharField("Хэш ссылки на подписание", max_length=64, blank=True)
     status = models.CharField("Статус", max_length=16, choices=STATUS_CHOICES, default=STATUS_DRAFT)

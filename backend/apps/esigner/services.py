@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
 
 from .client import ESignerClient
 from .models import ESignerSigning
@@ -18,30 +19,43 @@ def send_for_signing(obj, file_field_name: str, signers: list, company_id: int =
     if not file_field:
         raise ValueError(f"{obj} не имеет файла в поле '{file_field_name}'")
 
-    with file_field.open("rb") as f:
-        uploaded = client.upload_document(
-            folder_id, file_field.name.split("/")[-1], f, "application/octet-stream",
+    content_type = ContentType.objects.get_for_model(obj)
+    with transaction.atomic():
+        existing = ESignerSigning.objects.select_for_update().filter(
+            content_type=content_type,
+            object_id=obj.pk,
+        ).first()
+        if existing and existing.status not in (
+            ESignerSigning.STATUS_ARCHIVED,
+            ESignerSigning.STATUS_REVOKED,
+        ):
+            raise ValueError("Документ уже отправлен на подписание")
+
+        with file_field.open("rb") as f:
+            uploaded = client.upload_document(
+                folder_id, file_field.name.split("/")[-1], f, "application/octet-stream",
+            )
+
+        signing, _ = ESignerSigning.objects.update_or_create(
+            content_type=content_type,
+            object_id=obj.pk,
+            defaults={
+                "esigner_document_id": uploaded["id"],
+                "esigner_folder_id": folder_id,
+                "sign_hash": "",
+                "signed_pdf": None,
+                "status": ESignerSigning.STATUS_DRAFT,
+                "signers": signers,
+            },
         )
 
-    content_type = ContentType.objects.get_for_model(obj)
-    signing, _ = ESignerSigning.objects.update_or_create(
-        content_type=content_type,
-        object_id=obj.pk,
-        defaults={
-            "esigner_document_id": uploaded["id"],
-            "esigner_folder_id": folder_id,
-            "status": ESignerSigning.STATUS_DRAFT,
-            "signers": signers,
-        },
-    )
+        for signer in signers:
+            client.add_signer(uploaded["id"], signer["bin_or_iin"], signer["is_company"])
 
-    for signer in signers:
-        client.add_signer(uploaded["id"], signer["bin_or_iin"], signer["is_company"])
-
-    sent = client.send_for_signing(uploaded["id"])
-    signing.sign_hash = sent["hash"]
-    signing.status = ESignerSigning.STATUS_SENT
-    signing.save(update_fields=["sign_hash", "status"])
+        sent = client.send_for_signing(uploaded["id"])
+        signing.sign_hash = sent["hash"]
+        signing.status = ESignerSigning.STATUS_SENT
+        signing.save(update_fields=["sign_hash", "status"])
 
     logger.info("%s#%s sent to eSigner, sign_url=%s", content_type, obj.pk, signing.sign_url)
     return signing
@@ -49,29 +63,37 @@ def send_for_signing(obj, file_field_name: str, signers: list, company_id: int =
 
 def handle_webhook(payload: dict):
     if payload.get("status") != "COMPLETED":
-        return
+        return False
 
-    esigner_document_id = payload["document_id"]
-    try:
-        signing = ESignerSigning.objects.select_related("content_type").get(
-            esigner_document_id=esigner_document_id
-        )
-    except ESignerSigning.DoesNotExist:
-        logger.warning("eSigner webhook for unknown document_id=%s", esigner_document_id)
-        return
+    esigner_document_id = payload.get("document_id")
+    if not esigner_document_id:
+        logger.warning("eSigner webhook without document_id")
+        return False
 
-    client = ESignerClient()
-    doc_data = client.get_document(esigner_document_id)
-    if doc_data.get("status") != "COMPLETED":
-        return
+    with transaction.atomic():
+        try:
+            signing = ESignerSigning.objects.select_for_update().select_related(
+                "content_type"
+            ).get(esigner_document_id=esigner_document_id)
+        except ESignerSigning.DoesNotExist:
+            logger.warning("eSigner webhook for unknown document_id=%s", esigner_document_id)
+            return False
 
-    from django.core.files.base import ContentFile
-    pdf_bytes = client.download_signed_pdf(esigner_document_id)
-    signing.signed_pdf.save(f"{esigner_document_id}.pdf", ContentFile(pdf_bytes), save=False)
-    signing.status = ESignerSigning.STATUS_COMPLETED
-    signing.save(update_fields=["signed_pdf", "status"])
+        if signing.status == ESignerSigning.STATUS_COMPLETED:
+            return True
 
-    _apply_post_signing_hook(signing)
+        client = ESignerClient()
+        doc_data = client.get_document(esigner_document_id)
+        if doc_data.get("status") != "COMPLETED":
+            return False
+
+        from django.core.files.base import ContentFile
+        pdf_bytes = client.download_signed_pdf(esigner_document_id)
+        signing.signed_pdf.save(f"{esigner_document_id}.pdf", ContentFile(pdf_bytes), save=False)
+        signing.status = ESignerSigning.STATUS_COMPLETED
+        signing.save(update_fields=["signed_pdf", "status"])
+        _apply_post_signing_hook(signing)
+        return True
 
 
 def _apply_post_signing_hook(signing: ESignerSigning):

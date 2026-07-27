@@ -82,12 +82,12 @@
         {% elif esigner_signing and esigner_signing.status == 'COMPLETED' %}
           <span class="doc-status-badge">Подписан через eSigner</span>
           {% if esigner_signing.signed_pdf %}
-            <a href="{{ esigner_signing.signed_pdf.url }}" download
+            <a href="{% url 'documents:document_esigner_download' document.pk %}" download
                class="doc-detail-icon-btn" title="Скачать подписанный PDF">
               <i class="bi bi-download"></i>
             </a>
           {% endif %}
-        {% else %}
+        {% elif can_edit %}
           <button type="button" class="doc-detail-action-btn doc-detail-action-btn--ghost"
                   id="esignerActionBtn">
             <i class="bi bi-pen"></i> Отправить на подписание (eSigner)

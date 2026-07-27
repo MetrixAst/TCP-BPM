@@ -166,6 +166,10 @@ def document(request, pk):
         'type_config': DocumentTypeEnum.get_config(current.document_type),
         'addit_form': InnerDocumentForm(),
         'esigner_signing': esigner_signing,
+        'can_edit': RolePermissions.checkPermission(
+            request.user.role,
+            PermissionEnums.EDIT_DOCUMENT,
+        ),
     }
 
     return render(request, 'site/documents/document.html', context)

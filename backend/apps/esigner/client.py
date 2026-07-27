@@ -1,4 +1,5 @@
 import base64
+import logging
 import requests
 from django.conf import settings
 from django.core.cache import cache
@@ -8,6 +9,7 @@ from .exceptions import ESignerAuthError, ESignerAPIError
 
 TOKEN_CACHE_KEY = "esigner:access_token"
 TOKEN_TTL = 55 * 60  # обновление за 5 минут до истечения часового токена
+logger = logging.getLogger(__name__)
 
 
 class ESignerClient:
@@ -35,14 +37,11 @@ class ESignerClient:
             timeout=self._timeout,
         )
         if resp.status_code != 200:
-            print("STATUS:", resp.status_code)
-            print("HEADERS:", resp.headers)
-            print("BODY:", resp.text)
-
+            logger.warning("eSigner authentication failed with status %s", resp.status_code)
             raise ESignerAuthError(
-        f"eSigner auth failed: {resp.text}",
-        status_code=resp.status_code,
-    )
+                "eSigner authentication failed",
+                status_code=resp.status_code,
+            )
         token = resp.json()["data"]["access_token"]
         cache.set(TOKEN_CACHE_KEY, token, TOKEN_TTL)
         return token
@@ -117,16 +116,7 @@ class ESignerClient:
         )
 
     def download_signed_pdf(self, document_id: str) -> bytes:
-        resp = self._session.get(
-            f"{self._base_url}/documents/{document_id}/file/",
-            timeout=self._timeout,
-        )
-        if resp.status_code != 200:
-            raise ESignerAPIError(
-                "Failed to download signed pdf",
-                status_code=resp.status_code,
-                response=self._safe_json(resp),
-            )
+        resp = self._request("GET", f"/documents/{document_id}/file/")
         if not resp.content.startswith(b"%PDF"):
             raise ESignerAPIError(
                 "eSigner returned non-PDF content",

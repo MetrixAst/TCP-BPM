@@ -1484,7 +1484,10 @@ def documents_edit(request, pk):
     is_hr, is_head, _ = get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
-    doc = get_object_or_404(EmployeeDocument, pk=pk)
+    doc = get_object_or_404(
+        filter_by_access(EmployeeDocument.objects.all(), request.user),
+        pk=pk,
+    )
     form = EmployeeDocumentForm(request.POST or None, request.FILES or None, instance=doc)
     if request.method == 'POST' and form.is_valid():
         form.save()
@@ -1538,17 +1541,24 @@ def documents_esigner_send(request, pk):
     if not is_hr and not is_head:
         return HttpResponseForbidden()
 
-    doc = get_object_or_404(EmployeeDocument, pk=pk)
+    doc = get_object_or_404(
+        filter_by_access(EmployeeDocument.objects.all(), request.user),
+        pk=pk,
+    )
 
     if request.method != 'POST':
         return redirect('hr:documents_list')
 
-    if not doc.employee.iin:
-        messages.error(request, "У сотрудника не заполнен ИИН - подписание невозможно.")
+    if not (doc.employee.iin or '').isdigit() or len(doc.employee.iin) != 12:
+        messages.error(request, "У сотрудника не заполнен корректный ИИН - подписание невозможно.")
         return redirect('hr:documents_list')
 
     signers = [{"bin_or_iin": doc.employee.iin, "is_company": False}]
-    signing = send_for_signing(doc, "file", signers)
+    try:
+        signing = send_for_signing(doc, "file", signers)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect('hr:documents_list')
     return redirect(signing.sign_url)
 
 
@@ -1573,7 +1583,10 @@ def permits_edit(request, pk):
     is_hr, is_head, _ = get_registry_access(request.user)
     if not is_hr and not is_head:
         return HttpResponseForbidden()
-    permit = get_object_or_404(EmployeeWorkPermit, pk=pk)
+    permit = get_object_or_404(
+        filter_by_access(EmployeeWorkPermit.objects.all(), request.user),
+        pk=pk,
+    )
     form = EmployeeWorkPermitForm(request.POST or None, request.FILES or None, instance=permit)
     if request.method == 'POST' and form.is_valid():
         form.save()
@@ -1623,17 +1636,24 @@ def permits_esigner_send(request, pk):
     if not is_hr and not is_head:
         return HttpResponseForbidden()
 
-    permit = get_object_or_404(EmployeeWorkPermit, pk=pk)
+    permit = get_object_or_404(
+        filter_by_access(EmployeeWorkPermit.objects.all(), request.user),
+        pk=pk,
+    )
 
     if request.method != 'POST':
         return redirect('hr:permits_list')
 
-    if not permit.employee.iin:
-        messages.error(request, "У сотрудника не заполнен ИИН - подписание невозможно.")
+    if not (permit.employee.iin or '').isdigit() or len(permit.employee.iin) != 12:
+        messages.error(request, "У сотрудника не заполнен корректный ИИН - подписание невозможно.")
         return redirect('hr:permits_list')
 
     signers = [{"bin_or_iin": permit.employee.iin, "is_company": False}]
-    signing = send_for_signing(permit, "scan", signers)
+    try:
+        signing = send_for_signing(permit, "scan", signers)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect('hr:permits_list')
     return redirect(signing.sign_url)
 
 
