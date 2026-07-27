@@ -659,7 +659,7 @@
     var form = document.getElementById('hrEsignerForm');
     var closeBtn = document.getElementById('hrEsignerModalClose');
     var cancelBtn = document.getElementById('hrEsignerModalCancel');
-  
+
     function openModal(url) {
       form.setAttribute('action', url);
       overlay.classList.add('is-open');
@@ -667,13 +667,13 @@
     function closeModal() {
       overlay.classList.remove('is-open');
     }
-  
+
     document.querySelectorAll('.hr-esigner-trigger').forEach(function(btn) {
       btn.addEventListener('click', function() {
         openModal(btn.dataset.esignerUrl);
       });
     });
-  
+
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
     if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
     overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });

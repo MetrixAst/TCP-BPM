@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'mptt',
     'django_mptt_admin',
     'betterforms',
-    
+
     'account',
     'dashboard',
     'documents',
@@ -60,7 +60,7 @@ INSTALLED_APPS = [
     'addits',
     'enbek',
     'onec',
-    'esigner', 
+    'esigner',
     'mobile_api',
     'audit',
     'rest_framework',

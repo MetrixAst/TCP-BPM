@@ -139,10 +139,10 @@ def _apply_post_signing_hook(signing: ESignerSigning):
         obj.save(update_fields=["status", "signed_at"])
 
     elif model_label == "hr.employeecertification":
-        pass  
+        pass
 
     elif model_label == "hr.employeeworkpermit":
-        pass 
+        pass
 
 
 def poll_pending_signings():

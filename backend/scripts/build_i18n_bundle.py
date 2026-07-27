@@ -95,14 +95,14 @@ def main():
             if kk_key not in by_text_en:
                 by_text_en[kk_key] = en_val
             if kk_key not in by_text_kk:
-                by_text_kk[kk_key] = kk_val  
+                by_text_kk[kk_key] = kk_val
 
         if en_val and en_val != ru_val:
             en_key = _norm(en_val)
             if en_key not in by_text_kk:
                 by_text_kk[en_key] = kk_val
             if en_key not in by_text_en:
-                by_text_en[en_key] = en_val  
+                by_text_en[en_key] = en_val
 
     all_keys = set(by_text.keys()) | set(by_text_kk.keys()) | set(by_text_en.keys())
     keys_sorted = sorted(all_keys, key=len, reverse=True)
