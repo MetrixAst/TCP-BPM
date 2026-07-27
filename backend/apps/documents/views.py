@@ -16,6 +16,7 @@ from .enums import DocumentTypeEnum
 from .services import documents_list, document, document_action, edit_document_by_type, create_folder
 from . import onlyoffice
 from . import attachments
+from esigner.services import send_for_signing
 
 from project.utils import get_or_error
 
@@ -49,6 +50,29 @@ def document_view(request, pk):
 @need_permission(PermissionEnums.DOCUMENTS)
 def document_action_view(request, pk):
     return document_action(request, pk)
+
+
+@need_permission(PermissionEnums.EDIT_DOCUMENT)
+def document_esigner_send(request, pk):
+    current = Document.get_by_id(request, pk, exception=True)
+
+    if request.method != 'POST':
+        return redirect('documents:document', pk=pk)
+
+    iin = request.POST.get('iin', '').strip()
+    if not iin:
+        return redirect('documents:document', pk=pk)
+
+    is_company = request.POST.get('is_company') == 'on'
+    signers = [{"bin_or_iin": iin, "is_company": is_company}]
+
+    signing = send_for_signing(current, "document", signers)
+    return redirect(signing.sign_url)
+
+
+@need_permission(PermissionEnums.EDIT_DOCUMENT)
+def edit_document(request, document_type, pk):
+    return edit_document_by_type(request, pk, document_type)
 
 
 @need_permission(PermissionEnums.EDIT_DOCUMENT)

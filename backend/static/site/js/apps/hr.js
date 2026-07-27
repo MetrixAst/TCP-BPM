@@ -810,6 +810,18 @@
       });
     }
   }
+  
+  function initHrPagination() {
+    document.querySelectorAll(".paginator_handler .page-link").forEach(function (el) {
+      el.addEventListener("click", function () {
+        const pageInput = document. getElementById("id_page");
+        const form = document.getElementById("filter_form");
+        if (pageInput) pageInput.value = this.getAttribute("data-page");
+        if (form) form.submit();
+      });
+    });
+  } 
+
   function init() {
     initTableSearch();
     initInlineModals();
@@ -817,6 +829,7 @@
     initOrgChart();
     initHrDatepickers();
     initHrEmployeesFilters();
+    initHrPagination();
 
     if (window.BPM && window.BPM.applyTranslations) {
       window.BPM.applyTranslations();

@@ -50,6 +50,8 @@ from .access import (
 )
 from .services import create_attendance_checkin
 
+from esigner.services import send_for_signing
+
 
 @need_hr_directory
 def structure(request):
@@ -67,6 +69,7 @@ def structure(request):
 def employees(request):
 
     page = 1
+
     queryset = Employee.objects.all()
     is_hr, is_head, curr = get_registry_access(request.user)
     if is_head and not is_hr and curr:
@@ -173,6 +176,23 @@ def _build_employee_profile_context(request, employee, tab=None):
     permits = employee.work_permits.select_related('category').order_by('expiry_date')
     leaves = employee.leave_requests.select_related('leave_type', 'approver__user').order_by('-start_date')
 
+    from django.contrib.contenttypes.models import ContentType
+    from esigner.models import ESignerSigning
+
+    doc_ct = ContentType.objects.get_for_model(EmployeeDocument)
+    permit_ct = ContentType.objects.get_for_model(EmployeeWorkPermit)
+
+    doc_signings = {
+        s.object_id: s for s in ESignerSigning.objects.filter(
+            content_type=doc_ct, object_id__in=documents.values_list('pk', flat=True)
+        )
+    }
+    permit_signings = {
+        s.object_id: s for s in ESignerSigning.objects.filter(
+            content_type=permit_ct, object_id__in=permits.values_list('pk', flat=True)
+        )
+    }
+
     today = date.today()
     month_start = today.replace(day=1)
     days_range = 30 if tab == 'attendance' else 7
@@ -230,6 +250,8 @@ def _build_employee_profile_context(request, employee, tab=None):
         'documents': documents,
         'certifications': certifications,
         'permits': permits,
+        'doc_signings': doc_signings,
+        'permit_signings': permit_signings,
         'leaves': leaves,
         'attendance_rows': attendance_rows,
         'subordinates': subordinates,
@@ -1511,6 +1533,26 @@ def documents_export(request):
     return response
 
 @need_hr_registry
+def documents_esigner_send(request, pk):
+    is_hr, is_head, _ = get_registry_access(request.user)
+    if not is_hr and not is_head:
+        return HttpResponseForbidden()
+
+    doc = get_object_or_404(EmployeeDocument, pk=pk)
+
+    if request.method != 'POST':
+        return redirect('hr:documents_list')
+
+    if not doc.employee.iin:
+        messages.error(request, "У сотрудника не заполнен ИИН - подписание невозможно.")
+        return redirect('hr:documents_list')
+
+    signers = [{"bin_or_iin": doc.employee.iin, "is_company": False}]
+    signing = send_for_signing(doc, "file", signers)
+    return redirect(signing.sign_url)
+
+
+@need_hr_registry
 def permits_create(request):
     is_hr, is_head, _ = get_registry_access(request.user)
     if not is_hr and not is_head:
@@ -1574,6 +1616,26 @@ def permits_export(request):
     response['Content-Disposition'] = 'attachment; filename="permits_export.xlsx"'
     wb.save(response)
     return response
+
+@need_hr_registry
+def permits_esigner_send(request, pk):
+    is_hr, is_head, _ = get_registry_access(request.user)
+    if not is_hr and not is_head:
+        return HttpResponseForbidden()
+
+    permit = get_object_or_404(EmployeeWorkPermit, pk=pk)
+
+    if request.method != 'POST':
+        return redirect('hr:permits_list')
+
+    if not permit.employee.iin:
+        messages.error(request, "У сотрудника не заполнен ИИН - подписание невозможно.")
+        return redirect('hr:permits_list')
+
+    signers = [{"bin_or_iin": permit.employee.iin, "is_company": False}]
+    signing = send_for_signing(permit, "scan", signers)
+    return redirect(signing.sign_url)
+
 
 @need_hr_registry
 def certifications_list(request):
