@@ -845,6 +845,9 @@ def financial_statement(request):
         'next_year':   next_year,
         'next_month':  next_month,
     }
+    can_edit, _ = _get_budget_access(request.user)
+    context['can_edit'] = can_edit
+
     if request.GET.get('export') == 'xlsx':
         from .services.excel import export_financial_statement
         export_qs = FinancialStatement.objects.filter(period_type=period_type, year=year)
@@ -895,6 +898,7 @@ def cashflow_register(request):
         request.user,
     )[:200]
 
+    can_edit, _ = _get_budget_access(request.user)
     context = _finance_filter_context({
         'records':        records,
         'date_from':      date_from,
@@ -908,6 +912,7 @@ def cashflow_register(request):
         'total_inflow':   total_inflow,
         'total_outflow':  total_outflow,
         'net_flow':       total_inflow - total_outflow,
+        'can_edit':       can_edit,
     })
     return render(request, 'site/finances/cashflow.html', context)
 
@@ -1047,6 +1052,11 @@ def _compute_dashboard_kpis(request=None):
 
 @need_permission(PermissionEnums.FINANCE_DASHBOARD)
 def dashboard(request):
+    if request.GET.get('export') == 'xlsx':
+        from .services.excel import export_dashboard_kpis
+        kpis = _compute_dashboard_kpis(request)
+        return export_dashboard_kpis(kpis)
+
     context = _finance_filter_context(_compute_dashboard_kpis(request))
     context['can_manage'] = _can_manage_credit(request.user)
     return render(request, 'site/finances/dashboard.html', context)
@@ -1237,14 +1247,24 @@ def dashboard_drilldown(request):
 
 @need_permission(PermissionEnums.FINANCE_SCENARIOS)
 def credit_model_list(request):
-    models_qs = CreditModel.objects.all()
-    can_create = _can_manage_credit(request.user)
+    can_manage = _can_manage_credit(request.user)
 
-    context = {
-        'credit_models': models_qs,
-        'can_create':    can_create,
+    if request.method == 'POST' and request.POST.get('delete_id'):
+        try:
+            cm = CreditModel.objects.get(pk=request.POST['delete_id'])
+            cm.delete()
+            messages.success(request, 'Сценарий удалён.')
+        except CreditModel.DoesNotExist:
+            pass
+        return redirect('finances:credit_model_list')
+
+    models_qs = CreditModel.objects.all().order_by('-year', 'scenario')
+    context = _finance_filter_context({
+        'credit_models':    models_qs,
+        'can_create':       can_manage,
         'scenario_choices': CreditModel.Scenario.choices,
-    }
+        'show_form':        False,
+    })
     return render(request, 'site/finances/credit_model.html', context)
 
 
@@ -1256,53 +1276,50 @@ def credit_model_create(request):
     import json
 
     class CreditModelForm(django_forms.ModelForm):
-        projected_income_json   = django_forms.CharField(
+        projected_income_json = django_forms.CharField(
             label='Прогноз доходов (JSON)', required=False,
+            widget=django_forms.Textarea(attrs={
+                'class': 'fin-input fin-textarea', 'rows': 4,
+                'placeholder': '{"2026-01": 1500000, "2026-02": 1600000}',
+            })
         )
         projected_expenses_json = django_forms.CharField(
             label='Прогноз расходов (JSON)', required=False,
+            widget=django_forms.Textarea(attrs={
+                'class': 'fin-input fin-textarea', 'rows': 4,
+                'placeholder': '{"2026-01": 900000, "2026-02": 950000}',
+            })
         )
         projected_cashflow_json = django_forms.CharField(
             label='Прогноз ДДС (JSON)', required=False,
+            widget=django_forms.Textarea(attrs={
+                'class': 'fin-input fin-textarea', 'rows': 4,
+                'placeholder': '{"2026-01": 600000, "2026-02": 650000}',
+            })
         )
 
         class Meta:
             model = CreditModel
             fields = [
-                'name', 'scenario', 'period_start', 'period_end',
-                'loan_amount', 'loan_rate',
+                'name', 'scenario', 'year', 'description',
+                'loan_amount', 'loan_rate', 'loan_term_months',
+                'annual_debt_service', 'risk_level', 'risk_notes',
+                'period_start', 'period_end', 'financial_statement',
             ]
             widgets = {
-                'name': django_forms.TextInput(attrs={
-                    'class': 'fin-input',
-                    'placeholder': 'Например: Базовый сценарий Q2',
-                }),
-                'scenario': django_forms.Select(attrs={'class': 'fin-input'}),
-                'period_start': django_forms.DateInput(attrs={
-                    'type': 'date', 'class': 'fin-input',
-                }),
-                'period_end': django_forms.DateInput(attrs={
-                    'type': 'date', 'class': 'fin-input',
-                }),
-                'loan_amount': django_forms.NumberInput(attrs={
-                    'class': 'fin-input', 'step': '0.01', 'min': '0',
-                }),
-                'loan_rate': django_forms.NumberInput(attrs={
-                    'class': 'fin-input', 'step': '0.01', 'min': '0',
-                }),
-                'projected_income_json': django_forms.Textarea(attrs={
-                    'class': 'fin-input fin-textarea',
-                    'rows': 4,
-                    'placeholder': '{"2026-05": 15000000}',
-                }),
-                'projected_expenses_json': django_forms.Textarea(attrs={
-                    'class': 'fin-input fin-textarea',
-                    'rows': 4,
-                }),
-                'projected_cashflow_json': django_forms.Textarea(attrs={
-                    'class': 'fin-input fin-textarea',
-                    'rows': 4,
-                }),
+                'name':                django_forms.TextInput(attrs={'class': 'fin-input', 'placeholder': 'Базовый сценарий Q2'}),
+                'scenario':            django_forms.Select(attrs={'class': 'fin-input'}),
+                'year':                django_forms.NumberInput(attrs={'class': 'fin-input', 'min': 2000, 'max': 2100}),
+                'description':         django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 2}),
+                'loan_amount':         django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01', 'min': '0'}),
+                'loan_rate':           django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01', 'min': '0'}),
+                'loan_term_months':    django_forms.NumberInput(attrs={'class': 'fin-input', 'min': '1'}),
+                'annual_debt_service': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01', 'min': '0'}),
+                'risk_level':          django_forms.Select(attrs={'class': 'fin-input'}),
+                'risk_notes':          django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 2}),
+                'period_start':        django_forms.DateInput(attrs={'type': 'date', 'class': 'fin-input'}),
+                'period_end':          django_forms.DateInput(attrs={'type': 'date', 'class': 'fin-input'}),
+                'financial_statement': django_forms.Select(attrs={'class': 'fin-input'}),
             }
 
         def _parse_json_field(self, raw, field_name):
@@ -1315,35 +1332,33 @@ def credit_model_create(request):
 
         def clean(self):
             cleaned = super().clean()
-            cleaned['projected_income']   = self._parse_json_field(
-                cleaned.get('projected_income_json', ''), 'доходов'
-            )
-            cleaned['projected_expenses'] = self._parse_json_field(
-                cleaned.get('projected_expenses_json', ''), 'расходов'
-            )
-            cleaned['projected_cashflow'] = self._parse_json_field(
-                cleaned.get('projected_cashflow_json', ''), 'ДДС'
-            )
+            cleaned['projected_income']   = self._parse_json_field(cleaned.get('projected_income_json', ''), 'доходов')
+            cleaned['projected_expenses'] = self._parse_json_field(cleaned.get('projected_expenses_json', ''), 'расходов')
+            cleaned['projected_cashflow'] = self._parse_json_field(cleaned.get('projected_cashflow_json', ''), 'ДДС')
             return cleaned
 
-    form = CreditModelForm(request.POST or None)
+    form = CreditModelForm(request.POST or None, initial={'year': date.today().year})
     if request.method == 'POST' and form.is_valid():
         cm = form.save(commit=False)
         cm.projected_income   = form.cleaned_data['projected_income']
         cm.projected_expenses = form.cleaned_data['projected_expenses']
         cm.projected_cashflow = form.cleaned_data['projected_cashflow']
+        cm.forecast_pnl       = {}
+        cm.forecast_cashflow  = {}
         cm.calculate_dscr()
         cm.save()
         messages.success(request, f'Сценарий «{cm.name}» создан. DSCR: {cm.dscr or "—"}')
         return redirect('finances:credit_model_list')
 
-    context = {
-        'form':       form,
-        'title':      'Новый кредитный сценарий',
-        'show_form':  True,
-    }
+    context = _finance_filter_context({
+        'form':             form,
+        'title':            'Новый кредитный сценарий',
+        'show_form':        True,
+        'can_create':       True,
+        'credit_models':    CreditModel.objects.none(),
+        'scenario_choices': CreditModel.Scenario.choices,
+    })
     return render(request, 'site/finances/credit_model.html', context)
-
 
 # ── BE-6.4: Аналитика аренды ──────────────────────────────────────────────────
 
@@ -1701,3 +1716,293 @@ def scenario_detail_json(request, pk):
         'risk_level': scenario.risk_level,
         'projected_cashflow': scenario.projected_cashflow,
     })
+
+    # ── UAT-05: Пользовательский ввод ОПиУ и ДДС ─────────────────────────────────
+
+@need_permission(PermissionEnums.FINANCE_REPORTS)
+def financial_statement_create(request):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1><p>Создание ОПиУ доступно только CFO, Owner и Administrator.</p>')
+
+    today = date.today()
+
+    class FinancialStatementForm(django_forms.ModelForm):
+        class Meta:
+            model = FinancialStatement
+            fields = [
+                'period_type', 'year', 'month', 'quarter',
+                'revenue_plan', 'revenue_fact', 'revenue_forecast',
+                'ebitda_plan', 'ebitda_fact', 'ebitda_forecast',
+                'operating_profit_plan', 'operating_profit_fact',
+                'net_profit_plan', 'net_profit_fact', 'net_profit_forecast',
+                'note',
+            ]
+            widgets = {
+                'period_type': django_forms.Select(attrs={'class': 'fin-input'}),
+                'year': django_forms.NumberInput(attrs={'class': 'fin-input', 'style': 'width:90px'}),
+                'month': django_forms.NumberInput(attrs={'class': 'fin-input', 'min': 1, 'max': 12, 'style': 'width:70px'}),
+                'quarter': django_forms.NumberInput(attrs={'class': 'fin-input', 'min': 1, 'max': 4, 'style': 'width:70px'}),
+                'revenue_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'revenue_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'revenue_forecast': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'ebitda_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'ebitda_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'ebitda_forecast': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'operating_profit_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'operating_profit_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'net_profit_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'net_profit_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'net_profit_forecast': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'note': django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 3}),
+            }
+
+    initial = {
+        'year': today.year,
+        'month': today.month,
+        'period_type': FinancialStatement.Period.MONTHLY,
+    }
+
+    form = FinancialStatementForm(request.POST or None, initial=initial)
+    if request.method == 'POST' and form.is_valid():
+        try:
+            statement = form.save()
+            messages.success(request, f'Отчёт ОПиУ за {statement.get_period_label()} создан.')
+            return redirect('finances:opiu')
+        except Exception as e:
+            messages.error(request, f'Ошибка: {e}')
+
+    context = {
+        'form': form,
+        'title': 'Новый отчёт ОПиУ',
+        'back_url': '/finances/opiu/',
+    }
+    return render(request, 'site/finances/opiu_form.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_REPORTS)
+def financial_statement_edit(request, pk):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1><p>Редактирование ОПиУ доступно только CFO, Owner и Administrator.</p>')
+
+    statement = get_object_or_404(FinancialStatement, pk=pk)
+
+    class FinancialStatementForm(django_forms.ModelForm):
+        class Meta:
+            model = FinancialStatement
+            fields = [
+                'period_type', 'year', 'month', 'quarter',
+                'revenue_plan', 'revenue_fact', 'revenue_forecast',
+                'ebitda_plan', 'ebitda_fact', 'ebitda_forecast',
+                'operating_profit_plan', 'operating_profit_fact',
+                'net_profit_plan', 'net_profit_fact', 'net_profit_forecast',
+                'note',
+            ]
+            widgets = {
+                'period_type': django_forms.Select(attrs={'class': 'fin-input'}),
+                'year': django_forms.NumberInput(attrs={'class': 'fin-input', 'style': 'width:90px'}),
+                'month': django_forms.NumberInput(attrs={'class': 'fin-input', 'min': 1, 'max': 12, 'style': 'width:70px'}),
+                'quarter': django_forms.NumberInput(attrs={'class': 'fin-input', 'min': 1, 'max': 4, 'style': 'width:70px'}),
+                'revenue_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'revenue_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'revenue_forecast': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'ebitda_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'ebitda_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'ebitda_forecast': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'operating_profit_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'operating_profit_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'net_profit_plan': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'net_profit_fact': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'net_profit_forecast': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'note': django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 3}),
+            }
+
+    form = FinancialStatementForm(request.POST or None, instance=statement)
+    if request.method == 'POST' and form.is_valid():
+        try:
+            form.save()
+            messages.success(request, 'Отчёт ОПиУ обновлён.')
+            return redirect('finances:opiu')
+        except Exception as e:
+            messages.error(request, f'Ошибка: {e}')
+
+    context = {
+        'form': form,
+        'statement': statement,
+        'title': f'Редактировать ОПиУ — {statement.get_period_label()}',
+        'back_url': '/finances/opiu/',
+    }
+    return render(request, 'site/finances/opiu_form.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_REPORTS)
+def cashflow_create(request):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1><p>Создание записи ДДС доступно только CFO, Owner и Administrator.</p>')
+
+    from onec.models import Counterparty
+
+    class CashFlowForm(django_forms.ModelForm):
+        class Meta:
+            model = CashFlowRecord
+            fields = [
+                'direction', 'flow_type', 'amount', 'transaction_date',
+                'description', 'document_number', 'counterparty', 'budget_category',
+            ]
+            widgets = {
+                'direction': django_forms.Select(attrs={'class': 'fin-input'}),
+                'flow_type': django_forms.Select(attrs={'class': 'fin-input'}),
+                'amount': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01', 'min': '0'}),
+                'transaction_date': django_forms.DateInput(attrs={'class': 'fin-input', 'type': 'date'}),
+                'description': django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 2}),
+                'document_number': django_forms.TextInput(attrs={'class': 'fin-input'}),
+                'counterparty': django_forms.Select(attrs={'class': 'fin-input'}),
+                'budget_category': django_forms.Select(attrs={'class': 'fin-input'}),
+            }
+
+    initial = {'transaction_date': date.today()}
+    form = CashFlowForm(request.POST or None, initial=initial)
+    if request.method == 'POST' and form.is_valid():
+        record = form.save()
+        messages.success(request, f'Запись ДДС от {record.transaction_date} добавлена.')
+        return redirect('finances:cashflow')
+
+    context = {
+        'form': form,
+        'title': 'Новая запись ДДС',
+        'back_url': '/finances/cashflow/',
+    }
+    return render(request, 'site/finances/cashflow_form.html', context)
+
+@need_permission(PermissionEnums.FINANCE_REPORTS)
+def financial_statement_delete(request, pk):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1>')
+    statement = get_object_or_404(FinancialStatement, pk=pk)
+    if request.method == 'POST':
+        statement.delete()
+        messages.success(request, 'Отчёт ОПиУ удалён.')
+    return redirect('finances:opiu')
+
+
+@need_permission(PermissionEnums.FINANCE_REPORTS)
+def cashflow_edit(request, pk):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1>')
+    record = get_object_or_404(CashFlowRecord, pk=pk)
+
+    class CashFlowForm(django_forms.ModelForm):
+        class Meta:
+            model = CashFlowRecord
+            fields = ['direction', 'flow_type', 'amount', 'transaction_date',
+                      'description', 'document_number', 'counterparty', 'budget_category']
+            widgets = {
+                'direction': django_forms.Select(attrs={'class': 'fin-input'}),
+                'flow_type': django_forms.Select(attrs={'class': 'fin-input'}),
+                'amount': django_forms.NumberInput(attrs={'class': 'fin-input', 'step': '0.01'}),
+                'transaction_date': django_forms.DateInput(attrs={'class': 'fin-input', 'type': 'date'}),
+                'description': django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 2}),
+                'document_number': django_forms.TextInput(attrs={'class': 'fin-input'}),
+                'counterparty': django_forms.Select(attrs={'class': 'fin-input'}),
+                'budget_category': django_forms.Select(attrs={'class': 'fin-input'}),
+            }
+
+    form = CashFlowForm(request.POST or None, instance=record)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Запись ДДС обновлена.')
+        return redirect('finances:cashflow')
+
+    context = {'form': form, 'title': 'Редактировать запись ДДС', 'back_url': '/finances/cashflow/'}
+    return render(request, 'site/finances/cashflow_form.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_REPORTS)
+def cashflow_delete(request, pk):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1>')
+    record = get_object_or_404(CashFlowRecord, pk=pk)
+    if request.method == 'POST':
+        record.delete()
+        messages.success(request, 'Запись ДДС удалена.')
+    return redirect('finances:cashflow')
+
+@need_permission(PermissionEnums.FINANCE_BUDGET)
+def budget_category_create(request):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1>')
+
+    class BudgetCategoryForm(django_forms.ModelForm):
+        class Meta:
+            model = BudgetCategory
+            fields = ['name', 'category_type', 'parent', 'code', 'order', 'description']
+            widgets = {
+                'name': django_forms.TextInput(attrs={'class': 'fin-input'}),
+                'category_type': django_forms.Select(attrs={'class': 'fin-input'}),
+                'parent': django_forms.Select(attrs={'class': 'fin-input'}),
+                'code': django_forms.TextInput(attrs={'class': 'fin-input'}),
+                'order': django_forms.NumberInput(attrs={'class': 'fin-input'}),
+                'description': django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 2}),
+            }
+
+    form = BudgetCategoryForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Статья бюджета создана.')
+        return redirect('finances:budget_list')
+
+    context = {'form': form, 'title': 'Новая статья бюджета', 'back_url': '/finances/budget-plan/'}
+    return render(request, 'site/finances/budget_category_form.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_BUDGET)
+def budget_category_edit(request, pk):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1>')
+
+    category = get_object_or_404(BudgetCategory, pk=pk)
+
+    class BudgetCategoryForm(django_forms.ModelForm):
+        class Meta:
+            model = BudgetCategory
+            fields = ['name', 'category_type', 'parent', 'code', 'order', 'description']
+            widgets = {
+                'name': django_forms.TextInput(attrs={'class': 'fin-input'}),
+                'category_type': django_forms.Select(attrs={'class': 'fin-input'}),
+                'parent': django_forms.Select(attrs={'class': 'fin-input'}),
+                'code': django_forms.TextInput(attrs={'class': 'fin-input'}),
+                'order': django_forms.NumberInput(attrs={'class': 'fin-input'}),
+                'description': django_forms.Textarea(attrs={'class': 'fin-input', 'rows': 2}),
+            }
+
+    form = BudgetCategoryForm(request.POST or None, instance=category)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Статья бюджета обновлена.')
+        return redirect('finances:budget_list')
+
+    context = {'form': form, 'title': f'Редактировать: {category.name}', 'back_url': '/finances/budget-plan/'}
+    return render(request, 'site/finances/budget_category_form.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_BUDGET)
+def budget_category_delete(request, pk):
+    can_edit, _ = _get_budget_access(request.user)
+    if not can_edit:
+        return HttpResponseForbidden('<h1>403</h1>')
+
+    category = get_object_or_404(BudgetCategory, pk=pk)
+    if request.method == 'POST':
+        try:
+            category.delete()
+            messages.success(request, 'Статья удалена.')
+        except Exception as e:
+            messages.error(request, f'Нельзя удалить: {e}')
+    return redirect('finances:budget_list')

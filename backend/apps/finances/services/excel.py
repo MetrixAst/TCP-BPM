@@ -193,3 +193,36 @@ def export_financial_statement(queryset) -> HttpResponse:
     response['Content-Disposition'] = 'attachment; filename="financial_statement.xlsx"'
     wb.save(response)
     return response
+
+def export_dashboard_kpis(kpis) -> HttpResponse:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Финансовый дашборд'
+
+    headers = ['Показатель', 'Значение']
+    _write_headers(ws, headers)
+
+    rows = [
+        ('Остаток ДС', float(kpis['cash_balance'])),
+        ('Выручка (месяц)', float(kpis['revenue_mtd'])),
+        ('Выручка (год)', float(kpis['revenue_ytd'])),
+        ('Изменение выручки, %', kpis['revenue_mtd_change']),
+        ('Расходы (месяц)', float(kpis['expenses_mtd'])),
+        ('Чистый CF (месяц)', float(kpis['net_cf'])),
+        ('Отклонение бюджета, %', kpis['budget_deviation_pct']),
+        ('Просрочка (кол-во)', kpis['overdue_count']),
+        ('Просрочка (сумма)', float(kpis['overdue_amount'])),
+    ]
+
+    for row_idx, (label, value) in enumerate(rows, start=2):
+        ws.append([label, value])
+        _apply_row_style(ws, row_idx)
+
+    _auto_width(ws)
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="dashboard_kpis.xlsx"'
+    wb.save(response)
+    return response
