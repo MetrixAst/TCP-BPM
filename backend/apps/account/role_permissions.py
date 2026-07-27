@@ -316,7 +316,7 @@ class MenuItem:
                 ]),
                 MenuItem('purchases', 'documents:list', 'folder2', 'Закупки', url_param=['purchases']),
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu + [
-                MenuItem('bill', 'finances:bill', '', 'Счет компании'),
+                    MenuItem('bill', 'finances:bill', '', 'Счет компании'),
                 ]),
                 MenuItem('hr', '#hr', 'people', 'HR', submenu=[
                     MenuItem('my_profile', 'hr:my_profile', '', 'Личный профиль'),
