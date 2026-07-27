@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'mptt',
     'django_mptt_admin',
     'betterforms',
-    
+
     'account',
     'dashboard',
     'documents',
@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'addits',
     'enbek',
     'onec',
+    'esigner',
     'mobile_api',
     'audit',
     'rest_framework',
@@ -238,6 +239,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'hr.tasks.hr_check_expirations',
         'schedule': crontab(hour=6, minute=0),
     },
+    'esigner-poll-pending': {
+        'task': 'esigner_poll_pending_signings_task',
+        'schedule': 600,
+    },
     # Курсы НБ РК отключены — в интерфейсе все суммы в ₸
     # 'fetch-exchange-rates-daily': {
     #     'task': 'finances.tasks.fetch_exchange_rates',
@@ -281,3 +286,17 @@ ONLYOFFICE_BACKEND_INTERNAL_URL = config('ONLYOFFICE_BACKEND_INTERNAL_URL', defa
 ONLYOFFICE_JWT_SECRET = config('ONLYOFFICE_JWT_SECRET', default='s4x3XgJV8c6CwHlgu3WkUEdaiTwGjdBW')
 ONLYOFFICE_JWT_ENABLED = config('ONLYOFFICE_JWT_ENABLED', default=True, cast=bool)
 ONLYOFFICE_CALLBACK_TIMEOUT = config('ONLYOFFICE_CALLBACK_TIMEOUT', default=30, cast=int)
+ONLYOFFICE_ALLOWED_DOWNLOAD_HOSTS = config(
+    'ONLYOFFICE_ALLOWED_DOWNLOAD_HOSTS',
+    default='',
+    cast=Csv(),
+)
+
+ESIGNER_URL = config('ESIGNER_URL', default='https://esigner.kz/back')
+ESIGNER_SIGN_BASE_URL = config('ESIGNER_SIGN_BASE_URL', default='https://sign.avantage.one')
+ESIGNER_CLIENT_ID = config('ESIGNER_CLIENT_ID', default='')
+ESIGNER_SECRET_KEY = config('ESIGNER_SECRET_KEY', default='')
+ESIGNER_COMPANY_ID = config('ESIGNER_COMPANY_ID', default=0, cast=int)
+ESIGNER_FOLDER_ID = config('ESIGNER_FOLDER_ID', default='')
+ESIGNER_TIMEOUT = config('ESIGNER_TIMEOUT', default=30, cast=int)
+ESIGNER_WEBHOOK_SECRET = config('ESIGNER_WEBHOOK_SECRET', default='')

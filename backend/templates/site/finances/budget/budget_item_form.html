@@ -1,90 +1,151 @@
 {% extends "site/base.html" %}
 {% load static %}
 
-{% block title %}{{ title }} | Бюджет | metriX BPM{% endblock %}
+{% block title %}{{ title }} — metriX BPM{% endblock %}
+
+{% block body_classes %}task-edit-body{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe54-budget">
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999" />
+<style>
+  .task-edit-grid--2 { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 900px) {
+      .task-edit-grid--2 { grid-template-columns: 1fr; }
+  }
+
+  /* Живой расчёт % освоения — внутри модалки */
+  #taskEditForm .bgt-live-calc {
+      background: #f7f6fc;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-top: 4px;
+  }
+  #taskEditForm .bgt-live-calc__label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: #74728a;
+      margin-bottom: 10px;
+  }
+  #taskEditForm .bgt-progress-wrap { display: flex; align-items: center; gap: 10px; }
+  #taskEditForm .bgt-progress {
+      flex: 1;
+      height: 6px;
+      border-radius: 999px;
+      background: #eceaf3;
+      overflow: hidden;
+  }
+  #taskEditForm .bgt-progress__bar {
+      height: 100%;
+      border-radius: 999px;
+      background: #2f6bed;
+      transition: width .2s ease;
+  }
+  #taskEditForm .bgt-progress-label {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #25233f;
+      white-space: nowrap;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<section class="fin-page fin-page--narrow">
 
-  <div class="fin-filter-card">
-    <div class="fin-filter-card__header">
-      <div>
-        <a href="{% url 'finances:budget_detail' category.pk %}" class="fin-back-link">
-          <i class="bi bi-arrow-left"></i> Назад к статье
-        </a>
-        <h1 class="fin-page-title">{{ title }}</h1>
-        <p class="fin-page-subtitle">
-          Категория: <strong>{{ category.name }}</strong>
-          {% if category.category_type == 'income' %}
-            <span class="fin-status fin-status--success">Доход</span>
-          {% else %}
-            <span class="fin-status fin-status--warning">Расход</span>
-          {% endif %}
-        </p>
-      </div>
+<div class="task-edit-page">
+
+  <div class="task-edit-card">
+
+    <div class="task-edit-card__header">
+      <h1 class="task-edit-card__title">{{ title }}</h1>
+      <a href="{% url 'finances:budget_detail' category.pk %}" class="task-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
     </div>
-  </div>
 
-  <div class="fin-table-card fin-form-card">
-    <form method="POST" id="budget-item-form">
+    <form method="POST" class="task-edit-form" id="taskEditForm">
       {% csrf_token %}
 
-      {% if form.non_field_errors %}
-      <div class="fin-form-errors">
-        {% for err in form.non_field_errors %}
-          <span>{{ err }}</span>
-        {% endfor %}
-      </div>
-      {% endif %}
+      <div class="task-edit-card__body">
 
-      <div class="fin-form-grid">
-        {% for field in form %}
-        <div class="fin-form-field {% if field.errors %}fin-form-field--error{% endif %}">
-          <label class="fin-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {% if field.field.widget.input_type == 'select' %}
-            <div class="fin-select-wrap">{{ field }}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;font-size:13px;color:#74728a;">
+          Категория:
+          <strong style="color:#25233f;">{{ category.name }}</strong>
+          {% if category.category_type == 'income' %}
+            <span class="tasks-status tasks-status--success">Доход</span>
           {% else %}
-            {{ field }}
+            <span class="tasks-status tasks-status--warning">Расход</span>
           {% endif %}
-          {% if field.help_text %}
-            <span class="fin-field-hint">{{ field.help_text }}</span>
-          {% endif %}
-          {% for err in field.errors %}
-            <span class="fin-field-error">{{ err }}</span>
-          {% endfor %}
         </div>
-        {% endfor %}
-      </div>
 
-      <!-- Живой расчёт % освоения -->
-      <div class="fin-live-calc" id="live-calc" style="display:none">
-        <div class="fin-live-calc__label">Предварительный % освоения</div>
-        <div class="fin-progress-wrap">
-          <div class="fin-progress">
-            <div class="fin-progress__bar" id="live-bar" style="width:0%"></div>
+        {% if form.non_field_errors %}
+          <div class="task-edit-field__error" style="margin-bottom:12px;">
+            {% for err in form.non_field_errors %}<div>{{ err }}</div>{% endfor %}
           </div>
-          <span class="fin-progress-label" id="live-pct">0%</span>
-        </div>
+        {% endif %}
+
+        <section class="task-edit-section">
+          <div class="task-edit-grid task-edit-grid--2">
+            {% for field in form %}
+            <div class="task-edit-field {% if field.errors %}is-invalid{% endif %}">
+              <label class="task-edit-field__label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <span style="font-size:11.5px;color:#9a98aa;margin-top:4px;display:block;">{{ field.help_text }}</span>
+              {% endif %}
+              {% for err in field.errors %}
+                <div class="task-edit-field__error">{{ err }}</div>
+              {% endfor %}
+            </div>
+            {% endfor %}
+          </div>
+
+          <!-- Живой расчёт % освоения (JS в budget.js обновляет по id полей плана/факта) -->
+          <div class="bgt-live-calc" id="live-calc" style="display:none">
+            <div class="bgt-live-calc__label">Предварительный % освоения</div>
+            <div class="bgt-progress-wrap">
+              <div class="bgt-progress">
+                <div class="bgt-progress__bar" id="live-bar" style="width:0%"></div>
+              </div>
+              <span class="bgt-progress-label" id="live-pct">0%</span>
+            </div>
+          </div>
+        </section>
+
       </div>
 
-      <div class="fin-form-actions">
-        <a href="{% url 'finances:budget_detail' category.pk %}" class="fin-btn fin-btn--light">
-          Отмена
-        </a>
-        <button type="submit" class="fin-btn fin-btn--primary">
-          <i class="bi bi-check-lg"></i> Сохранить
+      <div class="task-edit-card__footer">
+        <a href="{% url 'finances:budget_detail' category.pk %}" class="task-edit-btn task-edit-btn--cancel">Отмена</a>
+        <button type="submit" class="task-edit-btn task-edit-btn--save">
+           Сохранить
         </button>
       </div>
+
     </form>
+
   </div>
 
-</section>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
 <script src="{% static 'site/js/apps/budget.js' %}?v=fe54"></script>
+<script>
+(function () {
+    if (window.jQuery && jQuery.fn.select2) {
+        jQuery('#taskEditForm select').each(function () {
+            jQuery(this).select2({
+                minimumResultsForSearch: Infinity,
+                width: '100%',
+                dropdownParent: jQuery('.task-edit-card')
+            });
+        });
+    }
+})();
+</script>
 {% endblock %}

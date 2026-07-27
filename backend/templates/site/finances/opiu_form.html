@@ -1,0 +1,311 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} — metriX BPM{% endblock %}
+
+{% block body_classes %}task-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v=9999" />
+<style>
+  /* =========================
+     ОПиУ форма — фикс сетки
+     ========================= */
+
+  /* Общая сетка */
+  #taskEditForm .task-edit-grid {
+      display: grid;
+      gap: 16px;
+      align-items: start;
+  }
+
+  /* Обычные 3 колонки: Выручка / EBITDA / Чистая прибыль */
+  #taskEditForm .task-edit-grid--3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /*
+    Только Период:
+    1-я колонка = такая же ширина, как План ₸
+    Год и Месяц рядом, не улетают вправо
+  */
+  #taskEditForm .opiu-period-grid {
+      grid-template-columns: calc((100% - 32px) / 3) 120px 120px;
+      gap: 16px;
+      justify-content: start;
+      align-items: start;
+  }
+
+  /* Операционная прибыль */
+  #taskEditForm .task-edit-grid--2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Все ячейки */
+  #taskEditForm .task-edit-field {
+      min-width: 0;
+      width: 100%;
+  }
+
+  #taskEditForm .task-edit-field__label {
+      display: block;
+      margin-bottom: 8px;
+  }
+
+  /* Поля формы */
+  #taskEditForm input,
+  #taskEditForm select,
+  #taskEditForm textarea {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+  }
+
+  /* Год и месяц — узкие */
+  #taskEditForm .opiu-period-grid .opiu-narrow {
+      width: 120px;
+      max-width: 120px;
+  }
+
+  #taskEditForm .opiu-period-grid .opiu-narrow input {
+      width: 120px;
+      max-width: 120px;
+  }
+
+  /* Select2 */
+  #taskEditForm .select2-container {
+      width: 100% !important;
+      max-width: 100%;
+  }
+
+  #taskEditForm .select2-container--default .select2-selection--single {
+      width: 100%;
+      height: 38px;
+      min-height: 38px;
+      border: 0;
+      border-radius: 16px;
+      background: #f4f1fa;
+      display: flex;
+      align-items: center;
+  }
+
+  #taskEditForm .select2-container--default .select2-selection--single .select2-selection__rendered {
+      width: 100%;
+      padding-left: 18px;
+      padding-right: 34px;
+      color: #11142d;
+      line-height: 38px;
+  }
+
+  #taskEditForm .select2-container--default .select2-selection--single .select2-selection__arrow {
+      height: 38px;
+      right: 12px;
+  }
+
+  /* Multiple select, если где-то будет */
+  #taskEditForm .select2-container--default .select2-selection--multiple {
+      position: relative;
+      width: 100%;
+      min-height: 38px;
+      border: 0;
+      border-radius: 16px;
+      background: #f4f1fa;
+  }
+
+  #taskEditForm .select2-container--default .select2-selection--multiple::after {
+      content: "";
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #8d8d99;
+      pointer-events: none;
+  }
+
+  /* Заголовки внутри формы */
+  #taskEditForm .opiu-metric-title {
+      margin: 0 0 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #25233f;
+  }
+
+  /* Адаптив */
+  @media (max-width: 900px) {
+      #taskEditForm .task-edit-grid--3,
+      #taskEditForm .opiu-period-grid,
+      #taskEditForm .task-edit-grid--2 {
+          grid-template-columns: 1fr;
+      }
+
+      #taskEditForm .opiu-period-grid .opiu-narrow,
+      #taskEditForm .opiu-period-grid .opiu-narrow input {
+          width: 100%;
+          max-width: 100%;
+      }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="task-edit-page">
+
+  <div class="task-edit-card">
+
+    <div class="task-edit-card__header">
+      <h1 class="task-edit-card__title">{{ title }}</h1>
+
+      <a href="{{ back_url }}" class="task-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
+    </div>
+
+    <form method="POST" class="task-edit-form" id="taskEditForm">
+      {% csrf_token %}
+
+      <div class="task-edit-card__body">
+
+        {% if messages %}
+          {% for msg in messages %}
+            <div class="task-edit-field__error" style="margin-bottom:8px">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Период</h2>
+
+          <div class="task-edit-grid task-edit-grid--3 opiu-period-grid">
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Тип периода</label>
+              {{ form.period_type }}
+            </div>
+            <div class="task-edit-field opiu-narrow">
+              <label class="task-edit-field__label">Год</label>
+              {{ form.year }}
+            </div>
+            <div class="task-edit-field opiu-narrow">
+              <label class="task-edit-field__label">Месяц (1–12)</label>
+              {{ form.month }}
+            </div>
+          </div>
+        </section>
+
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Выручка</h2>
+          <div class="task-edit-grid task-edit-grid--3">
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">План ₸</label>
+              {{ form.revenue_plan }}
+            </div>
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Факт ₸</label>
+              {{ form.revenue_fact }}
+            </div>
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Прогноз ₸</label>
+              {{ form.revenue_forecast }}
+            </div>
+          </div>
+        </section>
+
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">EBITDA</h2>
+          <div class="task-edit-grid task-edit-grid--3">
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">План ₸</label>
+              {{ form.ebitda_plan }}
+            </div>
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Факт ₸</label>
+              {{ form.ebitda_fact }}
+            </div>
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Прогноз ₸</label>
+              {{ form.ebitda_forecast }}
+            </div>
+          </div>
+        </section>
+
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Операционная прибыль</h2>
+          <div class="task-edit-grid task-edit-grid--2">
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">План ₸</label>
+              {{ form.operating_profit_plan }}
+            </div>
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Факт ₸</label>
+              {{ form.operating_profit_fact }}
+            </div>
+          </div>
+        </section>
+
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Чистая прибыль</h2>
+          <div class="task-edit-grid task-edit-grid--3">
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">План ₸</label>
+              {{ form.net_profit_plan }}
+            </div>
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Факт ₸</label>
+              {{ form.net_profit_fact }}
+            </div>
+            <div class="task-edit-field">
+              <label class="task-edit-field__label">Прогноз ₸</label>
+              {{ form.net_profit_forecast }}
+            </div>
+          </div>
+        </section>
+
+        <section class="task-edit-section">
+          <h2 class="task-edit-section__title">Примечание</h2>
+          <div class="task-edit-field">
+            {{ form.note }}
+          </div>
+        </section>
+
+        {% if form.errors %}
+          <div class="task-edit-field__error">
+            {% for field, errors in form.errors.items %}
+              {% for error in errors %}<div>{{ field }}: {{ error }}</div>{% endfor %}
+            {% endfor %}
+          </div>
+        {% endif %}
+
+      </div>
+
+      <div class="task-edit-card__footer">
+        <a href="{{ back_url }}" class="task-edit-btn task-edit-btn--cancel">Отменить</a>
+        <button type="submit" class="task-edit-btn task-edit-btn--save">Сохранить</button>
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script>
+(function () {
+    if (window.jQuery && jQuery.fn.select2) {
+        jQuery('#taskEditForm select').each(function () {
+            jQuery(this).select2({
+                minimumResultsForSearch: Infinity,
+                width: '100%',
+                dropdownParent: jQuery('.task-edit-card')
+            });
+        });
+    }
+})();
+</script>
+{% endblock %}

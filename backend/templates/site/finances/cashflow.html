@@ -5,152 +5,498 @@
 {% block title %}Реестр ДДС | metriX BPM{% endblock %}
 
 {% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
-<link rel="stylesheet" href="{% static 'site/css/apps/fin-pages.css' %}?v=fp01">
+<style>
+/* ============================================================
+   Реестр ДДС — стиль проекта (leaves / tasks)
+   ============================================================ */
+.cf-page {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #25233f;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+/* Верхний блок: заголовок + кнопка (белый) */
+.cf-top {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 22px;
+}
+.cf-top__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+.cf-title {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: 700;
+    color: #25233f;
+}
+.cf-sub {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: #74728a;
+    max-width: 640px;
+}
+
+/* Полоса фильтров */
+.cf-filters {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.cf-field { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; }
+.cf-field__label { font-size: 11px; color: #74728a; font-weight: 500; line-height: 1; }
+.cf-input {
+    height: 36px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: #f5f3fa;
+    color: #25233f;
+    font-size: 13px;
+    font-weight: 500;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.cf-input:focus { box-shadow: 0 0 0 2px rgba(47,107,237,.14); }
+.cf-input--date { width: 150px; }
+
+/* Поле даты с иконкой календаря */
+.cf-date-wrap { position: relative; }
+.cf-date-wrap .cf-datepicker { padding-right: 36px; }
+.cf-date-wrap .bi-calendar-event {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8d8d99;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+/* Кнопки */
+.cf-btn {
+    height: 36px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+    transition: background .15s ease;
+    flex: 0 0 auto;
+}
+.cf-btn i { font-size: 14px; }
+.cf-btn--primary { background: #2f6bed; color: #fff; }
+.cf-btn--primary:hover { background: #2458c7; color: #fff; }
+.cf-btn--outline { background: #f5f3fa; color: #25233f; }
+.cf-btn--outline:hover { background: #ece9f4; color: #25233f; }
+.cf-btn--sm { height: 30px; width: 30px; padding: 0; }
+.cf-btn--danger { background: #feecec; color: #ef4444; }
+.cf-btn--danger:hover { background: #fedada; color: #ef4444; }
+
+/* Summary-карточки */
+.cf-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+.cf-summary-card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-left: 3px solid transparent;
+}
+.cf-summary-card--in    { border-left-color: #16a34a; }
+.cf-summary-card--out   { border-left-color: #ef4444; }
+.cf-summary-card--net   { border-left-color: #2f6bed; }
+.cf-summary-card__label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #74728a;
+}
+.cf-summary-card__value { font-size: 24px; font-weight: 700; color: #25233f; }
+.cf-summary-card__value.is-success { color: #16a34a; }
+.cf-summary-card__value.is-danger  { color: #ef4444; }
+
+/* Панель с таблицей */
+.cf-panel { background: #fff; border-radius: 18px; padding: 18px 22px; }
+.cf-panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.cf-panel__title { font-size: 16px; font-weight: 700; color: #25233f; margin: 0; }
+.cf-panel__sub { font-size: 12px; color: #74728a; margin: 2px 0 0; }
+.cf-legend { display: flex; align-items: center; gap: 14px; font-size: 12px; color: #74728a; }
+.cf-legend__item { display: inline-flex; align-items: center; gap: 6px; }
+.cf-legend__dot { width: 9px; height: 9px; border-radius: 50%; }
+.cf-legend__dot--in  { background: #16a34a; }
+.cf-legend__dot--out { background: #ef4444; }
+
+.cf-table-wrap { overflow-x: auto; }
+.cf-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cf-table__th {
+    height: 44px;
+    padding: 0 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #74728a;
+    border-bottom: 1px solid #eceaf3;
+    white-space: nowrap;
+}
+.cf-table__th.text-right { text-align: right; }
+.cf-table__td {
+    height: 56px;
+    padding: 0 16px;
+    border-bottom: 1px solid #f0eef6;
+    vertical-align: middle;
+    color: #25233f;
+    position: relative;
+}
+.cf-table__td.text-right { text-align: right; }
+.cf-table__row:last-child .cf-table__td { border-bottom: 0; }
+.cf-table__row:hover { background: #faf9fd; }
+/* Цветная полоса слева по направлению */
+.cf-table__row--in .cf-table__td:first-child::before,
+.cf-table__row--out .cf-table__td:first-child::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 10px; bottom: 10px;
+    width: 3px; border-radius: 0 3px 3px 0;
+}
+.cf-table__row--in  .cf-table__td:first-child::before { background: #16a34a; }
+.cf-table__row--out .cf-table__td:first-child::before { background: #ef4444; }
+
+.cf-name { display: flex; flex-direction: column; gap: 2px; }
+.cf-name__title { font-weight: 600; }
+.cf-name__sub { font-size: 12px; color: #9a98aa; }
+.cf-amount { font-weight: 700; }
+.cf-amount--in  { color: #16a34a; }
+.cf-amount--out { color: #ef4444; }
+.cf-muted { color: #74728a; }
+
+.cf-badge {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.cf-badge--in  { background: #e6f7ee; color: #16a34a; }
+.cf-badge--out { background: #feecec; color: #ef4444; }
+
+.cf-row-actions { display: inline-flex; gap: 6px; white-space: nowrap; }
+.cf-row-actions form { display: inline; margin: 0; }
+
+.cf-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 48px 20px;
+    color: #74728a;
+}
+.cf-empty i { font-size: 40px; margin-bottom: 12px; color: #c8c7d3; }
+.cf-empty strong { font-size: 15px; font-weight: 700; color: #25233f; }
+.cf-empty span { margin-top: 6px; font-size: 13px; color: #9a98aa; }
+
+/* select2 в фильтрах */
+#cfPage .select2-container { width: 150px !important; }
+#cfPage .select2-container--default .select2-selection--single,
+#cfPage .select2-container--bootstrap4 .select2-selection--single {
+    height: 36px !important;
+    min-height: 36px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: #f5f3fa !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+}
+#cfPage .select2-selection__rendered {
+    height: 36px !important;
+    line-height: 36px !important;
+    padding-left: 14px !important;
+    padding-right: 32px !important;
+    color: #25233f !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+}
+#cfPage .select2-selection__arrow { height: 36px !important; right: 10px !important; }
+.select2-container--default .select2-results__option--highlighted[aria-selected],
+.select2-container--bootstrap4 .select2-results__option--highlighted[aria-selected] {
+    background: #2f6bed !important; color: #fff !important;
+}
+.select2-dropdown {
+    border: 0 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 16px 40px rgba(15,23,42,.16) !important;
+    overflow: hidden !important;
+}
+.select2-results__options { padding: 6px !important; }
+.select2-results__option { min-height: 34px !important; padding: 8px 12px !important; border-radius: 10px !important; font-size: 13px !important; }
+
+@media (max-width: 992px) { .cf-summary { grid-template-columns: 1fr; } }
+
+/* ── Датапикер (как в форме задачи) ── */
+.datepicker-dropdown {
+    border: 0 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18) !important;
+    padding: 12px !important;
+    z-index: 1100;
+}
+.datepicker table { width: 260px; margin: 0; }
+.datepicker table tr th { border-radius: 10px; font-size: 13px; font-weight: 700; color: #25233f; }
+.datepicker table tr td {
+    box-sizing: border-box;
+    width: 36px; height: 36px;
+    padding: 0 !important;
+    line-height: 36px;
+    text-align: center !important;
+    vertical-align: middle !important;
+    border-radius: 50% !important;
+    font-size: 13px;
+    color: #25233f;
+}
+.datepicker table tr td.day:hover,
+.datepicker table tr td.focused { background: #eef2ff !important; color: #3664dc !important; }
+.datepicker table tr td.active,
+.datepicker table tr td.active:hover { background: #2f6bed !important; color: #fff !important; text-shadow: none !important; }
+.datepicker table tr td.today { background: #f6f4fa !important; color: #2f6bed !important; font-weight: 700; }
+.datepicker table tr td.old,
+.datepicker table tr td.new { color: #b8b5c6 !important; }
+.datepicker .datepicker-switch,
+.datepicker .prev, .datepicker .next { height: 36px; border-radius: 10px; }
+.datepicker .datepicker-switch:hover,
+.datepicker .prev:hover, .datepicker .next:hover { background: #f6f4fa !important; }
+.datepicker .dow { color: #77758a; font-size: 11px; font-weight: 600; }
+</style>
 {% endblock %}
 
 {% block content %}
-<section class="fin-page fin-page--cashflow">
+<div class="cf-page" id="cfPage">
 
-  <header class="fin-page-hero">
-    <div>
-      <h1 class="fin-page-hero__title">Реестр ДДС</h1>
-      <p class="fin-page-hero__sub">Движение денежных средств по операционной, инвестиционной и финансовой деятельности</p>
+    <div class="cf-top">
+        <div class="cf-top__row">
+            <div>
+                <h1 class="cf-title">Реестр ДДС</h1>
+            </div>
+            {% if can_edit %}
+            <a href="{% url 'finances:cashflow_create' %}" class="cf-btn cf-btn--primary">
+                <i class="bi bi-plus-lg"></i> Добавить запись
+            </a>
+            {% endif %}
+        </div>
     </div>
-  </header>
 
-  <div class="fin-filter-card">
-    <form method="GET" class="fin-filter-form">
-      <div class="fin-field fin-date">
-        <label class="fin-label">От</label>
-        <input type="date" name="date_from" value="{{ date_from }}" class="fin-input">
-      </div>
-      <div class="fin-field fin-date">
-        <label class="fin-label">По</label>
-        <input type="date" name="date_to" value="{{ date_to }}" class="fin-input">
-      </div>
-      <div class="fin-field">
-        <label class="fin-label">Тип</label>
-        <select name="direction" class="fin-input">
-          <option value="">Все</option>
-          {% for val, label in directions %}
-            <option value="{{ val }}" {% if f_direction == val %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="fin-field">
-        <label class="fin-label">Деятельность</label>
-        <select name="flow_type" class="fin-input">
-          <option value="">Все</option>
-          {% for val, label in flow_types %}
-            <option value="{{ val }}" {% if f_flow_type == val %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="fin-field">
-        <label class="fin-label">Контрагент</label>
-        <select name="counterparty" class="fin-input">
-          <option value="">Все</option>
-          {% for cp in counterparties %}
-            <option value="{{ cp.pk }}" {% if f_counterparty|stringformat:"s" == cp.pk|stringformat:"s" %}selected{% endif %}>
-              {{ cp.short_name }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
-      <button type="submit" class="fin-btn fin-btn--primary">Найти</button>
-      <a href="{% url 'finances:cashflow' %}" class="fin-btn fin-btn--light">Сбросить</a>
-      <a href="{{ request.get_full_path }}{% if '?' in request.get_full_path %}&{% else %}?{% endif %}export=xlsx" class="fin-btn fin-btn--light" style="white-space:nowrap;">
-        <i class="bi bi-download"></i> Excel
-      </a>
+    <form method="GET" class="cf-filters" id="cfFilterForm">
+        <div class="cf-field">
+            <span class="cf-field__label">От</span>
+            <div class="cf-date-wrap">
+                <input type="text" name="date_from" value="{{ date_from }}"
+                       class="cf-input cf-input--date cf-datepicker" placeholder="дд.мм.гггг" autocomplete="off">
+                <i class="bi bi-calendar-event"></i>
+            </div>
+        </div>
+        <div class="cf-field">
+            <span class="cf-field__label">По</span>
+            <div class="cf-date-wrap">
+                <input type="text" name="date_to" value="{{ date_to }}"
+                       class="cf-input cf-input--date cf-datepicker" placeholder="дд.мм.гггг" autocomplete="off">
+                <i class="bi bi-calendar-event"></i>
+            </div>
+        </div>
+        <div class="cf-field">
+            <span class="cf-field__label">Тип</span>
+            <select name="direction" class="cf-select2">
+                <option value="">Все</option>
+                {% for val, label in directions %}
+                <option value="{{ val }}" {% if f_direction == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="cf-field">
+            <span class="cf-field__label">Деятельность</span>
+            <select name="flow_type" class="cf-select2">
+                <option value="">Все</option>
+                {% for val, label in flow_types %}
+                <option value="{{ val }}" {% if f_flow_type == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="cf-field">
+            <span class="cf-field__label">Контрагент</span>
+            <select name="counterparty" class="cf-select2">
+                <option value="">Все</option>
+                {% for cp in counterparties %}
+                <option value="{{ cp.pk }}" {% if f_counterparty|stringformat:"s" == cp.pk|stringformat:"s" %}selected{% endif %}>{{ cp.short_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="cf-btn cf-btn--primary">Найти</button>
+        <a href="{% url 'finances:cashflow' %}" class="cf-btn cf-btn--outline">Сбросить</a>
+        <a href="{{ request.get_full_path }}{% if '?' in request.get_full_path %}&{% else %}?{% endif %}export=xlsx" class="cf-btn cf-btn--outline">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+        </a>
     </form>
-  </div>
 
-  <div class="fin-summary-cards">
-    <div class="fin-summary-card fin-summary-card--success">
-      <span class="fin-summary-card__label">Поступления</span>
-      <span class="fin-summary-card__value">+{{ total_inflow|floatformat:0 }} ₸</span>
-    </div>
-    <div class="fin-summary-card fin-summary-card--danger">
-      <span class="fin-summary-card__label">Списания</span>
-      <span class="fin-summary-card__value">−{{ total_outflow|floatformat:0 }} ₸</span>
-    </div>
-    <div class="fin-summary-card fin-summary-card--net">
-      <span class="fin-summary-card__label">Чистый поток</span>
-      <span class="fin-summary-card__value {% if net_flow >= 0 %}fin-success{% else %}fin-danger{% endif %}">
-        {% if net_flow >= 0 %}+{% endif %}{{ net_flow|floatformat:0 }} ₸
-      </span>
-    </div>
-  </div>
-
-  <div class="fin-table-card">
-    <div class="fin-table-head">
-      <div>
-        <div class="fin-table-title">{% t 'finances.operations' 'Операции' %}</div>
-        <div class="fin-table-subtitle">{{ records|length }} {% plural_t records|length 'finances.records_plural' 'запись|записи|записей' %}{% if records|length >= 500 %} {% t 'finances.first_500' '(показаны первые 500)' %}{% endif %}</div>
-      </div>
-      <div class="fin-legend">
-        <span class="fin-legend__dot fin-legend__dot--success"></span>Приход
-        <span class="fin-legend__dot fin-legend__dot--danger"></span>Расход
-      </div>
+    <div class="cf-summary">
+        <div class="cf-summary-card cf-summary-card--in">
+            <span class="cf-summary-card__label">Поступления</span>
+            <span class="cf-summary-card__value is-success">+{{ total_inflow|floatformat:0 }} ₸</span>
+        </div>
+        <div class="cf-summary-card cf-summary-card--out">
+            <span class="cf-summary-card__label">Списания</span>
+            <span class="cf-summary-card__value is-danger">−{{ total_outflow|floatformat:0 }} ₸</span>
+        </div>
+        <div class="cf-summary-card cf-summary-card--net">
+            <span class="cf-summary-card__label">Чистый поток</span>
+            <span class="cf-summary-card__value {% if net_flow >= 0 %}is-success{% else %}is-danger{% endif %}">
+                {% if net_flow >= 0 %}+{% endif %}{{ net_flow|floatformat:0 }} ₸
+            </span>
+        </div>
     </div>
 
-    <div class="fin-table-wrap">
-      <table class="fin-table">
-        <thead>
-          <tr>
-            <th>Дата</th>
-            <th>Контрагент / назначение</th>
-            <th class="text-right">Сумма</th>
-            <th>Тип</th>
-            <th>Статья</th>
-            <th>Документ</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for rec in records %}
-          <tr class="fin-row {% if rec.direction == 'inflow' %}fin-row--success{% else %}fin-row--danger{% endif %}">
-            <td>{{ rec.transaction_date|date:"d.m.Y" }}</td>
-            <td>
-              <div class="fin-tenant">
-                <strong class="fin-tenant__name">
-                  {% if rec.counterparty %}{{ rec.counterparty.short_name }}{% else %}—{% endif %}
-                </strong>
-                {% if rec.description %}
-                <span class="fin-tenant__sub">{{ rec.description|truncatechars:60 }}</span>
-                {% endif %}
-              </div>
-            </td>
-            <td class="text-right">
-              <strong class="{% if rec.direction == 'inflow' %}fin-success{% else %}fin-danger{% endif %}">
-                {% if rec.direction == 'inflow' %}+{% else %}−{% endif %}{{ rec.amount|floatformat:0 }} ₸
-              </strong>
-            </td>
-            <td>
-              <span class="fin-status fin-status--{% if rec.direction == 'inflow' %}success{% else %}danger{% endif %}">
-                {{ rec.get_direction_display }}
-              </span>
-            </td>
-            <td class="fin-muted">
-              {% if rec.budget_category %}{{ rec.budget_category.name }}{% else %}—{% endif %}
-            </td>
-            <td class="fin-muted">{{ rec.document_number|default:"—" }}</td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6">
-              <div class="fin-empty-state">
-                <i class="bi bi-cash-stack"></i>
-                <strong>Операций не найдено</strong>
-                <span>Измените фильтры или отметьте счёт арендатора как оплаченный</span>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+    <div class="cf-panel">
+        <div class="cf-panel__head">
+            <div>
+                <h2 class="cf-panel__title">{% t 'finances.operations' 'Операции' %}</h2>
+                <p class="cf-panel__sub">{{ records|length }} {% plural_t records|length 'finances.records_plural' 'запись|записи|записей' %}{% if records|length >= 500 %} {% t 'finances.first_500' '(показаны первые 500)' %}{% endif %}</p>
+            </div>
+            <div class="cf-legend">
+                <span class="cf-legend__item"><span class="cf-legend__dot cf-legend__dot--in"></span>Приход</span>
+                <span class="cf-legend__item"><span class="cf-legend__dot cf-legend__dot--out"></span>Расход</span>
+            </div>
+        </div>
 
-</section>
+        <div class="cf-table-wrap">
+            <table class="cf-table">
+                <thead>
+                    <tr>
+                        <th class="cf-table__th">Дата</th>
+                        <th class="cf-table__th">Контрагент / назначение</th>
+                        <th class="cf-table__th text-right">Сумма</th>
+                        <th class="cf-table__th">Тип</th>
+                        <th class="cf-table__th">Статья</th>
+                        <th class="cf-table__th">Документ</th>
+                        {% if can_edit %}<th class="cf-table__th"></th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rec in records %}
+                    <tr class="cf-table__row {% if rec.direction == 'inflow' %}cf-table__row--in{% else %}cf-table__row--out{% endif %}">
+                        <td class="cf-table__td">{{ rec.transaction_date|date:"d.m.Y" }}</td>
+                        <td class="cf-table__td">
+                            <div class="cf-name">
+                                <span class="cf-name__title">{% if rec.counterparty %}{{ rec.counterparty.short_name }}{% else %}—{% endif %}</span>
+                                {% if rec.description %}<span class="cf-name__sub">{{ rec.description|truncatechars:60 }}</span>{% endif %}
+                            </div>
+                        </td>
+                        <td class="cf-table__td text-right">
+                            <span class="cf-amount {% if rec.direction == 'inflow' %}cf-amount--in{% else %}cf-amount--out{% endif %}">
+                                {% if rec.direction == 'inflow' %}+{% else %}−{% endif %}{{ rec.amount|floatformat:0 }} ₸
+                            </span>
+                        </td>
+                        <td class="cf-table__td">
+                            <span class="cf-badge {% if rec.direction == 'inflow' %}cf-badge--in{% else %}cf-badge--out{% endif %}">
+                                {{ rec.get_direction_display }}
+                            </span>
+                        </td>
+                        <td class="cf-table__td cf-muted">{% if rec.budget_category %}{{ rec.budget_category.name }}{% else %}—{% endif %}</td>
+                        <td class="cf-table__td cf-muted">{{ rec.document_number|default:"—" }}</td>
+                        {% if can_edit %}
+                        <td class="cf-table__td">
+                            <div class="cf-row-actions">
+                                <a href="{% url 'finances:cashflow_edit' rec.pk %}" class="cf-btn cf-btn--outline cf-btn--sm">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="POST" action="{% url 'finances:cashflow_delete' rec.pk %}" onsubmit="return confirm('Удалить запись?')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="cf-btn cf-btn--danger cf-btn--sm">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if can_edit %}7{% else %}6{% endif %}" class="cf-table__td" style="border-bottom:0">
+                            <div class="cf-empty">
+                                <i class="bi bi-cash-stack"></i>
+                                <strong>Операций не найдено</strong>
+                                <span>Измените фильтры или отметьте счёт арендатора как оплаченный</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script>
+(function () {
+    if (window.jQuery && jQuery.fn.select2) {
+        jQuery('#cfPage .cf-select2').select2({
+            minimumResultsForSearch: 10,
+            width: '150px'
+        });
+    }
+    if (window.jQuery && jQuery.fn.datepicker) {
+        jQuery('#cfPage .cf-datepicker').datepicker({
+            format: 'dd.mm.yyyy',
+            language: 'ru',
+            autoclose: true,
+            todayHighlight: true,
+            weekStart: 1,
+            orientation: 'bottom auto'
+        });
+    }
+})();
+</script>
 {% endblock %}

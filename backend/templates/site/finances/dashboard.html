@@ -4,180 +4,442 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe70">
-<link rel="stylesheet" href="{% static 'site/css/apps/fin-dashboard.css' %}?v=fd02">
+<style>
+/* ============================================================
+   Финансовый дашборд — стиль проекта (leaves / ОПиУ / ДДС)
+   ============================================================ */
+.fd-page {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #25233f;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.fd-panel { background: #fff; border-radius: 18px; padding: 20px 22px; }
+
+/* Верхняя панель: заголовок + кнопки */
+.fd-top__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+.fd-title { margin: 0; font-size: 24px; line-height: 1.2; font-weight: 700; color: #25233f; }
+.fd-sub {
+    margin: 6px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 13px;
+    color: #74728a;
+    flex-wrap: wrap;
+}
+.fd-sub__date { display: inline-flex; align-items: center; gap: 6px; }
+.fd-top__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fd-btn {
+    height: 36px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+    transition: background .15s ease;
+}
+.fd-btn i { font-size: 14px; }
+.fd-btn--primary { background: #2f6bed; color: #fff; }
+.fd-btn--primary:hover { background: #2458c7; color: #fff; }
+.fd-btn--outline { background: #f5f3fa; color: #25233f; }
+.fd-btn--outline:hover { background: #ece9f4; color: #25233f; }
+
+/* Секции */
+.fd-section__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+.fd-section__title { margin: 0; font-size: 16px; font-weight: 700; color: #25233f; }
+.fd-section__hint { font-size: 12px; color: #9a98aa; }
+
+/* KPI-карточки */
+.fd-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+.fd-kpi {
+    position: relative;
+    background: #fff;
+    border-radius: 16px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+    border: 1px solid #eceaf3;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    overflow: hidden;
+}
+.fd-kpi:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(15,23,42,.08);
+    border-color: #dfe4ee;
+}
+.fd-kpi:focus-visible { outline: 2px solid #2f6bed; outline-offset: 2px; }
+.fd-kpi__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.fd-kpi__label { font-size: 12.5px; color: #74728a; font-weight: 500; }
+.fd-kpi__icon {
+    width: 40px; height: 40px;
+    border-radius: 11px;
+    display: grid; place-items: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.fd-kpi--cash        .fd-kpi__icon { color: #2f6bed; background: #eaf0fe; }
+.fd-kpi--revenue     .fd-kpi__icon { color: #16a34a; background: #e6f7ee; }
+.fd-kpi--revenue-ytd .fd-kpi__icon { color: #16a34a; background: #e6f7ee; }
+.fd-kpi--expenses    .fd-kpi__icon { color: #f59e0b; background: #fff4e5; }
+.fd-kpi--net         .fd-kpi__icon { color: #7c5cff; background: #efeafe; }
+.fd-kpi--alert       .fd-kpi__icon { color: #ef4444; background: #feecec; }
+
+.fd-kpi__value {
+    font-size: 26px;
+    font-weight: 700;
+    color: #25233f;
+    line-height: 1.1;
+    letter-spacing: -.01em;
+}
+.fd-kpi__value--success { color: #16a34a; }
+.fd-kpi__value--danger  { color: #ef4444; }
+.fin-kpi-value--success { color: #16a34a; }
+.fin-kpi-value--danger  { color: #ef4444; }
+
+.fd-kpi__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.fd-kpi__sub { font-size: 12px; color: #9a98aa; display: inline-flex; align-items: center; gap: 4px; }
+.fd-kpi__sub--success { color: #16a34a; }
+.fd-kpi__sub--danger  { color: #ef4444; }
+.fd-kpi__drill { color: #c8c7d3; font-size: 14px; transition: transform .15s ease, color .15s ease; }
+.fd-kpi:hover .fd-kpi__drill { color: #2f6bed; transform: translateX(2px); }
+
+.fd-kpi__trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 12.5px;
+    font-weight: 600;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    width: fit-content;
+}
+.fd-kpi__trend.is-up   { color: #16a34a; background: #e6f7ee; }
+.fd-kpi__trend.is-down { color: #ef4444; background: #feecec; }
+
+/* Графики */
+.fd-chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.fd-chart-card { background: #fff; border-radius: 18px; padding: 20px 22px; }
+.fd-chart-card--wide { width: 100%; }
+.fd-chart-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.fd-chart-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #25233f;
+}
+.fd-chart-title i { color: #2f6bed; }
+
+/* Переключатель периода графика (сегмент-контрол) */
+.fd-toggle {
+    display: inline-flex;
+    gap: 2px;
+    background: #f5f3fa;
+    border-radius: 999px;
+    padding: 3px;
+}
+.fd-toggle button {
+    height: 28px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #74728a;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .15s ease, color .15s ease;
+}
+.fd-toggle button:hover { color: #25233f; }
+.fd-toggle button.is-active {
+    background: #fff;
+    color: #2f6bed;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+
+.fd-chart-spinner { display: flex; align-items: center; justify-content: center; height: 220px; }
+.fd-spinner {
+    width: 28px; height: 28px;
+    border: 3px solid #eceaf3;
+    border-top-color: #2f6bed;
+    border-radius: 50%;
+    animation: fd-spin .7s linear infinite;
+}
+@keyframes fd-spin { to { transform: rotate(360deg); } }
+
+.fd-overrun-alert {
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: #feecec;
+    color: #b91c1c;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+/* Drill-панель (выезжающая справа) */
+.fd-drill { position: fixed; inset: 0; z-index: 1080; visibility: hidden; }
+.fd-drill.is-open { visibility: visible; }
+.fd-drill__overlay {
+    position: absolute; inset: 0;
+    background: rgba(15,23,42,.4);
+    opacity: 0; transition: opacity .2s ease;
+}
+.fd-drill.is-open .fd-drill__overlay { opacity: 1; }
+.fd-drill__content {
+    position: absolute; top: 0; right: 0; bottom: 0;
+    width: 420px; max-width: 92vw;
+    background: #fff;
+    box-shadow: -12px 0 40px rgba(15,23,42,.18);
+    display: flex; flex-direction: column;
+    transform: translateX(100%);
+    transition: transform .22s ease;
+}
+.fd-drill.is-open .fd-drill__content { transform: none; }
+.fd-drill__header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 22px;
+    border-bottom: 1px solid #eceaf3;
+}
+.fd-drill__header h2 { margin: 0; font-size: 18px; font-weight: 700; color: #25233f; }
+.fd-drill__close {
+    width: 32px; height: 32px;
+    border: 0; border-radius: 50%;
+    background: #f5f3fa; color: #74728a;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+}
+.fd-drill__close:hover { background: #ece9f4; color: #25233f; }
+.fd-drill__body { flex: 1; overflow-y: auto; padding: 20px 22px; }
+
+@media (max-width: 992px) {
+    .fd-kpi-grid { grid-template-columns: 1fr 1fr; }
+    .fd-chart-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+    .fd-kpi-grid { grid-template-columns: 1fr; }
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="fin-page fin-page--dashboard">
+<div class="fd-page" id="finDashboard">
 
-  <header class="fin-dash-hero">
-    <div class="fin-dash-hero__main">
-      <span class="fin-dash-hero__eyebrow"><i class="bi bi-pie-chart-fill"></i> Финансы</span>
-      <h1 class="fin-dash-hero__title">Финансовый дашборд</h1>
-      <p class="fin-dash-hero__meta">
-        <span class="fin-dash-hero__date"><i class="bi bi-calendar3"></i> {% bpm_date today %}</span>
-        <span>Ключевые показатели и денежный поток</span>
-      </p>
+  <div class="fd-panel fd-top">
+    <div class="fd-top__row">
+      <div>
+        <h1 class="fd-title">Финансовый дашборд</h1>
+      </div>
+      <div class="fd-top__actions">
+        <a href="?export=xlsx" class="fd-btn fd-btn--outline" title="Экспорт в Excel">
+          <i class="bi bi-download"></i> Экспорт
+        </a>
+        {% if can_manage %}
+        <a href="{% url 'finances:credit_model_list' %}" class="fd-btn fd-btn--primary">
+          <i class="bi bi-bank"></i> Кредитная модель
+        </a>
+        {% endif %}
+      </div>
     </div>
-
-    <div class="fin-dash-hero__actions">
-      <a href="?export=xlsx" class="fin-btn fin-btn--light" title="Экспорт в Excel">
-        <i class="bi bi-download"></i> Экспорт
-      </a>
-
-      {% if can_manage %}
-      <a href="{% url 'finances:credit_model_list' %}" class="fin-btn fin-btn--primary">
-        <i class="bi bi-bank"></i> Кредитная модель
-      </a>
-      {% endif %}
-    </div>
-  </header>
+  </div>
 
   {% include 'site/components/finance_filters.html' %}
 
-  <section class="fin-dash-section" aria-labelledby="fin-kpi-heading">
-    <div class="fin-dash-section__head">
-      <h2 id="fin-kpi-heading" class="fin-dash-section__title">Ключевые показатели</h2>
-      <span class="fin-dash-section__hint">Нажмите на карточку для детализации</span>
+  <section class="fd-section" aria-labelledby="fin-kpi-heading">
+    <div class="fd-section__head">
+      <h2 id="fin-kpi-heading" class="fd-section__title">Ключевые показатели</h2>
+      <span class="fd-section__hint">Нажмите на карточку для детализации</span>
     </div>
 
-    <div class="fin-kpi-grid">
-      <div class="fin-kpi-card fin-kpi-card--cash" data-drill-type="cash" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Остаток денежных средств">
-        <div class="fin-kpi-card__top">
-          <span class="fin-kpi-label">Остаток ДС</span>
-          <span class="fin-kpi-icon"><i class="bi bi-wallet2"></i></span>
+    <div class="fd-kpi-grid">
+      <div class="fd-kpi fin-kpi-card fd-kpi--cash" data-drill-type="cash" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Остаток денежных средств">
+        <div class="fd-kpi__top">
+          <span class="fd-kpi__label">Остаток ДС</span>
+          <span class="fd-kpi__icon"><i class="bi bi-wallet2"></i></span>
         </div>
-        <span class="fin-kpi-value" id="kpi-cash-balance">{{ cash_balance|floatformat:0 }} ₸</span>
-        <div class="fin-kpi-card__footer">
-          <span class="fin-kpi-sub">за 90 дней</span>
-          <span class="fin-kpi-drill-hint"><i class="bi bi-chevron-right"></i></span>
+        <span class="fd-kpi__value" id="kpi-cash-balance">{{ cash_balance|floatformat:0 }} ₸</span>
+        <div class="fd-kpi__foot">
+          <span class="fd-kpi__sub">за 90 дней</span>
+          <span class="fd-kpi__drill"><i class="bi bi-chevron-right"></i></span>
         </div>
       </div>
 
-      <div class="fin-kpi-card fin-kpi-card--revenue" data-drill-type="revenue" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Выручка за месяц">
-        <div class="fin-kpi-card__top">
-          <span class="fin-kpi-label">Выручка (месяц)</span>
-          <span class="fin-kpi-icon"><i class="bi bi-graph-up-arrow"></i></span>
+      <div class="fd-kpi fin-kpi-card fd-kpi--revenue" data-drill-type="revenue" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Выручка за месяц">
+        <div class="fd-kpi__top">
+          <span class="fd-kpi__label">Выручка (месяц)</span>
+          <span class="fd-kpi__icon"><i class="bi bi-graph-up-arrow"></i></span>
         </div>
-        <span class="fin-kpi-value" id="kpi-revenue-mtd">{{ revenue_mtd|floatformat:0 }} ₸</span>
-        <span class="fin-kpi-trend {% if revenue_mtd_change >= 0 %}is-up{% else %}is-down{% endif %}" id="kpi-revenue-trend">
+        <span class="fd-kpi__value" id="kpi-revenue-mtd">{{ revenue_mtd|floatformat:0 }} ₸</span>
+        <span class="fd-kpi__trend {% if revenue_mtd_change >= 0 %}is-up{% else %}is-down{% endif %}" id="kpi-revenue-trend">
           {% if revenue_mtd_change >= 0 %}<i class="bi bi-arrow-up-short"></i>{% else %}<i class="bi bi-arrow-down-short"></i>{% endif %}
           {{ revenue_mtd_change|floatformat:1 }}%
         </span>
       </div>
 
-      <div class="fin-kpi-card fin-kpi-card--revenue-ytd" data-drill-type="revenue_ytd" data-drill-period="{{ today|date:'Y' }}" tabindex="0" role="button" aria-label="Выручка с начала года">
-        <div class="fin-kpi-card__top">
-          <span class="fin-kpi-label">Выручка (год)</span>
-          <span class="fin-kpi-icon"><i class="bi bi-calendar-check"></i></span>
+      <div class="fd-kpi fin-kpi-card fd-kpi--revenue-ytd" data-drill-type="revenue_ytd" data-drill-period="{{ today|date:'Y' }}" tabindex="0" role="button" aria-label="Выручка с начала года">
+        <div class="fd-kpi__top">
+          <span class="fd-kpi__label">Выручка (год)</span>
+          <span class="fd-kpi__icon"><i class="bi bi-calendar-check"></i></span>
         </div>
-        <span class="fin-kpi-value" id="kpi-revenue-ytd">{{ revenue_ytd|floatformat:0 }} ₸</span>
-        <div class="fin-kpi-card__footer">
-          <span class="fin-kpi-sub">с начала года</span>
-          <span class="fin-kpi-drill-hint"><i class="bi bi-chevron-right"></i></span>
-        </div>
-      </div>
-
-      <div class="fin-kpi-card fin-kpi-card--expenses" data-drill-type="expenses" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Расходы за месяц">
-        <div class="fin-kpi-card__top">
-          <span class="fin-kpi-label">Расходы (месяц)</span>
-          <span class="fin-kpi-icon"><i class="bi bi-arrow-down-circle"></i></span>
-        </div>
-        <span class="fin-kpi-value" id="kpi-expenses-mtd">{{ expenses_mtd|floatformat:0 }} ₸</span>
-        <div class="fin-kpi-card__footer">
-          <span class="fin-kpi-sub">текущий месяц</span>
-          <span class="fin-kpi-drill-hint"><i class="bi bi-chevron-right"></i></span>
+        <span class="fd-kpi__value" id="kpi-revenue-ytd">{{ revenue_ytd|floatformat:0 }} ₸</span>
+        <div class="fd-kpi__foot">
+          <span class="fd-kpi__sub">с начала года</span>
+          <span class="fd-kpi__drill"><i class="bi bi-chevron-right"></i></span>
         </div>
       </div>
 
-      <div class="fin-kpi-card fin-kpi-card--net" data-drill-type="net_cf" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Чистый денежный поток">
-        <div class="fin-kpi-card__top">
-          <span class="fin-kpi-label">Чистый CF (месяц)</span>
-          <span class="fin-kpi-icon"><i class="bi bi-activity"></i></span>
+      <div class="fd-kpi fin-kpi-card fd-kpi--expenses" data-drill-type="expenses" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Расходы за месяц">
+        <div class="fd-kpi__top">
+          <span class="fd-kpi__label">Расходы (месяц)</span>
+          <span class="fd-kpi__icon"><i class="bi bi-arrow-down-circle"></i></span>
         </div>
-        <span class="fin-kpi-value {% if net_cf >= 0 %}fin-kpi-value--success{% else %}fin-kpi-value--danger{% endif %}" id="kpi-net-cf">
+        <span class="fd-kpi__value" id="kpi-expenses-mtd">{{ expenses_mtd|floatformat:0 }} ₸</span>
+        <div class="fd-kpi__foot">
+          <span class="fd-kpi__sub">текущий месяц</span>
+          <span class="fd-kpi__drill"><i class="bi bi-chevron-right"></i></span>
+        </div>
+      </div>
+
+      <div class="fd-kpi fin-kpi-card fd-kpi--net" data-drill-type="net_cf" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Чистый денежный поток">
+        <div class="fd-kpi__top">
+          <span class="fd-kpi__label">Чистый CF (месяц)</span>
+          <span class="fd-kpi__icon"><i class="bi bi-activity"></i></span>
+        </div>
+        <span class="fd-kpi__value fin-kpi-value {% if net_cf >= 0 %}fd-kpi__value--success fin-kpi-value--success{% else %}fd-kpi__value--danger fin-kpi-value--danger{% endif %}" id="kpi-net-cf">
           {{ net_cf|floatformat:0 }} ₸
         </span>
-        <span class="fin-kpi-sub {% if budget_deviation_pct >= 0 %}fin-kpi-sub--success{% else %}fin-kpi-sub--danger{% endif %}">
+        <span class="fd-kpi__sub {% if budget_deviation_pct >= 0 %}fd-kpi__sub--success{% else %}fd-kpi__sub--danger{% endif %}">
           Откл. бюджета: {% if budget_deviation_pct >= 0 %}+{% endif %}{{ budget_deviation_pct|floatformat:1 }}%
         </span>
       </div>
 
-      <div class="fin-kpi-card fin-kpi-card--alert" data-drill-type="overdue" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Просроченные платежи">
-        <div class="fin-kpi-card__top">
-          <span class="fin-kpi-label">Просрочка</span>
-          <span class="fin-kpi-icon"><i class="bi bi-exclamation-triangle"></i></span>
+      <div class="fd-kpi fin-kpi-card fd-kpi--alert" data-drill-type="overdue" data-drill-period="{{ today|date:'Y-m' }}" tabindex="0" role="button" aria-label="Просроченные платежи">
+        <div class="fd-kpi__top">
+          <span class="fd-kpi__label">Просрочка</span>
+          <span class="fd-kpi__icon"><i class="bi bi-exclamation-triangle"></i></span>
         </div>
-        <span class="fin-kpi-value fin-kpi-value--danger" id="kpi-overdue-amount">{{ overdue_amount|floatformat:0 }} ₸</span>
-        <div class="fin-kpi-card__footer">
-          <span class="fin-kpi-sub fin-kpi-sub--danger">
+        <span class="fd-kpi__value fd-kpi__value--danger" id="kpi-overdue-amount">{{ overdue_amount|floatformat:0 }} ₸</span>
+        <div class="fd-kpi__foot">
+          <span class="fd-kpi__sub fd-kpi__sub--danger">
             <i class="bi bi-receipt"></i> <span id="kpi-overdue-count">{{ overdue_count }}</span> позиций
           </span>
-          <span class="fin-kpi-drill-hint"><i class="bi bi-chevron-right"></i></span>
+          <span class="fd-kpi__drill"><i class="bi bi-chevron-right"></i></span>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="fin-dash-section" aria-labelledby="fin-charts-heading">
-    <div class="fin-dash-section__head">
-      <h2 id="fin-charts-heading" class="fin-dash-section__title">Динамика</h2>
+  <section class="fd-section" aria-labelledby="fin-charts-heading">
+    <div class="fd-section__head">
+      <h2 id="fin-charts-heading" class="fd-section__title">Динамика</h2>
     </div>
 
-    <div class="fin-chart-grid">
-      <div class="fin-chart-card">
-        <div class="fin-chart-header">
-          <span class="fin-chart-title"><i class="bi bi-bar-chart-line"></i> Поступления vs Выбытия</span>
-          <div class="fin-chart-toggle" role="group" aria-label="Период графика">
-            <button type="button" class="fin-chart-btn is-active" data-days="30">{% t 'chart.30d' '30д' %}</button>
-            <button type="button" class="fin-chart-btn" data-days="60">{% t 'chart.60d' '60д' %}</button>
-            <button type="button" class="fin-chart-btn" data-days="90">{% t 'chart.90d' '90д' %}</button>
+    <div class="fd-chart-grid">
+      <div class="fd-chart-card">
+        <div class="fd-chart-head">
+          <span class="fd-chart-title"><i class="bi bi-bar-chart-line"></i> Поступления vs Выбытия</span>
+          <div class="fd-toggle" role="group" aria-label="Период графика">
+            <button type="button" class="fd-chart-btn fin-chart-btn is-active" data-days="30">{% t 'chart.30d' '30д' %}</button>
+            <button type="button" class="fd-chart-btn fin-chart-btn" data-days="60">{% t 'chart.60d' '60д' %}</button>
+            <button type="button" class="fd-chart-btn fin-chart-btn" data-days="90">{% t 'chart.90d' '90д' %}</button>
           </div>
         </div>
-        <div id="cashflowSpinner" class="fin-chart-spinner"><span class="fin-spinner"></span></div>
+        <div id="cashflowSpinner" class="fd-chart-spinner"><span class="fd-spinner"></span></div>
         <canvas id="cashflowChart" height="200" style="display:none;"></canvas>
       </div>
 
-      <div class="fin-chart-card">
-        <div class="fin-chart-header">
-          <span class="fin-chart-title"><i class="bi bi-graph-up"></i> Недельный CF</span>
+      <div class="fd-chart-card">
+        <div class="fd-chart-head">
+          <span class="fd-chart-title"><i class="bi bi-graph-up"></i> Недельный CF</span>
         </div>
-        <div id="weeklySpinner" class="fin-chart-spinner"><span class="fin-spinner"></span></div>
+        <div id="weeklySpinner" class="fd-chart-spinner"><span class="fd-spinner"></span></div>
         <canvas id="weeklyChart" height="200" style="display:none;"></canvas>
       </div>
     </div>
   </section>
 
-  <section class="fin-dash-section" aria-labelledby="fin-forecast-heading">
-    <div class="fin-chart-card fin-chart-card--wide">
-      <div class="fin-chart-header">
-        <span id="fin-forecast-heading" class="fin-chart-title"><i class="bi bi-lightning-charge"></i> Прогноз CF</span>
-        <div class="fin-chart-toggle" role="group" aria-label="Горизонт прогноза">
-          <button type="button" class="fin-chart-btn" data-forecast-days="30">{% t 'chart.30d' '30д' %}</button>
-          <button type="button" class="fin-chart-btn" data-forecast-days="60">{% t 'chart.60d' '60д' %}</button>
-          <button type="button" class="fin-chart-btn is-active" data-forecast-days="90">{% t 'chart.90d' '90д' %}</button>
+  <section class="fd-section" aria-labelledby="fin-forecast-heading">
+    <div class="fd-chart-card fd-chart-card--wide">
+      <div class="fd-chart-head">
+        <span id="fin-forecast-heading" class="fd-chart-title"><i class="bi bi-lightning-charge"></i> Прогноз CF</span>
+        <div class="fd-toggle" role="group" aria-label="Горизонт прогноза">
+          <button type="button" class="fd-chart-btn fin-chart-btn" data-forecast-days="30">{% t 'chart.30d' '30д' %}</button>
+          <button type="button" class="fd-chart-btn fin-chart-btn" data-forecast-days="60">{% t 'chart.60d' '60д' %}</button>
+          <button type="button" class="fd-chart-btn fin-chart-btn is-active" data-forecast-days="90">{% t 'chart.90d' '90д' %}</button>
         </div>
       </div>
 
       <div id="forecastAlertBox">
-        <div id="gapAlert" class="fin-overrun-alert" style="display:none;"></div>
+        <div id="gapAlert" class="fd-overrun-alert" style="display:none;"></div>
       </div>
 
-      <div id="forecastSpinner" class="fin-chart-spinner"><span class="fin-spinner"></span></div>
+      <div id="forecastSpinner" class="fd-chart-spinner"><span class="fd-spinner"></span></div>
       <canvas id="forecastChart" height="120" style="display:none;"></canvas>
     </div>
   </section>
 
-  <aside class="fin-drill-panel" id="drillPanel" aria-hidden="true">
-    <div class="fin-drill-panel__overlay" data-close-drill></div>
-    <div class="fin-drill-panel__content">
-      <div class="fin-drill-panel__header">
+  <aside class="fd-drill" id="drillPanel" aria-hidden="true">
+    <div class="fd-drill__overlay" data-close-drill></div>
+    <div class="fd-drill__content">
+      <div class="fd-drill__header">
         <h2 id="drillTitle">—</h2>
-        <button type="button" data-close-drill class="fin-day-panel__close" aria-label="Закрыть">
+        <button type="button" data-close-drill class="fd-drill__close" aria-label="Закрыть">
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
-      <div id="drillBody" class="fin-drill-body">
+      <div id="drillBody" class="fd-drill__body">
         <div class="fin-empty">Загрузка...</div>
       </div>
     </div>
@@ -187,6 +449,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script src="{% static 'site/js/apps/finance-filters.js' %}?v=fe65"></script>
 <script src="{% static 'site/js/apps/dashboard.js' %}?v=fe62"></script>

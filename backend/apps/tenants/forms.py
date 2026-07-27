@@ -1,21 +1,29 @@
 from django import forms
+from django.db import transaction
 
 from .models import Tenant, TenantCategory, Room
 
 
 class TenantForm(forms.ModelForm):
+    room = forms.CharField(
+        label="Помещение", required=True,
+        widget=forms.TextInput(attrs={'class': 'tenant-form-input', 'placeholder': 'Номер помещения'})
+    )
+    category = forms.CharField(
+        label="Категория", required=False,
+        widget=forms.TextInput(attrs={'class': 'tenant-form-input', 'placeholder': 'Категория'})
+    )
+
     class Meta:
         model = Tenant
         fields = [
-            'name', 'category', 'room', 'area', 'price', 'discount',
+            'name', 'area', 'price', 'discount',
             'phone', 'email', 'address', 'contact',
             'start_date', 'end_date', 'discount_date',
             'percent', 'increase_type', 'note',
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'tenant-form-input', 'placeholder': 'Название арендатора'}),
-            'category': forms.Select(attrs={'class': 'tenant-form-input'}),
-            'room': forms.Select(attrs={'class': 'tenant-form-input'}),
             'area': forms.NumberInput(attrs={'class': 'tenant-form-input', 'step': '0.01', 'min': '0'}),
             'price': forms.NumberInput(attrs={'class': 'tenant-form-input', 'step': '0.01', 'min': '0'}),
             'discount': forms.NumberInput(attrs={'class': 'tenant-form-input', 'min': '0', 'max': '100'}),
@@ -33,21 +41,45 @@ class TenantForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['category'].queryset = TenantCategory.objects.all()
-        self.fields['category'].required = False
-        self.fields['category'].empty_label = '— Выберите категорию —'
 
-        self.fields['room'].queryset = Room.objects.all()
-        self.fields['room'].required = False
-        self.fields['room'].empty_label = '— Без помещения —'
+        if self.instance and self.instance.pk:
+            if self.instance.room_id:
+                self.fields['room'].initial = self.instance.room.number
+            if self.instance.category_id:
+                self.fields['category'].initial = self.instance.category.title
 
-        for field_name in ('name', 'area', 'price', 'phone', 'email', 'address', 'contact',
-                           'start_date', 'end_date', 'discount_date', 'increase_type'):
+        for field_name in ('name', 'area', 'price'):
             self.fields[field_name].required = True
 
-    def clean_category(self):
-        category = self.cleaned_data.get('category')
-        if category:
-            return category
-        category, _ = TenantCategory.objects.get_or_create(title='Прочее')
-        return category
+        for field_name in ('phone', 'email', 'address', 'contact',
+                           'start_date', 'end_date', 'discount_date', 'increase_type',
+                           'discount', 'percent'):
+            self.fields[field_name].required = False
+        for field_name in ('start_date', 'end_date', 'discount_date'):
+            self.fields[field_name].input_formats = ['%Y-%m-%d', '%d.%m.%Y']
+
+    @transaction.atomic
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        room_number = (self.cleaned_data.get('room') or '').strip()
+        if room_number:
+            room_obj, _ = Room.objects.get_or_create(
+                number=room_number,
+                defaults={'map_id': room_number, 'floor': 0},
+            )
+            instance.room = room_obj
+        else:
+            instance.room = None
+
+        category_title = (self.cleaned_data.get('category') or '').strip() or 'Прочее'
+        category_obj = TenantCategory.objects.filter(
+            title__iexact=category_title
+        ).first()
+        if category_obj is None:
+            category_obj = TenantCategory.objects.create(title=category_title)
+        instance.category = category_obj
+
+        if commit:
+            instance.save()
+        return instance

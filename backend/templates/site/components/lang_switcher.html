@@ -1,15 +1,15 @@
 {% load site_tags %}
 <nav class="bpm-topbar__lang bpm-lang-switcher" aria-label="{% t 'topbar.language' 'Язык интерфейса' %}">
-  <a href="{% lang_url 'ru' %}"
+  <button type="button"
      class="bpm-topbar__lang-btn{% if current_lang == 'ru' %} is-active{% endif %}"
-     hreflang="ru"
-     lang="ru">{% t 'topbar.lang_ru' 'Рус' %}</a>
-  <a href="{% lang_url 'kk' %}"
+     onclick="BPM.switchLang('ru')"
+     lang="ru">{% t 'topbar.lang_ru' 'Рус' %}</button>
+  <button type="button"
      class="bpm-topbar__lang-btn{% if current_lang == 'kk' %} is-active{% endif %}"
-     hreflang="kk"
-     lang="kk">{% t 'topbar.lang_kk' 'Қаз' %}</a>
-  <a href="{% lang_url 'en' %}"
+     onclick="BPM.switchLang('kk')"
+     lang="kk">{% t 'topbar.lang_kk' 'Қаз' %}</button>
+  <button type="button"
      class="bpm-topbar__lang-btn{% if current_lang == 'en' %} is-active{% endif %}"
-     hreflang="en"
-     lang="en">{% t 'topbar.lang_en' 'Eng' %}</a>
+     onclick="BPM.switchLang('en')"
+     lang="en">{% t 'topbar.lang_en' 'Eng' %}</button>
 </nav>

@@ -8,6 +8,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&emp=2">
+<link rel="stylesheet" href="{% static 'site/css/apps/docs.css' %}?v={{ static_version|default:'1' }}">
 {% endblock %}
 
 {% block content %}
@@ -312,6 +313,23 @@
                   <a href="{{ furl }}" download class="hr-icon-btn" title="Скачать">
                     <i class="bi bi-download"></i>
                   </a>
+                  {% with signing=doc_signings|get_item:fpk %}
+                    {% if doc.status == 'active' %}
+                      <span class="hr-icon-btn" title="Подписан через eSigner" style="opacity:.5; cursor:default;">
+                        <i class="bi bi-check-circle-fill"></i>
+                      </span>
+                    {% elif signing and signing.status == 'SENT' %}
+                      <a href="{{ signing.sign_url }}" target="_blank" class="hr-icon-btn" title="Открыть страницу подписания">
+                        <i class="bi bi-pen"></i>
+                      </a>
+                      {% elif can_manage %}
+                      <button type="button" class="hr-icon-btn hr-esigner-trigger"
+                              data-esigner-url="{% url 'hr:documents_esigner_send' fpk %}"
+                              title="Отправить на подписание (eSigner)">
+                        <i class="bi bi-pen"></i>
+                      </button>
+                    {% endif %}
+                  {% endwith %}
                   {% if can_manage %}
                     <a href="{% url 'hr:documents_edit' fpk %}" class="hr-icon-btn" title="Редактировать">
                       <i class="bi bi-pencil"></i>
@@ -476,6 +494,23 @@
                     <a href="{{ furl }}" download class="hr-icon-btn" title="Скачать">
                       <i class="bi bi-download"></i>
                     </a>
+                    {% with signing=permit_signings|get_item:fpk %}
+                      {% if signing and signing.status == 'COMPLETED' %}
+                        <span class="hr-icon-btn" title="Подписан через eSigner" style="opacity:.5; cursor:default;">
+                          <i class="bi bi-check-circle-fill"></i>
+                        </span>
+                      {% elif signing and signing.status == 'SENT' %}
+                        <a href="{{ signing.sign_url }}" target="_blank" class="hr-icon-btn" title="Открыть страницу подписания">
+                          <i class="bi bi-pen"></i>
+                        </a>
+                        {% elif can_manage %}
+                        <button type="button" class="hr-icon-btn hr-esigner-trigger"
+                                data-esigner-url="{% url 'hr:permits_esigner_send' fpk %}"
+                                title="Отправить на подписание (eSigner)">
+                          <i class="bi bi-pen"></i>
+                        </button>
+                      {% endif %}
+                    {% endwith %}
                     {% if can_manage %}
                       <a href="{% url 'hr:permits_edit' fpk %}" class="hr-icon-btn" title="Редактировать">
                         <i class="bi bi-pencil"></i>
@@ -583,4 +618,65 @@
 
   </div>
 </div>
-{% endblock %}
+
+<div class="doc-action-modal-overlay" id="hrEsignerModal">
+  <div class="doc-action-modal">
+    <div class="doc-action-modal-head">
+      <h3 class="doc-action-modal-title">Отправить на подписание</h3>
+      <button class="doc-action-modal-close" id="hrEsignerModalClose">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+    <form method="POST" id="hrEsignerForm" action="">
+      {% csrf_token %}
+      <div class="doc-action-modal-body">
+        <div>
+          <div class="doc-action-modal-label">ИИН/БИН подписанта</div>
+          <input type="text" name="iin" class="doc-action-modal-select"
+                 placeholder="Введите ИИН или БИН" required>
+        </div>
+        <div>
+          <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" name="is_company">
+            Это юридическое лицо (БИН)
+          </label>
+        </div>
+        <div class="doc-action-modal-foot">
+          <button type="button" class="doc-action-modal-btn doc-action-modal-btn--cancel"
+                  id="hrEsignerModalCancel">Отмена</button>
+          <button type="submit" class="doc-action-modal-btn doc-action-modal-btn--primary">
+            Отправить в eSigner
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var overlay = document.getElementById('hrEsignerModal');
+    var form = document.getElementById('hrEsignerForm');
+    var closeBtn = document.getElementById('hrEsignerModalClose');
+    var cancelBtn = document.getElementById('hrEsignerModalCancel');
+
+    function openModal(url) {
+      form.setAttribute('action', url);
+      overlay.classList.add('is-open');
+    }
+    function closeModal() {
+      overlay.classList.remove('is-open');
+    }
+
+    document.querySelectorAll('.hr-esigner-trigger').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        openModal(btn.dataset.esignerUrl);
+      });
+    });
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
+  });
+  </script>
+  {% endblock %}

@@ -55,12 +55,16 @@ urlpatterns = [
     path('documents/<int:pk>/edit/', views.documents_edit, name='documents_edit'),
     path('documents/<int:pk>/delete/', views.documents_delete, name='documents_delete'),
     path('documents/export/', views.documents_export, name='documents_export'),
+    path('documents/<int:pk>/esigner/send/', views.documents_esigner_send, name='documents_esigner_send'),
+
 
     path('permits/', views.permits_list, name='permits_list'),
     path('permits/create/', views.permits_create, name='permits_create'),
     path('permits/<int:pk>/edit/', views.permits_edit, name='permits_edit'),
     path('permits/<int:pk>/delete/', views.permits_delete, name='permits_delete'),
     path('permits/export/', views.permits_export, name='permits_export'),
+    path('permits/<int:pk>/esigner/send/', views.permits_esigner_send, name='permits_esigner_send'),
+
 
     path('certifications/', views.certifications_list, name='certifications_list'),
     path('certifications/create/', views.certifications_create, name='certifications_create'),

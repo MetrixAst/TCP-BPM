@@ -3156,6 +3156,27 @@ def make_user_be66(role, username):
     return User.objects.create_user(username=username, password='pass', role=role)
 
 
+class CreditModelCalculationTest(TestCase):
+    def test_annual_debt_service_uses_loan_term(self):
+        credit = CreditModel(
+            name='Zero interest',
+            scenario=CreditModel.Scenario.BASE,
+            year=2026,
+            loan_amount=Decimal('120000.00'),
+            loan_rate=Decimal('0.00'),
+            loan_term_months=24,
+            annual_debt_service=Decimal('0.00'),
+            projected_income={'year': '100000.00'},
+            projected_expenses={'year': '10000.00'},
+        )
+
+        credit.calculate_dscr()
+
+        self.assertEqual(credit.annual_debt_service, Decimal('60000.00'))
+        self.assertEqual(credit.free_cashflow, Decimal('30000.00'))
+        self.assertEqual(credit.dscr, Decimal('1.5000'))
+
+
 class ScenariosListViewTest(TestCase):
 
     def setUp(self):
@@ -3169,6 +3190,9 @@ class ScenariosListViewTest(TestCase):
             period_end=self.today.replace(year=self.today.year + 1),
             loan_amount=Decimal('5000000.00'),
             loan_rate=Decimal('12.00'),
+            year=self.today.year,
+            loan_term_months=12,
+            annual_debt_service=Decimal('0.00'),
         )
 
     def _login(self):
@@ -3192,11 +3216,14 @@ class ScenarioDetailJsonTest(TestCase):
         self.today = date.today()
         self.scenario = CreditModel.objects.create(
             name='Сценарий Б',
-            scenario=CreditModel.Scenario.STRESS,
+            scenario=CreditModel.Scenario.PESSIMISTIC,
             period_start=self.today,
             period_end=self.today.replace(year=self.today.year + 2),
             loan_amount=Decimal('10000000.00'),
             loan_rate=Decimal('15.00'),
+            year=self.today.year,
+            loan_term_months=24,
+            annual_debt_service=Decimal('0.00'),
         )
 
     def _login(self):

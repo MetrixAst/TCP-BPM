@@ -598,7 +598,7 @@
           .data(chartData)
           .nodeId(d => d.id)
           .parentNodeId(d => d.parentId)
-          // Если библиотека ругается на отсутствие метода, 
+          // Если библиотека ругается на отсутствие метода,
           // мы просто задаем контент через nodeContent (он у нас уже настроен)
           .nodeWidth(d => {
             const t = (d.data.type || "").toLowerCase();
@@ -750,27 +750,27 @@
   function initHrEmployeesFilters() {
     const page = document.querySelector(".hr-employees-page");
     if (!page) return;
-  
+
     const form = page.querySelector("#filter_form");
     if (!form) return;
-  
+
     const fields = Array.from(form.querySelectorAll(".grid_child"));
-  
+
     fields.forEach(function (field) {
       if (field.querySelector(".hr-filter-label")) return;
-    
+
       const input = field.querySelector("input, select, textarea");
       if (!input) return;
-    
+
       let labelText = "Фильтр";
-    
+
       const key = (
         input.name ||
         input.id ||
         input.placeholder ||
         ""
       ).toLowerCase();
-    
+
       if (key.includes("search") || key.includes("q")) {
         labelText = "Поиск";
       } else if (key.includes("company")) {
@@ -784,24 +784,24 @@
       } else if (key.includes("sort")) {
         labelText = "Сортировка";
       }
-    
+
       const label = document.createElement("label");
       label.className = "hr-filter-label";
       label.textContent = labelText;
-    
+
       if (input.id) {
         label.setAttribute("for", input.id);
       }
-    
+
       field.insertBefore(label, field.firstChild);
     });
-  
+
     if (window.jQuery && jQuery.fn.select2) {
       jQuery(form).find("select").each(function () {
         const $select = jQuery(this);
-  
+
         if ($select.hasClass("select2-hidden-accessible")) return;
-  
+
         $select.select2({
           width: "100%",
           minimumResultsForSearch: Infinity,
@@ -810,6 +810,18 @@
       });
     }
   }
+
+  function initHrPagination() {
+    document.querySelectorAll(".paginator_handler .page-link").forEach(function (el) {
+      el.addEventListener("click", function () {
+        const pageInput = document. getElementById("id_page");
+        const form = document.getElementById("filter_form");
+        if (pageInput) pageInput.value = this.getAttribute("data-page");
+        if (form) form.submit();
+      });
+    });
+  }
+
   function init() {
     initTableSearch();
     initInlineModals();
@@ -817,6 +829,7 @@
     initOrgChart();
     initHrDatepickers();
     initHrEmployeesFilters();
+    initHrPagination();
 
     if (window.BPM && window.BPM.applyTranslations) {
       window.BPM.applyTranslations();

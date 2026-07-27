@@ -72,6 +72,30 @@
       </div>
       {% endif %}
 
+      {% if document.document %}
+      <div class="doc-detail-actions">
+        {% if esigner_signing and esigner_signing.status == 'SENT' %}
+          <a href="{{ esigner_signing.sign_url }}" target="_blank"
+             class="doc-detail-action-btn doc-detail-action-btn--primary">
+            <i class="bi bi-pen"></i> Открыть страницу подписания
+          </a>
+        {% elif esigner_signing and esigner_signing.status == 'COMPLETED' %}
+          <span class="doc-status-badge">Подписан через eSigner</span>
+          {% if esigner_signing.signed_pdf %}
+            <a href="{% url 'documents:document_esigner_download' document.pk %}" download
+               class="doc-detail-icon-btn" title="Скачать подписанный PDF">
+              <i class="bi bi-download"></i>
+            </a>
+          {% endif %}
+        {% elif can_edit %}
+          <button type="button" class="doc-detail-action-btn doc-detail-action-btn--ghost"
+                  id="esignerActionBtn">
+            <i class="bi bi-pen"></i> Отправить на подписание (eSigner)
+          </button>
+        {% endif %}
+      </div>
+      {% endif %}
+
       {# Tabs #}
       <div class="doc-detail-tablist">
         <button class="doc-detail-tab is-active" data-tab="doc-tab-doc">
@@ -357,6 +381,42 @@
 </div>
 {% endif %}
 
+{% if document.document %}
+<div class="doc-action-modal-overlay" id="esignerModal">
+  <div class="doc-action-modal">
+    <div class="doc-action-modal-head">
+      <h3 class="doc-action-modal-title">Отправить на подписание</h3>
+      <button class="doc-action-modal-close" id="esignerModalClose">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+    <form method="POST" action="{% url 'documents:document_esigner_send' document.id %}">
+      {% csrf_token %}
+      <div class="doc-action-modal-body">
+        <div>
+          <div class="doc-action-modal-label">ИИН/БИН подписанта</div>
+          <input type="text" name="iin" class="doc-action-modal-select"
+                 placeholder="Введите ИИН или БИН" required>
+        </div>
+        <div>
+          <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" name="is_company">
+            Это юридическое лицо (БИН)
+          </label>
+        </div>
+        <div class="doc-action-modal-foot">
+          <button type="button" class="doc-action-modal-btn doc-action-modal-btn--cancel"
+                  id="esignerModalCancel">Отмена</button>
+          <button type="submit" class="doc-action-modal-btn doc-action-modal-btn--primary">
+            Отправить в eSigner
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
 <script>
 (function() {
   // Tabs
@@ -380,6 +440,18 @@
     if (closeBtn)  closeBtn.addEventListener('click', closeModal);
     if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
     overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
+  }
+  // eSigner modal
+  var esignerOverlay = document.getElementById('esignerModal');
+  var esignerOpenBtn = document.getElementById('esignerActionBtn');
+  var esignerCloseBtn = document.getElementById('esignerModalClose');
+  var esignerCancelBtn = document.getElementById('esignerModalCancel');
+  if (esignerOverlay && esignerOpenBtn) {
+    esignerOpenBtn.addEventListener('click', function() { esignerOverlay.classList.add('is-open'); });
+    function closeEsignerModal() { esignerOverlay.classList.remove('is-open'); }
+    if (esignerCloseBtn) esignerCloseBtn.addEventListener('click', closeEsignerModal);
+    if (esignerCancelBtn) esignerCancelBtn.addEventListener('click', closeEsignerModal);
+    esignerOverlay.addEventListener('click', function(e) { if (e.target === esignerOverlay) closeEsignerModal(); });
   }
 
   document.querySelectorAll('[data-file-delete-confirm]').forEach(function(btn) {

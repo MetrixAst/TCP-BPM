@@ -560,43 +560,53 @@ class CashFlowRecord(models.Model):
 
 
 class CreditModel(models.Model):
-    """Кредитная модель — прогнозный сценарий для оценки долговой нагрузки."""
-
     class Scenario(models.TextChoices):
-        BASE       = 'base',       'Базовый'
-        STRESS     = 'stress',     'Стресс'
-        OPTIMISTIC = 'optimistic', 'Оптимистичный'
+        BASE        = 'base',        'Базовый'
+        OPTIMISTIC  = 'optimistic',  'Оптимистичный'
+        PESSIMISTIC = 'pessimistic', 'Пессимистичный'
 
-    name     = models.CharField('Название', max_length=255)
-    scenario = models.CharField(
-        'Сценарий', max_length=20,
-        choices=Scenario.choices,
-        default=Scenario.BASE,
+    class RiskLevel(models.TextChoices):
+        LOW    = 'low',    'Низкий'
+        MEDIUM = 'medium', 'Средний'
+        HIGH   = 'high',   'Высокий'
+
+    name                = models.CharField(max_length=200)
+    scenario            = models.CharField(max_length=15, choices=Scenario.choices, default=Scenario.BASE)
+    year                = models.PositiveIntegerField()
+    description         = models.TextField(blank=True, null=True)
+    loan_amount         = models.DecimalField(max_digits=16, decimal_places=2)
+    loan_rate           = models.DecimalField(max_digits=6, decimal_places=2)
+    loan_term_months    = models.PositiveIntegerField()
+    annual_debt_service = models.DecimalField(max_digits=16, decimal_places=2)
+    forecast_pnl        = models.JSONField(default=dict)
+    forecast_cashflow   = models.JSONField(default=dict)
+    risk_level          = models.CharField(max_length=10, choices=RiskLevel.choices, default=RiskLevel.MEDIUM)
+    risk_notes          = models.TextField(blank=True, null=True)
+    financial_statement = models.ForeignKey(
+        'FinancialStatement', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='credit_models'
     )
-    period_start = models.DateField('Начало периода')
-    period_end   = models.DateField('Конец периода')
-
-    projected_income   = models.JSONField('Прогноз доходов',  default=dict)
-    projected_expenses = models.JSONField('Прогноз расходов', default=dict)
-    projected_cashflow = models.JSONField('Прогноз ДДС',       default=dict)
-
-    loan_amount = models.DecimalField('Сумма кредита', max_digits=20, decimal_places=2, default=0)
-    loan_rate   = models.DecimalField('Ставка, %',     max_digits=5,  decimal_places=2, default=0)
-
-    dscr          = models.DecimalField('DSCR', max_digits=10, decimal_places=4, null=True, blank=True)
-    free_cashflow = models.DecimalField('Свободный CF', max_digits=20, decimal_places=2, null=True, blank=True)
-    risk_level    = models.CharField('Уровень риска', max_length=20, default='medium')
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    period_start        = models.DateField(null=True, blank=True)
+    period_end          = models.DateField(null=True, blank=True)
+    projected_income    = models.JSONField(default=dict, blank=True)
+    projected_expenses  = models.JSONField(default=dict, blank=True)
+    dscr                = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True)
+    free_cashflow       = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    projected_cashflow  = models.JSONField(default=dict, blank=True)
+    created_at          = models.DateTimeField(auto_now_add=True)
+    updated_at          = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name        = 'Кредитная модель'
-        verbose_name_plural = 'Кредитные модели'
-        ordering            = ['-created_at']
+        ordering = ['-year', 'scenario']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'scenario', 'year'],
+                name='finances_creditmodel_name_scenario_year_9f7c29f8_uniq'
+            )
+        ]
 
     def __str__(self):
-        return f"{self.name} ({self.get_scenario_display()})"
+        return f'{self.name} ({self.get_scenario_display()}, {self.year})'
 
     def _sum_json_values(self, json_field):
         from decimal import Decimal, InvalidOperation
@@ -611,19 +621,31 @@ class CreditModel(models.Model):
     def _annual_debt_service(self):
         from decimal import Decimal
         P = self.loan_amount
+        term = Decimal(str(self.loan_term_months or 0))
+        if not P or term <= 0:
+            return Decimal('0.00')
         annual_rate = self.loan_rate / Decimal('100')
         if annual_rate == 0:
-            return P
+            months_in_year = min(term, Decimal('12'))
+            return (P * months_in_year / term).quantize(Decimal('0.01'))
         r = annual_rate / Decimal('12')
-        n = Decimal('12')
-        factor = r / (1 - (1 + r) ** (-n))
+        factor = r / (1 - (1 + r) ** (-term))
         return (P * factor * 12).quantize(Decimal('0.01'))
 
     def calculate_dscr(self):
         from decimal import Decimal
+        income  = self._sum_json_values(self.projected_income)
+        expense = self._sum_json_values(self.projected_expenses)
 
-        noi = self._sum_json_values(self.projected_income) - self._sum_json_values(self.projected_expenses)
+        if income or expense:
+            noi = income - expense
+        else:
+            self.dscr = None
+            self.free_cashflow = None
+            return None
+
         debt_service = self._annual_debt_service()
+        self.annual_debt_service = debt_service
         self.free_cashflow = noi - debt_service
 
         if debt_service == 0:

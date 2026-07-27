@@ -5,160 +5,397 @@
 {% block title %}Бюджет | metriX BPM{% endblock %}
 
 {% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe71">
-<link rel="stylesheet" href="{% static 'site/css/apps/fin-pages.css' %}?v=fp01">
+<style>
+/* ============================================================
+   Бюджетирование — стиль проекта (ОПиУ / ДДС / leaves)
+   ============================================================ */
+.bgt-page {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #25233f;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.bgt-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff4e5;
+    color: #92400e;
+    border-radius: 14px;
+    padding: 14px 18px;
+    font-size: 13px;
+    font-weight: 500;
+}
+.bgt-alert i { font-size: 16px; color: #f59e0b; }
+
+/* Верхний блок: заголовок + кнопка */
+.bgt-top {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+.bgt-title { margin: 0; font-size: 24px; font-weight: 700; color: #25233f; }
+
+/* Полоса фильтров */
+.bgt-filters {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.bgt-field { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; }
+.bgt-field__label { font-size: 11px; color: #74728a; font-weight: 500; line-height: 1; }
+.bgt-input {
+    height: 36px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: #f5f3fa;
+    color: #25233f;
+    font-size: 13px;
+    font-weight: 500;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.bgt-input:focus { box-shadow: 0 0 0 2px rgba(47,107,237,.14); }
+.bgt-input--year  { width: 90px; }
+.bgt-input--month { width: 72px; }
+
+/* Кнопки */
+.bgt-btn {
+    height: 36px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+    transition: background .15s ease;
+    flex: 0 0 auto;
+}
+.bgt-btn i { font-size: 14px; }
+.bgt-btn--primary { background: #2f6bed; color: #fff; }
+.bgt-btn--primary:hover { background: #2458c7; color: #fff; }
+.bgt-btn--outline { background: #f5f3fa; color: #25233f; }
+.bgt-btn--outline:hover { background: #ece9f4; color: #25233f; }
+.bgt-btn--icon { width: 36px; padding: 0; }
+
+/* Панель с таблицей */
+.bgt-panel { background: #fff; border-radius: 18px; padding: 18px 22px; }
+.bgt-panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.bgt-panel__title { font-size: 16px; font-weight: 700; color: #25233f; margin: 0; }
+.bgt-panel__sub { font-size: 12px; color: #74728a; margin: 2px 0 0; }
+.bgt-legend { display: flex; align-items: center; gap: 14px; font-size: 12px; color: #74728a; }
+.bgt-legend__item { display: inline-flex; align-items: center; gap: 6px; }
+.bgt-legend__dot { width: 9px; height: 9px; border-radius: 50%; }
+.bgt-legend__dot--success { background: #16a34a; }
+.bgt-legend__dot--danger  { background: #ef4444; }
+
+.bgt-table-wrap { overflow-x: auto; }
+.bgt-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.bgt-table__th {
+    height: 44px;
+    padding: 0 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #74728a;
+    border-bottom: 1px solid #eceaf3;
+    white-space: nowrap;
+}
+.bgt-table__th.text-right { text-align: right; }
+.bgt-table__td {
+    height: 56px;
+    padding: 0 14px;
+    border-bottom: 1px solid #f0eef6;
+    vertical-align: middle;
+    color: #25233f;
+    position: relative;
+}
+.bgt-table__td.text-right { text-align: right; }
+.bgt-table__row:last-child .bgt-table__td { border-bottom: 0; }
+.bgt-table__row:hover { background: #faf9fd; }
+.bgt-table__row--danger .bgt-table__td:first-child::before,
+.bgt-table__row--success .bgt-table__td:first-child::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 10px; bottom: 10px;
+    width: 3px; border-radius: 0 3px 3px 0;
+}
+.bgt-table__row--danger  .bgt-table__td:first-child::before { background: #ef4444; }
+.bgt-table__row--success .bgt-table__td:first-child::before { background: #16a34a; }
+
+.bgt-cat { display: flex; flex-direction: column; gap: 2px; }
+.bgt-cat__name { font-weight: 600; }
+.bgt-cat__sub { font-size: 12px; color: #9a98aa; }
+.bgt-amount { font-weight: 600; }
+.bgt-muted { color: #74728a; }
+.bgt-success { color: #16a34a; font-weight: 600; }
+.bgt-danger  { color: #ef4444; font-weight: 600; }
+
+.bgt-badge {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.bgt-badge--success { background: #e6f7ee; color: #16a34a; }
+.bgt-badge--warning  { background: #fff4e5; color: #b45309; }
+.bgt-badge--danger   { background: #feecec; color: #ef4444; }
+
+/* Прогресс-бар */
+.bgt-progress-wrap { display: flex; align-items: center; gap: 8px; min-width: 130px; }
+.bgt-progress { flex: 1; height: 6px; border-radius: 999px; background: #eceaf3; overflow: hidden; }
+.bgt-progress__bar { height: 100%; border-radius: 999px; }
+.bgt-progress__bar--success { background: #16a34a; }
+.bgt-progress__bar--warning { background: #f59e0b; }
+.bgt-progress__bar--danger  { background: #ef4444; }
+.bgt-progress-label { font-size: 12px; font-weight: 600; color: #74728a; white-space: nowrap; }
+
+.bgt-actions { display: inline-flex; gap: 6px; }
+.bgt-action-btn {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: #f5f3fa;
+    color: #25233f;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 13px;
+}
+.bgt-action-btn:hover { background: #ece9f4; }
+.bgt-action-btn--primary { background: #eaf0fe; color: #2f6bed; }
+.bgt-action-btn--primary:hover { background: #dbe7fd; }
+
+.bgt-total-row .bgt-table__td { background: #f7f6fc; font-weight: 700; }
+
+.bgt-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 48px 20px;
+    color: #74728a;
+}
+.bgt-empty i { font-size: 40px; margin-bottom: 12px; color: #c8c7d3; }
+.bgt-empty strong { font-size: 15px; font-weight: 700; color: #25233f; }
+.bgt-empty span { margin-top: 6px; font-size: 13px; color: #9a98aa; }
+
+/* select2 в фильтрах */
+#bgtPage .select2-container { width: 150px !important; }
+#bgtPage .select2-container--default .select2-selection--single,
+#bgtPage .select2-container--bootstrap4 .select2-selection--single {
+    height: 36px !important;
+    min-height: 36px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: #f5f3fa !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+}
+#bgtPage .select2-selection__rendered {
+    height: 36px !important;
+    line-height: 36px !important;
+    padding-left: 14px !important;
+    padding-right: 32px !important;
+    color: #25233f !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+}
+#bgtPage .select2-selection__arrow { height: 36px !important; right: 10px !important; }
+.select2-container--default .select2-results__option--highlighted[aria-selected],
+.select2-container--bootstrap4 .select2-results__option--highlighted[aria-selected] {
+    background: #2f6bed !important; color: #fff !important;
+}
+.select2-dropdown {
+    border: 0 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 16px 40px rgba(15,23,42,.16) !important;
+    overflow: hidden !important;
+}
+.select2-results__options { padding: 6px !important; }
+.select2-results__option { min-height: 34px !important; padding: 8px 12px !important; border-radius: 10px !important; font-size: 13px !important; }
+</style>
 {% endblock %}
 
 {% block content %}
-<section class="fin-page fin-page--budget">
+<div class="bgt-page" id="bgtPage">
 
   {% if has_overrun %}
-  <div class="fin-overrun-alert">
+  <div class="bgt-alert">
     <i class="bi bi-exclamation-triangle-fill"></i>
     <span>Обнаружен перерасход по одной или нескольким статьям (факт &gt; 110% плана)</span>
   </div>
   {% endif %}
 
-  <header class="fin-page-hero">
-    <div>
-      <h1 class="fin-page-hero__title">Бюджетирование</h1>
-    </div>
-  </header>
-
-  <div class="fin-filter-card">
-    <form method="GET" class="fin-filter-form">
-      <div class="fin-field">
-        <label class="fin-label">Период</label>
-        <select name="period_type" class="fin-input">
-          <option value="monthly"   {% if period_type == 'monthly'   %}selected{% endif %}>Ежемесячно</option>
-          <option value="quarterly" {% if period_type == 'quarterly' %}selected{% endif %}>Поквартально</option>
-          <option value="yearly"    {% if period_type == 'yearly'    %}selected{% endif %}>Ежегодно</option>
-        </select>
-      </div>
-
-      <div class="fin-field">
-        <label class="fin-label">Тип статей</label>
-        <select name="cat_type" class="fin-input">
-          <option value="">Все</option>
-          <option value="income"  {% if cat_type == 'income'  %}selected{% endif %}>Доходы</option>
-          <option value="expense" {% if cat_type == 'expense' %}selected{% endif %}>Расходы</option>
-        </select>
-      </div>
-
-      <div class="fin-field">
-        <label class="fin-label">Год</label>
-        <input type="number" name="year" value="{{ year }}" class="fin-input" style="width:90px">
-      </div>
-
-      <div class="fin-field">
-        <label class="fin-label">Месяц</label>
-        <input type="number" name="month" value="{{ month }}" min="1" max="12" class="fin-input" style="width:70px">
-      </div>
-
-      <button type="submit" class="fin-btn fin-btn--primary">Применить</button>
-
-      <a href="?year={{ prev_year }}&month={{ prev_month }}&period_type={{ period_type }}" class="fin-btn fin-btn--light">
-        <i class="bi bi-chevron-left"></i>
-      </a>
-      <a href="?year={{ next_year }}&month={{ next_month }}&period_type={{ period_type }}" class="fin-btn fin-btn--light">
-        <i class="bi bi-chevron-right"></i>
-      </a>
-
-      {% if can_edit %}
-      <a href="/admin/finances/budgetcategory/add/" class="fin-btn fin-btn--primary" style="margin-left:auto">
-        <i class="bi bi-plus-lg"></i> Создать статью
-      </a>
-      {% endif %}
-    </form>
+  <div class="bgt-top">
+    <h1 class="bgt-title">Бюджетирование</h1>
+    {% if can_edit %}
+    <a href="{% url 'finances:budget_category_create' %}" class="bgt-btn bgt-btn--primary">
+      <i class="bi bi-plus-lg"></i> Создать статью
+    </a>
+    {% endif %}
   </div>
 
-  <div class="fin-table-card">
-    <div class="fin-table-head">
+  <form method="GET" class="bgt-filters" id="bgtFilterForm">
+    <div class="bgt-field">
+      <span class="bgt-field__label">Период</span>
+      <select name="period_type" class="bgt-select2">
+        <option value="monthly"   {% if period_type == 'monthly'   %}selected{% endif %}>Ежемесячно</option>
+        <option value="quarterly" {% if period_type == 'quarterly' %}selected{% endif %}>Поквартально</option>
+        <option value="yearly"    {% if period_type == 'yearly'    %}selected{% endif %}>Ежегодно</option>
+      </select>
+    </div>
+
+    <div class="bgt-field">
+      <span class="bgt-field__label">Тип статей</span>
+      <select name="cat_type" class="bgt-select2">
+        <option value="">Все</option>
+        <option value="income"  {% if cat_type == 'income'  %}selected{% endif %}>Доходы</option>
+        <option value="expense" {% if cat_type == 'expense' %}selected{% endif %}>Расходы</option>
+      </select>
+    </div>
+
+    <div class="bgt-field">
+      <span class="bgt-field__label">Год</span>
+      <input type="number" name="year" value="{{ year }}" class="bgt-input bgt-input--year">
+    </div>
+
+    <div class="bgt-field">
+      <span class="bgt-field__label">Месяц</span>
+      <input type="number" name="month" value="{{ month }}" min="1" max="12" class="bgt-input bgt-input--month">
+    </div>
+
+    <button type="submit" class="bgt-btn bgt-btn--primary">Применить</button>
+
+    <a href="?year={{ prev_year }}&month={{ prev_month }}&period_type={{ period_type }}"
+       class="bgt-btn bgt-btn--outline bgt-btn--icon"><i class="bi bi-chevron-left"></i></a>
+    <a href="?year={{ next_year }}&month={{ next_month }}&period_type={{ period_type }}"
+       class="bgt-btn bgt-btn--outline bgt-btn--icon"><i class="bi bi-chevron-right"></i></a>
+  </form>
+
+  <div class="bgt-panel">
+    <div class="bgt-panel__head">
       <div>
-        <div class="fin-table-title">Статьи бюджета</div>
-        <div class="fin-table-subtitle">{{ rows|length }} {% plural_t rows|length 'finances.categories_plural' 'категория|категории|категорий' %}</div>
+        <h2 class="bgt-panel__title">Статьи бюджета</h2>
+        <p class="bgt-panel__sub">{{ rows|length }} {% plural_t rows|length 'finances.categories_plural' 'категория|категории|категорий' %}</p>
       </div>
-      <div class="fin-legend">
-        <span class="fin-legend__dot fin-legend__dot--success"></span>В норме
-        <span class="fin-legend__dot fin-legend__dot--danger"></span>Перерасход
+      <div class="bgt-legend">
+        <span class="bgt-legend__item"><span class="bgt-legend__dot bgt-legend__dot--success"></span>В норме</span>
+        <span class="bgt-legend__item"><span class="bgt-legend__dot bgt-legend__dot--danger"></span>Перерасход</span>
       </div>
     </div>
 
-    <div class="fin-table-wrap">
-      <table class="fin-table" id="budget-table">
+    <div class="bgt-table-wrap">
+      <table class="bgt-table" id="budget-table">
         <thead>
           <tr>
-            <th>Категория</th>
-            <th>Тип</th>
-            <th class="text-right">План</th>
-            <th class="text-right">Факт</th>
-            <th class="text-right">Прогноз</th>
-            <th>% освоения</th>
-            <th class="text-right">Отклонение</th>
-            <th>Статус</th>
-            <th>Действия</th>
+            <th class="bgt-table__th">Категория</th>
+            <th class="bgt-table__th">Тип</th>
+            <th class="bgt-table__th text-right">План</th>
+            <th class="bgt-table__th text-right">Факт</th>
+            <th class="bgt-table__th text-right">Прогноз</th>
+            <th class="bgt-table__th">% освоения</th>
+            <th class="bgt-table__th text-right">Отклонение</th>
+            <th class="bgt-table__th">Статус</th>
+            <th class="bgt-table__th">Действия</th>
           </tr>
         </thead>
 
         <tbody>
           {% for row in rows %}
-          <tr class="fin-row {% if row.overrun %}fin-row--danger{% elif row.exec_pct >= 80 %}fin-row--success{% else %}fin-row--secondary{% endif %}"
+          <tr class="bgt-table__row {% if row.overrun %}bgt-table__row--danger{% elif row.exec_pct >= 80 %}bgt-table__row--success{% endif %}"
               data-plan="{{ row.plan }}" data-fact="{{ row.fact }}">
 
-            <td>
-              <div class="fin-tenant">
-                <strong class="fin-tenant__name">{{ row.cat.name }}</strong>
+            <td class="bgt-table__td">
+              <div class="bgt-cat">
+                <strong class="bgt-cat__name">{{ row.cat.name }}</strong>
                 {% if row.cat.description %}
-                <span class="fin-tenant__sub">{{ row.cat.description|truncatechars:40 }}</span>
+                <span class="bgt-cat__sub">{{ row.cat.description|truncatechars:40 }}</span>
                 {% endif %}
               </div>
             </td>
 
-            <td>
+            <td class="bgt-table__td">
               {% if row.cat.category_type == 'income' %}
-                <span class="fin-status fin-status--success">Доход</span>
+                <span class="bgt-badge bgt-badge--success">Доход</span>
               {% else %}
-                <span class="fin-status fin-status--warning">Расход</span>
+                <span class="bgt-badge bgt-badge--warning">Расход</span>
               {% endif %}
             </td>
 
-            <td class="text-right fin-amount">{{ row.plan|floatformat:0 }} ₸</td>
-            <td class="text-right fin-amount">{{ row.fact|floatformat:0 }} ₸</td>
-            <td class="text-right fin-amount fin-muted">{{ row.forecast|floatformat:0 }} ₸</td>
+            <td class="bgt-table__td text-right bgt-amount">{{ row.plan|floatformat:0 }} ₸</td>
+            <td class="bgt-table__td text-right bgt-amount">{{ row.fact|floatformat:0 }} ₸</td>
+            <td class="bgt-table__td text-right bgt-amount bgt-muted">{{ row.forecast|floatformat:0 }} ₸</td>
 
-            <td>
-              <div class="fin-progress-wrap">
-                <div class="fin-progress">
-                  <div class="fin-progress__bar {% if row.overrun %}fin-progress__bar--danger{% elif row.exec_pct >= 80 %}fin-progress__bar--success{% else %}fin-progress__bar--warning{% endif %}"
+            <td class="bgt-table__td">
+              <div class="bgt-progress-wrap">
+                <div class="bgt-progress">
+                  <div class="bgt-progress__bar {% if row.overrun %}bgt-progress__bar--danger{% elif row.exec_pct >= 80 %}bgt-progress__bar--success{% else %}bgt-progress__bar--warning{% endif %}"
                        style="width: {{ row.exec_pct|floatformat:0 }}%"
                        data-pct="{{ row.exec_pct }}">
                   </div>
                 </div>
-                <span class="fin-progress-label">{{ row.exec_pct }}%</span>
+                <span class="bgt-progress-label">{{ row.exec_pct }}%</span>
               </div>
             </td>
 
-            <td class="text-right">
-              <span class="fin-amount {% if row.variance > 0 and row.cat.category_type == 'expense' %}fin-danger{% elif row.variance < 0 and row.cat.category_type == 'expense' %}fin-success{% else %}fin-muted{% endif %}">
+            <td class="bgt-table__td text-right">
+              <span class="bgt-amount {% if row.variance > 0 and row.cat.category_type == 'expense' %}bgt-danger{% elif row.variance < 0 and row.cat.category_type == 'expense' %}bgt-success{% else %}bgt-muted{% endif %}">
                 {% if row.variance > 0 %}+{% endif %}{{ row.variance|floatformat:0 }} ₸
               </span>
             </td>
 
-            <td>
+            <td class="bgt-table__td">
               {% if row.overrun %}
-                <span class="fin-status fin-status--danger">Перерасход</span>
+                <span class="bgt-badge bgt-badge--danger">Перерасход</span>
               {% else %}
-                <span class="fin-status fin-status--success">Норма</span>
+                <span class="bgt-badge bgt-badge--success">Норма</span>
               {% endif %}
             </td>
 
-            <td>
-              <div class="fin-actions">
-                <a href="{% url 'finances:budget_detail' row.cat.pk %}" class="fin-action-btn">
+            <td class="bgt-table__td">
+              <div class="bgt-actions">
+                <a href="{% url 'finances:budget_detail' row.cat.pk %}" class="bgt-action-btn">
                   <i class="bi bi-eye"></i>
                 </a>
                 {% if can_edit %}
-                <a href="{% url 'finances:budget_item_create' row.cat.pk %}" class="fin-action-btn fin-action-btn--primary">
+                <a href="{% url 'finances:budget_item_create' row.cat.pk %}" class="bgt-action-btn bgt-action-btn--primary">
                   <i class="bi bi-plus"></i>
                 </a>
                 {% endif %}
@@ -167,30 +404,43 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="9" class="fin-empty-state">
-              <i class="bi bi-pie-chart"></i>
-              <strong>Статьи бюджета не найдены</strong>
-              <span>Создайте первую категорию или измените фильтры</span>
+            <td colspan="9" class="bgt-table__td" style="border-bottom:0">
+              <div class="bgt-empty">
+                <i class="bi bi-pie-chart"></i>
+                <strong>Статьи бюджета не найдены</strong>
+                <span>Создайте первую категорию или измените фильтры</span>
+              </div>
             </td>
           </tr>
           {% endfor %}
         </tbody>
 
         <tfoot>
-          <tr class="fin-total-row">
-            <td colspan="2"><strong>Итого</strong></td>
-            <td class="text-right"><strong>{{ total_plan|floatformat:0 }} ₸</strong></td>
-            <td class="text-right"><strong>{{ total_fact|floatformat:0 }} ₸</strong></td>
-            <td colspan="5"></td>
+          <tr class="bgt-total-row">
+            <td class="bgt-table__td" colspan="2"><strong>Итого</strong></td>
+            <td class="bgt-table__td text-right"><strong>{{ total_plan|floatformat:0 }} ₸</strong></td>
+            <td class="bgt-table__td text-right"><strong>{{ total_fact|floatformat:0 }} ₸</strong></td>
+            <td class="bgt-table__td" colspan="5"></td>
           </tr>
         </tfoot>
       </table>
     </div>
   </div>
 
-</section>
+</div>
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
 <script src="{% static 'site/js/apps/budget.js' %}?v=fe54"></script>
+<script>
+(function () {
+    if (window.jQuery && jQuery.fn.select2) {
+        jQuery('#bgtPage .bgt-select2').select2({
+            minimumResultsForSearch: Infinity,
+            width: '150px'
+        });
+    }
+})();
+</script>
 {% endblock %}
