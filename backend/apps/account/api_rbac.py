@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Q
 from django_filters import rest_framework as filters
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -20,7 +20,7 @@ from account.serializers_rbac import (
 
 
 class IsPermissionAdmin(HasAppPermission):
-    permission = PermissionEnums.USERS_LIST
+    permission = PermissionEnums.MANAGE_PERMISSIONS
 
 
 class UserFilter(filters.FilterSet):
@@ -28,13 +28,14 @@ class UserFilter(filters.FilterSet):
     username = filters.CharFilter(field_name='username', lookup_expr='icontains')
     full_name = filters.CharFilter(method='filter_full_name')
     has_overrides = filters.BooleanFilter(method='filter_has_overrides')
+    department = filters.NumberFilter(field_name='employee_info__department_id')
+    employee_status = filters.CharFilter(field_name='employee_info__status')
 
     class Meta:
         model = UserAccount
-        fields = ['role', 'username']
+        fields = ['role', 'username', 'department', 'employee_status']
 
     def filter_full_name(self, qs, name, value):
-        from django.db.models import Q
         return qs.filter(
             Q(first_name__icontains=value) | Q(last_name__icontains=value)
         )
@@ -55,13 +56,14 @@ class UserPermissionsViewSet(viewsets.GenericViewSet):
     def get_queryset(self):
         return (
             UserAccount.objects
+            .select_related('employee_info__department')
             .annotate(override_count=Count('permission_overrides'))
             .order_by('username')
         )
 
     def get_user_or_404(self, pk):
         try:
-            return UserAccount.objects.get(pk=pk)
+            return UserAccount.objects.select_related('employee_info__department').get(pk=pk)
         except UserAccount.DoesNotExist:
             raise NotFound(f"Пользователь {pk} не найден.")
 

@@ -53,10 +53,17 @@ class UserMatrixSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='get_name', read_only=True)
     overrides = serializers.SerializerMethodField()
     role_permissions = serializers.SerializerMethodField()
+    department_id = serializers.SerializerMethodField()
+    department_name = serializers.SerializerMethodField()
+    employee_status = serializers.SerializerMethodField()
 
     class Meta:
         model = UserAccount
-        fields = ['id', 'username', 'full_name', 'role', 'overrides', 'role_permissions']
+        fields = [
+            'id', 'username', 'full_name', 'role',
+            'department_id', 'department_name', 'employee_status',
+            'overrides', 'role_permissions',
+        ]
 
     def get_overrides(self, obj):
         qs = obj.permission_overrides.select_related('permission').all()
@@ -69,11 +76,42 @@ class UserMatrixSerializer(serializers.ModelSerializer):
         except PermissionProfile.DoesNotExist:
             return []
 
+    def get_department_id(self, obj):
+        emp = obj.get_info()
+        return emp.department_id if emp else None
+
+    def get_department_name(self, obj):
+        emp = obj.get_info()
+        return emp.department.name if emp and emp.department_id else None
+
+    def get_employee_status(self, obj):
+        emp = obj.get_info()
+        return emp.status if emp else None
+
 
 class UserListSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='get_name', read_only=True)
     override_count = serializers.IntegerField(read_only=True)
+    department_id = serializers.SerializerMethodField()
+    department_name = serializers.SerializerMethodField()
+    employee_status = serializers.SerializerMethodField()
 
     class Meta:
         model = UserAccount
-        fields = ['id', 'username', 'full_name', 'role', 'override_count']
+        fields = [
+            'id', 'username', 'full_name', 'role',
+            'department_id', 'department_name', 'employee_status',
+            'override_count',
+        ]
+
+    def get_department_id(self, obj):
+        emp = obj.get_info()
+        return emp.department_id if emp else None
+
+    def get_department_name(self, obj):
+        emp = obj.get_info()
+        return emp.department.name if emp and emp.department_id else None
+
+    def get_employee_status(self, obj):
+        emp = obj.get_info()
+        return emp.status if emp else None

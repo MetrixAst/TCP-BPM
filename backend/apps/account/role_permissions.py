@@ -17,7 +17,6 @@ class RoleEnums(Enum):
 
     @staticmethod
     def tenant_roles():
-        """Внутренние роли, получающие уведомления по арендаторам."""
         return [
             RoleEnums.ADMINISTRATOR.value,
             RoleEnums.HR.value,
@@ -56,6 +55,7 @@ class PermissionEnums(Enum):
     REPORTS = "reports"
     COMMENT = "comment"
     USERS_LIST = "users_list"
+    MANAGE_PERMISSIONS = "manage_permissions"
     FINANCE_DASHBOARD = "finance_dashboard"
     FINANCE_BUDGET = "finance_budget"
     FINANCE_SCENARIOS = "finance_scenarios"
@@ -69,6 +69,7 @@ class RolePermissions:
         RoleEnums.ADMINISTRATOR.value: [
             PermissionEnums.PROFILE,
             PermissionEnums.USERS_LIST,
+            PermissionEnums.MANAGE_PERMISSIONS,
             PermissionEnums.DASHBOARD,
             PermissionEnums.TASKS,
             PermissionEnums.EDIT_TASK,
