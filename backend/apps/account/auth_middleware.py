@@ -14,6 +14,7 @@ PUBLIC_PREFIXES = (
     '/media/',
     '/.well-known/',
     '/api/', 
+    '/onec/api/',
 )
 
 
