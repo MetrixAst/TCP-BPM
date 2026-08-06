@@ -13,6 +13,7 @@ PUBLIC_PREFIXES = (
     '/static/',
     '/media/',
     '/.well-known/',
+    '/api/', 
 )
 
 
