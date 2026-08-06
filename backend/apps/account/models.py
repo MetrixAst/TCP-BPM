@@ -55,6 +55,10 @@ class UserAccount(AbstractUser):
         verbose_name_plural = "Пользователи"
         ordering = ['username']
 
+    def has_app_permission(self, permission):
+        from account.services.permissions import user_has_permission
+        return user_has_permission(self, permission)
+
     def get_avatar_url(self):
         if self.avatar:
             return self.avatar.url
@@ -105,11 +109,6 @@ class UserAccount(AbstractUser):
 
     @staticmethod
     def create_tenant_user(tenant, username=None):
-        """Создаёт портального пользователя арендатора.
-
-        Логин по умолчанию — email арендатора (если указан), иначе
-        технический `tenant{pk}`. При конфликте имени добавляется суффикс.
-        """
         email = (getattr(tenant, 'email', '') or '').strip().lower()
         base = (username or email or f"tenant{tenant.pk}").strip().lower()
         username = base
@@ -185,7 +184,6 @@ class Department(MPTTModel):
 
 
 class AccessScope(models.Model):
-    """Зона видимости: роли, отделы и/или конкретные пользователи."""
 
     name = models.CharField('Название', max_length=120)
     description = models.TextField('Описание', blank=True)
@@ -367,10 +365,8 @@ class Notification(models.Model):
             send_notifications_task.delay(self.id)
         except Exception:
             try:
-                # Redis/Celery недоступен (локальная разработка) — выполняем синхронно.
                 send_notifications_task(self.id)
             except Exception:
-                # FCM/конфиг недоступен — не блокируем смену статуса задачи и др.
                 pass
 
 
@@ -431,8 +427,12 @@ class Notification(models.Model):
 
     @staticmethod
     def create_tenant_notify(tenant):
-        users_qs = UserAccount.objects.filter(role__in=RoleEnums.tenant_roles())
-        #TODO ADD TENANT ACCOUNT
+        internal_qs = UserAccount.objects.filter(role__in=RoleEnums.tenant_roles())
+        tenant_qs = UserAccount.objects.filter(
+            role=RoleEnums.TENANT.value,
+            tenant=tenant,
+        )
+        users_qs = (internal_qs | tenant_qs).distinct()
 
         days = tenant.days
         text = "Срок аренды завершен" if days < 0 else f"До завершения срока аренды осталось {days} дней"
@@ -487,3 +487,9 @@ class NotificationIndicator(models.Model):
     def readed(user, target_id, target_type):
         indicator = NotificationIndicator.objects.filter(user=user, target_id=target_id, target_type=target_type)
         indicator.delete()
+
+from account.models_rbac import (  
+    AppPermission,
+    PermissionProfile,
+    UserPermissionOverride,
+)

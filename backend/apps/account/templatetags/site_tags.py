@@ -30,7 +30,6 @@ NAV_ICON_DEFAULT = '<circle cx="12" cy="12" r="9"/>'
 
 @register.simple_tag
 def nav_icon(menu_id, extra_class=''):
-    """Возвращает inline-SVG иконки раздела по id пункта меню."""
     inner = NAV_ICON_PATHS.get(str(menu_id), NAV_ICON_DEFAULT)
     css = 'bpm-sidebar__icon'
     if extra_class:
@@ -81,10 +80,8 @@ def role_label(context, role):
 def has_permission(user, permission):
     if not user or not getattr(user, 'is_authenticated', False):
         return False
-    role = user.role
-    if hasattr(role, 'value'):
-        role = role.value
-    return RolePermissions.checkPermission(role, permission)
+    from account.services.permissions import user_has_permission
+    return user_has_permission(user, permission)
 
 
 @register.inclusion_tag('site/layouts/form.html', takes_context=True)
@@ -154,19 +151,6 @@ def document_frame(request, document):
 
 @register.filter(name='get_item')
 def get_item(obj, key):
-    """
-    Универсальный доступ к атрибуту/ключу по строковой переменной.
- 
-    Работает с:
-      - dict:          row|get_item:'name'  →  row['name']
-      - object/model:  row|get_item:'name'  →  row.name
-      - list:          row|get_item:0       →  row[0]
- 
-    Пример в шаблоне:
-      {% for col in columns %}
-        {{ row|get_item:col.key }}
-      {% endfor %}
-    """
     if obj is None:
         return ''
     if isinstance(obj, dict):
@@ -181,7 +165,6 @@ def get_item(obj, key):
  
 @register.filter(name='dict_get')
 def dict_get(d, key):
-    """Алиас get_item для словарей."""
     if isinstance(d, dict):
         return d.get(key, '')
     return ''
@@ -189,10 +172,6 @@ def dict_get(d, key):
 
 @register.filter(name='addclass')
 def addclass(field, css_class):
-    """
-    Добавляет CSS-класс к Django form field.
-    Использование: {{ form.name|addclass:'form-control' }}
-    """
     if hasattr(field, 'as_widget'):
         return field.as_widget(attrs={'class': css_class})
     return field
@@ -200,10 +179,6 @@ def addclass(field, css_class):
  
 @register.filter(name='placeholder')
 def set_placeholder(field, placeholder_text):
-    """
-    Устанавливает placeholder для Django form field.
-    Использование: {{ form.email|placeholder:'Введите email' }}
-    """
     if hasattr(field, 'as_widget'):
         return field.as_widget(attrs={'placeholder': placeholder_text})
     return field
@@ -211,10 +186,6 @@ def set_placeholder(field, placeholder_text):
  
 @register.filter(name='attr')
 def set_attr(field, attr_str):
-    """
-    Устанавливает произвольный атрибут для Django form field.
-    Использование: {{ form.name|attr:'data-validate:true' }}
-    """
     if hasattr(field, 'as_widget'):
         key, _, value = attr_str.partition(':')
         return field.as_widget(attrs={key.strip(): value.strip()})
@@ -223,10 +194,6 @@ def set_attr(field, attr_str):
  
 @register.simple_tag
 def active_if(request_path, url):
-    """
-    Возвращает 'active' если текущий путь начинается с url.
-    Использование: {% active_if request.path '/finances/' %}
-    """
     if request_path.startswith(url):
         return 'active'
     return ''
@@ -234,7 +201,6 @@ def active_if(request_path, url):
  
 @register.filter(name='multiply')
 def multiply(value, arg):
-    """{{ value|multiply:2 }}"""
     try:
         return float(value) * float(arg)
     except (ValueError, TypeError):
@@ -243,7 +209,6 @@ def multiply(value, arg):
  
 @register.filter(name='subtract')
 def subtract(value, arg):
-    """{{ value|subtract:1 }}"""
     try:
         return float(value) - float(arg)
     except (ValueError, TypeError):
@@ -251,7 +216,6 @@ def subtract(value, arg):
 
 @register.filter(name='oo_editor_url')
 def oo_editor_url(pk, kind):
-    """{{ f.id|oo_editor_url:'task_file' }} → /doc/attachment/task_file/123/editor/"""
     try:
         from django.urls import reverse
         return reverse('documents:attachment_editor', args=[kind, pk])
@@ -261,7 +225,6 @@ def oo_editor_url(pk, kind):
  
 @register.filter(name='oo_supported')
 def oo_supported(filename):
-    """{{ f.filename|oo_supported }} → True/False"""
     try:
         from documents import onlyoffice
         return onlyoffice.is_enabled() and onlyoffice.is_supported(str(filename))
@@ -271,7 +234,6 @@ def oo_supported(filename):
  
 @register.filter(name='oo_editable')
 def oo_editable_filter(filename):
-    """{{ f.filename|oo_editable }} → True/False"""
     try:
         from documents import onlyoffice
         return onlyoffice.is_editable(str(filename))
@@ -316,7 +278,6 @@ def bpm_date(context, value, time=False):
 
 
 def _plural_index_ru(n):
-    """Индекс формы для русского/казахского: 0 — одна, 1 — несколько, 2 — много."""
     n = abs(int(n))
     if n % 10 == 1 and n % 100 != 11:
         return 0
@@ -326,21 +287,11 @@ def _plural_index_ru(n):
 
 
 def _plural_index_en(n):
-    """Индекс формы для английского: 0 — единственное, 1 — множественное."""
     return 0 if abs(int(n)) == 1 else 1
 
 
 @register.simple_tag(takes_context=True)
 def plural_t(context, count, key, default=''):
-    """
-    Плюрализация с учётом языка.
-    В JSON значение хранится через | разделитель:
-      ru/kk: "форма1|форма2|форма3"  (1 запись | 2 записи | 5 записей)
-      en:    "форма1|форма2"          (1 record | 2 records)
-
-    Использование:
-      {% plural_t rows|length 'finances.categories' 'категория|категории|категорий' %}
-    """
     request = context.get('request')
     lang = getattr(request, 'current_lang', DEFAULT_LANG) if request else DEFAULT_LANG
 
@@ -357,7 +308,6 @@ def plural_t(context, count, key, default=''):
     else:
         idx = _plural_index_ru(n)
 
-    # Защита: если форм меньше чем нужно — берём последнюю доступную
     if idx >= len(forms):
         idx = len(forms) - 1
 

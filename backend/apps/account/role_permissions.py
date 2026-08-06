@@ -186,11 +186,17 @@ class RolePermissions:
 
     @classmethod
     def checkPermission(cls, role, permission):
-        key = cls._permission_key(permission)
-        for item in cls.permissions.get(role, []):
-            if cls._permission_key(item) == key:
-                return True
-        return False
+        if hasattr(role, 'value'):
+            role = role.value
+        try:
+            from account.services.permissions import role_has_permission
+            return role_has_permission(role, permission)
+        except Exception:
+            key = cls._permission_key(permission)
+            for item in cls.permissions.get(role, []):
+                if cls._permission_key(item) == key:
+                    return True
+            return False
 
 
 def login_required(function):
@@ -210,16 +216,9 @@ def need_permission(permission):
     def _method_wrapper(view_method):
         def _arguments_wrapper(request, *args, **kwargs):
             if request.user.is_authenticated:
-                if getattr(request.user, 'is_superuser', False):
+                from account.services.permissions import user_has_permission
+                if user_has_permission(request.user, permission):
                     return view_method(request, *args, **kwargs)
-
-                role = request.user.role
-                if hasattr(role, 'value'):
-                    role = role.value
-
-                if role is not None and RolePermissions.checkPermission(role, permission):
-                    return view_method(request, *args, **kwargs)
-
                 return HttpResponseForbidden("Permission Denied")
             else:
                 response = redirect('account:auth')
@@ -333,7 +332,7 @@ class MenuItem:
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                     MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
-                    #MenuItem('hr_vacations', 'hr:vacations', '', 'Отпуска (Enbek)'),
+                    # MenuItem('hr_vacations', 'hr:vacations', '', 'Отпуска (Enbek)'),
                     # MenuItem('hr_sick_leaves', 'hr:sick_leaves', '', 'Больничные (Enbek)'),
                     # MenuItem('hr_contracts', 'hr:contracts', '', 'Договоры (Enbek)'),
                 ]),

@@ -112,3 +112,40 @@ class EmployeeAdmin(admin.ModelAdmin):
 
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
+
+
+from account.models_rbac import (
+    AppPermission,
+    PermissionProfile,
+    UserPermissionOverride,
+)
+
+
+@admin.register(AppPermission)
+class AppPermissionAdmin(admin.ModelAdmin):
+    list_display = ('code', 'category', 'label', 'is_active')
+    list_filter = ('category', 'is_active')
+    search_fields = ('code', 'label')
+    ordering = ('category', 'code')
+
+
+@admin.register(PermissionProfile)
+class PermissionProfileAdmin(admin.ModelAdmin):
+    list_display = ('name', 'role', 'is_system')
+    list_filter = ('is_system',)
+    search_fields = ('name', 'role')
+    filter_horizontal = ('permissions',)
+
+
+@admin.register(UserPermissionOverride)
+class UserPermissionOverrideAdmin(admin.ModelAdmin):
+    list_display = ('user', 'permission', 'effect', 'reason', 'created_by', 'created_at')
+    list_filter = ('effect', 'permission__category')
+    search_fields = ('user__username', 'permission__code', 'reason')
+    autocomplete_fields = ('user', 'permission', 'created_by')
+    readonly_fields = ('created_at', 'updated_at')
+
+    def save_model(self, request, obj, form, change):
+        if not obj.created_by_id:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)

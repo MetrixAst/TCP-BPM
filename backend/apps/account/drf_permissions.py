@@ -1,41 +1,33 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 from .role_permissions import RolePermissions, PermissionEnums, RoleEnums
+from .services.permissions import user_has_permission
 
 
 class HasAppPermission(BasePermission):
-    """DRF permission backed by RolePermissions.checkPermission."""
 
     permission = None
 
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        role = request.user.role
-        if hasattr(role, 'value'):
-            role = role.value
-        return RolePermissions.checkPermission(role, self.permission)
+        return user_has_permission(request.user, self.permission)
 
 
 class HasAnyAppPermission(BasePermission):
-    """Allow if user has any of the listed permissions."""
 
     permissions = ()
 
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        role = request.user.role
-        if hasattr(role, 'value'):
-            role = role.value
         return any(
-            RolePermissions.checkPermission(role, perm)
+            user_has_permission(request.user, perm)
             for perm in self.permissions
         )
 
 
 class ReadOnlyAppPermission(BasePermission):
-    """Safe methods require read_permission; writes require write_permission."""
 
     read_permission = None
     write_permission = None
@@ -43,12 +35,9 @@ class ReadOnlyAppPermission(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        role = request.user.role
-        if hasattr(role, 'value'):
-            role = role.value
         if request.method in SAFE_METHODS:
-            return RolePermissions.checkPermission(role, self.read_permission)
-        return RolePermissions.checkPermission(role, self.write_permission)
+            return user_has_permission(request.user, self.read_permission)
+        return user_has_permission(request.user, self.write_permission)
 
 
 class TasksPermission(HasAppPermission):
@@ -67,19 +56,14 @@ class HrWritePermission(HasAnyAppPermission):
 
 
 class HrApiPermission(BasePermission):
-    """HR: read with HR permission; writes for Administrator or HR_COMPANIES."""
 
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        role = request.user.role
-        if hasattr(role, 'value'):
-            role = role.value
         if request.method in SAFE_METHODS:
-            return RolePermissions.checkPermission(role, PermissionEnums.HR) or RolePermissions.checkPermission(
-                role, PermissionEnums.HR_SELF
-            )
-        return RolePermissions.checkPermission(role, PermissionEnums.HR_COMPANIES)
+            return user_has_permission(request.user, PermissionEnums.HR)
+        return user_has_permission(request.user, PermissionEnums.HR_COMPANIES)
+
 
 class FinanceRegistersReadPermission(HasAppPermission):
     permission = PermissionEnums.FINANCE_REGISTERS
@@ -96,7 +80,6 @@ class FinanceBudgetPermission(ReadOnlyAppPermission):
 
 
 class FinanceBudgetWriteRoles(BasePermission):
-    """Budget mutations: CFO, Owner, Administrator only."""
 
     allowed_roles = (
         RoleEnums.CFO.value,
@@ -108,8 +91,10 @@ class FinanceBudgetWriteRoles(BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
         if request.method in SAFE_METHODS:
-            role = request.user.role
-            if hasattr(role, 'value'):
-                role = role.value
-            return RolePermissions.checkPermission(role, PermissionEnums.FINANCE_BUDGET)
-        return request.user.role in self.allowed_roles
+            return user_has_permission(request.user, PermissionEnums.FINANCE_BUDGET)
+        if getattr(request.user, 'is_superuser', False):
+            return True
+        role = request.user.role
+        if hasattr(role, 'value'):
+            role = role.value
+        return role in self.allowed_roles
