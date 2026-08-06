@@ -9,6 +9,11 @@ from finances.api import (
     GeneratedInvoiceViewSet,
     BudgetItemViewSet,
 )
+from account.api_rbac import (
+    UserPermissionsViewSet,
+    PermissionProfileViewSet,
+    AppPermissionCatalogViewSet,
+)
 
 router = DefaultRouter()
 router.register('tasks', TaskViewSet, basename='task')
@@ -20,7 +25,10 @@ router.register('finances/calendar', PaymentCalendarEntryViewSet, basename='fina
 router.register('finances/invoices', GeneratedInvoiceViewSet, basename='finance-invoice')
 router.register('finances/budget', BudgetItemViewSet, basename='finance-budget')
 
+router.register('permissions/users',    UserPermissionsViewSet,      basename='perm-user')
+router.register('permissions/profiles', PermissionProfileViewSet,    basename='perm-profile')
+router.register('permissions/catalog',  AppPermissionCatalogViewSet, basename='perm-catalog')
+
 urlpatterns = [
     path('', include(router.urls)),
-    path('mobile/', include('mobile_api.urls')),
 ]

@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'audit',
     'rest_framework',
     'drf_spectacular',
+    'django_filters',
 ]
 
 MIDDLEWARE = [
