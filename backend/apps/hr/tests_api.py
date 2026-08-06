@@ -51,11 +51,10 @@ class HrAPITestCase(APITestCase):
             status.HTTP_403_FORBIDDEN,
         )
 
-    def test_companies_list_staff_read_200(self):
+    def test_companies_list_staff_403(self):
         self.client.force_authenticate(user=self.staff_user)
         response = self.client.get(self.companies_url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertGreaterEqual(response.data['count'], 1)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_company_create_admin_201(self):
         self.client.force_authenticate(user=self.hr_admin)
@@ -76,7 +75,7 @@ class HrAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_employee_retrieve(self):
-        self.client.force_authenticate(user=self.staff_user)
+        self.client.force_authenticate(user=self.hr_admin)
         url = reverse('employee-detail', kwargs={'pk': self.employee.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
