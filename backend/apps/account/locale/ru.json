@@ -249,6 +249,23 @@
     "location": "Расположение",
     "root_level": "Корневой уровень"
   },
+  "access": {
+    "list_title": "Доступы",
+    "search_placeholder": "Имя или логин",
+    "department_label": "Отдел",
+    "department_all": "Все",
+    "role_label": "Роль",
+    "role_all": "Все",
+    "status_label": "Статус",
+    "status_all": "Все",
+    "col_user": "Пользователь",
+    "col_department": "Отдел",
+    "col_role": "Роль",
+    "col_status": "Статус",
+    "col_overrides": "Переопределения",
+    "empty_title": "Пользователи не найдены",
+    "empty_text": "Попробуйте изменить фильтры."
+  },
   "access": "Доступ",
   "folder_access": "Доступ к папкам"
 }

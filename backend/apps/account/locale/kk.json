@@ -249,6 +249,23 @@
   "hr": {
       "docs_plural": "құжат|құжат|құжат"
   },
+  "access": {
+    "list_title": "Қолжетімділіктер",
+    "search_placeholder": "Аты немесе логин",
+    "department_label": "Бөлім",
+    "department_all": "Барлығы",
+    "role_label": "Рөл",
+    "role_all": "Барлығы",
+    "status_label": "Мәртебе",
+    "status_all": "Барлығы",
+    "col_user": "Пайдаланушы",
+    "col_department": "Бөлім",
+    "col_role": "Рөл",
+    "col_status": "Мәртебе",
+    "col_overrides": "Қайта анықтаулар",
+    "empty_title": "Пайдаланушылар табылмады",
+    "empty_text": "Сүзгілерді өзгертіп көріңіз."
+  },
   "documents": {
     "location": "Орналасуы",
     "root_level": "Түбірлік деңгей",
