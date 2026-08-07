@@ -8,15 +8,18 @@ from rest_framework.response import Response
 
 from account.drf_permissions import HasAppPermission
 from account.models import UserAccount
-from account.models_rbac import AppPermission, PermissionProfile, UserPermissionOverride
+from account.models_rbac import AppPermission, PermissionProfile, UserPermissionOverride, ProfileAssignment
 from account.role_permissions import PermissionEnums
 from account.serializers_rbac import (
     AppPermissionSerializer,
+    DelegationSerializer,
     PermissionProfileSerializer,
+    ProfileAssignmentSerializer,
     UserListSerializer,
     UserMatrixSerializer,
     UserPermissionOverrideSerializer,
 )
+
 
 
 class IsPermissionAdmin(HasAppPermission):
@@ -118,11 +121,39 @@ class UserPermissionsViewSet(viewsets.GenericViewSet):
         serializer.save()
         return Response(serializer.data)
 
-
-class PermissionProfileViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+class PermissionProfileViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     permission_classes = [IsAuthenticated, IsPermissionAdmin]
     queryset = PermissionProfile.objects.prefetch_related('permissions').order_by('name')
     serializer_class = PermissionProfileSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        profile = self.get_object()
+        if profile.is_system:
+            return Response(
+                {'error': 'Системный профиль нельзя удалить.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['patch'], url_path='set-permissions')
+    def set_permissions(self, request, pk=None):
+        profile = self.get_object()
+        ids = request.data.get('permission_ids', [])
+        if not isinstance(ids, list):
+            return Response(
+                {'error': 'permission_ids должен быть списком'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        perms = AppPermission.objects.filter(id__in=ids, is_active=True)
+        profile.permissions.set(perms)
+        return Response(PermissionProfileSerializer(profile).data)
 
 
 class AppPermissionCatalogViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -130,3 +161,90 @@ class AppPermissionCatalogViewSet(mixins.ListModelMixin, viewsets.GenericViewSet
     queryset = AppPermission.objects.filter(is_active=True).order_by('category', 'code')
     serializer_class = AppPermissionSerializer
     filterset_fields = ['category']
+
+class ProfileAssignmentViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated, IsPermissionAdmin]
+    serializer_class = ProfileAssignmentSerializer
+    queryset = ProfileAssignment.objects.select_related(
+        'profile', 'department', 'assigned_by'
+    ).order_by('scope_type', 'role', 'department_id')
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
+
+    @action(detail=True, methods=['get'], url_path='preview')
+    def preview(self, request, pk=None):
+        assignment = self.get_object()
+        from account.models import UserAccount
+
+        if assignment.scope_type == ProfileAssignment.SCOPE_ROLE:
+            users = UserAccount.objects.filter(
+                role=assignment.role
+            ).select_related('employee_info__department')
+        else:
+            users = UserAccount.objects.filter(
+                employee_info__department_id=assignment.department_id
+            ).select_related('employee_info__department')
+
+        data = UserListSerializer(
+            users.annotate(
+                override_count=Count('permission_overrides')
+            ),
+            many=True,
+        ).data
+        return Response({
+            'assignment': ProfileAssignmentSerializer(assignment).data,
+            'affected_users_count': len(data),
+            'affected_users': data,
+        })
+
+
+class DelegationViewSet(viewsets.GenericViewSet):
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['post'], url_path='')
+    def delegate(self, request):
+        serializer = DelegationSerializer(
+            data=request.data,
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+
+        target_user_id = serializer.validated_data['target_user_id']
+        permission_codes = serializer.validated_data['permission_codes']
+        effect = serializer.validated_data['effect']
+        reason = serializer.validated_data.get('reason', '')
+
+        from account.models import UserAccount
+        target_user = UserAccount.objects.get(pk=target_user_id)
+
+        created = []
+        skipped = []
+
+        for code in permission_codes:
+            perm = AppPermission.objects.get(code=code)
+            override, was_created = UserPermissionOverride.objects.get_or_create(
+                user=target_user,
+                permission=perm,
+                defaults={
+                    'effect': effect,
+                    'reason': reason or f'Делегировано пользователем {request.user.username}',
+                    'created_by': request.user,
+                }
+            )
+            if was_created:
+                created.append(code)
+            else:
+                skipped.append(code)
+
+        return Response({
+            'target_user_id': target_user_id,
+            'created': created,
+            'skipped_existing': skipped,
+            'message': (
+                f'Делегировано: {len(created)} прав. '
+                f'Пропущено (уже есть переопределение): {len(skipped)}.'
+            ),
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
