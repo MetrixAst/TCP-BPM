@@ -96,7 +96,7 @@
 
         <div class="access-table__body">
           {% for current in paginator.items %}
-          <button type="button" class="access-table__row" data-user-id="{{ current.id }}">
+          <button type="button" class="access-table__row" data-user-id="{{ current.id }}" data-user-name="{% if current.get_name %}{{ current.get_name }}{% else %}{{ current.username }}{% endif %}">
             <div class="access-user">
               <div class="access-avatar">
                 {% if current.first_name %}{{ current.first_name|slice:":1" }}{% else %}{{ current.username|slice:":1" }}{% endif %}
@@ -147,13 +147,13 @@
 </div>
 
 <div class="access-modal" id="accessMatrixModal">
-  <div class="access-modal__dialog" role="dialog" aria-modal="true">
-    <button type="button" class="access-modal__close" data-access-modal-close aria-label="Закрыть">&times;</button>
-    <div class="access-modal__body" data-access-modal-body>
-      <div class="access-modal__loading">{% t 'common.loading' 'Загрузка…' %}</div>
+    <div class="access-modal__dialog access-modal__dialog--wide" role="dialog" aria-modal="true">
+      <button type="button" class="access-modal__close" data-access-modal-close aria-label="Закрыть">&times;</button>
+      <div class="access-modal__body" data-access-modal-body>
+        <div class="access-modal__loading">{% t 'common.loading' 'Загрузка…' %}</div>
+      </div>
     </div>
   </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
