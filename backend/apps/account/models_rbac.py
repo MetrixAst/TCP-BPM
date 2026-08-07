@@ -92,6 +92,17 @@ class UserPermissionOverride(models.Model):
     def __str__(self):
         return f"{self.user_id}: {self.effect} {self.permission.code}"
 
+    def save(self, *args, **kwargs):
+        if self.pk:
+            try:
+                old = UserPermissionOverride.objects.get(pk=self.pk)
+                self._pre_save_effect = old.effect
+            except UserPermissionOverride.DoesNotExist:
+                self._pre_save_effect = None
+        else:
+            self._pre_save_effect = None
+        super().save(*args, **kwargs)
+
 class ProfileAssignment(models.Model):
     SCOPE_ROLE = "role"
     SCOPE_DEPARTMENT = "department"
@@ -142,3 +153,56 @@ class ProfileAssignment(models.Model):
         if self.scope_type == self.SCOPE_ROLE:
             return f"{self.profile.name} → роль:{self.role}"
         return f"{self.profile.name} → отдел:{self.department}"
+
+class PermissionAuditLog(models.Model):
+    ACTION_GRANT = "GRANT"
+    ACTION_REVOKE = "REVOKE"
+    ACTION_OVERRIDE_ADD = "OVERRIDE_ADD"
+    ACTION_OVERRIDE_CHANGE = "OVERRIDE_CHANGE"
+    ACTION_OVERRIDE_DELETE = "OVERRIDE_DELETE"
+    ACTION_CHOICES = [
+        (ACTION_GRANT, "Выдано право профилю"),
+        (ACTION_REVOKE, "Отозвано право у профиля"),
+        (ACTION_OVERRIDE_ADD, "Добавлено индивидуальное переопределение"),
+        (ACTION_OVERRIDE_CHANGE, "Изменено индивидуальное переопределение"),
+        (ACTION_OVERRIDE_DELETE, "Удалено индивидуальное переопределение"),
+    ]
+
+    action = models.CharField("Действие", max_length=32, choices=ACTION_CHOICES)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="audit_actions",
+        verbose_name="Кто изменил",
+    )
+    target_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="audit_targets",
+        verbose_name="На кого влияет",
+    )
+    profile = models.ForeignKey(
+        PermissionProfile,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="audit_logs",
+        verbose_name="Профиль",
+    )
+    permission_code = models.CharField("Код права", max_length=64, blank=True)
+    effect = models.CharField("Эффект", max_length=8, blank=True)
+    reason = models.CharField("Причина", max_length=255, blank=True)
+    ip_address = models.GenericIPAddressField("IP адрес", null=True, blank=True)
+    created_at = models.DateTimeField("Время", auto_now_add=True)
+    before = models.JSONField("До", null=True, blank=True)
+    after = models.JSONField("После", null=True, blank=True)
+
+    class Meta:
+        app_label = "account"
+        verbose_name = "Лог аудита прав"
+        verbose_name_plural = "Лог аудита прав"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.created_at} | {self.action} | {self.actor_id} | {self.permission_code}"
