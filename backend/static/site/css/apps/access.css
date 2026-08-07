@@ -203,3 +203,63 @@
     top: 50% !important;
     margin-top: -2px !important;
   }
+
+/* ── редактор матрицы «блок × операция» ── */
+.access-modal__dialog--wide { width: 720px; max-width: 92vw; }
+
+.access-modal__title { margin: 0 0 4px; font-size: 20px; font-weight: 700; color: #25233f; }
+
+.access-matrix-wrap { overflow-x: auto; margin: 16px 0; }
+.access-matrix { width: 100%; border-collapse: collapse; }
+.access-matrix th, .access-matrix td {
+  border: 1px solid #f0eef6;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+.access-matrix thead th {
+  background: #faf9fc;
+  color: #74728a;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.access-matrix__block {
+  background: #faf9fc;
+  color: #25233f;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.access-matrix__cell { min-width: 140px; }
+.access-matrix__cell--empty { color: #c7c5d6; text-align: center; }
+
+.access-matrix__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #25233f;
+  cursor: pointer;
+  padding: 2px 0;
+  white-space: nowrap;
+}
+.access-matrix__item input { cursor: pointer; }
+.access-matrix__item input:disabled { cursor: wait; opacity: .5; }
+
+.access-matrix__item--inherited span { color: #25233f; }
+.access-matrix__item--allow span { color: #16a34a; font-weight: 600; }
+.access-matrix__item--deny span { color: #ef4444; text-decoration: line-through; }
+.access-matrix__item--none span { color: #9a98aa; }
+
+.access-matrix__flat { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 8px 0 16px; }
+
+.access-matrix__legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0eef6; }
+.access-matrix__legend-item { font-size: 11px; color: #74728a; position: relative; padding-left: 14px; }
+.access-matrix__legend-item::before {
+  content: ''; position: absolute; left: 0; top: 3px;
+  width: 8px; height: 8px; border-radius: 2px;
+}
+.access-matrix__legend-item--inherited::before { background: #25233f; }
+.access-matrix__legend-item--allow::before { background: #16a34a; }
+.access-matrix__legend-item--deny::before { background: #ef4444; }
