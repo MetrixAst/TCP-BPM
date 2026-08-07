@@ -1,0 +1,162 @@
+{% extends 'site/base.html' %}
+{% load static site_tags %}
+
+{% block title %}{% t 'access.list_title' 'Доступы' %} — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/access.css' %}?v={{ static_version|default:'3' }}" />
+{% endblock %}
+
+{% block content %}
+<div class="access-page" id="accessPage">
+
+  <div class="access-list-top">
+    <h1>{% t 'access.list_title' 'Доступы' %}</h1>
+
+    <form method="get" class="access-page__toolbar" id="accessFilterForm">
+
+      <div class="access-page__field">
+        <label class="access-page__label" for="accessSearch">{% t 'common.search' 'Поиск' %}</label>
+        <div class="access-page__search">
+          <i class="bi bi-search access-page__search-icon"></i>
+          <input type="search"
+                 class="access-page__search-input"
+                 id="accessSearch"
+                 name="search"
+                 value="{{ request.GET.search|default:'' }}"
+                 placeholder="{% t 'access.search_placeholder' 'Имя или логин' %}"
+                 autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="access-page__field">
+        <label class="access-page__label" for="accessDepartmentFilter">{% t 'access.department_label' 'Отдел' %}</label>
+        <select id="accessDepartmentFilter"
+                name="department"
+                class="access-page__select access-page__select--select2"
+                data-placeholder="{% t 'access.department_all' 'Все' %}">
+          <option value="">{% t 'access.department_all' 'Все' %}</option>
+          {% for dept in filter_form.fields.department.queryset %}
+            <option value="{{ dept.id }}" {% if request.GET.department == dept.id|stringformat:"s" %}selected{% endif %}>
+              {{ dept.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="access-page__field">
+        <label class="access-page__label" for="accessRoleFilter">{% t 'access.role_label' 'Роль' %}</label>
+        <select id="accessRoleFilter"
+                name="role"
+                class="access-page__select access-page__select--select2"
+                data-placeholder="{% t 'access.role_all' 'Все' %}">
+          <option value="">{% t 'access.role_all' 'Все' %}</option>
+          {% for value, label in filter_form.fields.role.choices %}
+            {% if value %}
+              <option value="{{ value }}" {% if request.GET.role == value %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="access-page__field">
+        <label class="access-page__label" for="accessStatusFilter">{% t 'access.status_label' 'Статус' %}</label>
+        <select id="accessStatusFilter"
+                name="status"
+                class="access-page__select access-page__select--select2"
+                data-placeholder="{% t 'access.status_all' 'Все' %}">
+          <option value="">{% t 'access.status_all' 'Все' %}</option>
+          {% for value, label in filter_form.fields.status.choices %}
+            {% if value %}
+              <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="submit" class="access-page__btn access-page__btn--primary">
+        {% t 'common.find' 'Искать' %}
+      </button>
+
+    </form>
+  </div>
+
+  <div class="access-card">
+    {% if paginator.items %}
+      <div class="access-table">
+        <div class="access-table__head">
+          <div>{% t 'access.col_user' 'Пользователь' %}</div>
+          <div>{% t 'access.col_department' 'Отдел' %}</div>
+          <div>{% t 'access.col_role' 'Роль' %}</div>
+          <div>{% t 'access.col_status' 'Статус' %}</div>
+          <div>{% t 'access.col_overrides' 'Переопределения' %}</div>
+        </div>
+
+        <div class="access-table__body">
+          {% for current in paginator.items %}
+          <button type="button" class="access-table__row" data-user-id="{{ current.id }}">
+            <div class="access-user">
+              <div class="access-avatar">
+                {% if current.first_name %}{{ current.first_name|slice:":1" }}{% else %}{{ current.username|slice:":1" }}{% endif %}
+              </div>
+              <div>
+                <div class="access-user__name">
+                  {% if current.get_name %}{{ current.get_name }}{% else %}{{ current.username }}{% endif %}
+                </div>
+                <div class="access-user__meta">@{{ current.username }}</div>
+              </div>
+            </div>
+
+            <div class="access-muted">
+              {% if current.employee_info.department %}{{ current.employee_info.department }}{% else %}—{% endif %}
+            </div>
+
+            <div class="access-muted">{{ current.get_role_display }}</div>
+
+            <div>
+              {% if current.employee_info %}
+                <span class="access-status access-status--{{ current.employee_info.status }}">
+                  {{ current.employee_info.get_status_display }}
+                </span>
+              {% else %}
+                <span class="access-muted">—</span>
+              {% endif %}
+            </div>
+
+            <div class="access-muted">{{ current.override_count }}</div>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      {% if paginator.pages_count > 1 %}
+        <div class="access-pagination">
+          {% include 'site/layouts/paginator.html' %}
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="access-empty">
+        <i class="bi bi-shield-lock"></i>
+        <h3>{% t 'access.empty_title' 'Пользователи не найдены' %}</h3>
+        <p>{% t 'access.empty_text' 'Попробуйте изменить фильтры.' %}</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="access-modal" id="accessMatrixModal">
+  <div class="access-modal__dialog" role="dialog" aria-modal="true">
+    <button type="button" class="access-modal__close" data-access-modal-close aria-label="Закрыть">&times;</button>
+    <div class="access-modal__body" data-access-modal-body>
+      <div class="access-modal__loading">{% t 'common.loading' 'Загрузка…' %}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/access.js' %}?v={{ static_version|default:'3' }}"></script>
+{% endblock %}

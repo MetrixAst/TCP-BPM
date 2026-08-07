@@ -250,6 +250,23 @@
   "hr": {
       "docs_plural": "document|documents"
   },
+  "access": {
+    "list_title": "Access",
+    "search_placeholder": "Name or login",
+    "department_label": "Department",
+    "department_all": "All",
+    "role_label": "Role",
+    "role_all": "All",
+    "status_label": "Status",
+    "status_all": "All",
+    "col_user": "User",
+    "col_department": "Department",
+    "col_role": "Role",
+    "col_status": "Status",
+    "col_overrides": "Overrides",
+    "empty_title": "No users found",
+    "empty_text": "Try adjusting the filters."
+  },
   "documents": {
     "location": "Location",
     "root_level": "Root level",
