@@ -309,6 +309,10 @@ class MenuItem:
             RoleEnums.ADMINISTRATOR.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
                 MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
+                MenuItem('access', '#access', 'shield-lock', 'Доступы', submenu=[
+                    MenuItem('access_users', 'account:access_users', '', 'Пользователи'),
+                    MenuItem('access_profiles', 'account:access_profiles', '', 'Профили доступа'),
+                ]),
                 MenuItem('documents', 'documents:list', 'file-earmark-text', 'Документооборот', url_param=['documents']),
                 MenuItem('tenants', '#tenants', 'building', 'Компании', submenu=[
                     MenuItem('suppliers', 'purchases:suppliers', '', 'Контрагенты'),
