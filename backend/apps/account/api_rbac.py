@@ -121,11 +121,39 @@ class UserPermissionsViewSet(viewsets.GenericViewSet):
         serializer.save()
         return Response(serializer.data)
 
-
-class PermissionProfileViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+class PermissionProfileViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     permission_classes = [IsAuthenticated, IsPermissionAdmin]
     queryset = PermissionProfile.objects.prefetch_related('permissions').order_by('name')
     serializer_class = PermissionProfileSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        profile = self.get_object()
+        if profile.is_system:
+            return Response(
+                {'error': 'Системный профиль нельзя удалить.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['patch'], url_path='set-permissions')
+    def set_permissions(self, request, pk=None):
+        profile = self.get_object()
+        ids = request.data.get('permission_ids', [])
+        if not isinstance(ids, list):
+            return Response(
+                {'error': 'permission_ids должен быть списком'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        perms = AppPermission.objects.filter(id__in=ids, is_active=True)
+        profile.permissions.set(perms)
+        return Response(PermissionProfileSerializer(profile).data)
 
 
 class AppPermissionCatalogViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):

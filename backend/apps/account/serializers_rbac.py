@@ -7,15 +7,39 @@ from account.models_rbac import AppPermission, PermissionProfile, UserPermission
 class AppPermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = AppPermission
-        fields = ['id', 'code', 'category', 'label', 'is_active']
+        fields = ['id', 'code', 'category', 'label', 'is_active', 'block', 'operation']
 
 
 class PermissionProfileSerializer(serializers.ModelSerializer):
     permissions = AppPermissionSerializer(many=True, read_only=True)
+    permission_ids = serializers.PrimaryKeyRelatedField(
+        source='permissions',
+        many=True,
+        queryset=AppPermission.objects.filter(is_active=True),
+        write_only=True,
+        required=False,
+    )
 
     class Meta:
         model = PermissionProfile
-        fields = ['id', 'name', 'role', 'is_system', 'permissions']
+        fields = [
+            'id', 'name', 'role', 'is_system', 'description',
+            'permissions', 'permission_ids',
+        ]
+
+    def update(self, instance, validated_data):
+        perms = validated_data.pop('permissions', None)
+        instance = super().update(instance, validated_data)
+        if perms is not None:
+            instance.permissions.set(perms)
+        return instance
+
+    def create(self, validated_data):
+        perms = validated_data.pop('permissions', None)
+        instance = super().create(validated_data)
+        if perms is not None:
+            instance.permissions.set(perms)
+        return instance
 
 
 class UserPermissionOverrideSerializer(serializers.ModelSerializer):

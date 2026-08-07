@@ -8,6 +8,8 @@ class AppPermission(models.Model):
     category = models.CharField("Категория", max_length=32, default="general")
     label = models.CharField("Название", max_length=128, blank=True)
     is_active = models.BooleanField("Активно", default=True)
+    block = models.CharField("Блок", max_length=32, blank=True, default="")
+    operation = models.CharField("Операция", max_length=16, blank=True, default="")
 
     class Meta:
         app_label = "account"
