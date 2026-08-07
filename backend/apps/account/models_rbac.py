@@ -89,3 +89,54 @@ class UserPermissionOverride(models.Model):
 
     def __str__(self):
         return f"{self.user_id}: {self.effect} {self.permission.code}"
+
+class ProfileAssignment(models.Model):
+    SCOPE_ROLE = "role"
+    SCOPE_DEPARTMENT = "department"
+    SCOPE_CHOICES = [
+        (SCOPE_ROLE, "По роли"),
+        (SCOPE_DEPARTMENT, "По отделу"),
+    ]
+
+    profile = models.ForeignKey(
+        PermissionProfile,
+        on_delete=models.CASCADE,
+        related_name="assignments",
+        verbose_name="Профиль прав",
+    )
+    scope_type = models.CharField(
+        "Тип группы", max_length=16, choices=SCOPE_CHOICES
+    )
+    role = models.SlugField(
+        "Роль", max_length=32, null=True, blank=True
+    )
+    department = models.ForeignKey(
+        "account.Department",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="profile_assignments",
+        verbose_name="Отдел",
+    )
+    can_delegate = models.BooleanField(
+        "Разрешена делегация", default=False,
+    )
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="+",
+        verbose_name="Кем назначено",
+    )
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = "account"
+        verbose_name = "Назначение профиля"
+        verbose_name_plural = "Назначения профилей"
+        ordering = ["scope_type"]
+
+    def __str__(self):
+        if self.scope_type == self.SCOPE_ROLE:
+            return f"{self.profile.name} → роль:{self.role}"
+        return f"{self.profile.name} → отдел:{self.department}"
