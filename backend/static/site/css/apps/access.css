@@ -263,3 +263,28 @@
 .access-matrix__legend-item--inherited::before { background: #25233f; }
 .access-matrix__legend-item--allow::before { background: #16a34a; }
 .access-matrix__legend-item--deny::before { background: #ef4444; }
+
+/* ── список профилей ── */
+.access-table__head--profiles,
+.access-table__row--profiles {
+  grid-template-columns: 2.2fr 1.2fr 0.8fr 1.6fr;
+}
+.access-table__row--profiles { cursor: default; }
+.access-table__actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.access-page__btn--light { background: #f5f3fa; color: #25233f; }
+.access-page__btn--light:hover { background: #ece9f4; }
+
+.access-form-row { margin-bottom: 14px; }
+.access-form-row label { display: block; margin-bottom: 4px; }
+.access-form-row .access-page__search-input { width: 100%; box-sizing: border-box; }
+
+.access-modal__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+.access-preview-box {
+  background: #faf9fc;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 8px 0 4px;
+}
+.access-preview-box__count { font-size: 14px; margin-bottom: 4px; }

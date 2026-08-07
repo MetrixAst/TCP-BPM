@@ -15,7 +15,7 @@ from .role_permissions import need_permission, PermissionEnums, login_required
 
 from .forms import CustomAuthenticationForm, EditProfileForm, CustomPasswordChangeForm, AccessUserFilterForm
 from .utils import get_structure_data
-from .models import UserAccount, PushToken, NotificationIndicator
+from .models import UserAccount, PushToken, NotificationIndicator, Department
 
 #AUTH
 from account.forms import CustomAuthenticationForm
@@ -479,4 +479,19 @@ def access_users(request):
     return render(request, 'site/account/access_users.html', {
         'paginator': paginator,
         'filter_form': filter_form,
+    })
+
+@need_permission(PermissionEnums.MANAGE_PERMISSIONS)
+def access_profiles(request):
+    from account.models_rbac import PermissionProfile
+    profiles = (
+        PermissionProfile.objects
+        .prefetch_related('permissions')
+        .annotate(permission_count=Count('permissions'))
+        .order_by('name')
+    )
+    return render(request, 'site/account/access_profiles.html', {
+        'profiles': profiles,
+        'departments': Department.objects.all(),
+        'roles': UserAccount.ROLES,
     })
