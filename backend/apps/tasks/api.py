@@ -78,4 +78,18 @@ class TaskViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(task)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'], url_path='bin')
+    def bin(self, request):
+        from account.role_permissions import RoleEnums
+        role = getattr(request.user, 'role', None)
+        if hasattr(role, 'value'):
+            role = role.value
+        if not (getattr(request.user, 'is_superuser', False) or role == RoleEnums.ADMINISTRATOR.value):
+            return Response({'detail': 'Нет доступа.'}, status=status.HTTP_403_FORBIDDEN)
+
+        qs = Task.objects.filter(deleted_at__isnull=False).order_by('-deleted_at')
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            return self.get_paginated_response(TaskSerializer(page, many=True).data)
+        return Response(TaskSerializer(qs, many=True).data)
     

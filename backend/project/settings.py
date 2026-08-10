@@ -246,6 +246,11 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'esigner_poll_pending_signings_task',
         'schedule': 600,
     },
+    'tasks-cleanup-bin-daily': {
+        'task': 'tasks.cleanup_bin',
+        'schedule': crontab(hour=3, minute=0),  # каждый день в 3:00
+        'kwargs': {'days': 30},
+    },
     # Курсы НБ РК отключены — в интерфейсе все суммы в ₸
     # 'fetch-exchange-rates-daily': {
     #     'task': 'finances.tasks.fetch_exchange_rates',
