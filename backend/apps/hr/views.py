@@ -1246,12 +1246,20 @@ def attendance_journal(request):
 
     departments = Department.objects.all() if is_hr else [employee.department]
 
+    from django.conf import settings as django_settings
+    lunch_enabled = not (
+        CheckInEnum.LUNCH_START in getattr(django_settings, 'ATTENDANCE_DISABLED_TYPES', []) and
+        CheckInEnum.LUNCH_END in getattr(django_settings, 'ATTENDANCE_DISABLED_TYPES', [])
+    )
+
     return render(request, 'site/hr/attendance_journal.html', {
         'journal': journal,
         'target_date': target_date,
         'departments': departments,
-        'is_hr': is_hr
+        'is_hr': is_hr,
+        'lunch_enabled': lunch_enabled,
     })
+
 
 @login_required
 def attendance_my(request):
@@ -1366,14 +1374,22 @@ def attendance_my(request):
 
     prev_month_date = date(view_year, view_month, 1) - timedelta(days=1)
     next_month_date = date(view_year, view_month, 28) + timedelta(days=5)
-    
+
+    from django.conf import settings as django_settings
+    lunch_enabled = not (
+        CheckInEnum.LUNCH_START in getattr(django_settings, 'ATTENDANCE_DISABLED_TYPES', []) and
+        CheckInEnum.LUNCH_END in getattr(django_settings, 'ATTENDANCE_DISABLED_TYPES', [])
+    )
+
+
     return render(request, 'site/hr/attendance_my.html', {
         'attendance_list': attendance_list,
         'view_date': date(view_year, view_month, 1),
         'prev_month': prev_month_date,
         'next_month': next_month_date if next_month_date <= date.today() else None,
         'employee': employee,
-        'is_own_profile': employee == curr_employee
+        'is_own_profile': employee == curr_employee,
+        'lunch_enabled': lunch_enabled
     })
 
 
@@ -1749,5 +1765,72 @@ def certifications_export(request):
         ])
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="certifications_export.xlsx"'
+    wb.save(response)
+    return response
+
+@need_permission(PermissionEnums.HR_JOURNAL)
+def attendance_export(request):
+    import pytz
+    from django.conf import settings as django_settings
+    LOCAL_TZ = pytz.timezone('Asia/Almaty')
+
+    target_date_str = request.GET.get('date', date.today().isoformat())
+    target_date = parse_date(target_date_str) or date.today()
+
+    lunch_enabled = not (
+        CheckInEnum.LUNCH_START in getattr(django_settings, 'ATTENDANCE_DISABLED_TYPES', []) and
+        CheckInEnum.LUNCH_END in getattr(django_settings, 'ATTENDANCE_DISABLED_TYPES', [])
+    )
+
+    employees_qs = Employee.objects.filter(status='active').select_related('user', 'department')
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Посещаемость"
+
+    headers = ["Сотрудник", "Отдел", "Приход", "Уход"]
+    if lunch_enabled:
+        headers += ["Начало обеда", "Конец обеда"]
+    headers += ["Рабочих часов", "Опоздание", "Ранний уход"]
+    ws.append(headers)
+
+    for emp in employees_qs:
+        summary = AttendanceRecord.get_daily_summary(emp, target_date)
+        events = summary.get('details', {})
+
+        user = emp.user
+        name = f"{user.first_name or ''} {user.last_name or ''}".strip() or user.username
+        dept = emp.department.name if emp.department else "-"
+
+        start_dt = events.get(CheckInEnum.DAY_START)
+        end_dt = events.get(CheckInEnum.DAY_END)
+        lunch_start = events.get(CheckInEnum.LUNCH_START)
+        lunch_end = events.get(CheckInEnum.LUNCH_END)
+
+        fmt = lambda dt: dt.astimezone(LOCAL_TZ).strftime('%H:%M') if dt else "-"
+
+        total_hours = summary.get('total_work_time', timedelta(0)).total_seconds() / 3600
+
+        late = False
+        early_leave = False
+        if start_dt:
+            late = work_schedule_helper.is_late(emp, start_dt.astimezone(LOCAL_TZ))
+        if end_dt:
+            early_leave = end_dt.astimezone(LOCAL_TZ).hour < 18
+
+        row = [name, dept, fmt(start_dt), fmt(end_dt)]
+        if lunch_enabled:
+            row += [fmt(lunch_start), fmt(lunch_end)]
+        row += [
+            round(total_hours, 2),
+            "Да" if late else "Нет",
+            "Да" if early_leave else "Нет",
+        ]
+        ws.append(row)
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="attendance_{target_date}.xlsx"'
     wb.save(response)
     return response
