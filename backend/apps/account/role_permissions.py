@@ -462,4 +462,23 @@ class MenuItem:
             )
 
         menu = MenuItem._filter_menu(menu, user)
+
+        # ── Довыдаём пункты, доступные пользователю сверх стандартного набора его роли
+        # (индивидуальные ALLOW-права или пакетные назначения профиля через FE-03).
+        # Работает только для верхнеуровневых пунктов, не для отдельных элементов
+        # внутри чужого подменю — такое считаем более редким кейсом. ──
+        existing_ids = {i.id for i in menu}
+        extra_pool = {}
+        for role_items in items.values():
+            for candidate in role_items:
+                if candidate.permission and candidate.id not in extra_pool:
+                    extra_pool[candidate.id] = candidate
+
+        for item_id, candidate in extra_pool.items():
+            if item_id in existing_ids:
+                continue
+            if user_has_permission(user, candidate.permission):
+                menu.append(candidate)
+                existing_ids.add(item_id)
+
         return menu
