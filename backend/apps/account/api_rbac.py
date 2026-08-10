@@ -18,6 +18,7 @@ from account.serializers_rbac import (
     UserListSerializer,
     UserMatrixSerializer,
     UserPermissionOverrideSerializer,
+    PermissionAuditLogSerializer
 )
 
 
@@ -51,6 +52,7 @@ class UserFilter(filters.FilterSet):
 
 class UserPermissionsViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated, IsPermissionAdmin]
+    serializer_class = UserMatrixSerializer
     filterset_class = UserFilter
     search_fields = ['username', 'first_name', 'last_name']
     ordering_fields = ['username', 'role', 'override_count']
@@ -94,6 +96,17 @@ class UserPermissionsViewSet(viewsets.GenericViewSet):
         )
         serializer.is_valid(raise_exception=True)
         override = serializer.save()
+
+        from account.models_rbac import PermissionAuditLog
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+        PermissionAuditLog.objects.filter(
+            target_user=user,
+            permission_code=override.permission.code,
+        ).order_by('-created_at').first().__class__.objects.filter(
+            target_user=user,
+            permission_code=override.permission.code,
+        ).order_by('-created_at').update(ip_address=ip)
+
         return Response(
             UserPermissionOverrideSerializer(override).data,
             status=status.HTTP_201_CREATED,
@@ -109,6 +122,13 @@ class UserPermissionsViewSet(viewsets.GenericViewSet):
 
         if request.method == 'DELETE':
             override.delete()
+            from account.models_rbac import PermissionAuditLog
+            ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+            PermissionAuditLog.objects.filter(
+                target_user=user,
+                permission_code=override.permission.code,
+                action=PermissionAuditLog.ACTION_OVERRIDE_DELETE,
+            ).order_by('-created_at').update(ip_address=ip)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         serializer = UserPermissionOverrideSerializer(
@@ -119,6 +139,15 @@ class UserPermissionsViewSet(viewsets.GenericViewSet):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        from account.models_rbac import PermissionAuditLog
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+        PermissionAuditLog.objects.filter(
+            target_user=user,
+            permission_code=override.permission.code,
+            action=PermissionAuditLog.ACTION_OVERRIDE_CHANGE,
+        ).order_by('-created_at').update(ip_address=ip)
+
         return Response(serializer.data)
 
 class PermissionProfileViewSet(
@@ -248,3 +277,27 @@ class DelegationViewSet(viewsets.GenericViewSet):
                 f'Пропущено (уже есть переопределение): {len(skipped)}.'
             ),
         }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+class PermissionAuditLogViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    permission_classes = [IsAuthenticated, IsPermissionAdmin]
+    serializer_class = PermissionAuditLogSerializer
+
+    def get_queryset(self):
+        from account.models_rbac import PermissionAuditLog
+        qs = PermissionAuditLog.objects.select_related(
+            'actor', 'target_user', 'profile'
+        ).order_by('-created_at')
+
+        action = self.request.query_params.get('action')
+        if action:
+            qs = qs.filter(action=action)
+
+        user_id = self.request.query_params.get('user_id')
+        if user_id:
+            qs = qs.filter(target_user_id=user_id)
+
+        permission_code = self.request.query_params.get('permission_code')
+        if permission_code:
+            qs = qs.filter(permission_code=permission_code)
+
+        return qs

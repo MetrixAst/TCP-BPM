@@ -260,3 +260,22 @@ class DelegationSerializer(serializers.Serializer):
             )
 
         return attrs
+
+class PermissionAuditLogSerializer(serializers.ModelSerializer):
+    actor_name = serializers.CharField(source='actor.get_name', read_only=True, default=None)
+    target_user_name = serializers.CharField(source='target_user.get_name', read_only=True, default=None)
+    profile_name = serializers.CharField(source='profile.name', read_only=True, default=None)
+    action_display = serializers.CharField(source='get_action_display', read_only=True)
+
+    class Meta:
+        from account.models_rbac import PermissionAuditLog
+        model = PermissionAuditLog
+        fields = [
+            'id', 'action', 'action_display',
+            'actor', 'actor_name',
+            'target_user', 'target_user_name',
+            'profile', 'profile_name',
+            'permission_code', 'effect', 'reason',
+            'before', 'after', 
+            'ip_address', 'created_at',
+        ]
