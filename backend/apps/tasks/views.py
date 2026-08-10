@@ -560,3 +560,15 @@ def task_counterparty(request, pk):
     task.counterparty = cp
     task.save(update_fields=['counterparty'])
     return JsonResponse({'ok': True, 'counterparty': {'id': cp.id, 'name': str(cp)}})
+
+@need_permission(PermissionEnums.TASKS)
+def trash_list(request):
+    from account.role_permissions import RoleEnums
+    role = getattr(request.user, 'role', None)
+    if hasattr(role, 'value'):
+        role = role.value
+    if not (getattr(request.user, 'is_superuser', False) or role == RoleEnums.ADMINISTRATOR.value):
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied('Корзина задач')
+
+    return render(request, 'site/tasks/trash.html', {})
