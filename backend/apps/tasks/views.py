@@ -275,12 +275,15 @@ def task_action(request, pk, action):
         return HttpResponseForbidden("405 Method Not Allowed")
 
     if action == "cancel":
-        is_author = current.author_id == request.user.id
-        if not (is_author or getattr(request.user, 'is_superuser', False)):
+        if not current.can_delete(request.user):
             if is_ajax(request):
-                return JsonResponse({"ok": False, "message": "Удалить может только автор"}, status=403)
+                return JsonResponse({"ok": False, "message": "Нет прав на удаление"}, status=403)
             return HttpResponseForbidden("403 Forbidden")
-        reason = request.POST.get('reason', '')
+        reason = request.POST.get('reason', '').strip()
+        if len(reason) < 5:
+            if is_ajax(request):
+                return JsonResponse({"ok": False, "message": "Причина должна содержать не менее 5 символов"}, status=400)
+            return HttpResponseForbidden("Причина слишком короткая")
         current.soft_delete(request.user, reason=reason)
         if is_ajax(request):
             return JsonResponse({

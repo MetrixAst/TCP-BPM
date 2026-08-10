@@ -126,6 +126,40 @@ class Task(models.Model):
         },
     }
 
+    def can_delete(self, user):
+        if not user or not user.is_authenticated:
+            return False
+        if getattr(user, 'is_superuser', False):
+            return True
+        from account.role_permissions import RoleEnums
+        role = getattr(user, 'role', None)
+        if hasattr(role, 'value'):
+            role = role.value
+        if role == RoleEnums.ADMINISTRATOR.value:
+            return True
+        if self.author_id == user.id:
+            return True
+        employee = getattr(user, 'employee_info', None)
+        if employee and getattr(employee, 'head', False) and employee.department_id:
+            from account.models import Employee
+            dept_ids = list(
+                employee.department.get_descendants(include_self=True).values_list('id', flat=True)
+            )
+            member_ids = list(
+                Employee.objects.filter(department_id__in=dept_ids).values_list('user_id', flat=True)
+            )
+            if self.author_id in member_ids or self.executor_id in member_ids:
+                return True
+        return False
+
+    def restore(self):
+        self.deleted_at = None
+        self.deleted_by = None
+        self.deleted_reason = ''
+        self.save(update_fields=["deleted_at", "deleted_by", "deleted_reason"])
+
+
+
     def __str__(self):
         return self.title
 
