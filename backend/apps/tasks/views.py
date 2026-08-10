@@ -229,6 +229,7 @@ def task(request, pk):
         "is_favorite": current.user_flags.filter(
             user=request.user, flag=TaskUserFlag.FAVORITE
         ).exists(),
+        "can_delete": current.can_delete(request.user),
     }
 
     return render(request, "site/tasks/task.html", context)
