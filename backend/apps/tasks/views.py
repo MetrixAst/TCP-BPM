@@ -280,7 +280,8 @@ def task_action(request, pk, action):
             if is_ajax(request):
                 return JsonResponse({"ok": False, "message": "Удалить может только автор"}, status=403)
             return HttpResponseForbidden("403 Forbidden")
-        current.delete()
+        reason = request.POST.get('reason', '')
+        current.soft_delete(request.user, reason=reason)
         if is_ajax(request):
             return JsonResponse({
                 "ok": True,

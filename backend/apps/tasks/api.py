@@ -9,6 +9,7 @@ from .models import Task
 from .serializers import TaskSerializer
 from mobile_api.idempotency import idempotent
 
+
 class TaskFilter(filters.FilterSet):
     status = filters.CharFilter(field_name='status')
     priority = filters.CharFilter(field_name='priority')
@@ -34,6 +35,12 @@ class TaskViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save()
 
+    def destroy(self, request, *args, **kwargs):
+        task = self.get_object()
+        reason = request.data.get('reason', '')
+        task.soft_delete(request.user, reason=reason)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     @idempotent('task-transition')
     @action(detail=True, methods=['post'])
     def transition(self, request, pk=None):
@@ -50,3 +57,5 @@ class TaskViewSet(viewsets.ModelViewSet):
             return Response({'detail': str(exc)}, status=status.HTTP_403_FORBIDDEN)
         serializer = self.get_serializer(task)
         return Response(serializer.data)
+
+    
