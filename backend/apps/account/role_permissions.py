@@ -213,6 +213,21 @@ def login_required(function):
     return wrap
 
 
+def _permission_display_label(permission):
+    code = permission.value if hasattr(permission, 'value') else str(permission)
+    try:
+        from account.models_rbac import AppPermission
+        label = (
+            AppPermission.objects
+            .filter(code=code)
+            .values_list('label', flat=True)
+            .first()
+        )
+    except Exception:
+        label = None
+    return label or code
+
+
 def need_permission(permission):
     def _method_wrapper(view_method):
         def _arguments_wrapper(request, *args, **kwargs):
@@ -220,13 +235,12 @@ def need_permission(permission):
                 from account.services.permissions import user_has_permission
                 if user_has_permission(request.user, permission):
                     return view_method(request, *args, **kwargs)
-                return HttpResponseForbidden("Permission Denied")
+                from django.core.exceptions import PermissionDenied
+                raise PermissionDenied(_permission_display_label(permission))
             else:
                 response = redirect('account:auth')
                 response['Location'] += f"?next={request.path}"
                 return response
-        _arguments_wrapper.__doc__ = view_method.__doc__
-        _arguments_wrapper.__name__ = view_method.__name__
         return _arguments_wrapper
     return _method_wrapper
 
