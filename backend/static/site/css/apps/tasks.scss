@@ -4384,3 +4384,26 @@ body.task-edit-body {
     color: $task-text;
   }
 }
+
+.task-delete-modal {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, .45);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+  opacity: 0; transition: opacity .15s ease;
+}
+.task-delete-modal.is-open { opacity: 1; }
+.task-delete-modal__dialog {
+  background: #fff; border-radius: 16px; padding: 24px;
+  width: 440px; max-width: 92vw;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .18);
+}
+.task-delete-modal__title { margin: 0 0 8px; font-size: 18px; font-weight: 700; color: #25233f; }
+.task-delete-modal__task-name { margin: 0 0 8px; font-weight: 600; color: #25233f; }
+.task-delete-modal__hint { margin: 0 0 12px; font-size: 13px; color: #74728a; }
+.task-delete-modal__textarea {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid #e5e7eb; border-radius: 10px;
+  padding: 10px 12px; font-size: 13px; font-family: inherit;
+  resize: vertical; min-height: 72px;
+}
+.task-delete-modal__error { color: #ef4444; font-size: 12px; margin: 8px 0 0; }
+.task-delete-modal__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
