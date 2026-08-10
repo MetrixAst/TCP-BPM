@@ -88,6 +88,31 @@ class Task(models.Model):
         self.deleted_by = user
         self.deleted_reason = reason
         self.save(update_fields=["deleted_at", "deleted_by", "deleted_reason"])
+        self._notify_on_delete(user)
+
+    def _notify_on_delete(self, deleted_by):
+        try:
+            from account.models import Notification
+            users_to_notify = []
+            if self.executor_id and self.executor_id != deleted_by.id:
+                users_to_notify.append(self.executor_id)
+            for obs in self.observers.exclude(id=deleted_by.id).values_list('id', flat=True):
+                users_to_notify.append(obs)
+            for co in self.co_executors.exclude(id=deleted_by.id).values_list('id', flat=True):
+                users_to_notify.append(co)
+
+            if not users_to_notify:
+                return
+
+            notification = Notification.objects.create(
+                title=f'Задача удалена: {self.title}',
+                text=f'Задача «{self.title}» была удалена. Причина: {self.deleted_reason or "не указана"}',
+                target_id=self.id,
+                target_type='task',
+            )
+            notification.users.add(*set(users_to_notify))
+        except Exception:
+            pass
 
     TRANSITIONS = {
         TaskStatusEnum.CREATED.value[0]: {
