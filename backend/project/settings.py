@@ -308,3 +308,5 @@ ESIGNER_COMPANY_ID = config('ESIGNER_COMPANY_ID', default=0, cast=int)
 ESIGNER_FOLDER_ID = config('ESIGNER_FOLDER_ID', default='')
 ESIGNER_TIMEOUT = config('ESIGNER_TIMEOUT', default=30, cast=int)
 ESIGNER_WEBHOOK_SECRET = config('ESIGNER_WEBHOOK_SECRET', default='')
+
+ATTENDANCE_DISABLED_TYPES = ['lunch_start', 'lunch_end']

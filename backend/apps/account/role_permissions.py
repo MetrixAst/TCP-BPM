@@ -327,6 +327,7 @@ class MenuItem:
                 MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task', permission=PermissionEnums.TASKS),
                 MenuItem('access', '#access', 'shield-lock', 'Доступы', permission=PermissionEnums.MANAGE_PERMISSIONS, submenu=[
                     MenuItem('access_users', 'account:access_users', '', 'Пользователи'),
+                    
                 ]),
                 MenuItem('documents', 'documents:list', 'file-earmark-text', 'Документооборот', url_param=['documents'], permission=PermissionEnums.DOCUMENTS),
                 MenuItem('tenants', '#tenants', 'building', 'Компании', submenu=[

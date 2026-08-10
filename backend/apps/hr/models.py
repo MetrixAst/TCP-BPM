@@ -279,6 +279,13 @@ class AttendanceRecord(models.Model):
         ordering = ['-timestamp']
 
     def clean(self):
+        from django.conf import settings
+        disabled = getattr(settings, 'ATTENDANCE_DISABLED_TYPES', [])
+        if self.event_type in disabled:
+            raise ValidationError(
+                f"Тип отметки '{self.get_event_type_display()}' отключён администратором."
+            )
+        
         today = self.timestamp.date() if self.timestamp else timezone.now().date()
         exists = AttendanceRecord.objects.filter(
             employee=self.employee,
