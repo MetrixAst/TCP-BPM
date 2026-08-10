@@ -49,6 +49,9 @@ class TaskSerializer(serializers.ModelSerializer):
     priority_display = serializers.SerializerMethodField()
     available_actions = serializers.SerializerMethodField()
     history = serializers.SerializerMethodField()
+    deleted_at = serializers.DateTimeField(read_only=True)
+    deleted_by = UserBriefSerializer(read_only=True)
+    deleted_reason = serializers.CharField(read_only=True)
     executor_id = serializers.PrimaryKeyRelatedField(
         queryset=UserAccount.objects.all(),
         source='executor',
@@ -77,6 +80,9 @@ class TaskSerializer(serializers.ModelSerializer):
             'observer_ids',
             'available_actions',
             'history',
+            'deleted_at',
+            'deleted_by',
+            'deleted_reason',
         )
         read_only_fields = (
             'id',
@@ -87,6 +93,9 @@ class TaskSerializer(serializers.ModelSerializer):
             'status',
             'status_display',
             'available_actions',
+            'deleted_at',
+            'deleted_by',
+            'deleted_reason',
         )
 
     def get_status_display(self, obj):
