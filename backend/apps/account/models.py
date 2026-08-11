@@ -503,3 +503,32 @@ from account.models_rbac import (
     PermissionProfile,
     UserPermissionOverride,
 )
+
+class EmployeeStatusLog(models.Model):
+    employee = models.ForeignKey(
+        'Employee',
+        on_delete=models.CASCADE,
+        related_name='status_logs',
+        verbose_name='Сотрудник',
+    )
+    actor = models.ForeignKey(
+        'UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='status_change_actions',
+        verbose_name='Кто изменил',
+    )
+    old_status = models.CharField('Старый статус', max_length=32)
+    new_status = models.CharField('Новый статус', max_length=32)
+    reason = models.CharField('Причина', max_length=255, blank=True, default='')
+    ip_address = models.GenericIPAddressField('IP адрес', null=True, blank=True)
+    created_at = models.DateTimeField('Время', auto_now_add=True)
+
+    class Meta:
+        app_label = 'account'
+        verbose_name = 'Лог изменения статуса'
+        verbose_name_plural = 'Логи изменения статуса'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.employee} | {self.old_status} → {self.new_status} | {self.created_at}"
