@@ -65,6 +65,21 @@
             <i class="bi bi-pencil"></i> Редактировать
           </a>
           {% if not is_own_profile %}
+            {% if employee.status == 'active' %}
+              <button type="button" class="hr-btn hr-btn--light" data-status-action="deactivate"
+                      data-employee-id="{{ employee.pk }}"
+                      data-employee-name="{{ user.get_name|default:user.username }}"
+                      data-employee-status="{{ employee.get_status_display }}">
+                <i class="bi bi-person-x"></i> Деактивировать
+              </button>
+            {% else %}
+              <button type="button" class="hr-btn hr-btn--light" data-status-action="activate"
+                      data-employee-id="{{ employee.pk }}"
+                      data-employee-name="{{ user.get_name|default:user.username }}"
+                      data-employee-status="{{ employee.get_status_display }}">
+                <i class="bi bi-person-check"></i> Активировать
+              </button>
+            {% endif %}
             <form method="post" action="{% url 'hr:delete_employee' employee.pk %}" class="d-inline"
                   onsubmit="return confirm('Удалить сотрудника без возможности восстановления?');">
               {% csrf_token %}
@@ -676,4 +691,5 @@
     overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
   });
   </script>
+  <script src="{% static 'site/js/apps/hr-status-actions.js' %}?v={{ static_version|default:'1' }}"></script>
   {% endblock %}
