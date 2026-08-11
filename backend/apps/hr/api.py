@@ -99,7 +99,6 @@ class DepartmentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='tree')
     def tree(self, request):
-        """Плоский список отделов для селектов и редактора оргструктуры."""
         qs = self.filter_queryset(self.get_queryset())
         company_id = request.query_params.get('company')
         if company_id:
@@ -122,3 +121,90 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     search_fields = ['user__username', 'user__first_name', 'user__last_name', 'iin']
     ordering_fields = ['id', 'hire_date', 'status']
     ordering = ['-head', 'user__last_name']
+
+    @action(detail=True, methods=['post'], url_path='deactivate')
+    def deactivate(self, request, pk=None):
+        employee = self.get_object()
+        reason = request.data.get('reason', '').strip()
+        if len(reason) < 5:
+            return Response(
+                {'detail': 'Причина деактивации обязательна (минимум 5 символов).'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        old_status = employee.status
+        employee.status = 'dismissed'
+        employee.save(update_fields=['status'])
+
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+        from account.models import EmployeeStatusLog
+        EmployeeStatusLog.objects.create(
+            employee=employee,
+            actor=request.user,
+            old_status=old_status,
+            new_status='dismissed',
+            reason=reason,
+            ip_address=ip,
+        )
+        return Response(EmployeeSerializer(employee).data)
+
+
+    @action(detail=True, methods=['post'], url_path='activate')
+    def activate(self, request, pk=None):
+        employee = self.get_object()
+        reason = request.data.get('reason', '').strip()
+        old_status = employee.status
+        employee.status = 'active'
+        employee.save(update_fields=['status'])
+
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+        from account.models import EmployeeStatusLog
+        EmployeeStatusLog.objects.create(
+            employee=employee,
+            actor=request.user,
+            old_status=old_status,
+            new_status='active',
+            reason=reason,
+            ip_address=ip,
+        )
+        return Response(EmployeeSerializer(employee).data)
+
+
+    @action(detail=False, methods=['post'], url_path='batch-status')
+    def batch_status(self, request):
+        employee_ids = request.data.get('employee_ids', [])
+        action_type = request.data.get('action', '')
+        reason = request.data.get('reason', '').strip()
+
+        if not isinstance(employee_ids, list) or not employee_ids:
+            return Response({'detail': 'employee_ids обязателен.'}, status=status.HTTP_400_BAD_REQUEST)
+        if action_type not in ('activate', 'deactivate'):
+            return Response({'detail': 'action должен быть activate или deactivate.'}, status=status.HTTP_400_BAD_REQUEST)
+        if action_type == 'deactivate' and len(reason) < 5:
+            return Response({'detail': 'Причина деактивации обязательна.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        new_status = 'active' if action_type == 'activate' else 'dismissed'
+        employees = Employee.objects.filter(id__in=employee_ids)
+
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+        from account.models import EmployeeStatusLog
+
+        logs = []
+        for emp in employees:
+            old_status = emp.status
+            emp.status = new_status
+            emp.save(update_fields=['status'])
+            logs.append(EmployeeStatusLog(
+                employee=emp,
+                actor=request.user,
+                old_status=old_status,
+                new_status=new_status,
+                reason=reason,
+                ip_address=ip,
+            ))
+        EmployeeStatusLog.objects.bulk_create(logs)
+
+        return Response({
+            'updated': len(employees),
+            'action': action_type,
+            'employee_ids': list(employees.values_list('id', flat=True)),
+        })
