@@ -274,6 +274,16 @@ class Employee(models.Model):
                     f"Вы не можете назначить её сотруднику из отдела '{self.department.name}'."
                 )
 
+        if self.iin:
+            if not self.iin.isdigit() or len(self.iin) != 12:
+                raise ValidationError('ИИН должен содержать ровно 12 цифр.')
+            
+            qs = Employee.objects.filter(iin=self.iin)
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            if qs.exists():
+                raise ValidationError(f'Сотрудник с ИИН {self.iin} уже существует.')
+
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)

@@ -13,7 +13,7 @@ ROLE_PICK_NEW = '__new_role__'
 
 def validate_iin_logic(iin):
     if not iin:
-        raise ValidationError("ИИН обязателен для заполнения.")
+        return iin  
     if not iin.isdigit():
         raise ValidationError("ИИН должен содержать только цифры.")
     if len(iin) != 12:
@@ -141,7 +141,7 @@ class EmployeeForm(CustomModelForm):
         label="ИИН",
         min_length=12, 
         max_length=12,
-        required=True, 
+        required=False, 
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ИИН (12 цифр)'})
     )
     hire_date = forms.DateField(

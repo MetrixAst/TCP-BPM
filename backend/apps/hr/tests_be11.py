@@ -9,6 +9,7 @@ from hr.enums import CheckInEnum
 
 def make_setup():
     company = Company.objects.create(name='Test Co', bin_number='123456789012')
+    from account.models import Department
     dept = Department.objects.create(name='Test Dept', company=company)
     user = UserAccount.objects.create_user(username='test_att', password='pass', role='staff')
     employee = Employee.objects.create(user=user, department=dept)

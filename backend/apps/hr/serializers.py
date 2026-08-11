@@ -177,6 +177,18 @@ class EmployeeSerializer(serializers.ModelSerializer):
     )
     status_display = serializers.CharField(source='get_status_display', read_only=True)
 
+    def validate_iin(self, value):
+        if not value:
+            return value
+        if not value.isdigit() or len(value) != 12:
+            raise serializers.ValidationError('ИИН должен содержать ровно 12 цифр.')
+        qs = Employee.objects.filter(iin=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError(f'Сотрудник с ИИН {value} уже существует.')
+        return value
+
     class Meta:
         model = Employee
         fields = (
