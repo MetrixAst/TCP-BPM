@@ -65,8 +65,6 @@
               data-name="{{ item.employee.user.get_full_name|default:item.employee.user.username }}"
               data-dept="{{ item.employee.department|default:'Без отдела' }}"
               data-arrival="{{ item.day_start|date:'H:i'|default:'' }}"
-              data-lunch-start="{{ item.lunch_start|date:'H:i'|default:'' }}"
-              data-lunch-end="{{ item.lunch_end|date:'H:i'|default:'' }}"
               data-departure="{{ item.day_end|date:'H:i'|default:'' }}"
               data-hours="{% if item.total_hours > 0 %}{{ item.total_hours|floatformat:1 }}{% endif %}"
               data-late="{{ item.late|yesno:'1,0' }}"

@@ -1027,8 +1027,6 @@ def attendance_checkin(request):
             events = summary.get('details', {})
             order = [
                 (CheckInEnum.DAY_START, 'Приход'),
-                (CheckInEnum.LUNCH_START, 'Начало обеда'),
-                (CheckInEnum.LUNCH_END, 'Конец обеда'),
                 (CheckInEnum.DAY_END, 'Уход'),
             ]
             for key, label in order:
@@ -1044,10 +1042,6 @@ def attendance_checkin(request):
 
             if CheckInEnum.DAY_START not in completed_types:
                 next_event = CheckInEnum.DAY_START
-            elif CheckInEnum.LUNCH_START not in completed_types:
-                next_event = CheckInEnum.LUNCH_START
-            elif CheckInEnum.LUNCH_END not in completed_types:
-                next_event = CheckInEnum.LUNCH_END
             elif CheckInEnum.DAY_END not in completed_types:
                 next_event = CheckInEnum.DAY_END
             else:
@@ -1056,8 +1050,6 @@ def attendance_checkin(request):
 
         event_labels = {
             CheckInEnum.DAY_START: 'Приход',
-            CheckInEnum.LUNCH_START: 'Начало обеда',
-            CheckInEnum.LUNCH_END: 'Конец обеда',
             CheckInEnum.DAY_END: 'Уход',
         }
         preselect = request.GET.get('event') or (next_event if next_event else CheckInEnum.DAY_START)
@@ -1223,8 +1215,6 @@ def attendance_journal(request):
             'employee':          emp,
             'day_start':         start_dt,
             'day_end':           end_dt,
-            'lunch_start':       lunch_start_dt,
-            'lunch_end':         lunch_end_dt,
             'total_hours':       total_hours,
             'late':              late,
             'early_leave':       early_leave,
@@ -1234,9 +1224,6 @@ def attendance_journal(request):
             'arrival_lat':       _r(CheckInEnum.DAY_START,   'lat'),
             'arrival_lng':       _r(CheckInEnum.DAY_START,   'lng'),
             'arrival_address':   _r(CheckInEnum.DAY_START,   'address'),
-            # Обед
-            'lunch_start_photo': _r(CheckInEnum.LUNCH_START, 'photo'),
-            'lunch_end_photo':   _r(CheckInEnum.LUNCH_END,   'photo'),
             # Уход
             'departure_photo':   _r(CheckInEnum.DAY_END,     'photo'),
             'departure_lat':     _r(CheckInEnum.DAY_END,     'lat'),
