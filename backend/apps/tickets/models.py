@@ -306,4 +306,58 @@ class TicketAttachment(models.Model):
     def display_name(self):
         """Показываем оригинальное имя если есть, иначе хэш"""
         return self.original_name if self.original_name else self.filename
+
+class TicketTypeConfig(models.Model):
+    ticket_type = models.CharField('Тип заявки', max_length=64, unique=True)
+    requires_approval = models.BooleanField('Требует согласования', default=False)
+    auto_assign_to = models.ForeignKey(
+        'account.UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='auto_assigned_tickets',
+        verbose_name='Автоназначение на',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Настройка типа заявки'
+        verbose_name_plural = 'Настройки типов заявок'
+
+    def __str__(self):
+        return f"{self.ticket_type} (согласование: {self.requires_approval})"
+
+
+class ApprovalDecision(models.Model):
+    DECISION_APPROVE = 'approve'
+    DECISION_REJECT = 'reject'
+    DECISION_CHOICES = [
+        (DECISION_APPROVE, 'Согласовано'),
+        (DECISION_REJECT, 'Отклонено'),
+    ]
+
+    ticket = models.ForeignKey(
+        'ServiceRequest',
+        on_delete=models.CASCADE,
+        related_name='approval_decisions',
+        verbose_name='Заявка',
+    )
+    actor = models.ForeignKey(
+        'account.UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='approval_actions',
+        verbose_name='Кто принял решение',
+    )
+    decision = models.CharField('Решение', max_length=16, choices=DECISION_CHOICES)
+    comment = models.TextField('Комментарий', blank=True, default='')
+    ip_address = models.GenericIPAddressField('IP адрес', null=True, blank=True)
+    created_at = models.DateTimeField('Время', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Решение по согласованию'
+        verbose_name_plural = 'Решения по согласованию'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.ticket} | {self.decision} | {self.actor}"
  
