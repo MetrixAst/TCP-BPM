@@ -213,6 +213,21 @@ def login_required(function):
     return wrap
 
 
+def _permission_display_label(permission):
+    code = permission.value if hasattr(permission, 'value') else str(permission)
+    try:
+        from account.models_rbac import AppPermission
+        label = (
+            AppPermission.objects
+            .filter(code=code)
+            .values_list('label', flat=True)
+            .first()
+        )
+    except Exception:
+        label = None
+    return label or code
+
+
 def need_permission(permission):
     def _method_wrapper(view_method):
         def _arguments_wrapper(request, *args, **kwargs):
@@ -220,13 +235,12 @@ def need_permission(permission):
                 from account.services.permissions import user_has_permission
                 if user_has_permission(request.user, permission):
                     return view_method(request, *args, **kwargs)
-                return HttpResponseForbidden("Permission Denied")
+                from django.core.exceptions import PermissionDenied
+                raise PermissionDenied(_permission_display_label(permission))
             else:
                 response = redirect('account:auth')
                 response['Location'] += f"?next={request.path}"
                 return response
-        _arguments_wrapper.__doc__ = view_method.__doc__
-        _arguments_wrapper.__name__ = view_method.__name__
         return _arguments_wrapper
     return _method_wrapper
 
@@ -449,4 +463,23 @@ class MenuItem:
             )
 
         menu = MenuItem._filter_menu(menu, user)
+
+        # ── Довыдаём пункты, доступные пользователю сверх стандартного набора его роли
+        # (индивидуальные ALLOW-права или пакетные назначения профиля через FE-03).
+        # Работает только для верхнеуровневых пунктов, не для отдельных элементов
+        # внутри чужого подменю — такое считаем более редким кейсом. ──
+        existing_ids = {i.id for i in menu}
+        extra_pool = {}
+        for role_items in items.values():
+            for candidate in role_items:
+                if candidate.permission and candidate.id not in extra_pool:
+                    extra_pool[candidate.id] = candidate
+
+        for item_id, candidate in extra_pool.items():
+            if item_id in existing_ids:
+                continue
+            if user_has_permission(user, candidate.permission):
+                menu.append(candidate)
+                existing_ids.add(item_id)
+
         return menu
