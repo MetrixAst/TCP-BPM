@@ -389,7 +389,7 @@ def approval_queue(request):
         'queue': queue,
     })
 
-    
+
 @need_permission(PermissionEnums.MANAGE_PERMISSIONS)
 def workflow_settings(request):
     from .models import TicketTypeConfig
@@ -432,3 +432,21 @@ def workflow_settings_delete(request, pk):
     from .models import TicketTypeConfig
     TicketTypeConfig.objects.filter(pk=pk).delete()
     return redirect('tickets:workflow_settings')
+
+
+@need_permission(PermissionEnums.SERVICE_REQUESTS)
+@require_http_methods(['GET'])
+def approval_history(request, pk):
+    ticket = ServiceRequest.get_by_id(request, pk)
+    decisions = ticket.approval_decisions.select_related('actor').order_by('created_at')
+    data = [{
+        'id': d.pk,
+        'decision': d.decision,
+        'decision_display': 'Согласовано' if d.decision == 'approve' else 'Отклонено',
+        'actor': d.actor.get_name if d.actor else None,
+        'actor_id': d.actor_id,
+        'comment': d.comment,
+        'ip_address': d.ip_address,
+        'created_at': d.created_at.isoformat(),
+    } for d in decisions]
+    return JsonResponse({'ok': True, 'results': data})
