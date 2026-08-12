@@ -255,20 +255,86 @@ if (!$stateSel.hasClass('select2-hidden-accessible')) {
       button.addEventListener('click', async function (event) {
         event.preventDefault();
         const url = button.getAttribute('data-url');
+        const taskTitle = button.getAttribute('data-task-title') || '';
         if (!url) return;
-        let ok = window.bpmModal
-          ? await window.bpmModal.confirm('Задача будет удалена без возможности восстановления.', { title: 'Удалить задачу?', variant: 'danger', confirmText: 'Удалить' })
-          : confirm('Удалить задачу?');
-        if (!ok) return;
+
+        const reason = await openDeleteReasonModal(taskTitle);
+        if (reason === null) return; // отмена
+
         button.disabled = true;
         try {
-          const res = await postAjax(url);
-          if (res.ok) window.location.href = '/tasks/';
-          else notifyError('Не удалось удалить задачу.');
-        } catch (e) { console.error(e); notifyError('Ошибка сети.'); }
-        finally { button.disabled = false; }
+          const fd = new FormData();
+          fd.append('reason', reason);
+          const res = await postAjax(url, fd);
+          let data = {};
+          try { data = await res.json(); } catch (e) { /* не JSON — ок для редиректа */ }
+
+          if (res.ok && data.ok !== false) {
+            window.location.href = '/tasks/';
+          } else {
+            notifyError(data.message || 'Не удалось удалить задачу.');
+          }
+        } catch (e) {
+          console.error(e);
+          notifyError('Ошибка сети.');
+        } finally {
+          button.disabled = false;
+        }
       });
     });
+
+    // Кастомный диалог удаления: показывает задачу, требует причину ≥5 символов.
+    // Возвращает Promise<string|null> — строку причины или null при отмене.
+    function openDeleteReasonModal(taskTitle) {
+      return new Promise(function (resolve) {
+        const overlay = document.createElement('div');
+        overlay.className = 'task-delete-modal';
+        overlay.innerHTML =
+          '<div class="task-delete-modal__dialog" role="dialog" aria-modal="true">' +
+            '<h3 class="task-delete-modal__title">Удалить задачу?</h3>' +
+            '<p class="task-delete-modal__task-name">«' + escapeHtml(taskTitle) + '»</p>' +
+            '<p class="task-delete-modal__hint">Действие необратимо без восстановления администратором. Укажите причину удаления (минимум 5 символов):</p>' +
+            '<textarea class="task-delete-modal__textarea" data-delete-reason rows="3" placeholder="Например: дубликат задачи, создана по ошибке"></textarea>' +
+            '<p class="task-delete-modal__error" data-delete-error style="display:none"></p>' +
+            '<div class="task-delete-modal__actions">' +
+              '<button type="button" class="task-deal__action-btn" data-delete-cancel>Отмена</button>' +
+              '<button type="button" class="task-deal__action-btn task-deal__action-btn--danger" data-delete-confirm>Удалить</button>' +
+            '</div>' +
+          '</div>';
+        document.body.appendChild(overlay);
+
+        const textarea = overlay.querySelector('[data-delete-reason]');
+        const errorEl = overlay.querySelector('[data-delete-error]');
+        const confirmBtn = overlay.querySelector('[data-delete-confirm]');
+        const cancelBtn = overlay.querySelector('[data-delete-cancel]');
+
+        function close(result) {
+          document.body.removeChild(overlay);
+          document.removeEventListener('keydown', onKey);
+          resolve(result);
+        }
+
+        function onKey(e) {
+          if (e.key === 'Escape') close(null);
+        }
+
+        confirmBtn.addEventListener('click', function () {
+          const reason = textarea.value.trim();
+          if (reason.length < 5) {
+            errorEl.textContent = 'Причина должна содержать не менее 5 символов.';
+            errorEl.style.display = 'block';
+            textarea.focus();
+            return;
+          }
+          close(reason);
+        });
+        cancelBtn.addEventListener('click', function () { close(null); });
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) close(null); });
+        document.addEventListener('keydown', onKey);
+
+        requestAnimationFrame(function () { overlay.classList.add('is-open'); textarea.focus(); });
+      });
+    }
 
     // ── workflow actions ──
     document.querySelectorAll('[data-task-action]').forEach(function (button) {
