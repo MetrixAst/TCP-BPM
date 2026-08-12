@@ -99,7 +99,10 @@ class ServiceRequest(models.Model):
         if user_is_manager(user):
             if can_bypass_approval(user):
                 return base
-            return base.exclude(status=TicketStatusEnum.PENDING_APPROVAL.value[0])
+            return base.filter(
+                ~Q(status=TicketStatusEnum.PENDING_APPROVAL.value[0]) |
+                Q(author=user)
+            )
 
         return base.filter(Q(author=user) | Q(tenant__portal_users=user)).distinct()
 
