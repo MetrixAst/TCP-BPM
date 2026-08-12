@@ -1,5 +1,5 @@
 from django_filters import rest_framework as filters
-from rest_framework import viewsets, status
+from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -10,7 +10,8 @@ from audit.models import AuditLog
 from audit.services import diff_instances, log_event
 
 from .models import Company
-from .serializers import CompanySerializer, DepartmentSerializer, EmployeeSerializer
+from .serializers import CompanySerializer, DepartmentSerializer, EmployeeSerializer, AttendanceRecordSerializer
+from hr.models import AttendanceRecord
 
 
 class CompanyFilter(filters.FilterSet):
@@ -208,3 +209,72 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             'action': action_type,
             'employee_ids': list(employees.values_list('id', flat=True)),
         })
+
+class ManualAttendanceViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = AttendanceRecordSerializer
+
+    def get_permissions(self):
+        from account.drf_permissions import HROrAdminPermission
+        return [HROrAdminPermission()]
+
+    def get_queryset(self):
+        return AttendanceRecord.objects.filter(is_manual=True).select_related(
+            'employee', 'manual_author', 'manual_reason'
+        ).order_by('-timestamp')
+
+    def _get_ip(self, request):
+        return request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+
+    def _record_snapshot(self, record):
+        return {
+            'event_type': record.event_type,
+            'timestamp': record.timestamp.isoformat(),
+            'manual_comment': record.manual_comment,
+            'manual_reason_id': record.manual_reason_id,
+        }
+
+    def perform_create(self, serializer):
+        from hr.models import AttendanceEditLog
+        record = serializer.save(
+            is_manual=True,
+            manual_author=self.request.user,
+        )
+        AttendanceEditLog.objects.create(
+            record=record,
+            actor=self.request.user,
+            action='create',
+            before=None,
+            after=self._record_snapshot(record),
+            ip_address=self._get_ip(self.request),
+        )
+
+    def perform_update(self, serializer):
+        from hr.models import AttendanceEditLog
+        before = self._record_snapshot(serializer.instance)
+        record = serializer.save()
+        AttendanceEditLog.objects.create(
+            record=record,
+            actor=self.request.user,
+            action='update',
+            before=before,
+            after=self._record_snapshot(record),
+            ip_address=self._get_ip(self.request),
+        )
+
+    def perform_destroy(self, instance):
+        from hr.models import AttendanceEditLog
+        AttendanceEditLog.objects.create(
+            record=instance,
+            actor=self.request.user,
+            action='delete',
+            before=self._record_snapshot(instance),
+            after=None,
+            ip_address=self._get_ip(self.request),
+        )
+        instance.delete()

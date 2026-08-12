@@ -98,3 +98,14 @@ class FinanceBudgetWriteRoles(BasePermission):
         if hasattr(role, 'value'):
             role = role.value
         return role in self.allowed_roles
+
+class HROrAdminPermission(BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if getattr(request.user, 'is_superuser', False):
+            return True
+        role = request.user.role
+        if hasattr(role, 'value'):
+            role = role.value
+        return role in (RoleEnums.ADMINISTRATOR.value, RoleEnums.HR.value)

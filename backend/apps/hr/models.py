@@ -609,3 +609,36 @@ class EmployeeCertification(models.Model):
         if days <= 30:
             return CertificationStatusEnum.EXPIRING
         return CertificationStatusEnum.ACTIVE
+
+class AttendanceEditLog(models.Model):
+    record = models.ForeignKey(
+        AttendanceRecord,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='edit_logs',
+        verbose_name='Отметка',
+    )
+    actor = models.ForeignKey(
+        'account.UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='attendance_edit_logs',
+        verbose_name='Кто изменил',
+    )
+    action = models.CharField('Действие', max_length=16, choices=[
+        ('create', 'Создание'),
+        ('update', 'Изменение'),
+        ('delete', 'Удаление'),
+    ])
+    before = models.JSONField('До', null=True, blank=True)
+    after = models.JSONField('После', null=True, blank=True)
+    ip_address = models.GenericIPAddressField('IP адрес', null=True, blank=True)
+    created_at = models.DateTimeField('Время', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Лог изменения отметки'
+        verbose_name_plural = 'Логи изменений отметок'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.record} | {self.action} | {self.created_at}"

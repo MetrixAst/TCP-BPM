@@ -314,3 +314,4 @@ ESIGNER_TIMEOUT = config('ESIGNER_TIMEOUT', default=30, cast=int)
 ESIGNER_WEBHOOK_SECRET = config('ESIGNER_WEBHOOK_SECRET', default='')
 
 ATTENDANCE_DISABLED_TYPES = ['lunch_start', 'lunch_end']
+ATTENDANCE_MAX_EDIT_DAYS = 30
