@@ -339,6 +339,7 @@ class MenuItem:
             RoleEnums.ADMINISTRATOR.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
                 MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task', permission=PermissionEnums.TASKS),
+                MenuItem('tasks_trash', 'tasks:trash', 'trash', 'Корзина задач', permission=PermissionEnums.MANAGE_PERMISSIONS),
                 MenuItem('access', '#access', 'shield-lock', 'Доступы', permission=PermissionEnums.MANAGE_PERMISSIONS, submenu=[
                     MenuItem('access_users', 'account:access_users', '', 'Пользователи'),
                     MenuItem('access_profiles', 'account:access_profiles', '', 'Профили доступа'),

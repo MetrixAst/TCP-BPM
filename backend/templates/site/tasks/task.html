@@ -516,6 +516,17 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+  window.TASKS_I18N = window.TASKS_I18N || {};
+  Object.assign(window.TASKS_I18N, {
+    delete_title: "{% t 'tasks.delete_title' 'Удалить задачу?' %}",
+    delete_hint: "{% t 'tasks.delete_hint' 'Действие необратимо без восстановления администратором. Укажите причину удаления (минимум 5 символов):' %}",
+    delete_placeholder: "{% t 'tasks.delete_placeholder' 'Например: дубликат задачи, создана по ошибке' %}",
+    delete_reason_error: "{% t 'tasks.delete_reason_error' 'Причина должна содержать не менее 5 символов.' %}",
+    delete_error: "{% t 'tasks.delete_error' 'Не удалось удалить задачу.' %}",
+    delete_network_error: "{% t 'tasks.delete_network_error' 'Ошибка сети.' %}"
+  });
+</script>
 <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
 <script src="{% static 'site/js/apps/tasks.js' %}?v=99"></script>
 <script>
