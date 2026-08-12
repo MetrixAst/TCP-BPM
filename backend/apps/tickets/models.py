@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.http import Http404
-
+from django.core.exceptions import ValidationError
 from project.utils import PathAndRename
 from account.models import UserAccount, Department
 from account.role_permissions import RoleEnums, RolePermissions, PermissionEnums
@@ -351,8 +351,21 @@ class TicketAttachment(models.Model):
         return self.original_name if self.original_name else self.filename
 
 class TicketTypeConfig(models.Model):
-    ticket_type = models.CharField('Тип заявки', max_length=64, unique=True)
+    ticket_type = models.CharField('Тип заявки', max_length=64, choices=TicketCategoryEnum.list())
+    department = models.ForeignKey(
+        'account.Department',
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='ticket_type_configs',
+        verbose_name='Отдел',
+        help_text='Пусто — настройка действует для всех отделов по умолчанию.',
+    )
     requires_approval = models.BooleanField('Требует согласования', default=False)
+    sla_hours = models.PositiveIntegerField(
+        'SLA, часов',
+        null=True, blank=True,
+        help_text='Срок на обработку заявки этого типа. Пусто — SLA не задан.',
+    )
     auto_assign_to = models.ForeignKey(
         'account.UserAccount',
         on_delete=models.SET_NULL,
@@ -361,13 +374,43 @@ class TicketTypeConfig(models.Model):
         verbose_name='Автоназначение на',
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = 'Настройка типа заявки'
         verbose_name_plural = 'Настройки типов заявок'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['ticket_type', 'department'],
+                name='unique_tickettypeconfig_type_department',
+            )
+        ]
+        ordering = ['ticket_type', 'department_id']
+
+    def clean(self):
+        super().clean()
+        if self.sla_hours is not None and self.sla_hours <= 0:
+            raise ValidationError('SLA должен быть положительным числом часов.')
+
+        if self.requires_approval and self.department_id:
+            from account.models import Employee
+            has_head = Employee.objects.filter(
+                department_id=self.department_id, head=True, status='active',
+            ).exists()
+            if not has_head:
+                raise ValidationError(
+                    f'В отделе «{self.department}» нет активного руководителя — '
+                    f'согласование по умолчанию перейдёт администратору. '
+                    f'Назначьте руководителя отдела или отключите обязательное согласование.'
+                )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.ticket_type} (согласование: {self.requires_approval})"
+        dept = self.department.name if self.department else 'все отделы'
+        return f"{self.ticket_type} / {dept} (согласование: {self.requires_approval})"
 
 
 class ApprovalDecision(models.Model):

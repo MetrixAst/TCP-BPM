@@ -1,0 +1,64 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Настройки workflow заявок — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
+
+{% block content %}
+<div class="hr-page">
+  <div class="hr-list-top">
+    <h1>Настройки workflow заявок</h1>
+    <a href="{% url 'tickets:workflow_settings_create' %}" class="hr-btn hr-btn--primary">
+      <i class="bi bi-plus-lg"></i> Новая настройка
+    </a>
+  </div>
+
+  <div class="hr-card">
+    {% if configs %}
+      <div class="hr-table">
+        <div class="wf-table__head">
+          <div>Тип заявки</div>
+          <div>Отдел</div>
+          <div>Согласование</div>
+          <div>SLA</div>
+          <div>Автоназначение</div>
+          <div></div>
+        </div>
+        <div class="hr-table__body">
+          {% for cfg in configs %}
+          <div class="wf-table__row">
+            <div class="hr-employee__name">{{ cfg.get_ticket_type_display }}</div>
+            <div class="hr-muted">{% if cfg.department %}{{ cfg.department.name }}{% else %}Все отделы{% endif %}</div>
+            <div class="hr-muted">{% if cfg.requires_approval %}Да{% else %}Нет{% endif %}</div>
+            <div class="hr-muted">{% if cfg.sla_hours %}{{ cfg.sla_hours }} ч.{% else %}—{% endif %}</div>
+            <div class="hr-muted">{% if cfg.auto_assign_to %}{{ cfg.auto_assign_to.get_name|default:cfg.auto_assign_to.username }}{% else %}—{% endif %}</div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <a href="{% url 'tickets:workflow_settings_edit' cfg.id %}" class="hr-icon-btn" title="Редактировать">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="post" action="{% url 'tickets:workflow_settings_delete' cfg.id %}" class="d-inline"
+                    onsubmit="return confirm('Удалить настройку?');">
+                {% csrf_token %}
+                <button type="submit" class="hr-icon-btn" title="Удалить" style="border:0;background:none;">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <div class="hr-empty">
+        <i class="bi bi-gear"></i>
+        <h3>Настроек пока нет</h3>
+        <p>Добавьте правило для типа заявки, чтобы включить маршрут согласования и SLA.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

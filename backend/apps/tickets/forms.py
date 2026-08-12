@@ -4,7 +4,7 @@ from addits.forms import CustomModelForm, TreeField, UserSelect2Field, Select2Fi
 from account.models import Department
 from tenants.models import Tenant
 
-from .models import ServiceRequest
+from .models import ServiceRequest, TicketTypeConfig
 
 
 class TenantTicketForm(CustomModelForm):
@@ -53,3 +53,23 @@ class TicketAssignForm(CustomModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['assignee'].widget.attrs['data-dept-source'] = '#id_department'
+
+class TicketTypeConfigForm(forms.ModelForm):
+    department = Select2FieldDefault(
+        queryset=Department.objects.all(),
+        placeholder='Все отделы',
+        required=False,
+    )
+    auto_assign_to = UserSelect2Field(
+        placeholder='Не назначать автоматически',
+        required=False,
+        all=True,
+    )
+
+    class Meta:
+        model = TicketTypeConfig
+        fields = ['ticket_type', 'department', 'requires_approval', 'sla_hours', 'auto_assign_to']
+        widgets = {
+            'sla_hours': forms.NumberInput(attrs={'min': 1, 'placeholder': 'Часов'}),
+        }
+
