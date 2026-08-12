@@ -1148,3 +1148,78 @@
     height: 36px !important;
     right: 8px !important;
   }
+
+  #wfCreateForm input:not([type="checkbox"]),
+  #wfCreateForm select,
+  #wfCreateForm textarea {
+    width: 100%;
+    height: 32px !important;
+    min-height: 32px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: #f5f3fa !important;
+    color: #25233f;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0 16px !important;
+    outline: none !important;
+    box-shadow: none !important;
+    box-sizing: border-box;
+  }
+  
+  #wfCreateForm input[type="checkbox"] {
+    width: 18px !important;
+    height: 18px !important;
+    min-height: unset !important;
+    flex-shrink: 0;
+    border-radius: 4px !important;
+    border: 1px solid #d1d5db !important;
+    background: #fff !important;
+    cursor: pointer;
+    accent-color: #2f6bed;
+  }
+#wfCreateForm select:not([multiple]) {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B6880' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 12px 8px !important;
+  padding-right: 36px !important;
+  cursor: pointer;
+}
+#wfCreateForm .select2-container {
+  width: 100% !important;
+}
+#wfCreateForm .select2-container--bootstrap4 .select2-selection--single,
+#wfCreateForm .select2-container--default .select2-selection--single {
+  height: 32px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f5f3fa !important;
+}
+
+/* ── таблица workflow-настроек ── */
+.wf-table__head,
+.wf-table__row {
+  display: grid;
+  align-items: center;
+  gap: 12px;
+  grid-template-columns: 1.6fr 1.4fr 1fr 1fr 1.4fr auto;
+  padding: 0 22px;
+}
+.wf-table__head {
+  min-height: 52px;
+  border-bottom: 1px solid #f0eef6;
+  background: #fbfbfd;
+  color: #5f5d73;
+  font-size: 13px;
+  font-weight: 700;
+}
+.wf-table__row {
+  min-height: 52px;
+  border-bottom: 1px solid #f0eef6;
+  color: #25233f;
+  font-size: 13px;
+}
+.wf-table__row:last-child { border-bottom: 0; }
+.wf-table__row:hover { background: #faf9fd; }

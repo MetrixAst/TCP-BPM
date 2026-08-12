@@ -365,3 +365,70 @@ def attachment_delete(request, pk, attachment_pk):
     attachment.file.delete(save=False)
     attachment.delete()
     return JsonResponse({'ok': True})
+
+@need_permission(PermissionEnums.SERVICE_REQUESTS)
+def approval_queue(request):
+    if request.user.is_portal_user:
+        return redirect('tickets:home')
+
+    from .services import get_approver
+
+    pending = (
+        ServiceRequest.objects
+        .filter(status=TicketStatusEnum.PENDING_APPROVAL.value[0])
+        .select_related('author', 'department', 'tenant')
+        .order_by('updated_at')
+    )
+
+    queue = [
+        ticket for ticket in pending
+        if ticket.author_id and get_approver(ticket.author) and get_approver(ticket.author).id == request.user.id
+    ]
+
+    return render(request, 'site/tickets/approvals.html', {
+        'queue': queue,
+    })
+
+    
+@need_permission(PermissionEnums.MANAGE_PERMISSIONS)
+def workflow_settings(request):
+    from .models import TicketTypeConfig
+    configs = TicketTypeConfig.objects.select_related('department', 'auto_assign_to').all()
+    return render(request, 'site/tickets/workflow_settings.html', {
+        'configs': configs,
+    })
+
+
+@need_permission(PermissionEnums.MANAGE_PERMISSIONS)
+def workflow_settings_edit(request, pk=None):
+    from .models import TicketTypeConfig
+    from .forms import TicketTypeConfigForm
+    from django.core.exceptions import ValidationError
+
+    instance = TicketTypeConfig.objects.filter(pk=pk).first() if pk else None
+
+    if request.method == 'POST':
+        form = TicketTypeConfigForm(request.POST, instance=instance)
+        if form.is_valid():
+            try:
+                obj = form.save(commit=False)
+                obj.full_clean()
+                obj.save()
+                return redirect('tickets:workflow_settings')
+            except ValidationError as e:
+                form.add_error(None, e)
+    else:
+        form = TicketTypeConfigForm(instance=instance)
+
+    return render(request, 'site/tickets/workflow_settings_form.html', {
+        'form': form,
+        'instance': instance,
+    })
+
+
+@need_permission(PermissionEnums.MANAGE_PERMISSIONS)
+@require_http_methods(['POST'])
+def workflow_settings_delete(request, pk):
+    from .models import TicketTypeConfig
+    TicketTypeConfig.objects.filter(pk=pk).delete()
+    return redirect('tickets:workflow_settings')

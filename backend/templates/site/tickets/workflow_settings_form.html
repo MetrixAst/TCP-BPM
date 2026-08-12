@@ -1,0 +1,96 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}{% if instance %}Редактирование настройки{% else %}Новая настройка{% endif %} — metriX BPM{% endblock %}
+
+{% block body_classes %}leave-create-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/leaves.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
+
+{% block content %}
+<div class="leave-create-page">
+  <div class="leave-create-card">
+
+    <div class="leave-create-card__header">
+      <h1 class="leave-create-card__title">{% if instance %}Редактирование настройки{% else %}Новая настройка{% endif %}</h1>
+      <a href="{% url 'tickets:workflow_settings' %}" class="leave-create-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
+    </div>
+
+    <form method="post" class="leave-create-form" id="wfCreateForm">
+      {% csrf_token %}
+
+      <div class="leave-create-card__body">
+        <section class="leave-create-section">
+          <h2 class="leave-create-section__title">Параметры маршрута</h2>
+
+          <div class="leave-create-grid leave-create-grid--2">
+            <div class="leave-create-field {% if form.ticket_type.errors %}is-invalid{% endif %}">
+              <label class="leave-create-field__label">Тип заявки<span>*</span></label>
+              {{ form.ticket_type }}
+              {% if form.ticket_type.errors %}
+                <div class="leave-create-field__error">{{ form.ticket_type.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="leave-create-field {% if form.department.errors %}is-invalid{% endif %}">
+              <label class="leave-create-field__label">Отдел</label>
+              {{ form.department }}
+              {% if form.department.errors %}
+                <div class="leave-create-field__error">{{ form.department.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="leave-create-field {% if form.sla_hours.errors %}is-invalid{% endif %}">
+              <label class="leave-create-field__label">SLA, часов</label>
+              {{ form.sla_hours }}
+              {% if form.sla_hours.errors %}
+                <div class="leave-create-field__error">{{ form.sla_hours.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="leave-create-field {% if form.auto_assign_to.errors %}is-invalid{% endif %}">
+              <label class="leave-create-field__label">Автоназначение на</label>
+              {{ form.auto_assign_to }}
+              {% if form.auto_assign_to.errors %}
+                <div class="leave-create-field__error">{{ form.auto_assign_to.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="leave-create-field" style="margin-top:8px;">
+            <label class="leave-create-field__label" style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;">
+              {{ form.requires_approval }}
+              <span>Требует согласования</span>
+            </label>
+          </div>
+          {% if form.requires_approval.errors %}
+            <div class="leave-create-field__error">{{ form.requires_approval.errors.0 }}</div>
+          {% endif %}
+
+          {% if form.non_field_errors %}
+            <div class="leave-create-alert">
+              {{ form.non_field_errors }}
+            </div>
+          {% endif %}
+        </section>
+      </div>
+
+      <div class="leave-create-card__footer">
+        <a href="{% url 'tickets:workflow_settings' %}" class="leave-create-btn leave-create-btn--cancel">Отменить</a>
+        <button type="submit" class="leave-create-btn leave-create-btn--save">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+{% endblock %}

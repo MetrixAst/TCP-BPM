@@ -375,6 +375,7 @@ class MenuItem:
                 # ]),
                 MenuItem('ecopark', 'ecopark:home', 'water', 'Эксплуатация', permission=PermissionEnums.ECOPARK),
                 MenuItem('tickets', 'tickets:kanban', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket', permission=PermissionEnums.SERVICE_REQUESTS),
+                MenuItem('ticket_workflow', 'tickets:workflow_settings', 'gear', 'Workflow заявок', permission=PermissionEnums.MANAGE_PERMISSIONS),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели', permission=PermissionEnums.REPORTS),
             ],
 
