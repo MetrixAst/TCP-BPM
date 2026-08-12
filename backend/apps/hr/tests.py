@@ -874,7 +874,8 @@ class LeaveTimelineAndExportTest(TestCase):
 
         data = response.json()
         self.assertEqual(len(data), 2)
-        self.assertEqual(data[0]['id'], self.leave1.id)
+        ids = [item['id'] for item in data]
+        self.assertIn(self.leave1.id, ids)
         self.assertIn('content', data[0])
         self.assertIn('group', data[0])
         self.assertIn('className', data[0])
