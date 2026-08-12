@@ -382,3 +382,26 @@ def approval_history(request, pk):
         'created_at': d.created_at.isoformat(),
     } for d in decisions]
     return JsonResponse({'ok': True, 'results': data})
+
+@need_permission(PermissionEnums.SERVICE_REQUESTS)
+def approval_queue(request):
+    if request.user.is_portal_user:
+        return redirect('tickets:home')
+
+    from .services import get_approver
+
+    pending = (
+        ServiceRequest.objects
+        .filter(status=TicketStatusEnum.PENDING_APPROVAL.value[0])
+        .select_related('author', 'department', 'tenant')
+        .order_by('updated_at')
+    )
+
+    queue = [
+        ticket for ticket in pending
+        if ticket.author_id and get_approver(ticket.author) and get_approver(ticket.author).id == request.user.id
+    ]
+
+    return render(request, 'site/tickets/approvals.html', {
+        'queue': queue,
+    })

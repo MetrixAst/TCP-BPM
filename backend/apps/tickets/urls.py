@@ -16,4 +16,5 @@ urlpatterns = [
     path('item/<int:pk>/attachments/upload/', views.attachment_upload, name="attachment_upload"),
     path('item/<int:pk>/attachments/<int:attachment_pk>/delete/', views.attachment_delete, name="attachment_delete"),
     path('item/<int:pk>/approval-history/', views.approval_history, name='approval_history'),
+    path('approvals/', views.approval_queue, name="approvals"),
 ]

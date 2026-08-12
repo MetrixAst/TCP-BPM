@@ -375,6 +375,7 @@ class MenuItem:
                 # ]),
                 MenuItem('ecopark', 'ecopark:home', 'water', 'Эксплуатация', permission=PermissionEnums.ECOPARK),
                 MenuItem('tickets', 'tickets:kanban', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket', permission=PermissionEnums.SERVICE_REQUESTS),
+                MenuItem('ticket_approvals', 'tickets:approvals', 'inbox-check', 'Согласования', permission=PermissionEnums.SERVICE_REQUESTS),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели', permission=PermissionEnums.REPORTS),
             ],
 
@@ -461,6 +462,13 @@ class MenuItem:
             menu.append(
                 MenuItem('hr', '#hr', 'user', 'HR', permission=PermissionEnums.HR_SELF, submenu=hr_submenu)
             )
+
+        employee = getattr(user, 'employee_info', None)
+        if employee and getattr(employee, 'head', False) and role != RoleEnums.ADMINISTRATOR.value:
+            if not any(i.id == 'ticket_approvals' for i in menu):
+                menu.append(
+                    MenuItem('ticket_approvals', 'tickets:approvals', 'inbox-check', 'Согласования', permission=PermissionEnums.SERVICE_REQUESTS)
+                )
 
         menu = MenuItem._filter_menu(menu, user)
 
