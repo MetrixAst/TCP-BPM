@@ -436,7 +436,7 @@ class MenuItem:
             ],
 
             RoleEnums.TENANT.value: [
-                MenuItem('my_requisitions', 'requistions:home', 'inbox', 'Заявки на пропуск', permission=PermissionEnums.REQUISTIONS),
+                #MenuItem('my_requisitions', 'requistions:home', 'inbox', 'Заявки на пропуск', permission=PermissionEnums.REQUISTIONS),
                 MenuItem('tickets', 'tickets:home', 'tools', 'Заявки на обслуживание', indicator_alias='ticket', permission=PermissionEnums.SERVICE_REQUESTS),
             ],
         }

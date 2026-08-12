@@ -367,7 +367,6 @@ def attachment_delete(request, pk, attachment_pk):
     return JsonResponse({'ok': True})
 
 @need_permission(PermissionEnums.SERVICE_REQUESTS)
-<<<<<<< HEAD
 @require_http_methods(['GET'])
 def approval_history(request, pk):
     ticket = ServiceRequest.get_by_id(request, pk)
@@ -385,8 +384,6 @@ def approval_history(request, pk):
     return JsonResponse({'ok': True, 'results': data})
 
 @need_permission(PermissionEnums.SERVICE_REQUESTS)
-=======
->>>>>>> origin/feature/FE-11-workflow-settings
 def approval_queue(request):
     if request.user.is_portal_user:
         return redirect('tickets:home')
@@ -408,8 +405,6 @@ def approval_queue(request):
     return render(request, 'site/tickets/approvals.html', {
         'queue': queue,
     })
-<<<<<<< HEAD
-=======
 
     
 @need_permission(PermissionEnums.MANAGE_PERMISSIONS)
@@ -454,4 +449,3 @@ def workflow_settings_delete(request, pk):
     from .models import TicketTypeConfig
     TicketTypeConfig.objects.filter(pk=pk).delete()
     return redirect('tickets:workflow_settings')
->>>>>>> origin/feature/FE-11-workflow-settings
