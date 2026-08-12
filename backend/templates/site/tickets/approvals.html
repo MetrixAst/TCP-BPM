@@ -1,0 +1,74 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Очередь согласования — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/tickets.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
+
+{% block content %}
+<div class="hr-page">
+  <div class="hr-list-top">
+    <h1>Очередь на согласование</h1>
+  </div>
+
+  <div class="hr-card">
+    {% if queue %}
+      <div class="hr-table approval-table">
+        <div class="hr-table__head approval-table__head">
+            <div>Заявка</div>
+            <div>Заявитель</div>
+            <div>Отдел</div>
+            <div>Ожидает с</div>
+            <div>Действия</div>
+          </div>
+        <div class="hr-table__body">
+          {% for ticket in queue %}
+          <div class="hr-table__row approval-table__row" data-ticket-id="{{ ticket.id }}">
+            <div>
+              <div class="hr-employee__name">
+                <a href="{% url 'tickets:item' ticket.id %}">{{ ticket.number }} — {{ ticket.title }}</a>
+              </div>
+              <div class="hr-employee__meta">{{ ticket.get_category_display }}</div>
+            </div>
+            <div class="hr-muted">
+              {% if ticket.author %}{{ ticket.author.get_name|default:ticket.author.username }}{% else %}—{% endif %}
+            </div>
+            <div class="hr-muted">
+              {% if ticket.department %}{{ ticket.department.name }}{% else %}—{% endif %}
+            </div>
+            <div class="hr-muted">
+              {{ ticket.updated_at|date:"d.m.Y H:i" }}
+            </div>
+            <div class="approval-table__actions">
+              <button type="button" class="hr-btn hr-btn--primary" data-approval-action="approve"
+                      data-ticket-id="{{ ticket.id }}" data-ticket-title="{{ ticket.title }}"
+                      data-url="{% url 'tickets:action' ticket.id %}">
+                <i class="bi bi-check-lg"></i> Согласовать
+              </button>
+              <button type="button" class="hr-btn hr-btn--light" data-approval-action="reject"
+                      data-ticket-id="{{ ticket.id }}" data-ticket-title="{{ ticket.title }}"
+                      data-url="{% url 'tickets:action' ticket.id %}">
+                <i class="bi bi-x-lg"></i> Отклонить
+              </button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <div class="hr-empty">
+        <i class="bi bi-check2-circle"></i>
+        <h3>Очередь пуста</h3>
+        <p>Нет заявок, ожидающих вашего решения.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/tickets-approvals.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock %}

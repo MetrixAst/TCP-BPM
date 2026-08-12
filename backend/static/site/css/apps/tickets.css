@@ -1223,3 +1223,117 @@
 }
 .wf-table__row:last-child { border-bottom: 0; }
 .wf-table__row:hover { background: #faf9fd; }
+
+.tk-timeline__badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.tk-timeline__badge--approve {
+  background: #e8f8ee;
+  color: #16a34a;
+}
+.tk-timeline__badge--reject {
+  background: #fdeceb;
+  color: #ef4444;
+}
+
+.tk-kv--approver {
+  background: #fff7e6;
+  border-radius: 10px;
+  padding: 9px 10px;
+  margin-bottom: 4px;
+  border-bottom: 0 !important;
+}
+.tk-kv--approver .tk-kv__k { color: #92600a; font-weight: 500; }
+.tk-kv--approver .tk-kv__v { color: #92600a; }
+
+.hr-status-dialog {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, .45);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+  opacity: 0; transition: opacity .15s ease;
+}
+.hr-status-dialog.is-open { opacity: 1; }
+.hr-status-dialog__box {
+  background: #fff; border-radius: 16px; padding: 24px;
+  width: 460px; max-width: 92vw; max-height: 80vh; overflow-y: auto;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .18);
+}
+.hr-status-dialog__title { margin: 0 0 12px; font-size: 18px; font-weight: 700; color: #25233f; }
+.hr-status-dialog__person-name { margin: 0 0 14px; font-size: 13px; color: #25233f; font-weight: 500; }
+.hr-status-dialog__label { display: block; font-size: 12px; color: #74728a; margin-bottom: 6px; }
+.hr-status-dialog__textarea {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid #e5e7eb; border-radius: 10px;
+  padding: 10px 12px; font-size: 13px; font-family: inherit;
+  resize: vertical; min-height: 64px;
+}
+.hr-status-dialog__error { color: #ef4444; font-size: 12px; margin: 8px 0 0; }
+.hr-status-dialog__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+.hr-btn {
+  height: 36px; padding: 0 16px; border: 0; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 13px; font-weight: 500; text-decoration: none; cursor: pointer;
+}
+.hr-btn--primary { background: #2f6bed; color: #fff; }
+.hr-btn--light { background: #f5f3fa; color: #25233f; }
+.hr-btn--light:hover { background: #ece9f4; }
+.hr-btn--danger { background: #ef4444; color: #fff; }
+.hr-btn--danger:hover { background: #dc2626; }
+.approval-table__head,
+.approval-table__row {
+  display: grid !important;
+  grid-template-columns: 2.2fr 1.4fr 1.2fr 1.2fr auto !important;
+  gap: 12px !important;
+  align-items: center !important;
+  padding: 14px 22px !important;
+  text-align: left !important;
+}
+.approval-table__head > div,
+.approval-table__row > div {
+  text-align: left !important;
+}
+.approval-table__head {
+  font-weight: 600;
+  color: #74728a;
+  font-size: 12px;
+  border-bottom: 1px solid #f0eef6;
+}
+.approval-table__row {
+  border-top: 1px solid #f0eef6;
+}
+.approval-table__row:first-of-type {
+  border-top: 0;
+}
+.approval-table__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 700px) {
+  .approval-table__head {
+    display: none !important;
+  }
+  .approval-table__row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    padding: 16px !important;
+  }
+  .approval-table__row > div:nth-child(3) {
+    font-size: 12px !important;
+    color: #74728a !important;
+  }
+  .approval-table__actions {
+    display: flex !important;
+    justify-content: flex-start !important;
+    margin-top: 10px !important;
+  }
+}

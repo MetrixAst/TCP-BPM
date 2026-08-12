@@ -190,12 +190,19 @@ def create(request):
 def item(request, pk):
     ticket = ServiceRequest.get_by_id(request, pk)
     from .models import TicketMessage
+
+    current_approver = None
+    if ticket.status == TicketStatusEnum.PENDING_APPROVAL.value[0] and ticket.author_id:
+        from .services import get_approver
+        current_approver = get_approver(ticket.author)
+
     context = {
         'ticket': ticket,
         'info': ticket.get_data(),
         'actions': ticket.actions(request),
         'assign_form': TicketAssignForm(instance=ticket) if user_is_manager(request.user) else None,
         'can_chat': TicketMessage.can_view(ticket, request.user),
+        'current_approver': current_approver,
         **_portal_context(request),
     }
     return render(request, 'site/tickets/ticket.html', context)
