@@ -153,6 +153,17 @@ class ServiceRequest(models.Model):
         if action == 'accept' and not self.assignee and not assignee:
             return False, 'Выберите исполнителя перед принятием заявки'
 
+        if action in ('approve', 'reject') and self.status == TicketStatusEnum.PENDING_APPROVAL.value[0]:
+            from account.role_permissions import RoleEnums
+            from .services import get_approver
+
+            user = request.user
+            is_admin = getattr(user, 'is_superuser', False) or user.role == RoleEnums.ADMINISTRATOR.value
+            approver = get_approver(self.author) if self.author_id else None
+
+            if not is_admin and (not approver or approver.id != user.id):
+                return False, 'Только назначенный согласующий может принять решение по этой заявке'
+
         if action == 'reject' and len((comment or '').strip()) < 5:
             return False, 'Комментарий при отклонении обязателен'
 
