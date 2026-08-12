@@ -314,7 +314,7 @@ class AttendanceRecord(models.Model):
             raise ValidationError(
                 f"Тип отметки '{self.get_event_type_display()}' отключён администратором."
             )
-        
+
         today = self.timestamp.date() if self.timestamp else timezone.now().date()
         exists = AttendanceRecord.objects.filter(
             employee=self.employee,
@@ -333,39 +333,29 @@ class AttendanceRecord(models.Model):
 
     @staticmethod
     def get_daily_summary(employee, target_date):
-        from django.conf import settings
         records = AttendanceRecord.objects.filter(
-            employee=employee,
+            employee=employee, 
             timestamp__date=target_date
         ).order_by('timestamp')
 
         events = {r.event_type: r.timestamp for r in records}
-
+        
         result = {
             'total_work_time': timedelta(0),
             'is_complete': False,
-            'details': events,
-            'lunch_tracked': False,
+            'details': events
         }
 
         if CheckInEnum.DAY_START in events and CheckInEnum.DAY_END in events:
             total_duration = events[CheckInEnum.DAY_END] - events[CheckInEnum.DAY_START]
-
+            
             lunch_duration = timedelta(0)
-            disabled = getattr(settings, 'ATTENDANCE_DISABLED_TYPES', [])
-            lunch_disabled = (
-                CheckInEnum.LUNCH_START in disabled and
-                CheckInEnum.LUNCH_END in disabled
-            )
-
-            if not lunch_disabled:
-                if CheckInEnum.LUNCH_START in events and CheckInEnum.LUNCH_END in events:
-                    lunch_duration = events[CheckInEnum.LUNCH_END] - events[CheckInEnum.LUNCH_START]
-                    result['lunch_tracked'] = True
-
+            if CheckInEnum.LUNCH_START in events and CheckInEnum.LUNCH_END in events:
+                lunch_duration = events[CheckInEnum.LUNCH_END] - events[CheckInEnum.LUNCH_START]
+            
             result['total_work_time'] = total_duration - lunch_duration
             result['is_complete'] = True
-
+            
         return result
 
     def __str__(self):

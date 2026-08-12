@@ -381,18 +381,16 @@ class WorkScheduleForm(forms.ModelForm):
 
     class Meta:
         model = EmployeeWorkSchedule
-        fields = ['work_start', 'work_end', 'lunch_start', 'lunch_end', 'grace_minutes', 'workdays']
+        fields = ['work_start', 'work_end', 'grace_minutes', 'workdays']
         widgets = {
             'work_start': forms.TimeInput(attrs={'type': 'time', 'class': 'hr-edit-input'}, format='%H:%M'),
             'work_end': forms.TimeInput(attrs={'type': 'time', 'class': 'hr-edit-input'}, format='%H:%M'),
-            'lunch_start': forms.TimeInput(attrs={'type': 'time', 'class': 'hr-edit-input'}, format='%H:%M'),
-            'lunch_end': forms.TimeInput(attrs={'type': 'time', 'class': 'hr-edit-input'}, format='%H:%M'),
             'grace_minutes': forms.NumberInput(attrs={'class': 'hr-edit-input', 'min': 0, 'max': 240}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for name in ('work_start', 'work_end', 'lunch_start', 'lunch_end'):
+        for name in ('work_start', 'work_end'):
             self.fields[name].input_formats = ['%H:%M', '%H:%M:%S']
         instance = kwargs.get('instance')
         if instance and instance.pk:

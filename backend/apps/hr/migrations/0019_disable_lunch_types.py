@@ -2,11 +2,11 @@ from django.db import migrations
 
 
 def mark_lunch_records_as_legacy(apps, schema_editor):
-    pass  
+    pass
 
 
 def reverse_migration(apps, schema_editor):
-    pass  
+    pass
 
 
 class Migration(migrations.Migration):

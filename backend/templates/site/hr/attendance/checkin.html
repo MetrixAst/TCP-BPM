@@ -40,16 +40,6 @@
         <span>Приход</span>
         {% for m in today_marks %}{% if m.type == 'day_start' %}<em>{{ m.time }}</em>{% endif %}{% endfor %}
       </div>
-      <div class="checkin-step {% if 'lunch_start' in completed_types %}checkin-step--done{% endif %}">
-        <i class="bi bi-{% if 'lunch_start' in completed_types %}check-circle-fill{% else %}circle{% endif %}"></i>
-        <span>Начало обеда</span>
-        {% for m in today_marks %}{% if m.type == 'lunch_start' %}<em>{{ m.time }}</em>{% endif %}{% endfor %}
-      </div>
-      <div class="checkin-step {% if 'lunch_end' in completed_types %}checkin-step--done{% endif %}">
-        <i class="bi bi-{% if 'lunch_end' in completed_types %}check-circle-fill{% else %}circle{% endif %}"></i>
-        <span>Конец обеда</span>
-        {% for m in today_marks %}{% if m.type == 'lunch_end' %}<em>{{ m.time }}</em>{% endif %}{% endfor %}
-      </div>
       <div class="checkin-step {% if 'day_end' in completed_types %}checkin-step--done{% endif %}">
         <i class="bi bi-{% if 'day_end' in completed_types %}check-circle-fill{% else %}circle{% endif %}"></i>
         <span>Уход</span>
@@ -85,7 +75,7 @@
 
       {% if all_done_today %}
       <div class="attendance-checkin-alert attendance-checkin-alert--success" style="display:block">
-        На сегодня все четыре отметки уже сданы. Новую можно сделать завтра.
+        На сегодня все отметки уже сданы. Новую можно сделать завтра.
       </div>
       {% endif %}
 
@@ -98,21 +88,6 @@
           {% if 'day_start' in completed_types %}<small class="checkin-type-done">✓ сдано</small>{% endif %}
         </label>
 
-        <label class="attendance-checkin-type{% if 'lunch_start' in completed_types %} is-done{% endif %}">
-          <input type="radio" name="event_type" value="lunch_start"
-                 {% if preselect_event == 'lunch_start' %}checked{% endif %}
-                 {% if 'lunch_start' in completed_types %}disabled{% endif %}>
-          <span>Начало обеда</span>
-          {% if 'lunch_start' in completed_types %}<small class="checkin-type-done">✓ сдано</small>{% endif %}
-        </label>
-
-        <label class="attendance-checkin-type{% if 'lunch_end' in completed_types %} is-done{% endif %}">
-          <input type="radio" name="event_type" value="lunch_end"
-                 {% if preselect_event == 'lunch_end' %}checked{% endif %}
-                 {% if 'lunch_end' in completed_types %}disabled{% endif %}>
-          <span>Конец обеда</span>
-          {% if 'lunch_end' in completed_types %}<small class="checkin-type-done">✓ сдано</small>{% endif %}
-        </label>
 
         <label class="attendance-checkin-type{% if 'day_end' in completed_types %} is-done{% endif %}">
           <input type="radio" name="event_type" value="day_end"
@@ -154,7 +129,7 @@
       </div>
 
       <p class="attendance-checkin-note">
-        Каждый тип отметки — отдельный снимок: приход, обед (начало и конец), уход.
+        Каждый тип отметки — отдельный снимок: приход, уход.
       </p>
     </div>
   </div>

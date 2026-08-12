@@ -343,7 +343,6 @@ class MenuItem:
                 MenuItem('access', '#access', 'shield-lock', 'Доступы', permission=PermissionEnums.MANAGE_PERMISSIONS, submenu=[
                     MenuItem('access_users', 'account:access_users', '', 'Пользователи'),
                     MenuItem('access_profiles', 'account:access_profiles', '', 'Профили доступа'),
-                    
                 ]),
                 MenuItem('documents', 'documents:list', 'file-earmark-text', 'Документооборот', url_param=['documents'], permission=PermissionEnums.DOCUMENTS),
                 MenuItem('tenants', '#tenants', 'building', 'Компании', submenu=[

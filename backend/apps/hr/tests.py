@@ -1905,7 +1905,7 @@ class AttendanceJournalViewTest(TestCase):
         self.assertTrue(entry['no_record'])
 
     @override_settings(ATTENDANCE_DISABLED_TYPES=[])
-    def test_total_hours_calculated_with_lunch(self): 
+    def test_total_hours_calculated_with_lunch(self):
         self.client.login(username='hr_admin', password='pass')
         self._create_record(self.emp, CheckInEnum.DAY_START, hour=9)
         self._create_record(self.emp, CheckInEnum.LUNCH_START, hour=13)
