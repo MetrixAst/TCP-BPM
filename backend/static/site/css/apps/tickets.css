@@ -1148,7 +1148,6 @@
     height: 36px !important;
     right: 8px !important;
   }
-
   #wfCreateForm input:not([type="checkbox"]),
   #wfCreateForm select,
   #wfCreateForm textarea {
@@ -1166,7 +1165,7 @@
     box-shadow: none !important;
     box-sizing: border-box;
   }
-  
+
   #wfCreateForm input[type="checkbox"] {
     width: 18px !important;
     height: 18px !important;

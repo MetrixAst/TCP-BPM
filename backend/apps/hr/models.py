@@ -246,6 +246,19 @@ class EmploymentContract(models.Model):
         verbose_name = "Трудовой договор (Enbek)"
         verbose_name_plural = "Трудовые договоры (Enbek)"
 
+class AttendanceManualReason(models.Model):
+    code = models.SlugField('Код', max_length=64, unique=True)
+    label = models.CharField('Название', max_length=128)
+    is_active = models.BooleanField('Активно', default=True)
+
+    class Meta:
+        verbose_name = 'Основание ручной отметки'
+        verbose_name_plural = 'Основания ручных отметок'
+        ordering = ['label']
+
+    def __str__(self):
+        return self.label
+
 class AttendanceRecord(models.Model):
     employee = models.ForeignKey(
         'account.Employee', 
@@ -259,6 +272,22 @@ class AttendanceRecord(models.Model):
         choices=CheckInEnum.choices
     )
     timestamp = models.DateTimeField("Время", default=timezone.now)
+    is_manual = models.BooleanField('Ручная отметка', default=False)
+    manual_author = models.ForeignKey(
+        'account.UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='manual_attendance_records',
+        verbose_name='Автор ручной отметки',
+    )
+    manual_reason = models.ForeignKey(
+        AttendanceManualReason,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='attendance_records',
+        verbose_name='Основание',
+    )
+    manual_comment = models.CharField('Комментарий', max_length=255, blank=True, default='')
     photo = models.ImageField(
         "Фотофиксация", 
         upload_to='attendance/%Y/%m/%d/', 
@@ -570,3 +599,36 @@ class EmployeeCertification(models.Model):
         if days <= 30:
             return CertificationStatusEnum.EXPIRING
         return CertificationStatusEnum.ACTIVE
+
+class AttendanceEditLog(models.Model):
+    record = models.ForeignKey(
+        AttendanceRecord,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='edit_logs',
+        verbose_name='Отметка',
+    )
+    actor = models.ForeignKey(
+        'account.UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='attendance_edit_logs',
+        verbose_name='Кто изменил',
+    )
+    action = models.CharField('Действие', max_length=16, choices=[
+        ('create', 'Создание'),
+        ('update', 'Изменение'),
+        ('delete', 'Удаление'),
+    ])
+    before = models.JSONField('До', null=True, blank=True)
+    after = models.JSONField('После', null=True, blank=True)
+    ip_address = models.GenericIPAddressField('IP адрес', null=True, blank=True)
+    created_at = models.DateTimeField('Время', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Лог изменения отметки'
+        verbose_name_plural = 'Логи изменений отметок'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.record} | {self.action} | {self.created_at}"

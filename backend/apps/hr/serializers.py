@@ -5,6 +5,7 @@ from rest_framework import serializers
 from account.models import Employee, Department, UserAccount
 from .models import CalendarItem, Company
 from .enums import CalendarItemType
+from hr.models import AttendanceRecord, AttendanceManualReason
 
 _CALENDAR_EVENT_STYLE = {
     CalendarItemType.SECONDMENT.value[0]: {
@@ -210,3 +211,53 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'head',
         )
         read_only_fields = ('id', 'username', 'full_name', 'department_name', 'position_title', 'status_display')
+
+class AttendanceRecordSerializer(serializers.ModelSerializer):
+    manual_reason_label = serializers.CharField(source='manual_reason.label', read_only=True, default=None)
+    manual_author_name = serializers.CharField(source='manual_author.get_name', read_only=True, default=None)
+
+    class Meta:
+        model = AttendanceRecord
+        fields = [
+            'id', 'employee', 'event_type', 'timestamp',
+            'is_manual', 'manual_author', 'manual_author_name',
+            'manual_reason', 'manual_reason_label', 'manual_comment',
+        ]
+        read_only_fields = ['id', 'is_manual', 'manual_author', 'manual_author_name', 'manual_reason_label']
+
+    def validate_timestamp(self, value):
+        from django.utils import timezone
+        if value > timezone.now():
+            raise serializers.ValidationError('Нельзя создать отметку на будущую дату.')
+        return value
+
+    def validate(self, data):
+        from django.conf import settings
+        MAX_EDIT_DAYS = getattr(settings, 'ATTENDANCE_MAX_EDIT_DAYS', 30)
+        from django.utils import timezone
+        from datetime import timedelta
+
+        timestamp = data.get('timestamp') or (self.instance.timestamp if self.instance else None)
+        if timestamp:
+            cutoff = timezone.now() - timedelta(days=MAX_EDIT_DAYS)
+            if timestamp < cutoff:
+                raise serializers.ValidationError(
+                    f'Нельзя редактировать отметки старше {MAX_EDIT_DAYS} дней.'
+                )
+
+        employee = data.get('employee') or (self.instance.employee if self.instance else None)
+        event_type = data.get('event_type') or (self.instance.event_type if self.instance else None)
+
+        if timestamp and employee and event_type:
+            qs = AttendanceRecord.objects.filter(
+                employee=employee,
+                event_type=event_type,
+                timestamp__date=timestamp.date(),
+            )
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError(
+                    f'Отметка типа {event_type} на эту дату уже существует.'
+                )
+        return data
