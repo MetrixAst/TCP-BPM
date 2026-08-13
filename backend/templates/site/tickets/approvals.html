@@ -18,12 +18,12 @@
     {% if queue %}
       <div class="hr-table approval-table">
         <div class="hr-table__head approval-table__head">
-          <div>Заявка</div>
-          <div>Заявитель</div>
-          <div>Отдел</div>
-          <div>Ожидает с</div>
-          <div></div>
-        </div>
+            <div>Заявка</div>
+            <div>Заявитель</div>
+            <div>Отдел</div>
+            <div>Ожидает с</div>
+            <div>Действия</div>
+          </div>
         <div class="hr-table__body">
           {% for ticket in queue %}
           <div class="hr-table__row approval-table__row" data-ticket-id="{{ ticket.id }}">

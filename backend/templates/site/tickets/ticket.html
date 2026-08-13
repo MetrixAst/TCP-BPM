@@ -241,8 +241,12 @@
       <h3 class="tk-deal__section-title">{% t 'tickets.detail_history' 'История' %}</h3>
       <ul class="tk-timeline">
         {% for h in ticket.history.all %}
-        <li class="tk-timeline__item">
-          <div class="tk-timeline__status">{{ h.status_info.title }}</div>
+        <li class="tk-timeline__item {% if h.status == 'approved' or h.status == 'rejected' %}tk-timeline__item--decision{% endif %}">
+          <div class="tk-timeline__status">
+            {{ h.status_info.title }}
+            {% if h.status == 'approved' %}<span class="tk-timeline__badge tk-timeline__badge--approve">{% t 'tickets.decision_approve' 'Согласование' %}</span>{% endif %}
+            {% if h.status == 'rejected' %}<span class="tk-timeline__badge tk-timeline__badge--reject">{% t 'tickets.decision_reject' 'Отклонение' %}</span>{% endif %}
+          </div>
           <div class="tk-timeline__date">{{ h.created_at|date:'d.m.Y H:i' }}{% if h.user %} · {{ h.user.get_name }}{% endif %}</div>
           {% if h.comment %}<div class="tk-timeline__comment">{{ h.comment }}</div>{% endif %}
         </li>
@@ -259,6 +263,12 @@
       <div class="tk-side-panel__head">
         <h3 class="tk-side-panel__title">{% t 'tickets.detail_info' 'Информация' %}</h3>
       </div>
+      {% if current_approver %}
+      <div class="tk-kv tk-kv--approver">
+        <span class="tk-kv__k">{% t 'tickets.pending_approver' 'Ожидает решения' %}</span>
+        <span class="tk-kv__v">{{ current_approver.get_name|default:current_approver.username }}</span>
+      </div>
+      {% endif %}
       {% for key, value in info.items %}
         {% if value %}
         <div class="tk-kv">

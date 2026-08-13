@@ -21,4 +21,6 @@ urlpatterns = [
     path('workflow/new/', views.workflow_settings_edit, name="workflow_settings_create"),
     path('workflow/<int:pk>/edit/', views.workflow_settings_edit, name="workflow_settings_edit"),
     path('workflow/<int:pk>/delete/', views.workflow_settings_delete, name="workflow_settings_delete")
+    path('workflow/<int:pk>/delete/', views.workflow_settings_delete, name="workflow_settings_delete"),
+    path('item/<int:pk>/approval-history/', views.approval_history, name='approval_history'),
 ]

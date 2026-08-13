@@ -1,4 +1,4 @@
-import json
+﻿import json
 
 from django.shortcuts import redirect, render
 from django.http import HttpResponseForbidden, JsonResponse
@@ -103,7 +103,7 @@ def kanban(request):
 @require_http_methods(['GET'])
 def kanban_api(request):
     if not user_is_manager(request.user):
-        return JsonResponse({'ok': False, 'message': 'Недоступно'}, status=403)
+        return JsonResponse({'ok': False, 'message': '╨Э╨╡╨┤╨╛╤Б╤В╤Г╨┐╨╜╨╛'}, status=403)
     return JsonResponse(_kanban_payload(request))
 
 
@@ -111,7 +111,7 @@ def kanban_api(request):
 @require_http_methods(['PATCH', 'POST'])
 def kanban_status(request, pk):
     if not user_is_manager(request.user):
-        return JsonResponse({'ok': False, 'message': 'Недоступно'}, status=403)
+        return JsonResponse({'ok': False, 'message': '╨Э╨╡╨┤╨╛╤Б╤В╤Г╨┐╨╜╨╛'}, status=403)
 
     if request.content_type and 'application/json' in request.content_type:
         try:
@@ -134,7 +134,7 @@ def kanban_status(request, pk):
     match = next((a for a in ticket.actions(request) if a['next'] == target), None)
     if match is None:
         return JsonResponse(
-            {'ok': False, 'message': 'Недопустимый переход статуса'}, status=400,
+            {'ok': False, 'message': '╨Э╨╡╨┤╨╛╨┐╤Г╤Б╤В╨╕╨╝╤Л╨╣ ╨┐╨╡╤А╨╡╤Е╨╛╨┤ ╤Б╤В╨░╤В╤Г╤Б╨░'}, status=400,
         )
     ok, error = ticket.apply_action(request, match['action'], comment, assignee=assignee)
     if not ok:
@@ -163,20 +163,20 @@ def create(request):
         ticket.status = TicketStatusEnum.NEW.value[0]
         ticket.save()
  
-        # Сохраняем вложения через TicketAttachment с оригинальным именем
+        # ╨б╨╛╤Е╤А╨░╨╜╤П╨╡╨╝ ╨▓╨╗╨╛╨╢╨╡╨╜╨╕╤П ╤З╨╡╤А╨╡╨╖ TicketAttachment ╤Б ╨╛╤А╨╕╨│╨╕╨╜╨░╨╗╤М╨╜╤Л╨╝ ╨╕╨╝╨╡╨╜╨╡╨╝
         from .models import TicketAttachment
         for f in request.FILES.getlist('attachments'):
             TicketAttachment.objects.create(
                 request=ticket,
                 file=f,
-                original_name=f.name,  # сохраняем оригинальное имя
+                original_name=f.name,  # ╤Б╨╛╤Е╤А╨░╨╜╤П╨╡╨╝ ╨╛╤А╨╕╨│╨╕╨╜╨░╨╗╤М╨╜╨╛╨╡ ╨╕╨╝╤П
                 uploaded_by=request.user,
             )
  
         from .models import ServiceRequestHistory
         ServiceRequestHistory.objects.create(
             request=ticket, user=request.user, status=ticket.status,
-            comment='Заявка создана.',
+            comment='╨Ч╨░╤П╨▓╨║╨░ ╤Б╨╛╨╖╨┤╨░╨╜╨░.',
         )
         from .services import notify_ticket_created
         notify_ticket_created(ticket)
@@ -190,19 +190,12 @@ def create(request):
 def item(request, pk):
     ticket = ServiceRequest.get_by_id(request, pk)
     from .models import TicketMessage
-
-    current_approver = None
-    if ticket.status == TicketStatusEnum.PENDING_APPROVAL.value[0] and ticket.author_id:
-        from .services import get_approver
-        current_approver = get_approver(ticket.author)
-
     context = {
         'ticket': ticket,
         'info': ticket.get_data(),
         'actions': ticket.actions(request),
         'assign_form': TicketAssignForm(instance=ticket) if user_is_manager(request.user) else None,
         'can_chat': TicketMessage.can_view(ticket, request.user),
-        'current_approver': current_approver,
         **_portal_context(request),
     }
     return render(request, 'site/tickets/ticket.html', context)
@@ -225,8 +218,8 @@ def action(request, pk):
     allowed = {a['action']: a for a in ticket.actions(request)}
     if act not in allowed:
         if _is_ajax(request):
-            return JsonResponse({'ok': False, 'message': 'Действие недоступно'}, status=403)
-        return HttpResponseForbidden('Действие недоступно')
+            return JsonResponse({'ok': False, 'message': '╨Ф╨╡╨╣╤Б╤В╨▓╨╕╨╡ ╨╜╨╡╨┤╨╛╤Б╤В╤Г╨┐╨╜╨╛'}, status=403)
+        return HttpResponseForbidden('╨Ф╨╡╨╣╤Б╤В╨▓╨╕╨╡ ╨╜╨╡╨┤╨╛╤Б╤В╤Г╨┐╨╜╨╛')
 
     ok, error = ticket.apply_action(request, act, comment, assignee=assignee)
     if not ok:
@@ -244,7 +237,7 @@ def action(request, pk):
 def assign(request, pk):
     ticket = ServiceRequest.get_by_id(request, pk)
     if not user_is_manager(request.user):
-        return HttpResponseForbidden('Недоступно')
+        return HttpResponseForbidden('╨Э╨╡╨┤╨╛╤Б╤В╤Г╨┐╨╜╨╛')
     form = TicketAssignForm(request.POST, instance=ServiceRequest())
     if form.is_valid():
         ticket.assign(
@@ -260,7 +253,7 @@ def messages_list(request, pk):
     ticket = ServiceRequest.get_by_id(request, pk)
     from .models import TicketMessage
     if not TicketMessage.can_view(ticket, request.user):
-        return JsonResponse({'ok': False, 'message': 'Нет доступа к чату'}, status=403)
+        return JsonResponse({'ok': False, 'message': '╨Э╨╡╤В ╨┤╨╛╤Б╤В╤Г╨┐╨░ ╨║ ╤З╨░╤В╤Г'}, status=403)
 
     messages = ticket.messages.select_related('author').all()
     return JsonResponse({
@@ -284,11 +277,11 @@ def message_send(request, pk):
     ticket = ServiceRequest.get_by_id(request, pk)
     from .models import TicketMessage
     if not TicketMessage.can_view(ticket, request.user):
-        return JsonResponse({'ok': False, 'message': 'Нет доступа к чату'}, status=403)
+        return JsonResponse({'ok': False, 'message': '╨Э╨╡╤В ╨┤╨╛╤Б╤В╤Г╨┐╨░ ╨║ ╤З╨░╤В╤Г'}, status=403)
 
     text = (request.POST.get('text') or '').strip()
     if not text:
-        return JsonResponse({'ok': False, 'message': 'Пустое сообщение'}, status=400)
+        return JsonResponse({'ok': False, 'message': '╨Я╤Г╤Б╤В╨╛╨╡ ╤Б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╨╡'}, status=400)
 
     message = TicketMessage.objects.create(
         request=ticket, author=request.user, text=text,
@@ -310,11 +303,11 @@ def attachment_upload(request, pk):
     ticket = ServiceRequest.get_by_id(request, pk)
     from .models import TicketAttachment
     if not TicketAttachment.can_view(ticket, request.user):
-        return JsonResponse({'ok': False, 'message': 'Нет доступа'}, status=403)
+        return JsonResponse({'ok': False, 'message': '╨Э╨╡╤В ╨┤╨╛╤Б╤В╤Г╨┐╨░'}, status=403)
 
     uploaded = request.FILES.get('file')
     if not uploaded:
-        return JsonResponse({'ok': False, 'message': 'Файл не выбран'}, status=400)
+        return JsonResponse({'ok': False, 'message': '╨д╨░╨╣╨╗ ╨╜╨╡ ╨▓╤Л╨▒╤А╨░╨╜'}, status=400)
 
     attachment = TicketAttachment.objects.create(
         request=ticket, file=uploaded, uploaded_by=request.user,
@@ -337,7 +330,7 @@ def attachments_list(request, pk):
     ticket = ServiceRequest.get_by_id(request, pk)
     from .models import TicketAttachment
     if not TicketAttachment.can_view(ticket, request.user):
-        return JsonResponse({'ok': False, 'message': 'Нет доступа'}, status=403)
+        return JsonResponse({'ok': False, 'message': '╨Э╨╡╤В ╨┤╨╛╤Б╤В╤Г╨┐╨░'}, status=403)
 
     items = ticket.attachments.select_related('uploaded_by').all()
     return JsonResponse({
@@ -363,32 +356,15 @@ def attachment_delete(request, pk, attachment_pk):
     from .models import TicketAttachment
     attachment = TicketAttachment.objects.filter(pk=attachment_pk, request=ticket).first()
     if attachment is None:
-        return JsonResponse({'ok': False, 'message': 'Не найдено'}, status=404)
+        return JsonResponse({'ok': False, 'message': '╨Э╨╡ ╨╜╨░╨╣╨┤╨╡╨╜╨╛'}, status=404)
 
     is_owner = attachment.uploaded_by_id == request.user.id
     if not (is_owner or user_is_manager(request.user)):
-        return JsonResponse({'ok': False, 'message': 'Недостаточно прав'}, status=403)
+        return JsonResponse({'ok': False, 'message': '╨Э╨╡╨┤╨╛╤Б╤В╨░╤В╨╛╤З╨╜╨╛ ╨┐╤А╨░╨▓'}, status=403)
 
     attachment.file.delete(save=False)
     attachment.delete()
     return JsonResponse({'ok': True})
-
-@need_permission(PermissionEnums.SERVICE_REQUESTS)
-@require_http_methods(['GET'])
-def approval_history(request, pk):
-    ticket = ServiceRequest.get_by_id(request, pk)
-    decisions = ticket.approval_decisions.select_related('actor').order_by('created_at')
-    data = [{
-        'id': d.pk,
-        'decision': d.decision,
-        'decision_display': 'Согласовано' if d.decision == 'approve' else 'Отклонено',
-        'actor': d.actor.get_name if d.actor else None,
-        'actor_id': d.actor_id,
-        'comment': d.comment,
-        'ip_address': d.ip_address,
-        'created_at': d.created_at.isoformat(),
-    } for d in decisions]
-    return JsonResponse({'ok': True, 'results': data})
 
 @need_permission(PermissionEnums.SERVICE_REQUESTS)
 def approval_queue(request):
@@ -413,7 +389,7 @@ def approval_queue(request):
         'queue': queue,
     })
 
-
+    
 @need_permission(PermissionEnums.MANAGE_PERMISSIONS)
 def workflow_settings(request):
     from .models import TicketTypeConfig
@@ -456,21 +432,3 @@ def workflow_settings_delete(request, pk):
     from .models import TicketTypeConfig
     TicketTypeConfig.objects.filter(pk=pk).delete()
     return redirect('tickets:workflow_settings')
-
-
-@need_permission(PermissionEnums.SERVICE_REQUESTS)
-@require_http_methods(['GET'])
-def approval_history(request, pk):
-    ticket = ServiceRequest.get_by_id(request, pk)
-    decisions = ticket.approval_decisions.select_related('actor').order_by('created_at')
-    data = [{
-        'id': d.pk,
-        'decision': d.decision,
-        'decision_display': 'Согласовано' if d.decision == 'approve' else 'Отклонено',
-        'actor': d.actor.get_name if d.actor else None,
-        'actor_id': d.actor_id,
-        'comment': d.comment,
-        'ip_address': d.ip_address,
-        'created_at': d.created_at.isoformat(),
-    } for d in decisions]
-    return JsonResponse({'ok': True, 'results': data})
