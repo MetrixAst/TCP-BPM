@@ -60,13 +60,13 @@ class TicketTypeConfigTest(TestCase):
 
     def test_create_config(self):
         config = TicketTypeConfig.objects.create(
-            ticket_type='maintenance',
+            ticket_type='electrical',  
             requires_approval=True,
         )
         self.assertTrue(config.requires_approval)
 
     def test_default_no_approval(self):
-        config = TicketTypeConfig.objects.create(ticket_type='cleaning')
+        config = TicketTypeConfig.objects.create(ticket_type='cleaning')  
         self.assertFalse(config.requires_approval)
 
 
