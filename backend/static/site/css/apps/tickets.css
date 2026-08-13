@@ -1251,12 +1251,6 @@
 .tk-kv--approver .tk-kv__k { color: #92600a; font-weight: 500; }
 .tk-kv--approver .tk-kv__v { color: #92600a; }
 
-.hr-status-dialog {
-  position: fixed; inset: 0; background: rgba(15, 23, 42, .45);
-  display: flex; align-items: center; justify-content: center; z-index: 1000;
-  opacity: 0; transition: opacity .15s ease;
-}
-.hr-status-dialog.is-open { opacity: 1; }
 .hr-status-dialog__box {
   background: #fff; border-radius: 16px; padding: 24px;
   width: 460px; max-width: 92vw; max-height: 80vh; overflow-y: auto;

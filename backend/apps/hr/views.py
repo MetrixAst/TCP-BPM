@@ -1821,3 +1821,16 @@ def attendance_export(request):
     response['Content-Disposition'] = f'attachment; filename="attendance_{target_date}.xlsx"'
     wb.save(response)
     return response
+
+@need_permission(PermissionEnums.HR)
+def manual_attendance(request):
+    from account.models import Employee
+    from .models import AttendanceManualReason
+
+    employees = Employee.objects.filter(status='active').select_related('user').order_by('user__last_name')
+    reasons = AttendanceManualReason.objects.filter(is_active=True)
+
+    return render(request, 'site/hr/manual_attendance.html', {
+        'employees': employees,
+        'reasons': reasons,
+    })

@@ -1,0 +1,96 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Ручные отметки — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
+
+{% block content %}
+<div class="hr-page">
+  <div class="hr-list-top">
+    <h1>Ручные отметки посещаемости</h1>
+    <button type="button" class="hr-btn hr-btn--primary" id="maCreateBtn">
+      <i class="bi bi-plus-lg"></i> Новая отметка
+    </button>
+  </div>
+
+  <div class="hr-card">
+    <div class="hr-table ma-table">
+      <div class="hr-table__head ma-table__head">
+        <div>Сотрудник</div>
+        <div>Тип</div>
+        <div>Дата/время</div>
+        <div>Основание</div>
+        <div>Автор</div>
+        <div></div>
+      </div>
+      <div class="hr-table__body" id="maTableBody">
+        <div class="ma-table__loading">Загрузка…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hr-status-dialog" id="maFormDialog">
+  <div class="hr-status-dialog__box" role="dialog" aria-modal="true">
+    <h3 class="hr-status-dialog__title" id="maFormTitle">Новая отметка</h3>
+    <form id="maForm">
+      <input type="hidden" name="id" id="maId" />
+
+      <label class="hr-status-dialog__label">Сотрудник</label>
+      <select name="employee" id="maEmployee" class="ma-select2" style="width:100%;margin-bottom:14px;">
+        <option value="">Выберите сотрудника</option>
+        {% for emp in employees %}
+          <option value="{{ emp.id }}">{{ emp.get_display_name }}</option>
+        {% endfor %}
+      </select>
+
+      <label class="hr-status-dialog__label">Тип отметки</label>
+      <select name="event_type" id="maEventType" class="ma-select2" style="width:100%;margin-bottom:14px;">
+        <option value="day_start">Приход (начало дня)</option>
+        <option value="day_end">Уход (конец дня)</option>
+      </select>
+
+      <label class="hr-status-dialog__label">Дата и время</label>
+      <input type="datetime-local" name="timestamp" id="maTimestamp" class="hr-status-dialog__textarea" style="min-height:auto;margin-bottom:14px;" />
+
+      <label class="hr-status-dialog__label">Основание</label>
+      <select name="manual_reason" id="maReason" class="ma-select2" style="width:100%;margin-bottom:14px;">
+        <option value="">Не указано</option>
+        {% for reason in reasons %}
+          <option value="{{ reason.id }}">{{ reason.label }}</option>
+        {% endfor %}
+      </select>
+
+      <label class="hr-status-dialog__label">Комментарий</label>
+      <input type="text" name="manual_comment" id="maComment" class="hr-status-dialog__textarea" style="min-height:auto;" placeholder="Необязательно" />
+
+      <p class="hr-status-dialog__error" id="maFormError" style="display:none"></p>
+
+      <div class="hr-status-dialog__actions">
+        <button type="button" class="hr-btn hr-btn--light" id="maCancelBtn">Отмена</button>
+        <button type="submit" class="hr-btn hr-btn--primary">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="hr-status-dialog" id="maHistoryDialog">
+  <div class="hr-status-dialog__box" role="dialog" aria-modal="true" style="width:560px;">
+    <h3 class="hr-status-dialog__title">История изменений</h3>
+    <div id="maHistoryBody"></div>
+    <div class="hr-status-dialog__actions">
+      <button type="button" class="hr-btn hr-btn--light" id="maHistoryCloseBtn">Закрыть</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/hr-manual-attendance.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock %}
