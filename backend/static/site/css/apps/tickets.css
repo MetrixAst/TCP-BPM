@@ -1221,6 +1221,7 @@
   font-size: 13px;
 }
 .wf-table__row:last-child { border-bottom: 0; }
+.wf-table__row:last-child { border-bottom: 0; }
 .wf-table__row:hover { background: #faf9fd; }
 
 .tk-timeline__badge {

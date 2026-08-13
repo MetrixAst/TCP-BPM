@@ -38,4 +38,4 @@ def custom_permission_denied_view(request, exception=None):
         text = f'Для доступа к этой странице требуется право «{reason}», которого у вас нет. Обратитесь к администратору, чтобы получить доступ.'
     else:
         text = 'У Вас недостаточно прав для доступа к этой странице!'
-    return render(request, "site/error.html", {'title': 'Нет доступа', 'text': text})
+    return render(request, "site/error.html", {'title': 'Нет доступа', 'text': text}, status=403)
