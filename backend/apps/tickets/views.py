@@ -456,4 +456,4 @@ def approval_history(request, pk):
         'ip_address': d.ip_address,
         'created_at': d.created_at.isoformat(),
     } for d in decisions]
-return JsonResponse({'ok': True, 'results': data})
+    return JsonResponse({'ok': True, 'results': data})

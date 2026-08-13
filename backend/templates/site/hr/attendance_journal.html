@@ -95,11 +95,21 @@
               <span class="{% if item.late %}attendance-table__late{% endif %}">
                 {{ item.day_start|date:"H:i"|default:"—" }}
               </span>
+              {% if item.arrival_is_manual %}
+                <span class="attendance-manual-badge" title="{% if item.arrival_manual_author %}Автор: {{ item.arrival_manual_author }}{% endif %}{% if item.arrival_manual_reason %} · Основание: {{ item.arrival_manual_reason }}{% endif %}">
+                  Ручная
+                </span>
+              {% endif %}
             </td>
             <td>
               <span class="{% if item.early_leave %}attendance-table__warning{% endif %}">
                 {{ item.day_end|date:"H:i"|default:"—" }}
               </span>
+              {% if item.departure_is_manual %}
+                <span class="attendance-manual-badge" title="{% if item.departure_manual_author %}Автор: {{ item.departure_manual_author }}{% endif %}{% if item.departure_manual_reason %} · Основание: {{ item.departure_manual_reason }}{% endif %}">
+                  Ручная
+                </span>
+              {% endif %}
             </td>
             <td>
               {% if item.total_hours > 0 %}

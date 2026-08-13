@@ -368,6 +368,7 @@ class MenuItem:
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                     MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
                     MenuItem('manual_attendance', 'hr:manual_attendance', '', 'Ручные отметки'),
+                    MenuItem('manual_attendance_report', 'hr:manual_attendance_report', '', 'Отчёт по ручным отметкам'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
                 ]),
 
@@ -424,6 +425,7 @@ class MenuItem:
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                     MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
                     MenuItem('manual_attendance', 'hr:manual_attendance', '', 'Ручные отметки'),
+                    MenuItem('manual_attendance_report', 'hr:manual_attendance_report', '', 'Отчёт по ручным отметкам'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
                 ]),
             ],

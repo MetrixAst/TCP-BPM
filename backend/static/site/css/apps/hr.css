@@ -3944,4 +3944,40 @@ body.hr-registry-edit-body .bpm-content {
   margin-bottom: 2px;
 }
 
+.attendance-manual-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #fff3cd;
+  color: #92600a;
+  cursor: help;
+  vertical-align: middle;
+}
+
+.mar-table__head, .mar-table__row {
+  display: grid;
+  grid-template-columns: 1.8fr 1.4fr 1fr 1fr 1.2fr 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 18px;
+}
+
+.mar-table__head {
+  font-weight: 600;
+  color: #74728a;
+  font-size: 12px;
+  border-bottom: 1px solid #f0eef6;
+}
+
+.mar-table__row {
+  border-top: 1px solid #f0eef6;
+}
+
+.mar-table__row:first-of-type {
+  border-top: 0;
+}
+
 /*# sourceMappingURL=hr.css.map */

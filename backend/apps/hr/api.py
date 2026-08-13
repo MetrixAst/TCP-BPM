@@ -279,7 +279,8 @@ class ManualAttendanceViewSet(
             ip_address=self._get_ip(self.request),
         )
         instance.delete()
-@action(detail=True, methods=['get'], url_path='history')
+
+    @action(detail=True, methods=['get'], url_path='history')
     def history(self, request, pk=None):
         from hr.models import AttendanceEditLog
         record = self.get_object()
