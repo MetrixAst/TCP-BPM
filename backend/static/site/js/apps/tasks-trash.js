@@ -1,5 +1,9 @@
 (function () {
-    'use strict';
+  'use strict';
+
+  function t(text) {
+    return (window.BPM && window.BPM.t) ? window.BPM.t(text, text) : text;
+  }
   
     var RETENTION_DAYS = 30; // держим в синхроне с settings.py: kwargs={'days': 30}
   
@@ -31,22 +35,32 @@
       return div.innerHTML;
     }
   
-    function formatDate(iso) {
-      if (!iso) return '—';
-      var d = new Date(iso);
+ // Бэкенд отдаёт datetime в формате "%d.%m.%Y, %H:%M" (project/settings.py DATETIME_FORMAT),
+    // не в ISO — парсим вручную вместо new Date(iso).
+    function parseServerDateTime(str) {
+      if (!str) return null;
+      var m = String(str).match(/^(\d{2})\.(\d{2})\.(\d{4}),?\s*(\d{2}):(\d{2})/);
+      if (!m) return null;
+      return new Date(m[3], m[2] - 1, m[1], m[4], m[5]);
+    }
+
+    function formatDate(raw) {
+      var d = parseServerDateTime(raw);
+      if (!d) return '—';
       return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     }
-  
-    function purgeDate(deletedAtIso) {
-      if (!deletedAtIso) return '—';
-      var d = new Date(deletedAtIso);
+
+    function purgeDate(raw) {
+      var d = parseServerDateTime(raw);
+      if (!d) return '—';
       d.setDate(d.getDate() + RETENTION_DAYS);
       var now = new Date();
       var daysLeft = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
       var label = d.toLocaleDateString('ru-RU');
-      if (daysLeft <= 0) return label + ' (сегодня-завтра)';
-      if (daysLeft <= 3) return '<span class="trash-purge-soon">' + label + ' (через ' + daysLeft + ' дн.)</span>';
-      return label + ' (через ' + daysLeft + ' дн.)';
+      var purgeText = t('через {n} дн.').replace('{n}', daysLeft);
+      if (daysLeft <= 0) return label + ' (' + t('сегодня-завтра') + ')';
+      if (daysLeft <= 3) return '<span class="trash-purge-soon">' + label + ' (' + purgeText + ')</span>';
+      return label + ' (' + purgeText + ')';
     }
   
     document.addEventListener('DOMContentLoaded', function () {
@@ -66,7 +80,7 @@
           tbody.innerHTML =
             '<tr><td colspan="7" class="tasks-table__empty">' +
               '<div class="tasks-empty"><i class="bi bi-trash tasks-empty__icon"></i>' +
-              '<div class="tasks-empty__title">Корзина пуста</div></div>' +
+              '<div class="tasks-empty__title">' + t('Корзина пуста') + '</div></div>' +
             '</td></tr>';
           return;
         }
@@ -83,13 +97,17 @@
               '<td class="tasks-table__td">' + escapeHtml(task.deleted_reason || '—') + '</td>' +
               '<td class="tasks-table__td">' + purgeDate(task.deleted_at) + '</td>' +
               '<td class="tasks-table__td">' +
-                '<button type="button" class="tasks-page__btn tasks-page__btn--outline" data-trash-view="' + task.id + '">Просмотр</button> ' +
-                '<button type="button" class="tasks-page__btn tasks-page__btn--primary" data-trash-restore="' + task.id + '">Восстановить</button>' +
+                '<button type="button" class="tasks-page__btn tasks-page__btn--outline" data-trash-view="' + task.id + '">' + t('Просмотр') + '</button> ' +
+                '<button type="button" class="tasks-page__btn tasks-page__btn--primary" data-trash-restore="' + task.id + '">' + t('Восстановить') + '</button>' +
               '</td>' +
             '</tr>'
           );
         }).join('');
-  
+
+        if (window.BPM && window.BPM.applyTranslations) {
+          window.BPM.applyTranslations();
+        }
+
         tbody.querySelectorAll('[data-trash-view]').forEach(function (btn) {
           btn.addEventListener('click', function () { openViewModal(btn.getAttribute('data-trash-view')); });
         });
@@ -105,19 +123,19 @@
       }
   
       function loadBin() {
-        tbody.innerHTML = '<tr><td colspan="7" class="tasks-table__empty"><div class="tasks-empty__title">Загрузка…</div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="tasks-table__empty"><div class="tasks-empty__title">' + t('Загрузка…') + '</div></td></tr>';
         apiFetch('/api/v1/tasks/bin/?page_size=500')
           .then(function (data) {
             allItems = data.results || (Array.isArray(data) ? data : []);
             renderRows(allItems);
           })
           .catch(function (err) {
-            tbody.innerHTML = '<tr><td colspan="7" class="tasks-table__empty"><div class="tasks-empty__title">Не удалось загрузить корзину: ' + escapeHtml(err.message) + '</div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="tasks-table__empty"><div class="tasks-empty__title">' + t('Не удалось загрузить корзину: ') + escapeHtml(err.message) + '</div></td></tr>';
           });
       }
   
       function restoreTask(id, btn) {
-        if (!window.confirm('Восстановить задачу? Она снова появится в общем списке.')) return;
+        if (!window.confirm(t('Восстановить задачу? Она снова появится в общем списке.'))) return;
         btn.disabled = true;
         apiFetch('/api/v1/tasks/' + id + '/restore/', { method: 'POST' })
           .then(function () {
@@ -125,7 +143,7 @@
             applySearch();
           })
           .catch(function (err) {
-            window.alert('Не удалось восстановить: ' + err.message);
+            window.alert(t('Не удалось восстановить: ') + err.message);
             btn.disabled = false;
           });
       }
@@ -142,19 +160,23 @@
           '<h3 class="trash-modal__title">' + escapeHtml(task.title) + '</h3>' +
           '<p class="access-muted">' + escapeHtml(task.text || '') + '</p>' +
           '<div class="trash-modal__section">' +
-            '<h4>Сохранённые связи</h4>' +
-            '<div class="trash-modal__row"><span>Автор</span><span>' + escapeHtml(task.author ? (task.author.full_name || task.author.username) : '—') + '</span></div>' +
-            '<div class="trash-modal__row"><span>Исполнитель</span><span>' + escapeHtml(task.executor ? (task.executor.full_name || task.executor.username) : '—') + '</span></div>' +
-            '<div class="trash-modal__row"><span>Соисполнители</span><span>' + coExecutors + '</span></div>' +
-            '<div class="trash-modal__row"><span>Наблюдатели</span><span>' + observers + '</span></div>' +
-            '<div class="trash-modal__row"><span>Комментариев в истории</span><span>' + ((task.history || []).length) + '</span></div>' +
+            '<h4>' + t('Сохранённые связи') + '</h4>' +
+            '<div class="trash-modal__row"><span>' + t('Автор') + '</span><span>' + escapeHtml(task.author ? (task.author.full_name || task.author.username) : '—') + '</span></div>' +
+            '<div class="trash-modal__row"><span>' + t('Исполнитель') + '</span><span>' + escapeHtml(task.executor ? (task.executor.full_name || task.executor.username) : '—') + '</span></div>' +
+            '<div class="trash-modal__row"><span>' + t('Соисполнители') + '</span><span>' + coExecutors + '</span></div>' +
+            '<div class="trash-modal__row"><span>' + t('Наблюдатели') + '</span><span>' + observers + '</span></div>' +
+            '<div class="trash-modal__row"><span>' + t('Комментариев в истории') + '</span><span>' + ((task.history || []).length) + '</span></div>' +
           '</div>' +
           '<div class="trash-modal__section">' +
-            '<h4>Удаление</h4>' +
-            '<div class="trash-modal__row"><span>Кто удалил</span><span>' + escapeHtml(task.deleted_by ? (task.deleted_by.full_name || task.deleted_by.username) : '—') + '</span></div>' +
-            '<div class="trash-modal__row"><span>Когда</span><span>' + formatDate(task.deleted_at) + '</span></div>' +
-            '<div class="trash-modal__row"><span>Причина</span><span>' + escapeHtml(task.deleted_reason || '—') + '</span></div>' +
+            '<h4>' + t('Удаление') + '</h4>' +
+            '<div class="trash-modal__row"><span>' + t('Кто удалил') + '</span><span>' + escapeHtml(task.deleted_by ? (task.deleted_by.full_name || task.deleted_by.username) : '—') + '</span></div>' +
+            '<div class="trash-modal__row"><span>' + t('Когда') + '</span><span>' + formatDate(task.deleted_at) + '</span></div>' +
+            '<div class="trash-modal__row"><span>' + t('Причина') + '</span><span>' + escapeHtml(task.deleted_reason || '—') + '</span></div>' +
           '</div>';
+
+        if (window.BPM && window.BPM.applyTranslations) {
+          window.BPM.applyTranslations();
+        }
       }
   
       function closeModal() { modal.classList.remove('is-open'); modalBody.innerHTML = ''; }

@@ -1,6 +1,10 @@
 (function () {
     'use strict';
   
+    function t(text) {
+      return (window.BPM && window.BPM.t) ? window.BPM.t(text, text) : text;
+    }
+  
     function getCsrfToken() {
       var match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
       return match ? decodeURIComponent(match[1]) : '';
@@ -43,9 +47,18 @@
       return div.innerHTML;
     }
   
-    function formatDateTime(iso) {
-      if (!iso) return '—';
-      var d = new Date(iso);
+    // Бэкенд отдаёт datetime в формате "%d.%m.%Y, %H:%M" (project/settings.py DATETIME_FORMAT),
+    // не в ISO — парсим вручную вместо new Date(iso).
+    function parseServerDateTime(str) {
+      if (!str) return null;
+      var m = String(str).match(/^(\d{2})\.(\d{2})\.(\d{4}),?\s*(\d{2}):(\d{2})/);
+      if (!m) return null;
+      return new Date(m[3], m[2] - 1, m[1], m[4], m[5]);
+    }
+
+    function formatDateTime(raw) {
+      var d = parseServerDateTime(raw);
+      if (!d) return '—';
       return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     }
   
@@ -70,14 +83,14 @@
       var allRecords = [];
   
       function loadRecords() {
-        tbody.innerHTML = '<div class="ma-table__loading">Загрузка…</div>';
+        tbody.innerHTML = '<div class="ma-table__loading">' + t('Загрузка…') + '</div>';
         apiFetch('/api/v1/hr/attendance/manual/?page_size=200')
           .then(function (data) {
             allRecords = data.results || (Array.isArray(data) ? data : []);
             renderTable();
           })
           .catch(function (err) {
-            tbody.innerHTML = '<div class="ma-table__loading">Не удалось загрузить: ' + escapeHtml(err.message) + '</div>';
+            tbody.innerHTML = '<div class="ma-table__loading">' + t('Не удалось загрузить: ') + escapeHtml(err.message) + '</div>';
           });
       }
   
@@ -88,7 +101,7 @@
   
       function renderTable() {
         if (!allRecords.length) {
-          tbody.innerHTML = '<div class="ma-table__empty">Ручных отметок пока нет.</div>';
+          tbody.innerHTML = '<div class="ma-table__empty">' + t('Ручных отметок пока нет.') + '</div>';
           return;
         }
         tbody.innerHTML = allRecords.map(function (r) {
@@ -100,14 +113,18 @@
               '<div>' + escapeHtml(r.manual_reason_label || '—') + '</div>' +
               '<div>' + escapeHtml(r.manual_author_name || '—') + '</div>' +
               '<div class="ma-table__actions">' +
-                '<button type="button" class="hr-icon-btn" data-ma-edit="' + r.id + '" title="Редактировать"><i class="bi bi-pencil"></i></button>' +
-                '<button type="button" class="hr-icon-btn" data-ma-history="' + r.id + '" title="История"><i class="bi bi-clock-history"></i></button>' +
-                '<button type="button" class="hr-icon-btn" data-ma-delete="' + r.id + '" title="Удалить"><i class="bi bi-trash"></i></button>' +
+                '<button type="button" class="hr-icon-btn" data-ma-edit="' + r.id + '" title="' + t('Редактировать') + '"><i class="bi bi-pencil"></i></button>' +
+                '<button type="button" class="hr-icon-btn" data-ma-history="' + r.id + '" title="' + t('История') + '"><i class="bi bi-clock-history"></i></button>' +
+                '<button type="button" class="hr-icon-btn" data-ma-delete="' + r.id + '" title="' + t('Удалить') + '"><i class="bi bi-trash"></i></button>' +
               '</div>' +
             '</div>'
           );
         }).join('');
-  
+
+        if (window.BPM && window.BPM.applyTranslations) {
+          window.BPM.applyTranslations();
+        }
+
         tbody.querySelectorAll('[data-ma-edit]').forEach(function (btn) {
           btn.addEventListener('click', function () { openForm(btn.getAttribute('data-ma-edit')); });
         });
@@ -131,7 +148,7 @@
         }
   
         if (recordId) {
-          formTitle.textContent = 'Редактирование отметки';
+          formTitle.textContent = t('Редактирование отметки');
           var record = allRecords.find(function (r) { return String(r.id) === String(recordId); });
           if (record) {
             if (window.jQuery && jQuery.fn.select2) {
@@ -141,14 +158,16 @@
             }
             document.getElementById('maComment').value = record.manual_comment || '';
             if (record.timestamp) {
-              var d = new Date(record.timestamp);
-              var pad = function (n) { return String(n).padStart(2, '0'); };
-              document.getElementById('maTimestamp').value =
-                d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+              var d = parseServerDateTime(record.timestamp);
+              if (d) {
+                var pad = function (n) { return String(n).padStart(2, '0'); };
+                document.getElementById('maTimestamp').value =
+                  d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+              }
             }
           }
         } else {
-          formTitle.textContent = 'Новая отметка';
+            formTitle.textContent = t('Новая отметка');
         }
   
         formDialog.classList.add('is-open');
@@ -174,12 +193,12 @@
         var comment = document.getElementById('maComment').value;
   
         if (!employee) {
-          formError.textContent = 'Выберите сотрудника.';
+          formError.textContent = t('Выберите сотрудника.');
           formError.style.display = 'block';
           return;
         }
         if (!timestampLocal) {
-          formError.textContent = 'Укажите дату и время.';
+          formError.textContent = t('Укажите дату и время.');
           formError.style.display = 'block';
           return;
         }
@@ -211,10 +230,10 @@
       });
   
       function deleteRecord(recordId) {
-        if (!window.confirm('Удалить ручную отметку? Действие необратимо.')) return;
+        if (!window.confirm(t('Удалить ручную отметку? Действие необратимо.'))) return;
         apiFetch('/api/v1/hr/attendance/manual/' + recordId + '/', { method: 'DELETE' })
           .then(function () { loadRecords(); })
-          .catch(function (err) { window.alert('Не удалось удалить: ' + err.message); });
+          .catch(function (err) { window.alert(t('Не удалось удалить: ') + err.message); });
       }
   
       var ACTION_LABELS = { create: 'Создание', update: 'Изменение', delete: 'Удаление' };
@@ -222,20 +241,20 @@
     function formatSnapshot(snapshot) {
       if (!snapshot) return '—';
       var parts = [];
-      if (snapshot.event_type) parts.push('тип: ' + (EVENT_LABELS[snapshot.event_type] || snapshot.event_type));
-      if (snapshot.timestamp) parts.push('время: ' + formatDateTime(snapshot.timestamp));
-      if (snapshot.manual_comment) parts.push('комментарий: «' + snapshot.manual_comment + '»');
+      if (snapshot.event_type) parts.push(t('тип: ') + (EVENT_LABELS[snapshot.event_type] || snapshot.event_type));
+      if (snapshot.timestamp) parts.push(t('время: ') + formatDateTime(snapshot.timestamp));
+      if (snapshot.manual_comment) parts.push(t('комментарий: «') + snapshot.manual_comment + '»');
       return parts.join(', ') || '—';
     }
 
     function openHistory(recordId) {
-      historyBody.innerHTML = '<div class="ma-table__loading">Загрузка…</div>';
+      historyBody.innerHTML = '<div class="ma-table__loading">' + t('Загрузка…') + '</div>';
       historyDialog.classList.add('is-open');
       apiFetch('/api/v1/hr/attendance/manual/' + recordId + '/history/')
         .then(function (data) {
           var logs = data.results || [];
           if (!logs.length) {
-            historyBody.innerHTML = '<p class="access-muted">История пуста.</p>';
+            historyBody.innerHTML = '<p class="access-muted">' + t('История пуста.') + '</p>';
             return;
           }
           historyBody.innerHTML = logs.map(function (log) {
@@ -246,15 +265,19 @@
                   '<span class="access-muted">' + formatDateTime(log.created_at) + (log.actor ? ' · ' + escapeHtml(log.actor) : '') + '</span>' +
                 '</div>' +
                 (log.action === 'update'
-                  ? '<div class="ma-history-item__diff"><div>До: ' + escapeHtml(formatSnapshot(log.before)) + '</div><div>После: ' + escapeHtml(formatSnapshot(log.after)) + '</div></div>'
-                  : '<div class="ma-history-item__diff">' + escapeHtml(formatSnapshot(log.action === 'delete' ? log.before : log.after)) + '</div>'
-                ) +
-              '</div>'
-            );
-          }).join('');
-        })
-        .catch(function (err) {
-          historyBody.innerHTML = '<p class="access-muted">Ошибка: ' + escapeHtml(err.message) + '</p>';
+                    ? '<div class="ma-history-item__diff"><div>' + t('До: ') + escapeHtml(formatSnapshot(log.before)) + '</div><div>' + t('После: ') + escapeHtml(formatSnapshot(log.after)) + '</div></div>'
+                    : '<div class="ma-history-item__diff">' + escapeHtml(formatSnapshot(log.action === 'delete' ? log.before : log.after)) + '</div>'
+                  ) +
+                '</div>'
+              );
+            }).join('');
+  
+            if (window.BPM && window.BPM.applyTranslations) {
+              window.BPM.applyTranslations();
+            }
+          })
+          .catch(function (err) {
+            historyBody.innerHTML = '<p class="access-muted">' + t('Ошибка: ') + escapeHtml(err.message) + '</p>';
         });
     }
   

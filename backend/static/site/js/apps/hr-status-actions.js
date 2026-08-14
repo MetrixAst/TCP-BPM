@@ -1,5 +1,9 @@
 (function () {
-    'use strict';
+  'use strict';
+
+  function t(text) {
+    return (window.BPM && window.BPM.t) ? window.BPM.t(text, text) : text;
+  }
   
     function getCsrfToken() {
       var match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
@@ -34,9 +38,9 @@
     function openStatusDialog(action, targets) {
       return new Promise(function (resolve) {
         var isDeactivate = action === 'deactivate';
-        var title = isDeactivate ? 'Деактивировать сотрудника' : 'Активировать сотрудника';
+        var title = isDeactivate ? t('Деактивировать сотрудника') : t('Активировать сотрудника');
         if (targets.length > 1) {
-          title = isDeactivate ? 'Деактивировать сотрудников (' + targets.length + ')' : 'Активировать сотрудников (' + targets.length + ')';
+          title = isDeactivate ? t('Деактивировать сотрудников (') + targets.length + ')' : t('Активировать сотрудников (') + targets.length + ')';
         }
   
         var listHtml = targets.map(function (t) {
@@ -53,20 +57,24 @@
             '<h3 class="hr-status-dialog__title">' + title + '</h3>' +
             '<div class="hr-status-dialog__people">' + listHtml + '</div>' +
             (isDeactivate
-              ? '<label class="hr-status-dialog__label">Причина деактивации (минимум 5 символов)</label>' +
-                '<textarea class="hr-status-dialog__textarea" data-reason rows="3" placeholder="Например: увольнение по собственному желанию"></textarea>' +
+              ? '<label class="hr-status-dialog__label">' + t('Причина деактивации (минимум 5 символов)') + '</label>' +
+                '<textarea class="hr-status-dialog__textarea" data-reason rows="3" placeholder="' + t('Например: увольнение по собственному желанию') + '"></textarea>' +
                 '<p class="hr-status-dialog__error" data-error style="display:none"></p>'
-              : '<label class="hr-status-dialog__label">Комментарий (необязательно)</label>' +
-                '<textarea class="hr-status-dialog__textarea" data-reason rows="2" placeholder="Например: возвращение из отпуска"></textarea>'
+              : '<label class="hr-status-dialog__label">' + t('Комментарий (необязательно)') + '</label>' +
+                '<textarea class="hr-status-dialog__textarea" data-reason rows="2" placeholder="' + t('Например: возвращение из отпуска') + '"></textarea>'
             ) +
             '<div class="hr-status-dialog__actions">' +
-              '<button type="button" class="hr-btn hr-btn--light" data-cancel>Отмена</button>' +
+              '<button type="button" class="hr-btn hr-btn--light" data-cancel>' + t('Отмена') + '</button>' +
               '<button type="button" class="hr-btn ' + (isDeactivate ? 'hr-btn--danger' : 'hr-btn--primary') + '" data-confirm>' +
-                (isDeactivate ? 'Деактивировать' : 'Активировать') +
+                (isDeactivate ? t('Деактивировать') : t('Активировать')) +
               '</button>' +
             '</div>' +
           '</div>';
-        document.body.appendChild(overlay);
+        (document.getElementById('bpmMain') || document.body).appendChild(overlay);
+
+        if (window.BPM && window.BPM.applyTranslations) {
+          window.BPM.applyTranslations();
+        }
   
         var textarea = overlay.querySelector('[data-reason]');
         var errorEl = overlay.querySelector('[data-error]');
@@ -74,7 +82,7 @@
         var cancelBtn = overlay.querySelector('[data-cancel]');
   
         function close(result) {
-          document.body.removeChild(overlay);
+          (document.getElementById('bpmMain') || document.body).removeChild(overlay)
           document.removeEventListener('keydown', onKey);
           resolve(result);
         }
@@ -83,7 +91,7 @@
         confirmBtn.addEventListener('click', function () {
           var reason = textarea.value.trim();
           if (isDeactivate && reason.length < 5) {
-            errorEl.textContent = 'Причина должна содержать не менее 5 символов.';
+            errorEl.textContent = t('Причина должна содержать не менее 5 символов.');
             errorEl.style.display = 'block';
             textarea.focus();
             return;
@@ -120,7 +128,7 @@
             });
             window.location.reload();
           } catch (err) {
-            window.alert('Не удалось выполнить действие: ' + err.message);
+            window.alert(t('Не удалось выполнить действие: ') + err.message);
             btn.disabled = false;
           }
         });
@@ -150,15 +158,15 @@
           return;
         }
         bulkBar.hidden = false;
-        bulkCount.textContent = items.length + ' выбрано';
+        bulkCount.textContent = items.length + t(' выбрано');
   
         var allActive = items.every(function (i) { return i.status === 'active'; });
         var allDismissed = items.every(function (i) { return i.status !== 'active'; });
   
         activateBtn.disabled = allActive;
-        activateBtn.title = allActive ? 'Все выбранные уже активны' : '';
+        activateBtn.title = allActive ? t('Все выбранные уже активны') : '';
         deactivateBtn.disabled = allDismissed;
-        deactivateBtn.title = allDismissed ? 'Все выбранные уже деактивированы' : '';
+        deactivateBtn.title = allDismissed ? t('Все выбранные уже деактивированы') : '';
       }
   
       checkboxes.forEach(function (cb) {
@@ -192,7 +200,7 @@
             });
             window.location.reload();
           } catch (err) {
-            window.alert('Не удалось выполнить массовое действие: ' + err.message);
+            window.alert(t('Не удалось выполнить массовое действие: ') + err.message);
             btn.disabled = false;
           }
         });

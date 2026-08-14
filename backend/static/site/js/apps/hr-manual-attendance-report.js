@@ -1,6 +1,10 @@
 (function () {
     'use strict';
   
+    function t(text) {
+      return (window.BPM && window.BPM.t) ? window.BPM.t(text, text) : text;
+    }
+  
     function getCsrfToken() {
       var match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
       return match ? decodeURIComponent(match[1]) : '';
@@ -41,7 +45,6 @@
         var dateTo = document.getElementById('marDateTo').value;
         var employee = document.getElementById('marEmployee').value;
         var author = document.getElementById('marAuthor').value;
-  
         if (dateFrom) params.set('date_from', dateFrom);
         if (dateTo) params.set('date_to', dateTo);
         if (employee) params.set('employee_id', employee);
@@ -50,12 +53,12 @@
       }
   
       function loadReport() {
-        tbody.innerHTML = '<div class="ma-table__loading">Загрузка…</div>';
+        tbody.innerHTML = '<div class="ma-table__loading">' + t('Загрузка…') + '</div>';
         apiFetch('/api/v1/hr/attendance/report/?' + buildQuery())
           .then(function (data) {
             var rows = Array.isArray(data) ? data : (data.results || []);
             if (!rows.length) {
-              tbody.innerHTML = '<div class="ma-table__empty">Нет данных за выбранный период.</div>';
+              tbody.innerHTML = '<div class="ma-table__empty">' + t('Нет данных за выбранный период.') + '</div>';
               return;
             }
             tbody.innerHTML = rows.map(function (r) {
@@ -66,13 +69,17 @@
                   '<div>' + r.total_records + '</div>' +
                   '<div>' + r.manual_records + '</div>' +
                   '<div>' + r.auto_records + '</div>' +
-                  '<div>' + r.total_work_hours + ' ч.</div>' +
+                  '<div>' + r.total_work_hours + ' ' + t('ч.') + '</div>' +
                 '</div>'
               );
             }).join('');
+  
+            if (window.BPM && window.BPM.applyTranslations) {
+              window.BPM.applyTranslations();
+            }
           })
           .catch(function (err) {
-            tbody.innerHTML = '<div class="ma-table__loading">Ошибка: ' + escapeHtml(err.message) + '</div>';
+            tbody.innerHTML = '<div class="ma-table__loading">' + t('Ошибка: ') + escapeHtml(err.message) + '</div>';
           });
       }
   
