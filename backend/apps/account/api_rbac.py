@@ -5,6 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import serializers as drf_serializers
 
 from account.drf_permissions import HasAppPermission
 from account.models import UserAccount, Notification, NotificationUser
@@ -304,8 +305,19 @@ class PermissionAuditLogViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
         return qs
 
+
+class NotificationSerializer(drf_serializers.Serializer):
+    id = drf_serializers.IntegerField()
+    title = drf_serializers.CharField()
+    text = drf_serializers.CharField()
+    created_date = drf_serializers.DateTimeField()
+    target_id = drf_serializers.IntegerField()
+    target_type = drf_serializers.CharField()
+    is_read = drf_serializers.BooleanField()
+
 class NotificationViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
 
     def get_queryset(self):
         return Notification.objects.filter(users=self.request.user).order_by('-created_date')
