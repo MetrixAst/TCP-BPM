@@ -30,6 +30,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
 
   bool _isLoading = true;
   bool _isPerformingAction = false;
+  bool _isDeleting = false;
   String? _errorMessage;
   TaskDto? _task;
 
@@ -104,11 +105,94 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     }
   }
 
+  Future<void> _handleDelete() async {
+    final reasonController = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            final trimmed = reasonController.text.trim();
+            return AlertDialog(
+              title: const Text('Удалить задачу?'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Укажите причину удаления (не менее 5 символов).'),
+                  const SizedBox(height: AppSpacing.sm),
+                  TextField(
+                    controller: reasonController,
+                    autofocus: true,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      hintText: 'Причина удаления',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Отмена'),
+                ),
+                TextButton(
+                  onPressed: trimmed.length < 5
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(trimmed),
+                  style: TextButton.styleFrom(foregroundColor: MetrixColors.danger),
+                  child: const Text('Удалить'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (reason == null || !mounted) return;
+
+    setState(() => _isDeleting = true);
+
+    final result = await _repository.deleteTask(widget.taskId, reason: reason);
+
+    if (!mounted) return;
+
+    setState(() => _isDeleting = false);
+
+    switch (result) {
+      case Success():
+        Navigator.of(context).pop(true);
+      case Failure(:final message):
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MetrixColors.surfaceMuted,
-      appBar: AppTopBar(title: _task != null ? 'Задача #${_task!.id}' : 'Задача'),
+      appBar: AppTopBar(
+        title: _task != null ? 'Задача #${_task!.id}' : 'Задача',
+        actions: (_task?.canDelete ?? false)
+            ? [
+                IconButton(
+                  icon: _isDeleting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_outline, color: MetrixColors.danger),
+                  onPressed: _isDeleting ? null : _handleDelete,
+                ),
+              ]
+            : null,
+      ),
       body: _buildBody(),
     );
   }

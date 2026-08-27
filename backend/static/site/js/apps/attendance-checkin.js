@@ -48,6 +48,11 @@
         typeof navigator.mediaDevices.getUserMedia === 'function'
       );
     }
+
+    function currentMode() {
+      const checked = document.querySelector('input[name="checkin_mode"]:checked');
+      return checked ? checked.value : 'face';
+    }
   
     function setLiveMode() {
       capturedPhoto = null;
@@ -68,9 +73,21 @@
       captureBtn.hidden = true;
     }
   
+    function stopCamera() {
+      if (stream) {
+        stream.getTracks().forEach(function (track) {
+          track.stop();
+        });
+        stream = null;
+      }
+      video.hidden = true;
+      empty.hidden = false;
+      hideMessage();
+    }
+
     async function startCamera() {
       hideMessage();
-  
+
       if (!isWebRTCSupported()) {
         video.hidden = true;
         empty.hidden = false;
@@ -208,6 +225,16 @@
         });
       }
     });
-  
-    startCamera();
+
+    document.addEventListener('attendance:mode-change', function (e) {
+      if (e.detail.mode === 'face') {
+        startCamera();
+      } else {
+        stopCamera();
+      }
+    });
+
+    if (currentMode() === 'face') {
+      startCamera();
+    }
   })();

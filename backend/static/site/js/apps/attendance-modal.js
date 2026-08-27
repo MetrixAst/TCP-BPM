@@ -40,8 +40,21 @@
       return div.innerHTML;
     }
 
-    function buildMedia(photoUrl, lat, lng, address) {
-      var html = '';
+    function t(ru) {
+      return window.BPM ? window.BPM.t(ru, ru) : ru;
+    }
+
+    function sourceBadge(source) {
+      if (!source) return '';
+      var isQr = source === 'qr';
+      var label = isQr ? t('QR-код') : t('Лицо');
+      var icon = isQr ? 'bi-qr-code-scan' : 'bi-camera';
+      return '<span class="att-source-badge' + (isQr ? ' att-source-badge--qr' : '') + '">'
+           + '<i class="bi ' + icon + '"></i>' + escapeHtml(label) + '</span>';
+    }
+
+    function buildMedia(photoUrl, lat, lng, address, source) {
+      var html = sourceBadge(source);
       if (photoUrl) {
         html += '<img class="att-event-photo" src="' + photoUrl + '" alt="" data-lb="' + photoUrl + '">';
       }
@@ -115,12 +128,16 @@
       var arrLat      = row.dataset.arrivalLat      || '';
       var arrLng      = row.dataset.arrivalLng      || '';
       var arrAddress  = row.dataset.arrivalAddress  || '';
+      var arrSource   = row.dataset.arrivalSource   || '';
       var lsPhoto     = row.dataset.lunchStartPhoto || '';
+      var lsSource    = row.dataset.lunchStartSource || '';
       var lePhoto     = row.dataset.lunchEndPhoto   || '';
+      var leSource    = row.dataset.lunchEndSource  || '';
       var depPhoto    = row.dataset.departurePhoto  || '';
       var depLat      = row.dataset.departureLat    || '';
       var depLng      = row.dataset.departureLng    || '';
       var depAddress  = row.dataset.departureAddress || '';
+      var depSource   = row.dataset.departureSource || '';
 
       if (statusEl) setStatus(statusEl, noRec, late, early, !!arrival);
 
@@ -135,9 +152,9 @@
         else                        lunchEl.textContent = '—';
       }
 
-      function fillMedia(el, photo, lat, lng, address) {
+      function fillMedia(el, photo, lat, lng, address, source) {
         if (!el) return;
-        el.innerHTML = buildMedia(photo, lat, lng, address);
+        el.innerHTML = buildMedia(photo, lat, lng, address, source);
         bindPhotoLightbox(el);
         if (!address && lat && lng) {
           var resolveUrl = modal.getAttribute('data-resolve-url');
@@ -147,7 +164,7 @@
               .then(function (r) { return r.json(); })
               .then(function (data) {
                 if (data.address) {
-                  el.innerHTML = buildMedia(photo, lat, lng, data.address);
+                  el.innerHTML = buildMedia(photo, lat, lng, data.address, source);
                   bindPhotoLightbox(el);
                 }
               })
@@ -167,15 +184,21 @@
         });
       }
 
-      fillMedia(arrMedia, arrPhoto, arrLat, arrLng, arrAddress);
+      fillMedia(arrMedia, arrPhoto, arrLat, arrLng, arrAddress, arrSource);
       if (lunchMedia) {
         var lunchHtml = '';
-        if (lsPhoto) lunchHtml += '<img class="att-event-photo" src="' + lsPhoto + '" alt="" data-lb="' + lsPhoto + '">';
-        if (lePhoto) lunchHtml += '<img class="att-event-photo" src="' + lePhoto + '" alt="" data-lb="' + lePhoto + '">';
+        if (lsPhoto || lsSource) {
+          lunchHtml += sourceBadge(lsSource);
+          if (lsPhoto) lunchHtml += '<img class="att-event-photo" src="' + lsPhoto + '" alt="" data-lb="' + lsPhoto + '">';
+        }
+        if (lePhoto || leSource) {
+          lunchHtml += sourceBadge(leSource);
+          if (lePhoto) lunchHtml += '<img class="att-event-photo" src="' + lePhoto + '" alt="" data-lb="' + lePhoto + '">';
+        }
         lunchMedia.innerHTML = lunchHtml;
         bindPhotoLightbox(lunchMedia);
       }
-      fillMedia(depMedia, depPhoto, depLat, depLng, depAddress);
+      fillMedia(depMedia, depPhoto, depLat, depLng, depAddress, depSource);
 
       // Итого
       if (totalEl && totalText) {

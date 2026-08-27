@@ -137,6 +137,9 @@ class TicketsRepository {
   }
   
   String _errorMessage(DioException e) {
+    if (e.response?.statusCode == 403) {
+      return 'У вас нет доступа к этому разделу';
+    }
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
       return 'Сервер не отвечает, проверьте соединение';

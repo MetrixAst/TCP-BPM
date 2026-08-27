@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_result.dart';
@@ -16,6 +18,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/outbox_repository.dart';
 
+enum _CheckinMode { face, qr }
+
 class CheckinScreen extends StatefulWidget {
   const CheckinScreen({super.key});
 
@@ -28,6 +32,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
   late final OutboxRepository _outboxRepo;
   final CheckinCaptureService _captureService = CheckinCaptureService();
 
+  _CheckinMode _mode = _CheckinMode.face;
   CheckinEventType? _selectedType;
   File? _capturedPhoto;
   double? _latitude;
@@ -163,6 +168,62 @@ class _CheckinScreenState extends State<CheckinScreen> {
     });
   }
 
+  Future<void> _handleScanQr() async {
+    final type = _selectedType;
+    if (type == null) {
+      setState(() => _errorMessage = 'Выберите тип отметки');
+      return;
+    }
+
+    final token = await context.push<String>('/qr-scanner');
+    if (token == null || !mounted) return;
+
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+      _successMessage = null;
+    });
+
+    final connectivity = await Connectivity().checkConnectivity();
+    final isOffline = connectivity.every((r) => r == ConnectivityResult.none);
+
+    // QR-токен короткоживущий: если сохранить попытку в offline-очередь и
+    // отправить её позже, к моменту доставки токен почти наверняка истечёт,
+    // а сотруднику уже показали бы "успех". Поэтому в офлайне сразу ошибка,
+    // без записи в OutboxRepository (в отличие от Face-чекина).
+    if (isOffline) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _errorMessage = 'Нет сети. Отсканируйте QR ещё раз, когда появится соединение.';
+      });
+      return;
+    }
+
+    final result = await _repository.checkinQr(
+      eventType: type.value,
+      token: token,
+      latitude: _latitude,
+      longitude: _longitude,
+      idempotencyKey: const Uuid().v4(),
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isSubmitting = false;
+      switch (result) {
+        case Success():
+          _successMessage = 'Отметка сохранена';
+          _completedTypes = {..._completedTypes, type};
+          final available = CheckinEventType.values.where((t) => !_completedTypes.contains(t));
+          _selectedType = available.isNotEmpty ? available.first : null;
+        case Failure(:final message):
+          _errorMessage = message;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -201,6 +262,29 @@ class _CheckinScreenState extends State<CheckinScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          SegmentedButton<_CheckinMode>(
+            segments: const [
+              ButtonSegment(
+                value: _CheckinMode.face,
+                label: Text('По лицу'),
+                icon: Icon(Icons.face_retouching_natural),
+              ),
+              ButtonSegment(
+                value: _CheckinMode.qr,
+                label: Text('По QR-коду'),
+                icon: Icon(Icons.qr_code_scanner),
+              ),
+            ],
+            selected: {_mode},
+            onSelectionChanged: (selection) {
+              setState(() {
+                _mode = selection.first;
+                _errorMessage = null;
+                _successMessage = null;
+              });
+            },
+          ),
+          const SizedBox(height: AppSpacing.md),
           AppCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -235,48 +319,83 @@ class _CheckinScreenState extends State<CheckinScreen> {
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          AppCard(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: _capturedPhoto != null
-                      ? Image.file(_capturedPhoto!, height: 220, width: double.infinity, fit: BoxFit.cover)
-                      : Container(
-                          height: 220,
-                          width: double.infinity,
-                          color: MetrixColors.surfaceMuted,
-                          child: const Icon(Icons.camera_alt_outlined, size: 44, color: MetrixColors.textMuted),
+          if (_mode == _CheckinMode.face) ...[
+            const SizedBox(height: AppSpacing.md),
+            AppCard(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: _capturedPhoto != null
+                        ? Image.file(_capturedPhoto!, height: 220, width: double.infinity, fit: BoxFit.cover)
+                        : Container(
+                            height: 220,
+                            width: double.infinity,
+                            color: MetrixColors.surfaceMuted,
+                            child: const Icon(Icons.camera_alt_outlined, size: 44, color: MetrixColors.textMuted),
+                          ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  if (_latitude != null && _longitude != null)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.location_on, size: 16, color: MetrixColors.accent),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${_latitude!.toStringAsFixed(5)}, ${_longitude!.toStringAsFixed(5)}',
+                          style: const TextStyle(fontSize: 12, color: MetrixColors.textMuted),
                         ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                if (_latitude != null && _longitude != null)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.location_on, size: 16, color: MetrixColors.accent),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${_latitude!.toStringAsFixed(5)}, ${_longitude!.toStringAsFixed(5)}',
-                        style: const TextStyle(fontSize: 12, color: MetrixColors.textMuted),
-                      ),
-                    ],
-                  )
-                else if (_capturedPhoto != null)
-                  const Text('Геолокация недоступна', style: TextStyle(fontSize: 12, color: MetrixColors.warning)),
-                const SizedBox(height: AppSpacing.sm),
-                AppButton(
-                  label: _capturedPhoto == null ? 'Сделать фото' : 'Переснять',
-                  variant: AppButtonVariant.secondary,
-                  icon: Icons.camera_alt,
-                  isLoading: _isCapturing,
-                  onPressed: _handleCapture,
-                ),
-              ],
+                      ],
+                    )
+                  else if (_capturedPhoto != null)
+                    const Text('Геолокация недоступна', style: TextStyle(fontSize: 12, color: MetrixColors.warning)),
+                  const SizedBox(height: AppSpacing.sm),
+                  AppButton(
+                    label: _capturedPhoto == null ? 'Сделать фото' : 'Переснять',
+                    variant: AppButtonVariant.secondary,
+                    icon: Icons.camera_alt,
+                    isLoading: _isCapturing,
+                    onPressed: _handleCapture,
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
+          if (_mode == _CheckinMode.qr) ...[
+            const SizedBox(height: AppSpacing.md),
+            AppCard(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  Container(
+                    height: 160,
+                    width: double.infinity,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: MetrixColors.surfaceMuted,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.qr_code_scanner, size: 44, color: MetrixColors.textMuted),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  const Text(
+                    'Наведите камеру на QR-код на экране точки входа',
+                    style: TextStyle(fontSize: 12, color: MetrixColors.textMuted),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  AppButton(
+                    label: 'Сканировать QR',
+                    icon: Icons.qr_code_scanner,
+                    isLoading: _isSubmitting,
+                    onPressed: _selectedType == null ? null : _handleScanQr,
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: AppSpacing.md),
           if (_errorMessage != null)
             Padding(
@@ -288,11 +407,12 @@ class _CheckinScreenState extends State<CheckinScreen> {
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: Text(_successMessage!, style: const TextStyle(color: MetrixColors.accent), textAlign: TextAlign.center),
             ),
-          AppButton(
-            label: 'Отправить отметку',
-            isLoading: _isSubmitting,
-            onPressed: (_capturedPhoto == null || _selectedType == null) ? null : _handleSubmit,
-          ),
+          if (_mode == _CheckinMode.face)
+            AppButton(
+              label: 'Отправить отметку',
+              isLoading: _isSubmitting,
+              onPressed: (_capturedPhoto == null || _selectedType == null) ? null : _handleSubmit,
+            ),
         ],
       ),
     );

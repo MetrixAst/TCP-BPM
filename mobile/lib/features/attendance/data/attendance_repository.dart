@@ -38,6 +38,32 @@ class AttendanceRepository {
     }
   }
 
+  Future<ApiResult<void>> checkinQr({
+    required String eventType,
+    required String token,
+    double? latitude,
+    double? longitude,
+    String? idempotencyKey,
+  }) async {
+    try {
+      await dio.post(
+        '/api/v1/mobile/attendance/qr-checkin/',
+        data: {
+          'event_type': eventType,
+          'token': token,
+          if (latitude != null) 'latitude': latitude,
+          if (longitude != null) 'longitude': longitude,
+        },
+        options: idempotencyKey != null
+            ? Options(headers: {'Idempotency-Key': idempotencyKey})
+            : null,
+      );
+      return const Success(null);
+    } on DioException catch (e) {
+      return Failure(_qrErrorMessage(e), statusCode: e.response?.statusCode);
+    }
+  }
+
   Future<ApiResult<List<AttendanceTodayStatus>>> getToday() async {
       try {
         final response = await dio.get('/api/v1/mobile/attendance/today/');
@@ -46,6 +72,32 @@ class AttendanceRepository {
       } on DioException catch (e) {
         return Failure(_errorMessage(e), statusCode: e.response?.statusCode);
       }
+  }
+
+  String _qrErrorMessage(DioException e) {
+    final status = e.response?.statusCode;
+    if (status == 400) {
+      final data = e.response?.data;
+      if (data is Map && data['error'] != null) {
+        return data['error'].toString();
+      }
+      return 'Недействительный QR-код';
+    }
+    if (status == 409) {
+      final data = e.response?.data;
+      if (data is Map && data['error'] != null) {
+        return data['error'].toString();
+      }
+      return 'Этот QR-код уже использован';
+    }
+    if (status == 403) {
+      return 'Профиль сотрудника не найден';
+    }
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      return 'Сервер не отвечает, проверьте соединение';
+    }
+    return 'Ошибка сети, попробуйте ещё раз';
   }
 
   String _errorMessage(DioException e) {

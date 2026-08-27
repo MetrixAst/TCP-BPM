@@ -32,6 +32,7 @@ class TaskDto {
   final TaskUserDto author;
   final TaskUserDto? executor;
   final List<TaskActionDto> availableActions;
+  final bool canDelete;
   final List<TaskHistoryEntryDto> history;
 
   const TaskDto({
@@ -49,6 +50,7 @@ class TaskDto {
     required this.author,
     this.executor,
     required this.availableActions,
+    required this.canDelete,
     required this.history,
   });
 
@@ -72,6 +74,7 @@ class TaskDto {
       availableActions: (json['available_actions'] as List<dynamic>? ?? [])
           .map((a) => TaskActionDto.fromJson(a as Map<String, dynamic>))
           .toList(),
+      canDelete: json['can_delete'] as bool? ?? false,
       history: (json['history'] as List<dynamic>? ?? [])
           .map((h) => TaskHistoryEntryDto.fromJson(h as Map<String, dynamic>))
           .toList(),
