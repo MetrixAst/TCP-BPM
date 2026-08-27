@@ -168,15 +168,19 @@ class _CheckinScreenState extends State<CheckinScreen> {
     });
   }
 
-  Future<void> _handleScanQr() async {
-    final type = _selectedType;
-    if (type == null) {
-      setState(() => _errorMessage = 'Выберите тип отметки');
-      return;
-    }
+  /// QR на киоске кодирует полную ссылку вида ".../qr-checkin/?token=...",
+  /// а не голый токен — вытаскиваем параметр, если он есть, иначе считаем
+  /// декодированный текст уже готовым токеном.
+  String _extractToken(String scanned) {
+    final uri = Uri.tryParse(scanned);
+    final fromQuery = uri?.queryParameters['token'];
+    return (fromQuery != null && fromQuery.isNotEmpty) ? fromQuery : scanned;
+  }
 
-    final token = await context.push<String>('/qr-scanner');
-    if (token == null || !mounted) return;
+  Future<void> _handleScanQr() async {
+    final scanned = await context.push<String>('/qr-scanner');
+    if (scanned == null || !mounted) return;
+    final token = _extractToken(scanned);
 
     setState(() {
       _isSubmitting = true;
@@ -201,10 +205,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
     }
 
     final result = await _repository.checkinQr(
-      eventType: type.value,
       token: token,
-      latitude: _latitude,
-      longitude: _longitude,
       idempotencyKey: const Uuid().v4(),
     );
 
@@ -213,9 +214,16 @@ class _CheckinScreenState extends State<CheckinScreen> {
     setState(() {
       _isSubmitting = false;
       switch (result) {
-        case Success():
+        case Success(:final data):
           _successMessage = 'Отметка сохранена';
-          _completedTypes = {..._completedTypes, type};
+          // Тип отметки решает точка сканирования, а не выбор в приложении —
+          // отмечаем как выполненный именно тот тип, что подтвердил сервер.
+          final markedType = CheckinEventType.values
+              .where((t) => t.value == data)
+              .firstOrNull;
+          if (markedType != null) {
+            _completedTypes = {..._completedTypes, markedType};
+          }
           final available = CheckinEventType.values.where((t) => !_completedTypes.contains(t));
           _selectedType = available.isNotEmpty ? available.first : null;
         case Failure(:final message):
@@ -284,41 +292,43 @@ class _CheckinScreenState extends State<CheckinScreen> {
               });
             },
           ),
-          const SizedBox(height: AppSpacing.md),
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('Тип отметки', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: MetrixColors.textMuted)),
-                const SizedBox(height: AppSpacing.xs),
-                DropdownButtonFormField<CheckinEventType>(
-                  initialValue: _selectedType,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: MetrixColors.surfaceMuted,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: MetrixColors.border),
-                    ),
-                  ),
-                  items: CheckinEventType.values.map((type) {
-                    final done = _completedTypes.contains(type);
-                    return DropdownMenuItem(
-                      value: type,
-                      enabled: !done,
-                      child: Text(
-                        done ? '${type.label} (уже отмечено)' : type.label,
-                        style: TextStyle(color: done ? MetrixColors.textMuted : MetrixColors.text),
+          if (_mode == _CheckinMode.face) ...[
+            const SizedBox(height: AppSpacing.md),
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Тип отметки', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: MetrixColors.textMuted)),
+                  const SizedBox(height: AppSpacing.xs),
+                  DropdownButtonFormField<CheckinEventType>(
+                    initialValue: _selectedType,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: MetrixColors.surfaceMuted,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: MetrixColors.border),
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) setState(() => _selectedType = value);
-                  },
-                ),
-              ],
+                    ),
+                    items: CheckinEventType.values.map((type) {
+                      final done = _completedTypes.contains(type);
+                      return DropdownMenuItem(
+                        value: type,
+                        enabled: !done,
+                        child: Text(
+                          done ? '${type.label} (уже отмечено)' : type.label,
+                          style: TextStyle(color: done ? MetrixColors.textMuted : MetrixColors.text),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) setState(() => _selectedType = value);
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
           if (_mode == _CheckinMode.face) ...[
             const SizedBox(height: AppSpacing.md),
             AppCard(
@@ -390,7 +400,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                     label: 'Сканировать QR',
                     icon: Icons.qr_code_scanner,
                     isLoading: _isSubmitting,
-                    onPressed: _selectedType == null ? null : _handleScanQr,
+                    onPressed: _handleScanQr,
                   ),
                 ],
               ),

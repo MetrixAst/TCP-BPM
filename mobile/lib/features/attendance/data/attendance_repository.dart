@@ -38,27 +38,22 @@ class AttendanceRepository {
     }
   }
 
-  Future<ApiResult<void>> checkinQr({
-    required String eventType,
+  /// event_type отметки определяет сама QR-точка (зашит в токен) — сервер
+  /// его игнорирует, если прислать свой, и возвращает реальный в ответе.
+  Future<ApiResult<String>> checkinQr({
     required String token,
-    double? latitude,
-    double? longitude,
     String? idempotencyKey,
   }) async {
     try {
-      await dio.post(
+      final response = await dio.post(
         '/api/v1/mobile/attendance/qr-checkin/',
-        data: {
-          'event_type': eventType,
-          'token': token,
-          if (latitude != null) 'latitude': latitude,
-          if (longitude != null) 'longitude': longitude,
-        },
+        data: {'token': token},
         options: idempotencyKey != null
             ? Options(headers: {'Idempotency-Key': idempotencyKey})
             : null,
       );
-      return const Success(null);
+      final data = response.data as Map<String, dynamic>;
+      return Success(data['event_type'] as String? ?? '');
     } on DioException catch (e) {
       return Failure(_qrErrorMessage(e), statusCode: e.response?.statusCode);
     }

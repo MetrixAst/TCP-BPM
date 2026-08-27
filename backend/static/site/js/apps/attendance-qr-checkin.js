@@ -29,21 +29,6 @@
     message.textContent = '';
   }
 
-  function getCsrfToken() {
-    const cookie = document.cookie
-      .split('; ')
-      .find(function (row) {
-        return row.startsWith('csrftoken=');
-      });
-
-    return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
-  }
-
-  function getEventType() {
-    const checked = document.querySelector('input[name="event_type"]:checked');
-    return checked ? checked.value : 'day_start';
-  }
-
   function isWebRTCSupported() {
     return Boolean(
       navigator.mediaDevices &&
@@ -51,56 +36,34 @@
     );
   }
 
-  function getGeoQuick() {
-    return new Promise(function (resolve) {
-      if (!navigator.geolocation) {
-        resolve(null);
-        return;
-      }
-      let done = false;
-      const timer = setTimeout(function () {
-        if (!done) {
-          done = true;
-          resolve(null);
-        }
-      }, 3000);
-
-      navigator.geolocation.getCurrentPosition(
-        function (pos) {
-          if (done) return;
-          done = true;
-          clearTimeout(timer);
-          resolve({
-            latitude: Math.round(pos.coords.latitude * 1e7) / 1e7,
-            longitude: Math.round(pos.coords.longitude * 1e7) / 1e7,
-          });
-        },
-        function () {
-          if (done) return;
-          done = true;
-          clearTimeout(timer);
-          resolve(null);
-        },
-        { timeout: 3000, maximumAge: 30000 }
-      );
-    });
+  // QR-код на киоске кодирует полный URL вида
+  // ".../hr/attendance/qr-checkin/?token=...&" (см. qr_kiosk.html), а не
+  // голый токен. Сервер (hr.views.qr_checkin) читает token из GET/POST,
+  // тип отметки и гео не принимает — их определяет сама точка/токен.
+  function extractToken(decodedText) {
+    try {
+      const url = new URL(decodedText);
+      const token = url.searchParams.get('token');
+      if (token) return { token: token, url: decodedText };
+    } catch (e) {
+      // не абсолютный URL — считаем, что это голый токен
+    }
+    return { token: decodedText, url: null };
   }
 
-  async function postQrCheckin(token, eventType, geo) {
-    const url = modeGroup.getAttribute('data-qr-post-url');
+  async function postQrCheckin(decodedText) {
+    const parsed = extractToken(decodedText);
+    if (!parsed.token) {
+      throw new Error(t('Недействительный QR-код'));
+    }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getCsrfToken()
-      },
-      body: JSON.stringify({
-        event_type: eventType,
-        token: token,
-        latitude: geo ? geo.latitude : null,
-        longitude: geo ? geo.longitude : null,
-      })
+    const targetUrl = parsed.url ||
+      (modeGroup.getAttribute('data-qr-post-url') + '?token=' + encodeURIComponent(parsed.token));
+
+    const response = await fetch(targetUrl, {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
     });
 
     let data = {};
@@ -127,12 +90,7 @@
 
     showMessage(t('Обнаружен QR-код, отправка…'), 'info');
 
-    const eventType = getEventType();
-
-    getGeoQuick()
-      .then(function (geo) {
-        return postQrCheckin(text, eventType, geo);
-      })
+    postQrCheckin(text)
       .then(function () {
         showMessage(t('Отметка сохранена. Обновляем страницу…'), 'success');
         setTimeout(function () {
@@ -224,7 +182,7 @@
     if (modeGroup.getAttribute('data-all-done') === '1') {
       video.hidden = true;
       empty.hidden = false;
-      showMessage(t('На сегодня все четыре отметки уже сданы. Новую можно сделать завтра.'), 'success');
+      showMessage(t('На сегодня все отметки уже сданы. Новую можно сделать завтра.'), 'success');
       return;
     }
 
