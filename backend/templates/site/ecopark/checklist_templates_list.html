@@ -1,0 +1,78 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Чек-листы обходов — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page" id="hrRegistryPage">
+
+  <div class="hr-registry-top">
+    <div>
+      <h1>Чек-листы обходов</h1>
+      <p class="attendance-page__subtitle">
+        Списки пунктов, которые сотрудник проверяет на точке во время обхода
+      </p>
+    </div>
+    <div class="hr-registry-top__actions">
+      <a href="{% url 'ecopark:checklist_template_create' %}" class="hr-registry-btn hr-registry-btn--primary">
+        <i class="bi bi-plus-lg"></i> Добавить чек-лист
+      </a>
+    </div>
+  </div>
+
+  <div class="hr-registry-panel">
+    <div class="hr-registry-table-wrap">
+      <table class="hr-registry-table">
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Пунктов</th>
+            <th>Статус</th>
+            <th class="hr-registry-table__actions">Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for template in templates %}
+          <tr>
+            <td><strong>{{ template.name }}</strong></td>
+            <td>{{ template.items.count }}</td>
+            <td>
+              {% if template.is_active %}
+                <span class="hr-registry-status hr-registry-status--active">Активен</span>
+              {% else %}
+                <span class="hr-registry-status hr-registry-status--expired">Неактивен</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="hr-registry-actions">
+                <a href="{% url 'ecopark:checklist_template_edit' template.pk %}" class="hr-icon-btn" title="Редактировать">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'ecopark:checklist_template_delete' template.pk %}" class="hr-icon-btn hr-icon-btn--danger" title="Удалить">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4">
+              <div class="hr-registry-empty">
+                <i class="bi bi-card-checklist"></i>
+                <strong>Чек-листов ещё нет</strong>
+                <span>Добавьте первый чек-лист и назначьте его точкам обхода.</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

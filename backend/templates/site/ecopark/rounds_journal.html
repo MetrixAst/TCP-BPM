@@ -1,0 +1,149 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Журнал обходов — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .rj-kpi-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;
+  }
+  @media (max-width: 900px) { .rj-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  .rj-kpi-card {
+    background: #fff; border: 1px solid #eceaf3; border-radius: 14px; padding: 14px 18px;
+  }
+  .rj-kpi-card__label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #74728a; }
+  .rj-kpi-card__value { font-size: 24px; font-weight: 700; color: #25233f; margin-top: 4px; }
+  .rj-kpi-card--warn .rj-kpi-card__value { color: #ff3b30; }
+  .rj-filters {
+    background: #fff; border-radius: 14px; padding: 14px 18px; margin-bottom: 14px;
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+  }
+  .rj-filters .hr-form-input { min-width: 160px; }
+  .rj-filters label { font-size: 11px; color: #74728a; display: block; margin-bottom: 3px; }
+  .rj-check-badge {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600;
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .rj-check-badge--ok { background: #dcfce7; color: #15803d; }
+  .rj-check-badge--fail { background: #feecec; color: #ff3b30; }
+</style>
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page" id="hrRegistryPage">
+
+  <div class="hr-registry-top">
+    <div><h1>Журнал обходов</h1></div>
+  </div>
+
+  <div class="rj-kpi-grid">
+    <div class="rj-kpi-card">
+      <div class="rj-kpi-card__label">Обходов сегодня</div>
+      <div class="rj-kpi-card__value">{{ kpi.today }}</div>
+    </div>
+    <div class="rj-kpi-card">
+      <div class="rj-kpi-card__label">За неделю</div>
+      <div class="rj-kpi-card__value">{{ kpi.week }}</div>
+    </div>
+    <div class="rj-kpi-card {% if kpi.overdue_points %}rj-kpi-card--warn{% endif %}">
+      <div class="rj-kpi-card__label">Просрочено точек</div>
+      <div class="rj-kpi-card__value">{{ kpi.overdue_points }} / {{ kpi.total_points }}</div>
+    </div>
+    <div class="rj-kpi-card {% if kpi.open_defects %}rj-kpi-card--warn{% endif %}">
+      <div class="rj-kpi-card__label">Открытых неисправностей</div>
+      <div class="rj-kpi-card__value">{{ kpi.open_defects }}</div>
+    </div>
+  </div>
+
+  <form method="get" class="rj-filters">
+    <div>
+      <label>Точка</label>
+      <select name="point" class="hr-form-input">
+        <option value="">Все</option>
+        {% for p in points %}
+          <option value="{{ p.pk }}" {% if request.GET.point == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>С даты</label>
+      <input type="date" name="date_from" class="hr-form-input" value="{{ request.GET.date_from }}">
+    </div>
+    <div>
+      <label>По дату</label>
+      <input type="date" name="date_to" class="hr-form-input" value="{{ request.GET.date_to }}">
+    </div>
+    <div>
+      <label style="visibility:hidden;">.</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#25233f;">
+        <input type="checkbox" name="overdue" {% if request.GET.overdue %}checked{% endif %}> Только просроченные
+      </label>
+    </div>
+    <button type="submit" class="hr-registry-btn hr-registry-btn--primary">
+      <i class="bi bi-search"></i> Показать
+    </button>
+  </form>
+
+  <div class="hr-registry-panel">
+    <div class="hr-registry-table-wrap">
+      <table class="hr-registry-table">
+        <thead>
+          <tr>
+            <th>Точка</th>
+            <th>Сотрудник</th>
+            <th>Когда</th>
+            <th>Результат</th>
+            <th>Геолокация</th>
+            <th>Комментарий</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for visit in visits %}
+          <tr>
+            <td>{{ visit.point.name }}</td>
+            <td>{{ visit.employee.user.get_full_name|default:visit.employee.user.username }}</td>
+            <td>{{ visit.created_at|date:"d.m.Y H:i" }}</td>
+            <td>
+              {% if visit.has_failed_items %}
+                <span class="rj-check-badge rj-check-badge--fail"><i class="bi bi-exclamation-triangle"></i> Есть несоответствия</span>
+              {% else %}
+                <span class="rj-check-badge rj-check-badge--ok"><i class="bi bi-check-circle"></i> Всё в порядке</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if visit.geo_status == 'mismatch' %}
+                <span class="rj-check-badge rj-check-badge--fail" title="{{ visit.geo_distance_m }} м от точки">
+                  <i class="bi bi-geo-alt"></i> Не рядом с точкой
+                </span>
+              {% elif visit.geo_status == 'missing' %}
+                <span class="rj-check-badge" style="background:#f0eff6;color:#74728a;">
+                  <i class="bi bi-geo"></i> Нет данных
+                </span>
+              {% elif visit.geo_status == 'ok' %}
+                <span class="rj-check-badge rj-check-badge--ok"><i class="bi bi-geo-alt-fill"></i> Рядом с точкой</span>
+              {% else %}
+                <span class="hr-muted">—</span>
+              {% endif %}
+            </td>
+            <td>{{ visit.comment|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6">
+              <div class="hr-registry-empty">
+                <i class="bi bi-clipboard-check"></i>
+                <strong>Обходов не найдено</strong>
+                <span>Попробуйте изменить фильтры.</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

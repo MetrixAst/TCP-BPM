@@ -1,0 +1,85 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Неисправности — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page" id="hrRegistryPage">
+
+  <div class="hr-registry-top">
+    <div>
+      <h1>Неисправности</h1>
+      <p class="attendance-page__subtitle">Найдены во время обходов по точкам</p>
+    </div>
+  </div>
+
+  <div class="hr-registry-panel">
+    <div class="hr-registry-tabs">
+      <a href="{% url 'ecopark:defects_list' %}" class="hr-registry-tab {% if not request.GET.status %}is-active{% endif %}">Все</a>
+      {% for value, label in status_choices %}
+        <a href="{% url 'ecopark:defects_list' %}?status={{ value }}" class="hr-registry-tab {% if request.GET.status == value %}is-active{% endif %}">{{ label }}</a>
+      {% endfor %}
+    </div>
+
+    <div class="hr-registry-table-wrap">
+      <table class="hr-registry-table">
+        <thead>
+          <tr>
+            <th>Точка</th>
+            <th>Описание</th>
+            <th>Обнаружил</th>
+            <th>Когда</th>
+            <th>Статус</th>
+            <th class="hr-registry-table__actions">Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for defect in defects %}
+          <tr>
+            <td>{{ defect.point.name }}</td>
+            <td>
+              {{ defect.description }}
+              {% if defect.photo %}
+                <div><a href="{{ defect.photo.url }}" target="_blank" rel="noopener">Фото</a></div>
+              {% endif %}
+            </td>
+            <td>{{ defect.reported_by.user.get_full_name|default:defect.reported_by.user.username|default:"—" }}</td>
+            <td>{{ defect.created_at|date:"d.m.Y H:i" }}</td>
+            <td>
+              <span class="hr-registry-status hr-registry-status--{% if defect.status == 'resolved' %}active{% elif defect.status == 'in_progress' %}expiring{% else %}expired{% endif %}">
+                {{ defect.get_status_display }}
+              </span>
+            </td>
+            <td>
+              {% if defect.status != 'resolved' %}
+              <form method="post" action="{% url 'ecopark:defect_resolve' defect.pk %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="hr-icon-btn" title="Отметить устранённой">
+                  <i class="bi bi-check-lg"></i>
+                </button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6">
+              <div class="hr-registry-empty">
+                <i class="bi bi-check-circle"></i>
+                <strong>Неисправностей нет</strong>
+                <span>Пока всё в порядке.</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
