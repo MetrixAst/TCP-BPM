@@ -6,6 +6,24 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .equipment-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eceaf3;
+  }
+  .equipment-row__del {
+    background: none;
+    border: 0;
+    color: #dc2626;
+    cursor: pointer;
+    padding: 6px;
+  }
+  .equipment-row.is-removed { display: none; }
+</style>
 {% endblock styles %}
 
 {% block content %}
@@ -114,6 +132,32 @@
           </div>
           {% endif %}
         </section>
+
+        {% if point %}
+        <section class="hr-registry-edit-section">
+          <h2 class="hr-registry-edit-section__title">Оборудование на точке</h2>
+
+          <div id="equipmentItems">
+            {% for eq in equipment %}
+            <div class="equipment-row">
+              <input type="hidden" name="equipment_id[]" value="{{ eq.pk }}">
+              <input type="text" name="equipment_name[]" class="hr-form-input" value="{{ eq.name }}" placeholder="Название оборудования">
+              <input type="text" name="equipment_description[]" class="hr-form-input" value="{{ eq.description }}" placeholder="Описание">
+              <button type="button" class="equipment-row__del" data-eq-delete title="Удалить">
+                <i class="bi bi-trash"></i>
+              </button>
+              <input type="hidden" name="equipment_delete[]" value="" data-delete-flag>
+            </div>
+            {% empty %}
+            <p class="hr-muted" id="equipmentEmptyHint">Оборудование ещё не добавлено.</p>
+            {% endfor %}
+          </div>
+
+          <button type="button" class="hr-registry-btn hr-registry-btn--light" id="addEquipmentBtn" style="margin-top:10px;">
+            <i class="bi bi-plus-lg"></i> Добавить оборудование
+          </button>
+        </section>
+        {% endif %}
       </div>
 
       <div class="hr-registry-edit-card__footer">
@@ -156,6 +200,47 @@
       },
       { timeout: 8000 }
     );
+  });
+})();
+
+(function () {
+  var container = document.getElementById('equipmentItems');
+  var addBtn = document.getElementById('addEquipmentBtn');
+  if (!container || !addBtn) return;
+
+  function t(ru) { return window.BPM ? window.BPM.t(ru, ru) : ru; }
+
+  function buildRow() {
+    var row = document.createElement('div');
+    row.className = 'equipment-row';
+    row.innerHTML =
+      '<input type="hidden" name="equipment_id[]" value="">' +
+      '<input type="text" name="equipment_name[]" class="hr-form-input" placeholder="' + t('Название оборудования') + '">' +
+      '<input type="text" name="equipment_description[]" class="hr-form-input" placeholder="' + t('Описание') + '">' +
+      '<button type="button" class="equipment-row__del" data-eq-new-remove title="' + t('Убрать') + '">' +
+        '<i class="bi bi-trash"></i>' +
+      '</button>';
+    return row;
+  }
+
+  addBtn.addEventListener('click', function () {
+    var hint = document.getElementById('equipmentEmptyHint');
+    if (hint) hint.remove();
+    container.appendChild(buildRow());
+  });
+
+  container.addEventListener('click', function (e) {
+    var delBtn = e.target.closest('[data-eq-delete]');
+    if (delBtn) {
+      var row = delBtn.closest('.equipment-row');
+      row.classList.add('is-removed');
+      row.querySelector('[data-delete-flag]').value = row.querySelector('input[name="equipment_id[]"]').value;
+      return;
+    }
+    var newDel = e.target.closest('[data-eq-new-remove]');
+    if (newDel) {
+      newDel.closest('.equipment-row').remove();
+    }
   });
 })();
 </script>

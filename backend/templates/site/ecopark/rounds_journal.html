@@ -36,6 +36,11 @@
 
   <div class="hr-registry-top">
     <div><h1>Журнал обходов</h1></div>
+    <div class="hr-registry-top__actions">
+      <a href="{% url 'ecopark:rounds_journal_export' %}?{{ request.GET.urlencode }}" class="hr-registry-btn hr-registry-btn--light">
+        <i class="bi bi-file-earmark-excel"></i> Экспорт в Excel
+      </a>
+    </div>
   </div>
 
   <div class="rj-kpi-grid">

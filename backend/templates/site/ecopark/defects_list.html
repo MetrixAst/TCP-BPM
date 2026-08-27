@@ -34,6 +34,7 @@
             <th>Обнаружил</th>
             <th>Когда</th>
             <th>Статус</th>
+            <th>Приоритет</th>
             <th class="hr-registry-table__actions">Действия</th>
           </tr>
         </thead>
@@ -55,19 +56,34 @@
               </span>
             </td>
             <td>
+              <span class="hr-registry-status hr-registry-status--{% if defect.priority == 'critical' %}expired{% elif defect.priority == 'high' %}expiring{% else %}active{% endif %}">
+                {{ defect.get_priority_display }}
+              </span>
+            </td>
+            <td>
               {% if defect.status != 'resolved' %}
-              <form method="post" action="{% url 'ecopark:defect_resolve' defect.pk %}" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" class="hr-icon-btn" title="Отметить устранённой">
-                  <i class="bi bi-check-lg"></i>
-                </button>
-              </form>
+              <div class="hr-registry-actions">
+                <form method="post" action="{% url 'ecopark:defect_resolve' defect.pk %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="hr-icon-btn" title="Отметить устранённой">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                </form>
+                {% if defect.priority != 'critical' %}
+                <form method="post" action="{% url 'ecopark:defect_escalate' defect.pk %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="hr-icon-btn hr-icon-btn--danger" title="Эскалировать">
+                    <i class="bi bi-exclamation-triangle"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
               {% endif %}
             </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6">
+            <td colspan="7">
               <div class="hr-registry-empty">
                 <i class="bi bi-check-circle"></i>
                 <strong>Неисправностей нет</strong>

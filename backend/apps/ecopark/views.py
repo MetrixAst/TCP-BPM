@@ -11,7 +11,7 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.template.loader import render_to_string
 from .models import (
     EcoObject, EcoExecutor, EcoWork,
-    RoundPoint, ChecklistTemplate, ChecklistItem,
+    RoundPoint, ChecklistTemplate, ChecklistItem, Equipment,
     RoundVisit, RoundVisitAnswer, Defect,
 )
 
@@ -257,6 +257,30 @@ def round_point_create(request):
     })
 
 
+def _save_equipment(request, point):
+    ids = request.POST.getlist('equipment_id[]')
+    names = request.POST.getlist('equipment_name[]')
+    descriptions = request.POST.getlist('equipment_description[]')
+    deletes = set(request.POST.getlist('equipment_delete[]'))
+
+    with transaction.atomic():
+        for eq_id, name, description in zip(ids, names, descriptions):
+            name = name.strip()
+            if eq_id and eq_id in deletes:
+                Equipment.objects.filter(pk=eq_id, point=point).delete()
+                continue
+            if not name:
+                continue
+            if eq_id:
+                Equipment.objects.filter(pk=eq_id, point=point).update(
+                    name=name, description=description.strip(),
+                )
+            else:
+                Equipment.objects.create(
+                    point=point, name=name, description=description.strip(),
+                )
+
+
 def round_point_edit(request, pk):
     point = get_object_or_404(RoundPoint, pk=pk)
     if request.method == 'POST':
@@ -269,6 +293,7 @@ def round_point_edit(request, pk):
         point.longitude = _parse_geo_field(request.POST.get('longitude'))
         point.is_active = request.POST.get('is_active') == 'on'
         point.save()
+        _save_equipment(request, point)
         return redirect('ecopark:round_points_list')
 
     return render(request, 'site/ecopark/round_point_form.html', {
@@ -276,6 +301,7 @@ def round_point_edit(request, pk):
         'point': point,
         'objects': EcoObject.objects.filter(is_active=True),
         'checklists': ChecklistTemplate.objects.filter(is_active=True),
+        'equipment': point.equipment.order_by('name'),
         'scan_url': request.build_absolute_uri(reverse('ecopark:rounds_scan', args=[point.uuid])),
     })
 
@@ -568,8 +594,7 @@ def rounds_scan(request, point_uuid):
 
 # ─────────────────────────── Журнал и KPI (руководитель) ───────────────────────────
 
-@_rounds_monitor_required
-def rounds_journal(request):
+def _filtered_visits(request):
     visits = RoundVisit.objects.select_related('point', 'employee__user').order_by('-created_at')
 
     point_filter = request.GET.get('point')
@@ -593,6 +618,13 @@ def rounds_journal(request):
         overdue_ids = {p.pk for p in overdue_points}
         visits = visits.filter(point_id__in=overdue_ids)
 
+    return visits, all_points, overdue_points
+
+
+@_rounds_monitor_required
+def rounds_journal(request):
+    visits, all_points, overdue_points = _filtered_visits(request)
+
     today = timezone.localdate()
     week_start = today - timezone.timedelta(days=today.weekday())
 
@@ -610,6 +642,42 @@ def rounds_journal(request):
         'points': all_points,
         'overdue_points': overdue_points,
     })
+
+
+@_rounds_monitor_required
+def rounds_journal_export(request):
+    import openpyxl
+
+    visits, _all_points, _overdue_points = _filtered_visits(request)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Журнал обходов'
+    ws.append(['Точка', 'Сотрудник', 'Когда', 'Результат', 'Геолокация', 'Комментарий'])
+
+    geo_labels = {
+        RoundVisit.GEO_OK: 'Рядом с точкой',
+        RoundVisit.GEO_MISMATCH: 'Не рядом с точкой',
+        RoundVisit.GEO_MISSING: 'Нет данных',
+        RoundVisit.GEO_UNKNOWN: '—',
+    }
+
+    for visit in visits.select_related('point', 'employee__user')[:5000]:
+        ws.append([
+            visit.point.name,
+            visit.employee.user.get_full_name() or visit.employee.user.username,
+            timezone.localtime(visit.created_at).strftime('%d.%m.%Y %H:%M'),
+            'Есть несоответствия' if visit.has_failed_items else 'Всё в порядке',
+            geo_labels.get(visit.geo_status, '—'),
+            visit.comment,
+        ])
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="rounds_journal.xlsx"'
+    wb.save(response)
+    return response
 
 
 @_rounds_monitor_required
@@ -632,5 +700,18 @@ def defect_resolve(request, pk):
         defect.status = Defect.STATUS_RESOLVED
         defect.resolved_by = request.user
         defect.resolved_at = timezone.now()
+        defect.save()
+    return redirect('ecopark:defects_list')
+
+
+@_rounds_monitor_required
+def defect_escalate(request, pk):
+    defect = get_object_or_404(Defect, pk=pk)
+    if request.method == 'POST':
+        defect.priority = Defect.PRIORITY_CRITICAL
+        defect.assigned_to = request.user
+        defect.escalated_at = timezone.now()
+        if defect.status == Defect.STATUS_OPEN:
+            defect.status = Defect.STATUS_IN_PROGRESS
         defect.save()
     return redirect('ecopark:defects_list')

@@ -5,7 +5,7 @@ from django.dispatch import receiver
 from account.models import Employee
 from finances.models import BudgetItem, GeneratedInvoice
 from hr.models import LeaveRequest
-from ecopark.models import RoundPoint, ChecklistTemplate, RoundVisit, Defect
+from ecopark.models import RoundPoint, ChecklistTemplate, RoundVisit, Defect, Equipment
 
 from .models import AuditLog
 from .services import (
@@ -48,8 +48,12 @@ _register_model(
 )
 _register_model(RoundPoint)
 _register_model(ChecklistTemplate)
+_register_model(Equipment)
 _register_model(RoundVisit)
-_register_model(Defect, track_fields=['status', 'resolved_by_id', 'resolved_at'])
+_register_model(
+    Defect,
+    track_fields=['status', 'priority', 'assigned_to_id', 'escalated_at', 'resolved_by_id', 'resolved_at'],
+)
 
 
 @receiver(user_logged_in)

@@ -34,6 +34,8 @@ urlpatterns = [
 
     # Журнал/KPI и неисправности — доступ через _rounds_monitor_required внутри view
     path('rounds/journal/',                views.rounds_journal,  name='rounds_journal'),
+    path('rounds/journal/export/',         views.rounds_journal_export, name='rounds_journal_export'),
     path('rounds/defects/',                views.defects_list,    name='defects_list'),
     path('rounds/defects/<int:pk>/resolve/', views.defect_resolve, name='defect_resolve'),
+    path('rounds/defects/<int:pk>/escalate/', views.defect_escalate, name='defect_escalate'),
 ]

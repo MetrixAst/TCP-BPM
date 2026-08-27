@@ -159,6 +159,27 @@ class RoundPoint(models.Model):
         return timezone.now() > deadline_base + timezone.timedelta(hours=self.check_interval_hours)
 
 
+class Equipment(models.Model):
+    # CASCADE — оборудование это просто справочная опись точки, отдельной
+    # истории по нему не ведём (в отличие от визитов/ответов/неисправностей).
+    point = models.ForeignKey(
+        RoundPoint, on_delete=models.CASCADE, related_name='equipment',
+        verbose_name='Точка',
+    )
+    name = models.CharField('Название', max_length=255)
+    description = models.CharField('Описание', max_length=1000, blank=True)
+    is_active = models.BooleanField('Активно', default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Оборудование'
+        verbose_name_plural = 'Оборудование'
+        ordering = ['point', 'name']
+
+    def __str__(self):
+        return f"{self.name} ({self.point.name})"
+
+
 class RoundVisit(models.Model):
     # PROTECT, не CASCADE: удаление точки не должно стирать историю обходов
     # по ней (требование "сохранение исторических данных") — точку с
@@ -258,6 +279,17 @@ class Defect(models.Model):
         (STATUS_RESOLVED, 'Устранена'),
     ]
 
+    PRIORITY_LOW = 'low'
+    PRIORITY_MEDIUM = 'medium'
+    PRIORITY_HIGH = 'high'
+    PRIORITY_CRITICAL = 'critical'
+    PRIORITY_CHOICES = [
+        (PRIORITY_LOW, 'Низкий'),
+        (PRIORITY_MEDIUM, 'Средний'),
+        (PRIORITY_HIGH, 'Высокий'),
+        (PRIORITY_CRITICAL, 'Критический'),
+    ]
+
     visit = models.ForeignKey(
         RoundVisit, on_delete=models.CASCADE, related_name='defects',
         verbose_name='Обход',
@@ -277,6 +309,14 @@ class Defect(models.Model):
     status = models.CharField(
         'Статус', max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN,
     )
+    priority = models.CharField(
+        'Приоритет', max_length=20, choices=PRIORITY_CHOICES, default=PRIORITY_MEDIUM,
+    )
+    assigned_to = models.ForeignKey(
+        'account.UserAccount', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='assigned_defects', verbose_name='Назначена',
+    )
+    escalated_at = models.DateTimeField('Эскалирована', null=True, blank=True)
     reported_by = models.ForeignKey(
         'account.Employee', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='reported_defects', verbose_name='Обнаружил',

@@ -3,7 +3,8 @@ import uuid
 from django.test import TestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from account.models import UserAccount, Employee, Department, Company
+from account.models import UserAccount, Employee, Department
+from hr.models import Company
 from .models import (
     RoundPoint, ChecklistTemplate, ChecklistItem,
     RoundVisit, RoundVisitAnswer, Defect,
@@ -185,6 +186,58 @@ class DefectResolveTest(TestCase):
         self.assertEqual(response.status_code, 403)
         self.defect.refresh_from_db()
         self.assertEqual(self.defect.status, Defect.STATUS_OPEN)
+
+
+class DefectEscalateTest(TestCase):
+    def setUp(self):
+        self.admin, self.staff_user, self.employee, self.checklist, self.point, self.item_no_photo, self.item_photo = make_setup()
+        self.visit = RoundVisit.objects.create(point=self.point, employee=self.employee)
+        answer = RoundVisitAnswer.objects.create(visit=self.visit, item=self.item_photo, passed=False)
+        self.defect = Defect.objects.create(
+            visit=self.visit, answer=answer, point=self.point,
+            description='Тест', reported_by=self.employee,
+        )
+
+    def test_escalate_sets_priority_and_assignee(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(f'/ecopark/rounds/defects/{self.defect.pk}/escalate/')
+        self.assertEqual(response.status_code, 302)
+        self.defect.refresh_from_db()
+        self.assertEqual(self.defect.priority, Defect.PRIORITY_CRITICAL)
+        self.assertEqual(self.defect.status, Defect.STATUS_IN_PROGRESS)
+        self.assertEqual(self.defect.assigned_to, self.admin)
+        self.assertIsNotNone(self.defect.escalated_at)
+
+    def test_non_monitor_cannot_escalate(self):
+        self.client.force_login(self.staff_user)
+        response = self.client.post(f'/ecopark/rounds/defects/{self.defect.pk}/escalate/')
+        self.assertEqual(response.status_code, 403)
+        self.defect.refresh_from_db()
+        self.assertEqual(self.defect.priority, Defect.PRIORITY_MEDIUM)
+
+
+class EquipmentTest(TestCase):
+    def setUp(self):
+        self.admin, self.staff_user, self.employee, self.checklist, self.point, self.item_no_photo, self.item_photo = make_setup()
+
+    def test_admin_can_add_equipment_via_point_edit(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(f'/ecopark/rounds/points/{self.point.pk}/edit/', {
+            'name': self.point.name,
+            'location': self.point.location,
+            'check_interval_hours': self.point.check_interval_hours,
+            'equipment_id[]': [''],
+            'equipment_name[]': ['Насос №1'],
+            'equipment_description[]': ['Основной насос'],
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.point.equipment.count(), 1)
+        self.assertEqual(self.point.equipment.first().name, 'Насос №1')
+
+    def test_non_admin_cannot_reach_point_edit(self):
+        self.client.force_login(self.staff_user)
+        response = self.client.get(f'/ecopark/rounds/points/{self.point.pk}/edit/')
+        self.assertEqual(response.status_code, 403)
 
 
 class OverdueCalculationTest(TestCase):
