@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ point.name }} — QR отметка</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0f172a;
+            color: #fff;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            gap: 24px;
+        }
+        .point-name { font-size: 28px; font-weight: 700; opacity: 0.9; }
+        .event-select {
+            display: flex;
+            gap: 12px;
+        }
+        .event-btn {
+            padding: 10px 28px;
+            border-radius: 8px;
+            border: 2px solid #334155;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .event-btn.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: #fff;
+        }
+        #qr-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 16px;
+            width: 280px;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #qr-container img {
+            display: block !important;
+            margin: 0 auto !important;
+        }
+
+        #qr-container canvas {
+            display: block !important;
+            margin: 0 auto !important;
+        }
+        .timer span { font-weight: 700; color: #3b82f6; }
+        .status {
+            font-size: 13px;
+            opacity: 0.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="point-name">{{ point.name }}</div>
+
+    <div class="event-select">
+        <button class="event-btn active" data-type="day_start" onclick="setEventType('day_start', this)">Приход</button>
+        <button class="event-btn" data-type="day_end" onclick="setEventType('day_end', this)">Уход</button>
+    </div>
+
+    <div id="qr-container">
+        <canvas id="qr-canvas"></canvas>
+    </div>
+
+    <div class="timer">Обновится через <span id="countdown">45</span> сек</div>
+    <div class="status" id="status">Загрузка...</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        const TOKEN_URL = "{{ token_url }}";
+        let eventType = 'day_start';
+        let countdown = 45;
+        let timer = null;
+        let qrCode = null;
+
+        function setEventType(type, btn) {
+            eventType = type;
+            document.querySelectorAll('.event-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            fetchToken();
+        }
+
+        async function fetchToken() {
+            clearInterval(timer);
+            countdown = 45;
+            document.getElementById('status').textContent = 'Генерация QR...';
+            try {
+                const res = await fetch(TOKEN_URL + '?event_type=' + eventType);
+                const data = await res.json();
+
+                const canvas = document.getElementById('qr-canvas');
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (qrCode) {
+                    qrCode.clear();
+                    qrCode.makeCode(data.scan_url);
+                } else {
+                    qrCode = new QRCode(document.getElementById('qr-container'), {
+                        text: data.scan_url,
+                        width: 240,
+                        height: 240,
+                        colorDark: '#000',
+                        colorLight: '#fff',
+                        correctLevel: QRCode.CorrectLevel.H,
+                    });
+                }
+
+                document.getElementById('status').textContent = 'Наведите камеру телефона на QR-код';
+
+                timer = setInterval(() => {
+                    countdown--;
+                    document.getElementById('countdown').textContent = countdown;
+                    if (countdown <= 0) {
+                        fetchToken();
+                    }
+                }, 1000);
+
+            } catch(e) {
+                document.getElementById('status').textContent = 'Ошибка загрузки QR';
+                setTimeout(fetchToken, 3000);
+            }
+        }
+
+        fetchToken();
+    </script>
+</body>
+</html>

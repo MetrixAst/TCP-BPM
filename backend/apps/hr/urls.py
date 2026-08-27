@@ -51,6 +51,16 @@ urlpatterns = [
     path('attendance/journal/', views.attendance_journal, name='attendance_journal'),
     path('attendance/export/', views.attendance_export, name='attendance_export'),
 
+    path('attendance/qr-points/', views.qr_points_list, name='qr_points_list'),
+    path('attendance/qr-points/create/', views.qr_point_create, name='qr_point_create'),
+    path('attendance/qr-points/<int:pk>/edit/', views.qr_point_edit, name='qr_point_edit'),
+    path('attendance/qr-points/<int:pk>/delete/', views.qr_point_delete, name='qr_point_delete'),
+
+    path('attendance/kiosk/<int:pk>/', views.qr_kiosk, name='qr_kiosk'),
+    path('attendance/kiosk/<int:pk>/token/', views.qr_kiosk_token, name='qr_kiosk_token'),
+
+    path('attendance/qr-checkin/', views.qr_checkin, name='qr_checkin'),
+
     path('documents/', views.documents_list, name='documents_list'),
     path('documents/create/', views.documents_create, name='documents_create'),
     path('documents/<int:pk>/edit/', views.documents_edit, name='documents_edit'),

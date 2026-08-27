@@ -255,6 +255,11 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'tickets.sla_escalation',
         'schedule': crontab(hour='*/4', minute=0),  
     },
+    'account-cleanup-notifications-daily': {
+        'task': 'account.cleanup_notifications',
+        'schedule': crontab(hour=2, minute=0),  
+        'kwargs': {'days': 60},
+    },
     # Курсы НБ РК отключены — в интерфейсе все суммы в ₸
     # 'fetch-exchange-rates-daily': {
     #     'task': 'finances.tasks.fetch_exchange_rates',

@@ -43,3 +43,21 @@ def send_notifications_task(notification_id):
                     fcm.notify(fcm_token=current, notification_title=notification.title, notification_body=notification.text, data_payload=data)
                 except:
                     pass
+
+@shared_task(name='account.cleanup_notifications')
+def cleanup_notifications(days=60):
+    from django.utils import timezone
+    from datetime import timedelta
+    from account.models import Notification
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    cutoff = timezone.now() - timedelta(days=days)
+    qs = Notification.objects.filter(created_date__lt=cutoff)
+    count = qs.count()
+    qs.delete()
+
+    result = f'Удалено {count} уведомлений старше {days} дней'
+    logger.info(result)
+    return result
