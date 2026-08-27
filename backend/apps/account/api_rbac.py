@@ -314,6 +314,7 @@ class NotificationSerializer(drf_serializers.Serializer):
     target_id = drf_serializers.IntegerField()
     target_type = drf_serializers.CharField()
     is_read = drf_serializers.BooleanField()
+    url = drf_serializers.CharField(allow_null=True)
 
 class NotificationViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
@@ -331,6 +332,7 @@ class NotificationViewSet(viewsets.GenericViewSet):
             'created_date': n.created_date.isoformat(),
             'target_id': n.target_id,
             'target_type': n.target_type,
+            'url': n.url,
             'is_read': NotificationUser.objects.filter(
                 notification=n, user=request.user
             ).values_list('is_read', flat=True).first() or False,

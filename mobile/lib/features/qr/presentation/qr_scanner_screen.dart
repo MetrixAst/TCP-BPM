@@ -71,7 +71,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: Text(
-                'Наведите камеру на QR-код помещения',
+                'Наведите камеру на QR-код',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white, fontSize: 14),
               ),
