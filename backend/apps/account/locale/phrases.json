@@ -3579,5 +3579,10 @@
   {"ru": "Название обязательно", "kk": "Атауы міндетті", "en": "Name is required"},
   {"ru": "Редактировать QR-точку", "kk": "QR-нүктені өзгерту", "en": "Edit QR point"},
   {"ru": "Удалить QR-точку?", "kk": "QR-нүктені жою керек пе?", "en": "Delete QR point?"},
+  {"ru": "Обновится через", "kk": "Жаңарады:", "en": "Refreshes in"},
+  {"ru": "сек", "kk": "сек", "en": "sec"},
+  {"ru": "Генерация QR...", "kk": "QR жасалуда...", "en": "Generating QR..."},
+  {"ru": "Наведите камеру телефона на QR-код", "kk": "Телефон камерасын QR-кодқа бағыттаңыз", "en": "Point your phone's camera at the QR code"},
+  {"ru": "Ошибка загрузки QR", "kk": "QR жүктеу қатесі", "en": "Failed to load QR"},
   {"ru": "Точка будет удалена без возможности восстановления. Уже сделанные по ней отметки посещаемости не пострадают — удаляется только сама точка.", "kk": "Нүкте қайтарымсыз жойылады. Ол арқылы жасалған қатысу белгілері зардап шекпейді — тек нүктенің өзі жойылады.", "en": "The point will be deleted permanently. Attendance marks already made through it are unaffected — only the point itself is removed."}
 ]
