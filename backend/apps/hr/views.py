@@ -1844,11 +1844,16 @@ def qr_point_create(request):
         location = request.POST.get('location', '').strip()
         if not name:
             return render(request, 'site/hr/attendance/qr_point_form.html', {
+                'title': 'Новая QR-точка',
                 'error': 'Название обязательно',
+                'form_name': name,
+                'form_location': location,
             })
-        QRPoint.objects.create(name=name, location=location, created_by=request.user)
-        return redirect('hr:qr_points_list')
-    return render(request, 'site/hr/attendance/qr_point_form.html', {})
+        point = QRPoint.objects.create(name=name, location=location, created_by=request.user)
+        # Сразу открываем экран киоска — обычно точку создают, чтобы
+        # немедленно вывести её на экран у входа.
+        return redirect('hr:qr_kiosk', pk=point.pk)
+    return render(request, 'site/hr/attendance/qr_point_form.html', {'title': 'Новая QR-точка'})
 
 
 @need_permission(PermissionEnums.HR_JOURNAL)
@@ -1861,7 +1866,10 @@ def qr_point_edit(request, pk):
         point.is_active = request.POST.get('is_active') == 'on'
         point.save()
         return redirect('hr:qr_points_list')
-    return render(request, 'site/hr/attendance/qr_point_form.html', {'point': point})
+    return render(request, 'site/hr/attendance/qr_point_form.html', {
+        'title': 'Редактировать QR-точку',
+        'point': point,
+    })
 
 
 @need_permission(PermissionEnums.HR_JOURNAL)

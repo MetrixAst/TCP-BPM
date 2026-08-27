@@ -1,0 +1,77 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} — metriX BPM{% endblock %}
+{% block body_classes %}hr-registry-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-edit-page" id="hrRegistryFormPage">
+  <div class="hr-registry-edit-card">
+
+    <div class="hr-registry-edit-card__header">
+      <h1 class="hr-registry-edit-card__title">{{ title }}</h1>
+      <a href="{% url 'hr:qr_points_list' %}" class="hr-registry-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
+    </div>
+
+    <form method="post" class="hr-registry-edit-form">
+      {% csrf_token %}
+
+      <div class="hr-registry-edit-card__body">
+        <section class="hr-registry-edit-section">
+          <h2 class="hr-registry-edit-section__title">Данные точки</h2>
+
+          {% if error %}
+            <div class="hr-registry-edit-field__error" style="margin-bottom:12px;">{{ error }}</div>
+          {% endif %}
+
+          <div class="hr-registry-edit-grid">
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="qrPointName">
+                Название<span>*</span>
+              </label>
+              <input type="text" id="qrPointName" name="name" class="hr-form-input"
+                     value="{{ point.name|default:form_name|default:'' }}"
+                     placeholder="Главный вход" required>
+            </div>
+
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="qrPointLocation">Местоположение</label>
+              <input type="text" id="qrPointLocation" name="location" class="hr-form-input"
+                     value="{{ point.location|default:form_location|default:'' }}"
+                     placeholder="1 этаж, ресепшн">
+            </div>
+
+            {% if point %}
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label">
+                <input type="checkbox" name="is_active" {% if point.is_active %}checked{% endif %}>
+                Активна
+              </label>
+              <small class="hr-registry-edit-field__help">
+                Неактивную точку нельзя открыть как экран-киоск и по ней нельзя отметиться.
+              </small>
+            </div>
+            {% endif %}
+          </div>
+        </section>
+      </div>
+
+      <div class="hr-registry-edit-card__footer">
+        <a href="{% url 'hr:qr_points_list' %}" class="hr-registry-edit-btn hr-registry-edit-btn--cancel">
+          Отменить
+        </a>
+        <button type="submit" class="hr-registry-edit-btn hr-registry-edit-btn--save">
+          Сохранить
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
