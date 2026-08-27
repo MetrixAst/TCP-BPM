@@ -84,7 +84,7 @@
         </label>
       </div>
 
-      <h2 class="attendance-checkin-side__title">Тип отметки</h2>
+      <h2 class="attendance-checkin-side__title" id="typeSectionTitle">Тип отметки</h2>
 
       {% if all_done_today %}
       <div class="attendance-checkin-alert attendance-checkin-alert--success" style="display:block">
@@ -164,12 +164,18 @@
     var faceActions = document.querySelector('#faceActions');
     var faceNote = document.querySelector('#faceNote');
     var qrNote = document.querySelector('#qrNote');
+    var typeSectionTitle = document.querySelector('#typeSectionTitle');
+    var checkinTypes = document.querySelector('#checkinTypes');
 
     function applyMode(mode) {
       var isQr = mode === 'qr';
       if (faceActions) faceActions.hidden = isQr;
       if (faceNote) faceNote.hidden = isQr;
       if (qrNote) qrNote.hidden = !isQr;
+      // В QR-режиме тип отметки (приход/уход) определяет сама точка
+      // сканирования — выбор здесь ни на что не влияет, поэтому прячем.
+      if (typeSectionTitle) typeSectionTitle.hidden = isQr;
+      if (checkinTypes) checkinTypes.hidden = isQr;
       document.dispatchEvent(new CustomEvent('attendance:mode-change', { detail: { mode: mode } }));
     }
 

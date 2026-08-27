@@ -368,6 +368,7 @@ class MenuItem:
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                     MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
+                    MenuItem('qr_points', 'hr:qr_points_list', '', 'QR-точки'),
                 ]),
 
                 #MenuItem('onec', '#onec', 'box-arrow-in-down', '1C', submenu=[
@@ -423,6 +424,7 @@ class MenuItem:
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                     MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
+                    MenuItem('qr_points', 'hr:qr_points_list', '', 'QR-точки'),
                 ]),
             ],
 
