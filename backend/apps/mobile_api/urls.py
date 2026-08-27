@@ -5,7 +5,8 @@ from .views import (
     AttendanceCheckinView, AttendanceTodayView,
     TicketListCreateView, TicketDetailView,
     TicketMessagesView,
-    NotificationsListView, NotificationReadView,
+    NotificationsListView, NotificationReadView, 
+    AttendanceQRCheckinView
 )
 
 app_name = 'mobile_api'
@@ -20,4 +21,5 @@ urlpatterns = [
     path('tickets/<int:pk>/messages/', TicketMessagesView.as_view(), name='tickets-messages'),
     path('notifications/', NotificationsListView.as_view(), name='notifications-list'),
     path('notifications/<int:pk>/read/', NotificationReadView.as_view(), name='notifications-read'),
+    path('attendance/qr-checkin/', AttendanceQRCheckinView.as_view(), name='attendance-qr-checkin'),
 ]

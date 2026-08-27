@@ -273,6 +273,19 @@ class AttendanceRecord(models.Model):
     )
     timestamp = models.DateTimeField("Время", default=timezone.now)
     is_manual = models.BooleanField('Ручная отметка', default=False)
+    SOURCE_FACE = 'face'
+    SOURCE_QR = 'qr'
+    SOURCE_MANUAL = 'manual'
+    SOURCE_CHOICES = [
+        (SOURCE_FACE, 'Фотофиксация'),
+        (SOURCE_QR, 'QR-код'),
+        (SOURCE_MANUAL, 'Ручная отметка'),
+    ]
+    source = models.CharField(
+        'Источник отметки', max_length=16,
+        choices=SOURCE_CHOICES,
+        default=SOURCE_FACE,
+    )
     manual_author = models.ForeignKey(
         'account.UserAccount',
         on_delete=models.SET_NULL,
@@ -642,3 +655,103 @@ class AttendanceEditLog(models.Model):
 
     def __str__(self):
         return f"{self.record} | {self.action} | {self.created_at}"
+
+class QRPoint(models.Model):
+    name = models.CharField('Название', max_length=128)
+    location = models.CharField('Местоположение', max_length=255, blank=True)
+    is_active = models.BooleanField('Активна', default=True)
+    created_by = models.ForeignKey(
+        'account.UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='created_qr_points',
+        verbose_name='Создал',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'QR-точка'
+        verbose_name_plural = 'QR-точки'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class QRToken(models.Model):
+    token = models.CharField('Токен', max_length=64, unique=True, db_index=True)
+    qr_point = models.ForeignKey(
+        QRPoint,
+        on_delete=models.CASCADE,
+        related_name='tokens',
+        verbose_name='QR-точка',
+    )
+    event_type = models.CharField(
+        'Тип отметки', max_length=32,
+        choices=CheckInEnum.choices,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField('Истекает')
+    used_by = models.ManyToManyField(
+        'account.UserAccount',
+        related_name='used_qr_tokens',
+        blank=True,
+        verbose_name='Использован кем',
+    )
+    ip_address = models.GenericIPAddressField('IP адрес', null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'QR-токен'
+        verbose_name_plural = 'QR-токены'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.qr_point} | {self.event_type} | {self.expires_at}"
+
+    @property
+    def is_expired(self):
+        from django.utils import timezone
+        return timezone.now() > self.expires_at
+
+    def is_used_by(self, user):
+        return self.used_by.filter(pk=user.pk).exists()
+
+
+class QRScanAudit(models.Model):
+    ACTION_SUCCESS = 'success'
+    ACTION_EXPIRED = 'expired'
+    ACTION_REPLAY = 'replay'
+    ACTION_INVALID = 'invalid'
+    ACTION_CHOICES = [
+        (ACTION_SUCCESS, 'Успешно'),
+        (ACTION_EXPIRED, 'Истёк'),
+        (ACTION_REPLAY, 'Повторное использование'),
+        (ACTION_INVALID, 'Невалидный токен'),
+    ]
+
+    token = models.CharField('Токен', max_length=64)
+    qr_point = models.ForeignKey(
+        QRPoint,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='scan_audits',
+        verbose_name='QR-точка',
+    )
+    user = models.ForeignKey(
+        'account.UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='qr_scan_audits',
+        verbose_name='Пользователь',
+    )
+    action = models.CharField('Результат', max_length=16, choices=ACTION_CHOICES)
+    ip_address = models.GenericIPAddressField('IP адрес', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Аудит QR-сканирования'
+        verbose_name_plural = 'Аудит QR-сканирований'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.token} | {self.action} | {self.created_at}"
