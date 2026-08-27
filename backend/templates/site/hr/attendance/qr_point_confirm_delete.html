@@ -22,10 +22,10 @@
     <form method="post">
       {% csrf_token %}
       <div class="hr-registry-edit-card__body">
+        <p><strong>{{ point.name }}</strong>{% if point.location %} · {{ point.location }}{% endif %}</p>
         <p>
-          Точка «<strong>{{ point.name }}</strong>»{% if point.location %} ({{ point.location }}){% endif %}
-          будет удалена без возможности восстановления. Уже сделанные по ней отметки посещаемости
-          не пострадают — удаляется только сама точка.
+          Точка будет удалена без возможности восстановления. Уже сделанные по ней отметки
+          посещаемости не пострадают — удаляется только сама точка.
         </p>
       </div>
       <div class="hr-registry-edit-card__footer">
