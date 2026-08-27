@@ -36,14 +36,14 @@
                 Название<span>*</span>
               </label>
               <input type="text" id="qrPointName" name="name" class="hr-form-input"
-                     value="{{ point.name|default:form_name|default:'' }}"
+                     value="{% firstof point.name form_name '' %}"
                      placeholder="Главный вход" required>
             </div>
 
             <div class="hr-registry-edit-field">
               <label class="hr-registry-edit-field__label" for="qrPointLocation">Местоположение</label>
               <input type="text" id="qrPointLocation" name="location" class="hr-form-input"
-                     value="{{ point.location|default:form_location|default:'' }}"
+                     value="{% firstof point.location form_location '' %}"
                      placeholder="1 этаж, ресепшн">
             </div>
 

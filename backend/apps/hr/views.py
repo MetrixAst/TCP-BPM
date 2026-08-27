@@ -1853,7 +1853,11 @@ def qr_point_create(request):
         # Сразу открываем экран киоска — обычно точку создают, чтобы
         # немедленно вывести её на экран у входа.
         return redirect('hr:qr_kiosk', pk=point.pk)
-    return render(request, 'site/hr/attendance/qr_point_form.html', {'title': 'Новая QR-точка'})
+    return render(request, 'site/hr/attendance/qr_point_form.html', {
+        'title': 'Новая QR-точка',
+        'form_name': '',
+        'form_location': '',
+    })
 
 
 @need_permission(PermissionEnums.HR_JOURNAL)
