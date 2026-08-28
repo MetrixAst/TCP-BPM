@@ -376,3 +376,118 @@ class AttendanceReportViewSet(viewsets.ViewSet):
         response['Content-Disposition'] = f'attachment; filename="attendance_report_{date_from}_{date_to}.xlsx"'
         wb.save(response)
         return response
+
+class AttendanceRegistryViewSet(viewsets.ViewSet):
+    def get_permissions(self):
+        from account.drf_permissions import AttendanceRegistryPermission
+        return [AttendanceRegistryPermission()]
+
+    def _get_allowed_employees(self, request):
+        from account.role_permissions import RoleEnums
+        from account.models import Employee, Department
+        user = request.user
+        role = getattr(user, 'role', None)
+
+        if role in [
+            RoleEnums.ADMINISTRATOR.value,
+            RoleEnums.HR.value,
+            RoleEnums.OWNER.value,
+            RoleEnums.CFO.value,
+            RoleEnums.CHIEF_ACCOUNTANT.value,
+        ]:
+            return Employee.objects.filter(status='active').select_related('user', 'department')
+
+        employee = getattr(user, 'employee_info', None)
+        if employee and getattr(employee, 'head', False) and employee.department_id:
+            dept_ids = list(
+                employee.department.get_descendants(include_self=True).values_list('id', flat=True)
+            )
+            return Employee.objects.filter(
+                department_id__in=dept_ids, status='active'
+            ).select_related('user', 'department')
+
+        return Employee.objects.none()
+
+    def list(self, request):
+        from datetime import date, timedelta, datetime
+        from hr.models import AttendanceRecord
+        from django.utils import timezone as tz
+
+        date_from_str = request.query_params.get('date_from')
+        date_to_str = request.query_params.get('date_to')
+        employee_id = request.query_params.get('employee_id')
+        department_id = request.query_params.get('department_id')
+
+        date_from = date.fromisoformat(date_from_str) if date_from_str else date.today() - timedelta(days=30)
+        date_to = date.fromisoformat(date_to_str) if date_to_str else date.today()
+
+        employees = self._get_allowed_employees(request)
+
+        if employee_id:
+            employees = employees.filter(pk=employee_id)
+        if department_id:
+            employees = employees.filter(department_id=department_id)
+
+        result = []
+        current = date_from
+        while current <= date_to:
+            for emp in employees:
+                records = AttendanceRecord.objects.filter(
+                    employee=emp,
+                    timestamp__date=current,
+                ).order_by('timestamp')
+
+                day_start = records.filter(event_type='day_start').first()
+                day_end = records.filter(event_type='day_end').last()
+
+                sources = list(records.values_list('source', flat=True).distinct())
+                source = sources[0] if len(sources) == 1 else 'mixed' if sources else None
+
+                summary = AttendanceRecord.get_daily_summary(emp, current)
+                total_hours = round(summary['total_work_time'].total_seconds() / 3600, 2)
+
+                result.append({
+                    'date': current.isoformat(),
+                    'employee_id': emp.pk,
+                    'employee_name': emp.user.get_name,
+                    'department': emp.department.name if emp.department else None,
+                    'day_start': day_start.timestamp.isoformat() if day_start else None,
+                    'day_end': day_end.timestamp.isoformat() if day_end else None,
+                    'total_hours': total_hours,
+                    'source': source,
+                    'is_complete': summary['is_complete'],
+                })
+            current += timedelta(days=1)
+
+        export = request.query_params.get('export')
+        if export == 'xlsx':
+            return self._export_xlsx(result, date_from, date_to)
+
+        return Response(result)
+
+    def _export_xlsx(self, data, date_from, date_to):
+        import openpyxl
+        from django.http import HttpResponse
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = 'Реестр посещаемости'
+        ws.append(['Дата', 'Сотрудник', 'Отдел', 'Приход', 'Уход', 'Часов', 'Источник'])
+
+        for row in data:
+            ws.append([
+                row['date'],
+                row['employee_name'],
+                row['department'] or '-',
+                row['day_start'] or '-',
+                row['day_end'] or '-',
+                row['total_hours'],
+                row['source'] or '-',
+            ])
+
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="attendance_{date_from}_{date_to}.xlsx"'
+        wb.save(response)
+        return response

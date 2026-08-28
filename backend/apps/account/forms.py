@@ -119,7 +119,10 @@ class UserAccountForm(UserCreationForm):
 
 
 class EditProfileForm(CustomModelForm):
-    birthday = forms.DateField(widget=forms.TextInput(attrs={'class':'form-control single_date_picker', 'placeholder': 'День рождения'}))
+    birthday = forms.DateField(
+    required=False,
+    widget=forms.TextInput(attrs={'class': 'form-control single_date_picker', 'placeholder': 'День рождения'}),
+    )
 
     class Meta:
         model = UserAccount
