@@ -61,3 +61,28 @@ def cleanup_notifications(days=60):
     result = f'Удалено {count} уведомлений старше {days} дней'
     logger.info(result)
     return result
+
+@shared_task(name='account.expire_temporary_accesses')
+def expire_temporary_accesses():
+    from django.utils import timezone
+    from account.models_rbac import TemporaryAccess, PermissionAuditLog
+    import logging
+    logger = logging.getLogger(__name__)
+
+    expired = TemporaryAccess.objects.filter(
+        status=TemporaryAccess.STATUS_ACTIVE,
+        date_to__lt=timezone.now(),
+    )
+    count = expired.count()
+    for access in expired:
+        PermissionAuditLog.objects.create(
+            action='REVOKE',
+            target_user=access.user,
+            permission_code=access.permission.code,
+            after={'reason': 'expired'},
+        )
+    expired.update(status=TemporaryAccess.STATUS_EXPIRED)
+
+    result = f'Истекло {count} временных доступов'
+    logger.info(result)
+    return result

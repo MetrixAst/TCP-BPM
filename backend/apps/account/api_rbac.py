@@ -9,7 +9,7 @@ from rest_framework import serializers as drf_serializers
 
 from account.drf_permissions import HasAppPermission
 from account.models import UserAccount, Notification, NotificationUser
-from account.models_rbac import AppPermission, PermissionProfile, UserPermissionOverride, ProfileAssignment
+from account.models_rbac import AppPermission, PermissionProfile, UserPermissionOverride, ProfileAssignment, TemporaryAccess
 from account.role_permissions import PermissionEnums
 from account.serializers_rbac import (
     AppPermissionSerializer,
@@ -19,11 +19,11 @@ from account.serializers_rbac import (
     UserListSerializer,
     UserMatrixSerializer,
     UserPermissionOverrideSerializer,
-    PermissionAuditLogSerializer
+    PermissionAuditLogSerializer,
+    TemporaryAccessSerializer
 )
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-
 
 
 class IsPermissionAdmin(HasAppPermission):
@@ -376,3 +376,97 @@ class NotificationViewSet(viewsets.GenericViewSet):
             defaults={'is_read': True, 'read_at': timezone.now()},
         )
         return Response({'ok': True})
+
+class TemporaryAccessViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated, IsPermissionAdmin]
+    serializer_class = TemporaryAccessSerializer
+
+    def get_queryset(self):
+        from django.utils import timezone
+        qs = TemporaryAccess.objects.select_related(
+            'user', 'permission', 'granted_by', 'revoked_by'
+        ).order_by('-created_at')
+
+        status = self.request.query_params.get('status')
+        user_id = self.request.query_params.get('user_id')
+        active_only = self.request.query_params.get('active_only')
+
+        if status:
+            qs = qs.filter(status=status)
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+        if active_only == 'true':
+            now = timezone.now()
+            qs = qs.filter(
+                status=TemporaryAccess.STATUS_ACTIVE,
+                date_from__lte=now,
+                date_to__gte=now,
+            )
+        return qs
+
+    def _get_ip(self, request):
+        return request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+
+    def perform_create(self, serializer):
+        from account.models_rbac import PermissionAuditLog
+        instance = serializer.save(
+            granted_by=self.request.user,
+            ip_address=self._get_ip(self.request),
+        )
+        PermissionAuditLog.objects.create(
+            action='GRANT',
+            actor=self.request.user,
+            target_user=instance.user,
+            permission_code=instance.permission.code,
+            ip_address=self._get_ip(self.request),
+            after={'type': 'temporary', 'date_to': instance.date_to.isoformat()},
+        )
+
+    @action(detail=True, methods=['post'], url_path='revoke')
+    def revoke(self, request, pk=None):
+        from django.utils import timezone
+        from account.models_rbac import PermissionAuditLog
+        instance = self.get_object()
+        if instance.status != TemporaryAccess.STATUS_ACTIVE:
+            return Response({'error': 'Доступ уже неактивен.'}, status=400)
+        instance.status = TemporaryAccess.STATUS_REVOKED
+        instance.revoked_by = request.user
+        instance.revoked_at = timezone.now()
+        instance.save(update_fields=['status', 'revoked_by', 'revoked_at'])
+        PermissionAuditLog.objects.create(
+            action='REVOKE',
+            actor=request.user,
+            target_user=instance.user,
+            permission_code=instance.permission.code,
+            ip_address=self._get_ip(request),
+        )
+        return Response(TemporaryAccessSerializer(instance).data)
+
+    @action(detail=True, methods=['patch'], url_path='extend')
+    def extend(self, request, pk=None):
+        from account.models_rbac import PermissionAuditLog
+        instance = self.get_object()
+        new_date_to = request.data.get('date_to')
+        if not new_date_to:
+            return Response({'error': 'Укажите дату окончания доступа.'}, status=400, json_dumps_params={'ensure_ascii': False})
+        from django.utils import timezone
+        from datetime import datetime
+        try:
+            new_date_to = datetime.fromisoformat(new_date_to)
+            if new_date_to <= timezone.now():
+                return Response({'error': 'Дата окончания должна быть в будущем.'}, status=400)
+        except ValueError:
+            return Response({'error': 'Неверный формат даты.'}, status=400)
+        old_date_to = instance.date_to
+        instance.date_to = new_date_to
+        instance.save(update_fields=['date_to'])
+        PermissionAuditLog.objects.create(
+            action='GRANT',
+            actor=request.user,
+            target_user=instance.user,
+            permission_code=instance.permission.code,
+            ip_address=self._get_ip(request),
+            before={'date_to': old_date_to.isoformat()},
+            after={'date_to': new_date_to.isoformat()},
+        )
+        return Response(TemporaryAccessSerializer(instance).data)

@@ -16,7 +16,8 @@ from account.api_rbac import (
     ProfileAssignmentViewSet,
     UserPermissionsViewSet,
     PermissionAuditLogViewSet,
-    NotificationViewSet
+    NotificationViewSet,
+    TemporaryAccessViewSet
 )
 
 
@@ -39,6 +40,7 @@ router.register('permissions/assignments',  ProfileAssignmentViewSet,    basenam
 router.register('permissions/delegate',     DelegationViewSet,           basename='perm-delegate')
 router.register('permissions/audit', PermissionAuditLogViewSet, basename='perm-audit')
 router.register('notifications', NotificationViewSet, basename='notification')
+router.register('permissions/temporary', TemporaryAccessViewSet, basename='temp-access')
 
 
 urlpatterns = [

@@ -206,3 +206,65 @@ class PermissionAuditLog(models.Model):
 
     def __str__(self):
         return f"{self.created_at} | {self.action} | {self.actor_id} | {self.permission_code}"
+
+class TemporaryAccess(models.Model):
+    STATUS_ACTIVE = 'active'
+    STATUS_REVOKED = 'revoked'
+    STATUS_EXPIRED = 'expired'
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, 'Активен'),
+        (STATUS_REVOKED, 'Отозван'),
+        (STATUS_EXPIRED, 'Истёк'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='temporary_accesses',
+        verbose_name='Сотрудник',
+    )
+    permission = models.ForeignKey(
+        AppPermission,
+        on_delete=models.CASCADE,
+        related_name='temporary_accesses',
+        verbose_name='Право',
+    )
+    status = models.CharField('Статус', max_length=16, choices=STATUS_CHOICES, default=STATUS_ACTIVE)
+    date_from = models.DateTimeField('Начало действия')
+    date_to = models.DateTimeField('Окончание действия')
+    reason = models.CharField('Причина', max_length=255)
+    granted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='granted_temporary_accesses',
+        verbose_name='Выдал',
+    )
+    revoked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='revoked_temporary_accesses',
+        verbose_name='Отозвал',
+    )
+    revoked_at = models.DateTimeField('Отозван', null=True, blank=True)
+    ip_address = models.GenericIPAddressField('IP адрес', null=True, blank=True)
+    created_at = models.DateTimeField('Создан', auto_now_add=True)
+    updated_at = models.DateTimeField('Обновлён', auto_now=True)
+
+    class Meta:
+        app_label = 'account'
+        verbose_name = 'Временный доступ'
+        verbose_name_plural = 'Временные доступы'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user} — {self.permission.code} до {self.date_to:%d.%m.%Y}"
+
+    @property
+    def is_active(self):
+        from django.utils import timezone
+        return (
+            self.status == self.STATUS_ACTIVE and
+            self.date_from <= timezone.now() <= self.date_to
+        )
