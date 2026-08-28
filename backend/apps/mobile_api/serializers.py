@@ -4,7 +4,7 @@ from tickets.models import ServiceRequest, TicketAttachment
 from hr.enums import CheckInEnum
 from tickets.models import TicketMessage
 from account.models import Notification
-
+from tenants.models import Room
 
 class NotificationSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -158,3 +158,9 @@ class ServiceRequestHistoryEntrySerializer(serializers.Serializer):
         if obj.user is None:
             return None
         return obj.user.get_name
+
+class RoomResolveSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    number = serializers.CharField()
+    map_id = serializers.CharField()
+    floor = serializers.IntegerField()

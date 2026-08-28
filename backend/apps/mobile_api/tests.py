@@ -19,6 +19,7 @@ from tickets.models import ServiceRequest, TicketMessage
 from tenants.models import Tenant
 from .models import IdempotencyKey
 from mobile_api.models import IdempotencyKey
+from tenants.models import Room
 
 class IdempotencyKeyTestCase(APITestCase):
     def setUp(self):
@@ -914,3 +915,48 @@ class NotificationsApiTests(APITestCase):
             self.assertEqual(data_payload['target_type'], 'task')
             self.assertEqual(data_payload['target_id'], '15')
             self.assertIn('url', data_payload)
+
+
+
+class RoomResolveApiTests(APITestCase):
+    def setUp(self):
+        self.user = UserAccount.objects.create_user(
+            username='room_resolve_user',
+            password='testpass123',
+            role='staff',
+        )
+        self.room = Room.objects.create(
+            number='305',
+            map_id='r305',
+            floor=3,
+        )
+        self.client.force_authenticate(user=self.user)
+        self.resolve_url = reverse('mobile_api:room-resolve')
+
+    def test_resolve_requires_auth(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get(self.resolve_url, {'map_id': 'r305'})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_resolve_existing_room_returns_data(self):
+        response = self.client.get(self.resolve_url, {'map_id': 'r305'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['number'], '305')
+        self.assertEqual(response.data['map_id'], 'r305')
+        self.assertEqual(response.data['floor'], 3)
+
+    def test_resolve_unknown_map_id_returns_404(self):
+        response = self.client.get(self.resolve_url, {'map_id': 'nonexistent'})
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_resolve_without_map_id_returns_400(self):
+        response = self.client.get(self.resolve_url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_resolve_is_case_sensitive(self):
+        response = self.client.get(self.resolve_url, {'map_id': 'R305'})
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
