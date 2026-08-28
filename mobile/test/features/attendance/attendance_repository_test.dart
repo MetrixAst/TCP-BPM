@@ -162,7 +162,7 @@ void main() {
   });
 
   group('getToday', () {
-    test('возвращает список из 4 типов, один завершён', () async {
+    test('возвращает список из 2 активных типов, один завершён', () async {
       when(() => dio.get('/api/v1/mobile/attendance/today/')).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: '/api/v1/mobile/attendance/today/'),
@@ -179,13 +179,13 @@ void main() {
 
       expect(result, isA<Success<List<AttendanceTodayStatus>>>());
       final success = result as Success<List<AttendanceTodayStatus>>;
-      expect(success.data.length, 4);
+      expect(success.data.length, 2);
       final completed = success.data.where((s) => s.isCompleted).toList();
       expect(completed.length, 1);
       expect(completed.first.type.value, 'day_start');
     });
 
-    test('все 4 типа возвращаются, но ни один не завершён, если отметок ещё нет', () async {
+    test('оба активных типа возвращаются незавершёнными без отметок', () async {
       when(() => dio.get('/api/v1/mobile/attendance/today/')).thenAnswer(
         (_) async => Response(
           requestOptions: RequestOptions(path: '/api/v1/mobile/attendance/today/'),
@@ -198,7 +198,7 @@ void main() {
 
       expect(result, isA<Success<List<AttendanceTodayStatus>>>());
       final success = result as Success<List<AttendanceTodayStatus>>;
-      expect(success.data.length, 4);
+      expect(success.data.length, 2);
       expect(success.data.every((s) => !s.isCompleted), isTrue);
     });
   });

@@ -99,7 +99,6 @@ class TenantPortalAccessTest(TestCase):
         self.assertEqual(resp.status_code, 400)
         self.assertIn('уже используется', resp.json()['message'])
 
-
 class TenantOnboardingFormTest(TestCase):
     def test_creates_room_and_default_category(self):
         form = TenantForm(data={
@@ -125,3 +124,69 @@ class TenantOnboardingFormTest(TestCase):
         })
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.cleaned_data['start_date'].isoformat(), '2026-07-27')
+
+
+class RoomQrLabelTest(TestCase):
+    def setUp(self):
+        self.room = Room.objects.create(number='401', map_id='r401', floor=4)
+        self.admin = UserAccount.objects.create_user(
+            username='qr_admin', email='qra@test.kz', password='pass',
+            role=RoleEnums.ADMINISTRATOR.value,
+        )
+        self.staff = UserAccount.objects.create_user(
+            username='qr_staff', email='qrs@test.kz', password='pass',
+            role=RoleEnums.STAFF.value,
+        )
+
+    def test_single_label_accessible_with_tenants_permission(self):
+        self.client.login(username='qr_staff', password='pass')
+        url = reverse('tenants:room_qr_label', kwargs={'pk': self.room.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_single_label_returns_pdf(self):
+        self.client.login(username='qr_admin', password='pass')
+        url = reverse('tenants:room_qr_label', kwargs={'pk': self.room.pk})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertGreater(len(response.content), 0)
+
+    def test_single_label_nonexistent_room_404(self):
+        self.client.login(username='qr_admin', password='pass')
+        url = reverse('tenants:room_qr_label', kwargs={'pk': 99999})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_batch_labels_returns_pdf(self):
+        Room.objects.create(number='402', map_id='r402', floor=4)
+        self.client.login(username='qr_admin', password='pass')
+        url = reverse('tenants:rooms_qr_labels_batch')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+
+    def test_batch_labels_filter_by_floor(self):
+        Room.objects.create(number='501', map_id='r501', floor=5)
+        self.client.login(username='qr_admin', password='pass')
+        url = reverse('tenants:rooms_qr_labels_batch')
+        response = self.client.get(url, {'floor': 4})
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_batch_labels_no_rooms_returns_404(self):
+        Room.objects.all().delete()
+        self.client.login(username='qr_admin', password='pass')
+        url = reverse('tenants:rooms_qr_labels_batch')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_batch_labels_accessible_with_tenants_permission(self):
+        self.client.login(username='qr_staff', password='pass')
+        url = reverse('tenants:rooms_qr_labels_batch')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)

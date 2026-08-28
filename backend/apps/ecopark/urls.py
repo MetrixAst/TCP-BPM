@@ -16,19 +16,23 @@ urlpatterns = [
     path('item/<int:pk>/editor/callback/', _cb,                      name='work_editor_callback'),
     path('item/<int:pk>/delete-doc/',  _perm(views.work_delete_doc), name='work_delete_doc'),
 
+    # Обходы: точки
     path('rounds/points/',               _perm(views.round_points_list), name='round_points_list'),
     path('rounds/points/create/',        _perm(views.round_point_create), name='round_point_create'),
     path('rounds/points/<int:pk>/edit/', _perm(views.round_point_edit),   name='round_point_edit'),
     path('rounds/points/<int:pk>/delete/', _perm(views.round_point_delete), name='round_point_delete'),
     path('rounds/points/<int:pk>/label/',  _perm(views.round_point_label),  name='round_point_label'),
 
+    # Обходы: чек-листы
     path('rounds/checklists/',               _perm(views.checklist_templates_list),  name='checklist_templates_list'),
     path('rounds/checklists/create/',        _perm(views.checklist_template_create), name='checklist_template_create'),
     path('rounds/checklists/<int:pk>/edit/', _perm(views.checklist_template_edit),   name='checklist_template_edit'),
     path('rounds/checklists/<int:pk>/delete/', _perm(views.checklist_template_delete), name='checklist_template_delete'),
 
+    # Прохождение обхода — только login_required, без ECOPARK (любой сотрудник)
     path('rounds/scan/<uuid:point_uuid>/', views.rounds_scan, name='rounds_scan'),
 
+    # Журнал/KPI и неисправности — доступ через _rounds_monitor_required внутри view
     path('rounds/journal/',                views.rounds_journal,  name='rounds_journal'),
     path('rounds/journal/export/',         views.rounds_journal_export, name='rounds_journal_export'),
     path('rounds/defects/',                views.defects_list,    name='defects_list'),

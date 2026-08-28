@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ html_lang|default:'ru' }}"{% if current_lang and current_lang != 'ru' %} data-i18n-pending="1"{% endif %}>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -17,6 +17,10 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <link rel="stylesheet" href="{% static 'site/css/main.css' %}" />
   <link rel="stylesheet" href="{% static 'site/css/auth.css' %}?v={{ static_version|default:'1' }}" />
+  <style>
+    html[data-i18n-pending] .error-page { visibility: hidden; }
+    html.i18n-ready .error-page { visibility: visible; }
+  </style>
 </head>
 <body class="error-body">
 
@@ -79,7 +83,7 @@
     <h1 class="error-page__title">{{ title|default:"Что-то пошло не так" }}</h1>
 
     <p class="error-page__text">
-      {{ text|default:"Не удалось обработать ваш запрос. Попробуйте обновить страницу или вернитесь на главную." }}
+      {% if text_prefix %}{{ text_prefix }} «{{ reason }}»{{ text_suffix }}{% else %}{{ text|default:"Не удалось обработать ваш запрос. Попробуйте обновить страницу или вернитесь на главную." }}{% endif %}
     </p>
 
     <div class="error-page__actions">
@@ -98,6 +102,8 @@
   <footer class="error-page__footer">
     © {% now "Y" %} metriX BPM
   </footer>
+
+  {% include "site/components/i18n_scripts.html" %}
 
 </body>
 </html>

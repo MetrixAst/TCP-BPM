@@ -114,3 +114,16 @@ Read-only экран поверх уже существующих веб-энд�
 - QR-сканер работает с сырым текстом кода, ждём эндпоинт от tech_lead для полноценной интеграции с объектами.
 - История заявок/задач подтягивается только если на бэкенде реально была смена статуса — старые записи без истории показывают пустой блок, это ожидаемо.
 - Тестовое покрытие офлайн-очереди — только ручное на эмуляторе, автотестов на сам `SyncWorker` пока нет.
+
+## iOS Push Notifications — TODO для настройки на Mac
+
+Подготовлено (можно проверить/доработать):
+- `ios/Runner/Info.plist` — добавлены `UIBackgroundModes` (fetch, remote-notification)
+- `ios/Runner/Runner.entitlements` — черновик с `aps-environment: development` (нужно проверить, подключён ли файл в Xcode Build Settings; либо просто включить capability "Push Notifications" через Xcode UI — это может пересоздать файл автоматически)
+
+Требует реального Mac + Apple Developer аккаунта:
+1. В Xcode: Signing & Capabilities → добавить "Push Notifications" и "Background Modes" (remote notifications) capability
+2. В Apple Developer Portal: сгенерировать APNs Authentication Key (.p8)
+3. В Firebase Console → Project Settings → Cloud Messaging → загрузить APNs key
+4. Проверить `firebase_options.dart` — должен уже содержать iOS-конфигурацию (сгенерирован через `flutterfire configure` ранее)
+5. Собрать на реальном устройстве (push не работает в iOS Simulator) и проверить получение push во всех трёх состояниях приложения (foreground/background/terminated), аналогично тому, как это уже проверено на Android

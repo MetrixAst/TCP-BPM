@@ -1,5 +1,5 @@
 import copy
-
+import uuid
 from django.conf import settings as django_settings
 from django.test import TestCase, Client, override_settings
 from django.core.exceptions import ValidationError
@@ -23,9 +23,11 @@ _VIEW_TEMPLATES[0]['OPTIONS']['context_processors'] = [
 ]
 
 
+
 def make_tenant(name='ТестАрендатор'):
     cat  = TenantCategory.objects.create(title='Категория')
-    room = Room.objects.create(number='101', map_id='r101', floor=1)
+    unique_suffix = uuid.uuid4().hex[:8]
+    room = Room.objects.create(number='101', map_id=f'r101-{unique_suffix}', floor=1)
     return Tenant.objects.create(
         name=name,
         category=cat,
