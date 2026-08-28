@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Обход — {{ point.name }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: sans-serif; background: #f8fafc; padding: 16px; }
+        .header { background: #1e293b; color: #fff; padding: 16px; border-radius: 12px; margin-bottom: 16px; }
+        .header h1 { font-size: 20px; }
+        .header p { font-size: 13px; opacity: 0.7; margin-top: 4px; }
+        .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+        .item-text { font-size: 15px; font-weight: 500; margin-bottom: 10px; }
+        .status-btns { display: flex; gap: 8px; }
+        .status-btn { flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; background: #fff; font-size: 14px; cursor: pointer; transition: all .2s; }
+        .status-btn.ok.active { background: #dcfce7; border-color: #22c55e; color: #16a34a; }
+        .status-btn.defect.active { background: #fee2e2; border-color: #ef4444; color: #dc2626; }
+        .status-btn.skipped.active { background: #fef9c3; border-color: #eab308; color: #a16207; }
+        .notes-input { width: 100%; margin-top: 8px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; resize: vertical; display: none; }
+        .submit-btn { width: 100%; padding: 14px; background: #3b82f6; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+        .submit-btn:disabled { opacity: 0.5; }
+        .general-notes { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; resize: vertical; margin-top: 8px; }
+        .success-msg { display: none; text-align: center; padding: 32px; }
+        .success-msg h2 { color: #16a34a; font-size: 22px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ point.name }}</h1>
+        <p>{{ point.get_point_type_display }} — {{ point.location }}</p>
+    </div>
+
+    <div id="form-section">
+        {% for item in checklist_items %}
+        <div class="card" data-item-id="{{ item.pk }}">
+            <div class="item-text">{{ forloop.counter }}. {{ item.text }}{% if item.is_required %} *{% endif %}</div>
+            <div class="status-btns">
+                <button class="status-btn ok" onclick="setStatus(this, '{{ item.pk }}', 'ok')">Исправно</button>
+                <button class="status-btn defect" onclick="setStatus(this, '{{ item.pk }}', 'defect')">Неисправно</button>
+                <button class="status-btn skipped" onclick="setStatus(this, '{{ item.pk }}', 'skipped')">Пропустить</button>
+            </div>
+            <textarea class="notes-input" id="notes-{{ item.pk }}" placeholder="Опишите проблему"></textarea>
+        </div>
+        {% endfor %}
+
+        <div class="card">
+            <div class="item-text">Общие примечания</div>
+            <textarea class="general-notes" id="general-notes" rows="3" placeholder="Дополнительные замечания"></textarea>
+        </div>
+
+        <button class="submit-btn" id="submit-btn" onclick="submitRound()">Завершить обход</button>
+    </div>
+
+    <div class="success-msg" id="success-msg">
+        <h2>✓ Обход завершён</h2>
+        <p style="margin-top:8px;color:#64748b;">Данные сохранены</p>
+    </div>
+
+    <script>
+        const results = {};
+        const pointId = {{ point.pk }};
+
+        function setStatus(btn, itemId, status) {
+            const card = btn.closest('.card');
+            card.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            results[itemId] = { checklist_item_id: itemId, status: status, notes: '' };
+
+            const notesEl = document.getElementById('notes-' + itemId);
+            if (status === 'defect') {
+                notesEl.style.display = 'block';
+            } else {
+                notesEl.style.display = 'none';
+                notesEl.value = '';
+            }
+        }
+
+        async function submitRound() {
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Сохранение';
+
+            Object.keys(results).forEach(itemId => {
+                const notesEl = document.getElementById('notes-' + itemId);
+                if (notesEl) results[itemId].notes = notesEl.value;
+            });
+
+            const payload = {
+                point_id: pointId,
+                results: Object.values(results),
+                notes: document.getElementById('general-notes').value,
+            };
+
+            try {
+                const res = await fetch('/ecopark/inspection/api/submit/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrf(),
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('form-section').style.display = 'none';
+                    document.getElementById('success-msg').style.display = 'block';
+                } else {
+                    alert(data.error || 'Ошибка');
+                    btn.disabled = false;
+                    btn.textContent = 'Завершить обход';
+                }
+            } catch(e) {
+                alert('Ошибка соединения');
+                btn.disabled = false;
+                btn.textContent = 'Завершить обход';
+            }
+        }
+
+        function getCsrf() {
+            return document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='))?.split('=')[1] || '';
+        }
+    </script>
+</body>
+</html>

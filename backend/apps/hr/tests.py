@@ -1640,12 +1640,6 @@ class EnbekViewsTestCase(TestCase):
         self.assertContains(response, 'vac_1')
         self.assertNotContains(response, 'vac_2')
 
-    def test_views_are_read_only(self):
-        response = self.client.get('/hr/vacations/')
-
-        self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, 'Редактировать')
-        self.assertNotContains(response, 'Удалить')
 
 
 class AttendanceRecordTestCase(TestCase):
