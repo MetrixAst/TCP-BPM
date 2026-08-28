@@ -1,6 +1,7 @@
 import openpyxl
 import json
 import base64
+import secrets
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.shortcuts import redirect, render, get_object_or_404
@@ -10,6 +11,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
 from django.db import transaction
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal, ROUND_HALF_UP
@@ -1157,7 +1159,7 @@ def attendance_journal(request):
 
     # Предзагружаем записи за дату: фото + гео + адрес (из БД)
     record_map = {}
-    for rec in AttendanceRecord.objects.filter(timestamp__date=target_date).select_related('employee'):
+    for rec in AttendanceRecord.objects.filter(timestamp__date=target_date).select_related('employee', 'manual_author', 'manual_reason'):
         try:
             photo_url = rec.photo.url if (rec.photo and rec.photo.name) else ''
         except Exception:
@@ -1167,6 +1169,9 @@ def attendance_journal(request):
             'lat': str(rec.latitude) if rec.latitude else '',
             'lng': str(rec.longitude) if rec.longitude else '',
             'address': rec.location_address or '',
+            'is_manual': rec.is_manual,
+            'manual_author': rec.manual_author.get_name if rec.manual_author else None,
+            'manual_reason': rec.manual_reason.label if rec.manual_reason else None,
         }
 
     journal = []
@@ -1229,6 +1234,13 @@ def attendance_journal(request):
             'departure_lat':     _r(CheckInEnum.DAY_END,     'lat'),
             'departure_lng':     _r(CheckInEnum.DAY_END,     'lng'),
             'departure_address': _r(CheckInEnum.DAY_END,     'address'),
+            # Ручные отметки
+            'arrival_is_manual':    _r(CheckInEnum.DAY_START, 'is_manual'),
+            'arrival_manual_author': _r(CheckInEnum.DAY_START, 'manual_author'),
+            'arrival_manual_reason': _r(CheckInEnum.DAY_START, 'manual_reason'),
+            'departure_is_manual':    _r(CheckInEnum.DAY_END, 'is_manual'),
+            'departure_manual_author': _r(CheckInEnum.DAY_END, 'manual_author'),
+            'departure_manual_reason': _r(CheckInEnum.DAY_END, 'manual_reason'),
         })
 
     departments = Department.objects.all() if is_hr else [employee.department]
@@ -1822,11 +1834,28 @@ def attendance_export(request):
     wb.save(response)
     return response
 
-import secrets
-from django.utils import timezone
-from datetime import timedelta
+@need_permission(PermissionEnums.HR)
+def manual_attendance(request):
+    from account.models import Employee
+    from .models import AttendanceManualReason
 
+    employees = Employee.objects.filter(status='active').select_related('user').order_by('user__last_name')
+    reasons = AttendanceManualReason.objects.filter(is_active=True)
 
+    return render(request, 'site/hr/manual_attendance.html', {
+        'employees': employees,
+        'reasons': reasons,
+    })
+
+@need_permission(PermissionEnums.HR)
+def manual_attendance_report(request):
+    from account.models import Employee
+
+    employees = Employee.objects.filter(status='active').select_related('user').order_by('user__last_name')
+
+    return render(request, 'site/hr/manual_attendance_report.html', {
+        'employees': employees,
+    })
 @need_permission(PermissionEnums.HR_JOURNAL)
 def qr_points_list(request):
     from hr.models import QRPoint
@@ -1970,7 +1999,6 @@ def qr_checkin(request):
         return JsonResponse({'success': False, 'error': 'Профиль сотрудника не найден'}, status=403, json_dumps_params={'ensure_ascii': False})
 
     from hr.services import create_attendance_checkin
-    from django.core.files.base import ContentFile
 
     create_attendance_checkin(
         employee=employee,

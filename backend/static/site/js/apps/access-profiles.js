@@ -1,5 +1,9 @@
 (function () {
-    'use strict';
+  'use strict';
+
+  function t(text) {
+    return (window.BPM && window.BPM.t) ? window.BPM.t(text, text) : text;
+  }
   
     var BLOCK_LABELS = {
       users: 'Пользователи', documents: 'Документы', finances: 'Финансы', hr: 'HR',
@@ -119,6 +123,10 @@
         matrixBody.innerHTML = html;
         document.getElementById('profileCancelBtn').addEventListener('click', closeMatrixModal);
         document.getElementById('profileSaveBtn').addEventListener('click', saveProfile);
+
+        if (window.BPM && window.BPM.applyTranslations) {
+          window.BPM.applyTranslations();
+        }
       }
   
       function saveProfile() {
@@ -127,7 +135,7 @@
         var name = document.getElementById('profileNameInput').value.trim();
         var description = document.getElementById('profileDescInput').value.trim();
         if (!name) {
-          errEl.textContent = 'Укажите название профиля.';
+          errEl.textContent = t('Укажите название профиля.');
           errEl.style.display = 'block';
           return;
         }
@@ -136,7 +144,7 @@
   
         var saveBtn = document.getElementById('profileSaveBtn');
         saveBtn.disabled = true;
-        saveBtn.textContent = 'Сохранение…';
+        saveBtn.textContent = t('Сохранение…');
   
         var basePromise = currentProfile.id
           ? apiFetch('/api/v1/permissions/profiles/' + currentProfile.id + '/', {
@@ -162,30 +170,30 @@
             window.location.reload();
           })
           .catch(function (err) {
-            errEl.textContent = 'Не удалось сохранить: ' + err.message;
+            errEl.textContent = t('Не удалось сохранить: ') + err.message;
             errEl.style.display = 'block';
             saveBtn.disabled = false;
-            saveBtn.textContent = 'Сохранить';
+            saveBtn.textContent = t('Сохранить');
           });
       }
   
       function openCreateProfile() {
         currentProfile = { id: null, name: '', description: '', permissions: [] };
         openMatrixModal();
-        matrixBody.innerHTML = '<div class="access-modal__loading">Загрузка…</div>';
+        matrixBody.innerHTML = '<div class="access-modal__loading">' + t('Загрузка…') + '</div>';
         getCatalog().then(renderMatrixForm);
       }
   
       function openEditProfile(profileId) {
         openMatrixModal();
-        matrixBody.innerHTML = '<div class="access-modal__loading">Загрузка…</div>';
+        matrixBody.innerHTML = '<div class="access-modal__loading">' + t('Загрузка…') + '</div>';
         Promise.all([getCatalog(), apiFetch('/api/v1/permissions/profiles/' + profileId + '/')])
           .then(function (results) {
             currentProfile = results[1];
             renderMatrixForm();
           })
           .catch(function () {
-            matrixBody.innerHTML = '<p class="access-muted">Не удалось загрузить профиль.</p>';
+            matrixBody.innerHTML = '<p class="access-muted">' + t('Не удалось загрузить профиль.') + '</p>';
           });
       }
   
@@ -213,7 +221,7 @@
         }).join('');
   
         var html = '';
-        html += '<h3 class="access-modal__title">Назначить профиль «' + profileName + '»</h3>';
+        html += '<h3 class="access-modal__title">' + t('Назначить профиль') + ' «' + profileName + '»</h3>';
         html += '<div class="access-form-row"><label class="access-page__label">Тип группы</label>' +
           '<select id="assignScopeType" class="access-page__search-input" style="padding-left:16px">' +
           '<option value="role">По роли</option><option value="department">По отделу</option>' +
@@ -233,7 +241,11 @@
           '<div class="access-modal__error" id="assignFormError" style="display:none;color:#ef4444;font-size:13px;margin-top:8px;"></div>';
   
         assignBody.innerHTML = html;
-  
+
+        if (window.BPM && window.BPM.applyTranslations) {
+          window.BPM.applyTranslations();
+        }
+
         var scopeSelect = document.getElementById('assignScopeType');
         var roleRow = document.getElementById('assignRoleRow');
         var deptRow = document.getElementById('assignDeptRow');
@@ -244,7 +256,7 @@
   
         function refreshPreview() {
           confirmBtn.disabled = true;
-          previewBox.innerHTML = '<div class="access-modal__loading">Считаем затронутых сотрудников…</div>';
+          previewBox.innerHTML = '<div class="access-modal__loading">' + t('Считаем затронутых сотрудников…') + '</div>';
           var scopeType = scopeSelect.value;
           var query = scopeType === 'role' ? ('role=' + encodeURIComponent(roleSelect.value)) : ('department=' + encodeURIComponent(deptSelect.value));
           apiFetch('/api/v1/permissions/users/?' + query + '&page_size=1000')
@@ -254,12 +266,12 @@
               var names = items.slice(0, 8).map(function (u) { return u.full_name || u.username; });
               var extra = count > names.length ? (' и ещё ' + (count - names.length)) : '';
               previewBox.innerHTML =
-                '<div class="access-preview-box__count">Будет затронуто: <strong>' + count + '</strong> сотрудник(ов)</div>' +
+                '<div class="access-preview-box__count">' + t('Будет затронуто: ') + '<strong>' + count + '</strong>' + t(' сотрудник(ов)') + '</div>' +
                 (names.length ? '<div class="access-muted">' + names.join(', ') + extra + '</div>' : '<div class="access-muted">Никто не подпадает под этот критерий</div>');
               confirmBtn.disabled = count === 0;
             })
             .catch(function () {
-              previewBox.innerHTML = '<div class="access-muted">Не удалось посчитать сотрудников.</div>';
+              previewBox.innerHTML = '<div class="access-muted">' + t('Не удалось посчитать сотрудников.') + '</div>';
             });
         }
   
@@ -286,7 +298,7 @@
           else payload.department = parseInt(deptSelect.value, 10);
   
           confirmBtn.disabled = true;
-          confirmBtn.textContent = 'Применяем…';
+          confirmBtn.textContent = t('Применяем…');
           apiFetch('/api/v1/permissions/assignments/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -294,10 +306,10 @@
           })
             .then(function () { window.location.reload(); })
             .catch(function (err) {
-              errEl.textContent = 'Не удалось применить: ' + err.message;
+              errEl.textContent = t('Не удалось применить: ') + err.message;
               errEl.style.display = 'block';
               confirmBtn.disabled = false;
-              confirmBtn.textContent = 'Подтвердить применение';
+              confirmBtn.textContent = t('Подтвердить применение');
             });
         });
   

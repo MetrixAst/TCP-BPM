@@ -345,6 +345,7 @@ class MenuItem:
                 MenuItem('access', '#access', 'shield-lock', 'Доступы', permission=PermissionEnums.MANAGE_PERMISSIONS, submenu=[
                     MenuItem('access_users', 'account:access_users', '', 'Пользователи'),
                     MenuItem('access_profiles', 'account:access_profiles', '', 'Профили доступа'),
+                    MenuItem('access_temporary', 'account:access_temporary', '', 'Временный доступ'),
                 ]),
                 MenuItem('documents', 'documents:list', 'file-earmark-text', 'Документооборот', url_param=['documents'], permission=PermissionEnums.DOCUMENTS),
                 MenuItem('tenants', '#tenants', 'building', 'Компании', submenu=[
@@ -369,6 +370,8 @@ class MenuItem:
                     MenuItem('hr_permits', 'hr:permits_list', '', 'Допуски'),
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                     MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
+                    MenuItem('manual_attendance', 'hr:manual_attendance', '', 'Ручные отметки'),
+                    MenuItem('manual_attendance_report', 'hr:manual_attendance_report', '', 'Отчёт по ручным отметкам'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
                     MenuItem('qr_points', 'hr:qr_points_list', '', 'QR-точки'),
                 ]),
@@ -431,6 +434,8 @@ class MenuItem:
                     MenuItem('hr_permits', 'hr:permits_list', '', 'Допуски'),
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                     MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
+                    MenuItem('manual_attendance', 'hr:manual_attendance', '', 'Ручные отметки'),
+                    MenuItem('manual_attendance_report', 'hr:manual_attendance_report', '', 'Отчёт по ручным отметкам'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
                     MenuItem('qr_points', 'hr:qr_points_list', '', 'QR-точки'),
                 ]),

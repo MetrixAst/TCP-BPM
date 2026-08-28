@@ -1,26 +1,16 @@
 (function () {
-    'use strict';
-  
-    var BLOCK_LABELS = {
-      users: 'Пользователи',
-      documents: 'Документы',
-      finances: 'Финансы',
-      hr: 'HR',
-      purchases: 'Закупки',
-      requests: 'Заявки',
-      suppliers: 'Поставщики',
-      tasks: 'Задачи',
-      tenants: 'Арендаторы',
-    };
-    var FLAT_BLOCK_LABELS = {
-      comment: 'Комментарии',
-      dashboard: 'Дашборд',
-      ecopark: 'Эксплуатация',
-      profile: 'Профиль',
-      reports: 'Показатели',
-    };
-    var OPERATION_LABELS = { view: 'Просмотр', create: 'Создание', edit: 'Изменение', delete: 'Удаление' };
-    var OPERATION_ORDER = ['view', 'create', 'edit', 'delete'];
+  'use strict';
+
+  function t(text) {
+    return (window.BPM && window.BPM.t) ? window.BPM.t(text, text) : text;
+  }
+
+  var BLOCK_LABELS = {
+    users: 'Пользователи', documents: 'Документы', finances: 'Финансы', hr: 'HR',
+    purchases: 'Закупки', requests: 'Заявки', suppliers: 'Поставщики', tasks: 'Задачи', tenants: 'Арендаторы',
+  };
+  var OPERATION_LABELS = { view: 'Просмотр', create: 'Создание', edit: 'Изменение', delete: 'Удаление' };
+  var OPERATION_ORDER = ['view', 'create', 'edit', 'delete'];
   
     function getCsrfToken() {
       var match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
@@ -106,7 +96,7 @@
   
         var html = '';
         html += '<h3 class="access-modal__title">' + (currentUserName || currentUsername) + '</h3>';
-        html += '<p class="access-muted">@' + currentUsername + ' · роль: ' + currentRole + '</p>';
+        html += '<p class="access-muted">@' + currentUsername + ' · ' + t('роль') + ': ' + currentRole + '</p>';
   
         html += '<div class="access-matrix-wrap"><table class="access-matrix">';
         html += '<thead><tr><th></th>' + operations.map(function (op) {
@@ -159,6 +149,10 @@
         body.querySelectorAll('input[data-perm-code]').forEach(function (input) {
           input.addEventListener('change', onToggle);
         });
+
+        if (window.BPM && window.BPM.applyTranslations) {
+          window.BPM.applyTranslations();
+        }
       }
   
       function onToggle(e) {
@@ -203,7 +197,7 @@
           .catch(function (err) {
             input.checked = !wantOn;
             input.disabled = false;
-            window.alert('Не удалось сохранить изменение: ' + err.message);
+            window.alert(t('Не удалось сохранить изменение: ') + err.message);
           });
       }
   
@@ -226,7 +220,7 @@
           });
           render();
         }).catch(function () {
-          body.innerHTML = '<p class="access-muted">Не удалось загрузить матрицу прав. Попробуйте ещё раз.</p>';
+          body.innerHTML = '<p class="access-muted">' + t('Не удалось загрузить матрицу прав. Попробуйте ещё раз.') + '</p>';
         });
       }
   

@@ -453,6 +453,8 @@ class TemporaryAccessViewSet(viewsets.ModelViewSet):
         from datetime import datetime
         try:
             new_date_to = datetime.fromisoformat(new_date_to)
+            if timezone.is_naive(new_date_to):
+                new_date_to = timezone.make_aware(new_date_to)
             if new_date_to <= timezone.now():
                 return Response({'error': 'Дата окончания должна быть в будущем.'}, status=400)
         except ValueError:

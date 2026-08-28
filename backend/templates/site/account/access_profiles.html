@@ -82,44 +82,6 @@
 <script>
   window.ACCESS_ROLES = [{% for value, label in roles %}{ value: "{{ value }}", label: "{{ label }}" }{% if not forloop.last %},{% endif %}{% endfor %}];
   window.ACCESS_DEPARTMENTS = [{% for dept in departments %}{ id: {{ dept.id }}, name: "{{ dept.name|escapejs }}" }{% if not forloop.last %},{% endif %}{% endfor %}];
-  window.ACCESS_I18N = {
-    block_users: "{% t 'access.block_users' 'Пользователи' %}",
-    block_documents: "{% t 'access.block_documents' 'Документы' %}",
-    block_finances: "{% t 'access.block_finances' 'Финансы' %}",
-    block_hr: "{% t 'access.block_hr' 'HR' %}",
-    block_purchases: "{% t 'access.block_purchases' 'Закупки' %}",
-    block_requests: "{% t 'access.block_requests' 'Заявки' %}",
-    block_suppliers: "{% t 'access.block_suppliers' 'Поставщики' %}",
-    block_tasks: "{% t 'access.block_tasks' 'Задачи' %}",
-    block_tenants: "{% t 'access.block_tenants' 'Арендаторы' %}",
-    op_view: "{% t 'access.op_view' 'Просмотр' %}",
-    op_create: "{% t 'access.op_create' 'Создание' %}",
-    op_edit: "{% t 'access.op_edit' 'Изменение' %}",
-    op_delete: "{% t 'access.op_delete' 'Удаление' %}",
-    common_rights: "{% t 'access.common_rights' 'Общие права' %}",
-    profile_name_label: "{% t 'access.profile_name_label' 'Название' %}",
-    profile_description_label: "{% t 'access.profile_description_label' 'Описание' %}",
-    profile_name_required: "{% t 'access.profile_name_required' 'Укажите название профиля.' %}",
-    profile_new_title: "{% t 'access.profile_new_title' 'Новый профиль' %}",
-    profile_edit_title: "{% t 'access.profile_edit_title' 'Редактирование профиля' %}",
-    profile_save: "{% t 'access.profile_save' 'Сохранить' %}",
-    profile_saving: "{% t 'access.profile_saving' 'Сохранение…' %}",
-    profile_cancel: "{% t 'access.profile_cancel' 'Отмена' %}",
-    profile_save_error: "{% t 'access.profile_save_error' 'Не удалось сохранить: {error}' %}",
-    assign_scope_label: "{% t 'access.assign_scope_label' 'Тип группы' %}",
-    assign_scope_role: "{% t 'access.assign_scope_role' 'По роли' %}",
-    assign_scope_department: "{% t 'access.assign_scope_department' 'По отделу' %}",
-    assign_role_label: "{% t 'access.assign_role_label' 'Роль' %}",
-    assign_department_label: "{% t 'access.assign_department_label' 'Отдел' %}",
-    assign_delegate_label: "{% t 'access.assign_delegate_label' 'Разрешить делегирование' %}",
-    assign_counting: "{% t 'access.assign_counting' 'Считаем затронутых сотрудников…' %}",
-    assign_count_result: "{% t 'access.assign_count_result' 'Будет затронуто: {count} сотрудник(ов)' %}",
-    assign_none: "{% t 'access.assign_none' 'Никто не подпадает под этот критерий' %}",
-    assign_count_error: "{% t 'access.assign_count_error' 'Не удалось посчитать сотрудников.' %}",
-    assign_confirm: "{% t 'access.assign_confirm' 'Подтвердить применение' %}",
-    assign_applying: "{% t 'access.assign_applying' 'Применяем…' %}",
-    assign_error: "{% t 'access.assign_error' 'Не удалось применить: {error}' %}"
-  };
 </script>
 <script src="{% static 'site/js/apps/access.js' %}?v={{ static_version|default:'3' }}"></script>
 <script src="{% static 'site/js/apps/access-profiles.js' %}?v={{ static_version|default:'1' }}"></script>

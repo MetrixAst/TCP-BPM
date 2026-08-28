@@ -50,6 +50,8 @@ urlpatterns = [
     path('attendance/my/', views.attendance_my, name='attendance_my'),
     path('attendance/journal/', views.attendance_journal, name='attendance_journal'),
     path('attendance/export/', views.attendance_export, name='attendance_export'),
+    path('attendance/manual/', views.manual_attendance, name='manual_attendance'),
+    path('attendance/manual/report/', views.manual_attendance_report, name='manual_attendance_report'),
 
     path('attendance/qr-points/', views.qr_points_list, name='qr_points_list'),
     path('attendance/qr-points/create/', views.qr_point_create, name='qr_point_create'),

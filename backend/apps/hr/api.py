@@ -280,6 +280,24 @@ class ManualAttendanceViewSet(
         )
         instance.delete()
 
+    @action(detail=True, methods=['get'], url_path='history')
+    def history(self, request, pk=None):
+        from hr.models import AttendanceEditLog
+        record = self.get_object()
+        logs = AttendanceEditLog.objects.filter(record=record).select_related('actor').order_by('-id')
+        data = [{
+            'id': log.id,
+            'action': log.action,
+            'action_display': dict(AttendanceEditLog._meta.get_field('action').choices).get(log.action, log.action),
+            'actor': log.actor.get_name if log.actor else None,
+            'before': log.before,
+            'after': log.after,
+            'ip_address': log.ip_address,
+            'created_at': log.created_at.isoformat(),
+        } for log in logs]
+        return Response({'results': data})
+
+
 class AttendanceReportViewSet(viewsets.ViewSet):
 
     def get_permissions(self):

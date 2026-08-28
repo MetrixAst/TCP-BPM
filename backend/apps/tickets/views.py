@@ -374,23 +374,6 @@ def attachment_delete(request, pk, attachment_pk):
     return JsonResponse({'ok': True})
 
 @need_permission(PermissionEnums.SERVICE_REQUESTS)
-@require_http_methods(['GET'])
-def approval_history(request, pk):
-    ticket = ServiceRequest.get_by_id(request, pk)
-    decisions = ticket.approval_decisions.select_related('actor').order_by('created_at')
-    data = [{
-        'id': d.pk,
-        'decision': d.decision,
-        'decision_display': 'Согласовано' if d.decision == 'approve' else 'Отклонено',
-        'actor': d.actor.get_name if d.actor else None,
-        'actor_id': d.actor_id,
-        'comment': d.comment,
-        'ip_address': d.ip_address,
-        'created_at': d.created_at.isoformat(),
-    } for d in decisions]
-    return JsonResponse({'ok': True, 'results': data})
-
-@need_permission(PermissionEnums.SERVICE_REQUESTS)
 def approval_queue(request):
     if request.user.is_portal_user:
         return redirect('tickets:home')

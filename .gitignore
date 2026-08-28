@@ -104,3 +104,6 @@ mobile/ios/Flutter/ephemeral/
 mobile/ios/Pods/
 mobile/android/local.properties
 
+# Firebase service account credentials (secrets, never commit)
+backend/metrix-abde2-firebase-adminsdk*.json
+backend/*firebase-adminsdk*.json

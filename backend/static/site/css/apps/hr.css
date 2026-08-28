@@ -3776,16 +3776,14 @@ body.hr-registry-edit-body .bpm-content {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.45);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  opacity: 0;
-  transition: opacity 0.15s ease;
 }
 
 .hr-status-dialog.is-open {
-  opacity: 1;
+  display: flex;
 }
 
 .hr-status-dialog__box {
@@ -3886,3 +3884,100 @@ body.hr-registry-edit-body .bpm-content {
 .hr-bulk-bar .hr-btn--light:disabled:hover {
   background: rgba(255, 255, 255, 0.12);
 }
+
+.ma-table__head, .ma-table__row {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr 1.4fr 1.4fr 1.2fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 18px;
+}
+
+.ma-table__head {
+  font-weight: 600;
+  color: #74728a;
+  font-size: 12px;
+  border-bottom: 1px solid #f0eef6;
+}
+
+.ma-table__row {
+  border-top: 1px solid #f0eef6;
+}
+
+.ma-table__row:first-of-type {
+  border-top: 0;
+}
+
+.ma-table__actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.ma-table__loading, .ma-table__empty {
+  padding: 24px;
+  text-align: center;
+  color: #74728a;
+}
+
+.ma-history-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #f0eef6;
+  font-size: 13px;
+}
+
+.ma-history-item:last-child {
+  border-bottom: 0;
+}
+
+.ma-history-item__head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.ma-history-item__diff {
+  color: #25233f;
+}
+
+.ma-history-item__diff div {
+  margin-bottom: 2px;
+}
+
+.attendance-manual-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #fff3cd;
+  color: #92600a;
+  cursor: help;
+  vertical-align: middle;
+}
+
+.mar-table__head, .mar-table__row {
+  display: grid;
+  grid-template-columns: 1.8fr 1.4fr 1fr 1fr 1.2fr 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 18px;
+}
+
+.mar-table__head {
+  font-weight: 600;
+  color: #74728a;
+  font-size: 12px;
+  border-bottom: 1px solid #f0eef6;
+}
+
+.mar-table__row {
+  border-top: 1px solid #f0eef6;
+}
+
+.mar-table__row:first-of-type {
+  border-top: 0;
+}
+
+/*# sourceMappingURL=hr.css.map */
