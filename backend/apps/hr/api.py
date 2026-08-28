@@ -458,7 +458,10 @@ class AttendanceRegistryViewSet(viewsets.ViewSet):
                 day_start = records.filter(event_type='day_start').first()
                 day_end = records.filter(event_type='day_end').last()
 
-                sources = list(records.values_list('source', flat=True).distinct())
+                # Python-side dedup, не SQL DISTINCT: records уже с .order_by('timestamp'),
+                # а DISTINCT на values_list() неявно учитывает колонку сортировки — из-за
+                # этого один и тот же source на двух записях (приход+уход) считался "разным".
+                sources = list(set(records.values_list('source', flat=True)))
                 source = sources[0] if len(sources) == 1 else 'mixed' if sources else None
 
                 summary = AttendanceRecord.get_daily_summary(emp, current)

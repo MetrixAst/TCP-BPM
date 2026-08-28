@@ -84,6 +84,22 @@ class AttendanceRegistryAPITest(TestCase):
             self.assertIn('total_hours', row)
             self.assertIn('source', row)
 
+    def test_registry_source_not_mixed_when_all_records_same_source(self):
+        # day_start и day_end у emp_staff (в setUp) оба source='face' — источник
+        # на такой день должен быть 'face', а не 'mixed'. records.values_list(...)
+        # .distinct() после records.order_by('timestamp') не дедуплицировал,
+        # т.к. DISTINCT в Postgres неявно учитывает колонку сортировки (timestamp),
+        # и день с обычной парой приход+уход всегда показывался как "смешанный".
+        self.client.force_authenticate(user=self.admin)
+        today = date.today().isoformat()
+        r = self.client.get(
+            f'/api/v1/hr/attendance/registry/?date_from={today}&date_to={today}'
+            f'&employee_id={self.emp_staff.pk}'
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data), 1)
+        self.assertEqual(r.data[0]['source'], 'face')
+
     def test_registry_filter_by_employee(self):
         self.client.force_authenticate(user=self.admin)
         r = self.client.get(f'/api/v1/hr/attendance/registry/?employee_id={self.emp_staff.pk}')

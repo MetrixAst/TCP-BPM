@@ -1,0 +1,107 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Реестр посещаемости — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .ar-kpi-note { color: #74728a; font-size: 13px; margin-top: 4px; }
+  .ar-filters {
+    background: #fff; border-radius: 14px; padding: 14px 18px; margin-bottom: 14px;
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+  }
+  .ar-filters .hr-form-input { min-width: 160px; }
+  .ar-filters label { font-size: 11px; color: #74728a; display: block; margin-bottom: 3px; }
+  .ar-source-badge {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600;
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .ar-source-badge--face { background: #eef2ff; color: #2f6bed; }
+  .ar-source-badge--qr { background: #f0eef9; color: #7c3aed; }
+  .ar-source-badge--manual { background: #fff7ed; color: #c2410c; }
+  .ar-source-badge--mixed { background: #f0eff6; color: #74728a; }
+  .ar-detail-flag { color: #ff3b30; font-size: 12px; font-weight: 600; }
+  .ar-detail-ok { color: #74728a; font-size: 12px; }
+</style>
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page" id="attendanceRegistryPage">
+
+  <div class="hr-registry-top">
+    <div>
+      <h1>Реестр посещаемости</h1>
+      <p class="ar-kpi-note">Приход, уход и часы по сотрудникам за выбранный период</p>
+    </div>
+    <div class="hr-registry-top__actions">
+      <a href="#" id="arExportBtn" class="hr-registry-btn hr-registry-btn--light">
+        <i class="bi bi-file-earmark-excel"></i> Экспорт в Excel
+      </a>
+    </div>
+  </div>
+
+  <form class="ar-filters" id="arFilters">
+    <div>
+      <label for="arDateFrom">С даты</label>
+      <input type="date" id="arDateFrom" name="date_from" class="hr-form-input">
+    </div>
+    <div>
+      <label for="arDateTo">По дату</label>
+      <input type="date" id="arDateTo" name="date_to" class="hr-form-input">
+    </div>
+    <div>
+      <label for="arDepartment">Отдел</label>
+      <select id="arDepartment" name="department_id" class="hr-form-input">
+        <option value="">Все</option>
+        {% for dept in departments %}
+          <option value="{{ dept.pk }}">{{ dept.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="arEmployee">Сотрудник</label>
+      <select id="arEmployee" name="employee_id" class="hr-form-input">
+        <option value="">Все</option>
+        {% for emp in employees %}
+          <option value="{{ emp.pk }}" data-department="{{ emp.department_id|default:'' }}">{{ emp.user.get_name|default:emp.user.username }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="hr-registry-btn hr-registry-btn--primary">
+      <i class="bi bi-search"></i> Показать
+    </button>
+  </form>
+
+  <div class="hr-registry-panel">
+    <div class="hr-registry-table-wrap">
+      <table class="hr-registry-table">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Сотрудник</th>
+            <th>Отдел</th>
+            <th>Приход</th>
+            <th>Уход</th>
+            <th>Часов</th>
+            <th>Источник</th>
+            <th>Детали</th>
+          </tr>
+        </thead>
+        <tbody id="arTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="hr-registry-empty" id="arEmpty" hidden>
+      <i class="bi bi-calendar-week"></i>
+      <strong>Записей не найдено</strong>
+      <span>Попробуйте изменить фильтры или период.</span>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/attendance-registry.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock %}

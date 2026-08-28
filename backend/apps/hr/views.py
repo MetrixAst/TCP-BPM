@@ -3,7 +3,7 @@ import json
 import base64
 import secrets
 from django.core.files.base import ContentFile
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
 from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
@@ -1257,6 +1257,62 @@ def attendance_journal(request):
         'departments': departments,
         'is_hr': is_hr,
         'lunch_enabled': lunch_enabled,
+    })
+
+
+def _attendance_registry_required(view):
+    """
+    Тот же круг доступа, что у AttendanceRegistryPermission на DRF-стороне
+    (hr/api.py::AttendanceRegistryViewSet) — держим оба места в синхроне
+    вручную, т.к. общего PermissionEnum под этот конкретный набор ролей нет.
+    """
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            response = redirect('account:auth')
+            response['Location'] += f"?next={request.path}"
+            return response
+
+        role = request.user.role
+        if hasattr(role, 'value'):
+            role = role.value
+        employee = getattr(request.user, 'employee_info', None)
+        allowed = (
+            request.user.is_superuser
+            or role in (RoleEnums.ADMINISTRATOR.value, RoleEnums.HR.value, RoleEnums.OWNER.value)
+            or (employee is not None and getattr(employee, 'head', False))
+        )
+        if not allowed:
+            raise PermissionDenied('Реестр посещаемости')
+        return view(request, *args, **kwargs)
+    return wrapper
+
+
+@_attendance_registry_required
+def attendance_registry(request):
+    user = request.user
+    role = user.role
+    if hasattr(role, 'value'):
+        role = role.value
+    employee = getattr(user, 'employee_info', None)
+    is_full_access = user.is_superuser or role in (
+        RoleEnums.ADMINISTRATOR.value, RoleEnums.HR.value, RoleEnums.OWNER.value,
+    )
+
+    if is_full_access:
+        departments = Department.objects.all()
+        employees = Employee.objects.filter(status='active').select_related('user', 'department')
+    else:
+        dept_ids = list(
+            employee.department.get_descendants(include_self=True).values_list('id', flat=True)
+        )
+        departments = Department.objects.filter(id__in=dept_ids)
+        employees = Employee.objects.filter(
+            department_id__in=dept_ids, status='active',
+        ).select_related('user', 'department')
+
+    return render(request, 'site/hr/attendance_registry.html', {
+        'departments': departments,
+        'employees': employees,
     })
 
 

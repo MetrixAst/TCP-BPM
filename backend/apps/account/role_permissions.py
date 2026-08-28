@@ -370,6 +370,7 @@ class MenuItem:
                     MenuItem('hr_permits', 'hr:permits_list', '', 'Допуски'),
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                     MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
+                    MenuItem('attendance_registry', 'hr:attendance_registry', '', 'Реестр посещаемости'),
                     MenuItem('manual_attendance', 'hr:manual_attendance', '', 'Ручные отметки'),
                     MenuItem('manual_attendance_report', 'hr:manual_attendance_report', '', 'Отчёт по ручным отметкам'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
@@ -396,6 +397,7 @@ class MenuItem:
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
                 MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task', permission=PermissionEnums.TASKS),
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', permission=PermissionEnums.FINANCES, submenu=finance_full_submenu),
+                MenuItem('attendance_registry', 'hr:attendance_registry', 'people', 'Реестр посещаемости'),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели', permission=PermissionEnums.REPORTS),
             ],
 
@@ -434,6 +436,7 @@ class MenuItem:
                     MenuItem('hr_permits', 'hr:permits_list', '', 'Допуски'),
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                     MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
+                    MenuItem('attendance_registry', 'hr:attendance_registry', '', 'Реестр посещаемости'),
                     MenuItem('manual_attendance', 'hr:manual_attendance', '', 'Ручные отметки'),
                     MenuItem('manual_attendance_report', 'hr:manual_attendance_report', '', 'Отчёт по ручным отметкам'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
@@ -474,6 +477,7 @@ class MenuItem:
                 hr_submenu[1:1] = [
                     MenuItem('org', 'hr:org', '', 'Орг. структура'),
                     MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
+                    MenuItem('attendance_registry', 'hr:attendance_registry', '', 'Реестр посещаемости'),
                 ]
             menu.append(
                 MenuItem('hr', '#hr', 'user', 'HR', permission=PermissionEnums.HR_SELF, submenu=hr_submenu)
