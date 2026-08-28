@@ -1,5 +1,7 @@
 from django.utils.translation import gettext_lazy as _
 from project.enums import CustomEnum
+from django.db import models
+
 
 
 class TicketCategoryEnum(CustomEnum):
@@ -31,22 +33,26 @@ class TicketPriorityEnum(CustomEnum):
 
 
 class TicketStatusEnum(CustomEnum):
-    NEW         = ("new",         _("Новая"))
-    ACCEPTED    = ("accepted",    _("Принята"))
-    IN_PROGRESS = ("in_progress", _("В работе"))
-    DONE        = ("done",        _("Выполнена"))
-    REJECTED    = ("rejected",    _("Отклонена"))
-    CANCELLED   = ("cancelled",   _("Отменена"))
+    NEW              = ("new",              _("Новая"))
+    ACCEPTED         = ("accepted",         _("Принята"))
+    IN_PROGRESS      = ("in_progress",      _("В работе"))
+    PENDING_APPROVAL = ("pending_approval", _("На согласовании"))
+    APPROVED         = ("approved",         _("Согласовано"))
+    DONE             = ("done",             _("Выполнена"))
+    REJECTED         = ("rejected",         _("Отклонена"))
+    CANCELLED        = ("cancelled",        _("Отменена"))
 
     @classmethod
     def get_full(cls):
         return {
-            cls.NEW.value[0]:         {'title': str(cls.NEW.value[1]),         'color': 'warning', 'icon': 'bi-inbox'},
-            cls.ACCEPTED.value[0]:    {'title': str(cls.ACCEPTED.value[1]),    'color': 'info',    'icon': 'bi-check2-circle'},
-            cls.IN_PROGRESS.value[0]: {'title': str(cls.IN_PROGRESS.value[1]), 'color': 'primary', 'icon': 'bi-tools'},
-            cls.DONE.value[0]:        {'title': str(cls.DONE.value[1]),        'color': 'success', 'icon': 'bi-check-circle-fill'},
-            cls.REJECTED.value[0]:    {'title': str(cls.REJECTED.value[1]),    'color': 'danger',  'icon': 'bi-x-circle'},
-            cls.CANCELLED.value[0]:   {'title': str(cls.CANCELLED.value[1]),   'color': 'neutral', 'icon': 'bi-slash-circle'},
+            cls.NEW.value[0]:              {'title': str(cls.NEW.value[1]),              'color': 'warning', 'icon': 'bi-inbox'},
+            cls.ACCEPTED.value[0]:         {'title': str(cls.ACCEPTED.value[1]),         'color': 'info',    'icon': 'bi-check2-circle'},
+            cls.IN_PROGRESS.value[0]:      {'title': str(cls.IN_PROGRESS.value[1]),      'color': 'primary', 'icon': 'bi-tools'},
+            cls.PENDING_APPROVAL.value[0]: {'title': str(cls.PENDING_APPROVAL.value[1]), 'color': 'warning', 'icon': 'bi-hourglass-split'},
+            cls.APPROVED.value[0]:         {'title': str(cls.APPROVED.value[1]),         'color': 'success', 'icon': 'bi-check-all'},
+            cls.DONE.value[0]:             {'title': str(cls.DONE.value[1]),             'color': 'success', 'icon': 'bi-check-circle-fill'},
+            cls.REJECTED.value[0]:         {'title': str(cls.REJECTED.value[1]),         'color': 'danger',  'icon': 'bi-x-circle'},
+            cls.CANCELLED.value[0]:        {'title': str(cls.CANCELLED.value[1]),        'color': 'neutral', 'icon': 'bi-slash-circle'},
         }
 
     @classmethod
@@ -55,7 +61,7 @@ class TicketStatusEnum(CustomEnum):
 
     @classmethod
     def board_statuses(cls):
-        return [cls.NEW, cls.ACCEPTED, cls.IN_PROGRESS, cls.DONE, cls.REJECTED]
+        return [cls.NEW, cls.ACCEPTED, cls.IN_PROGRESS, cls.PENDING_APPROVAL, cls.APPROVED, cls.DONE, cls.REJECTED]
 
 
 TICKET_TRANSITIONS = {
@@ -84,5 +90,21 @@ TICKET_TRANSITIONS = {
     TicketStatusEnum.REJECTED.value[0]: {
         'reopen': {'next': TicketStatusEnum.NEW.value[0], 'roles': ['manager'],
                    'title': str(_('Вернуть в новые')),  'variant': 'warning'},
+    },
+    TicketStatusEnum.IN_PROGRESS.value[0]: {
+    'complete': {'next': TicketStatusEnum.DONE.value[0],             'roles': ['manager'],
+                 'title': str(_('Завершить')),                        'variant': 'success'},
+    'request_approval': {'next': TicketStatusEnum.PENDING_APPROVAL.value[0], 'roles': ['manager'],
+                         'title': str(_('Отправить на согласование')), 'variant': 'info'},
+    },
+    TicketStatusEnum.PENDING_APPROVAL.value[0]: {
+        'approve': {'next': TicketStatusEnum.APPROVED.value[0], 'roles': ['manager'],
+                    'title': str(_('Согласовать')),              'variant': 'success'},
+        'reject':  {'next': TicketStatusEnum.REJECTED.value[0], 'roles': ['manager'],
+                    'title': str(_('Отклонить')),                'variant': 'danger'},
+    },
+    TicketStatusEnum.APPROVED.value[0]: {
+        'complete': {'next': TicketStatusEnum.DONE.value[0], 'roles': ['manager'],
+                    'title': str(_('Завершить')),            'variant': 'success'},
     },
 }

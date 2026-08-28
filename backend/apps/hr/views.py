@@ -1,6 +1,7 @@
 import openpyxl
 import json
 import base64
+import secrets
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.shortcuts import redirect, render, get_object_or_404
@@ -10,6 +11,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
 from django.db import transaction
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal, ROUND_HALF_UP
@@ -1027,8 +1029,6 @@ def attendance_checkin(request):
             events = summary.get('details', {})
             order = [
                 (CheckInEnum.DAY_START, 'Приход'),
-                (CheckInEnum.LUNCH_START, 'Начало обеда'),
-                (CheckInEnum.LUNCH_END, 'Конец обеда'),
                 (CheckInEnum.DAY_END, 'Уход'),
             ]
             for key, label in order:
@@ -1044,10 +1044,6 @@ def attendance_checkin(request):
 
             if CheckInEnum.DAY_START not in completed_types:
                 next_event = CheckInEnum.DAY_START
-            elif CheckInEnum.LUNCH_START not in completed_types:
-                next_event = CheckInEnum.LUNCH_START
-            elif CheckInEnum.LUNCH_END not in completed_types:
-                next_event = CheckInEnum.LUNCH_END
             elif CheckInEnum.DAY_END not in completed_types:
                 next_event = CheckInEnum.DAY_END
             else:
@@ -1056,8 +1052,6 @@ def attendance_checkin(request):
 
         event_labels = {
             CheckInEnum.DAY_START: 'Приход',
-            CheckInEnum.LUNCH_START: 'Начало обеда',
-            CheckInEnum.LUNCH_END: 'Конец обеда',
             CheckInEnum.DAY_END: 'Уход',
         }
         preselect = request.GET.get('event') or (next_event if next_event else CheckInEnum.DAY_START)
@@ -1165,7 +1159,7 @@ def attendance_journal(request):
 
     # Предзагружаем записи за дату: фото + гео + адрес (из БД)
     record_map = {}
-    for rec in AttendanceRecord.objects.filter(timestamp__date=target_date).select_related('employee'):
+    for rec in AttendanceRecord.objects.filter(timestamp__date=target_date).select_related('employee', 'manual_author', 'manual_reason'):
         try:
             photo_url = rec.photo.url if (rec.photo and rec.photo.name) else ''
         except Exception:
@@ -1175,6 +1169,9 @@ def attendance_journal(request):
             'lat': str(rec.latitude) if rec.latitude else '',
             'lng': str(rec.longitude) if rec.longitude else '',
             'address': rec.location_address or '',
+            'is_manual': rec.is_manual,
+            'manual_author': rec.manual_author.get_name if rec.manual_author else None,
+            'manual_reason': rec.manual_reason.label if rec.manual_reason else None,
         }
 
     journal = []
@@ -1223,8 +1220,6 @@ def attendance_journal(request):
             'employee':          emp,
             'day_start':         start_dt,
             'day_end':           end_dt,
-            'lunch_start':       lunch_start_dt,
-            'lunch_end':         lunch_end_dt,
             'total_hours':       total_hours,
             'late':              late,
             'early_leave':       early_leave,
@@ -1234,24 +1229,36 @@ def attendance_journal(request):
             'arrival_lat':       _r(CheckInEnum.DAY_START,   'lat'),
             'arrival_lng':       _r(CheckInEnum.DAY_START,   'lng'),
             'arrival_address':   _r(CheckInEnum.DAY_START,   'address'),
-            # Обед
-            'lunch_start_photo': _r(CheckInEnum.LUNCH_START, 'photo'),
-            'lunch_end_photo':   _r(CheckInEnum.LUNCH_END,   'photo'),
             # Уход
             'departure_photo':   _r(CheckInEnum.DAY_END,     'photo'),
             'departure_lat':     _r(CheckInEnum.DAY_END,     'lat'),
             'departure_lng':     _r(CheckInEnum.DAY_END,     'lng'),
             'departure_address': _r(CheckInEnum.DAY_END,     'address'),
+            # Ручные отметки
+            'arrival_is_manual':    _r(CheckInEnum.DAY_START, 'is_manual'),
+            'arrival_manual_author': _r(CheckInEnum.DAY_START, 'manual_author'),
+            'arrival_manual_reason': _r(CheckInEnum.DAY_START, 'manual_reason'),
+            'departure_is_manual':    _r(CheckInEnum.DAY_END, 'is_manual'),
+            'departure_manual_author': _r(CheckInEnum.DAY_END, 'manual_author'),
+            'departure_manual_reason': _r(CheckInEnum.DAY_END, 'manual_reason'),
         })
 
     departments = Department.objects.all() if is_hr else [employee.department]
+
+    from django.conf import settings as django_settings
+    lunch_enabled = not (
+        CheckInEnum.LUNCH_START in getattr(django_settings, 'ATTENDANCE_DISABLED_TYPES', []) and
+        CheckInEnum.LUNCH_END in getattr(django_settings, 'ATTENDANCE_DISABLED_TYPES', [])
+    )
 
     return render(request, 'site/hr/attendance_journal.html', {
         'journal': journal,
         'target_date': target_date,
         'departments': departments,
-        'is_hr': is_hr
+        'is_hr': is_hr,
+        'lunch_enabled': lunch_enabled,
     })
+
 
 @login_required
 def attendance_my(request):
@@ -1366,14 +1373,22 @@ def attendance_my(request):
 
     prev_month_date = date(view_year, view_month, 1) - timedelta(days=1)
     next_month_date = date(view_year, view_month, 28) + timedelta(days=5)
-    
+
+    from django.conf import settings as django_settings
+    lunch_enabled = not (
+        CheckInEnum.LUNCH_START in getattr(django_settings, 'ATTENDANCE_DISABLED_TYPES', []) and
+        CheckInEnum.LUNCH_END in getattr(django_settings, 'ATTENDANCE_DISABLED_TYPES', [])
+    )
+
+
     return render(request, 'site/hr/attendance_my.html', {
         'attendance_list': attendance_list,
         'view_date': date(view_year, view_month, 1),
         'prev_month': prev_month_date,
         'next_month': next_month_date if next_month_date <= date.today() else None,
         'employee': employee,
-        'is_own_profile': employee == curr_employee
+        'is_own_profile': employee == curr_employee,
+        'lunch_enabled': lunch_enabled
     })
 
 
@@ -1751,3 +1766,249 @@ def certifications_export(request):
     response['Content-Disposition'] = 'attachment; filename="certifications_export.xlsx"'
     wb.save(response)
     return response
+
+@need_permission(PermissionEnums.HR_JOURNAL)
+def attendance_export(request):
+    import pytz
+    from django.conf import settings as django_settings
+    LOCAL_TZ = pytz.timezone('Asia/Almaty')
+
+    target_date_str = request.GET.get('date', date.today().isoformat())
+    target_date = parse_date(target_date_str) or date.today()
+
+    lunch_enabled = not (
+        CheckInEnum.LUNCH_START in getattr(django_settings, 'ATTENDANCE_DISABLED_TYPES', []) and
+        CheckInEnum.LUNCH_END in getattr(django_settings, 'ATTENDANCE_DISABLED_TYPES', [])
+    )
+
+    employees_qs = Employee.objects.filter(status='active').select_related('user', 'department')
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Посещаемость"
+
+    headers = ["Сотрудник", "Отдел", "Приход", "Уход"]
+    if lunch_enabled:
+        headers += ["Начало обеда", "Конец обеда"]
+    headers += ["Рабочих часов", "Опоздание", "Ранний уход"]
+    ws.append(headers)
+
+    for emp in employees_qs:
+        summary = AttendanceRecord.get_daily_summary(emp, target_date)
+        events = summary.get('details', {})
+
+        user = emp.user
+        name = f"{user.first_name or ''} {user.last_name or ''}".strip() or user.username
+        dept = emp.department.name if emp.department else "-"
+
+        start_dt = events.get(CheckInEnum.DAY_START)
+        end_dt = events.get(CheckInEnum.DAY_END)
+        lunch_start = events.get(CheckInEnum.LUNCH_START)
+        lunch_end = events.get(CheckInEnum.LUNCH_END)
+
+        fmt = lambda dt: dt.astimezone(LOCAL_TZ).strftime('%H:%M') if dt else "-"
+
+        total_hours = summary.get('total_work_time', timedelta(0)).total_seconds() / 3600
+
+        late = False
+        early_leave = False
+        if start_dt:
+            late = work_schedule_helper.is_late(emp, start_dt.astimezone(LOCAL_TZ))
+        if end_dt:
+            early_leave = end_dt.astimezone(LOCAL_TZ).hour < 18
+
+        row = [name, dept, fmt(start_dt), fmt(end_dt)]
+        if lunch_enabled:
+            row += [fmt(lunch_start), fmt(lunch_end)]
+        row += [
+            round(total_hours, 2),
+            "Да" if late else "Нет",
+            "Да" if early_leave else "Нет",
+        ]
+        ws.append(row)
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="attendance_{target_date}.xlsx"'
+    wb.save(response)
+    return response
+
+@need_permission(PermissionEnums.HR)
+def manual_attendance(request):
+    from account.models import Employee
+    from .models import AttendanceManualReason
+
+    employees = Employee.objects.filter(status='active').select_related('user').order_by('user__last_name')
+    reasons = AttendanceManualReason.objects.filter(is_active=True)
+
+    return render(request, 'site/hr/manual_attendance.html', {
+        'employees': employees,
+        'reasons': reasons,
+    })
+
+@need_permission(PermissionEnums.HR)
+def manual_attendance_report(request):
+    from account.models import Employee
+
+    employees = Employee.objects.filter(status='active').select_related('user').order_by('user__last_name')
+
+    return render(request, 'site/hr/manual_attendance_report.html', {
+        'employees': employees,
+    })
+@need_permission(PermissionEnums.HR_JOURNAL)
+def qr_points_list(request):
+    from hr.models import QRPoint
+    points = QRPoint.objects.all().order_by('name')
+    return render(request, 'site/hr/attendance/qr_points_list.html', {
+        'points': points,
+    })
+
+
+@need_permission(PermissionEnums.HR_JOURNAL)
+def qr_point_create(request):
+    from hr.models import QRPoint
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        location = request.POST.get('location', '').strip()
+        if not name:
+            return render(request, 'site/hr/attendance/qr_point_form.html', {
+                'title': 'Новая QR-точка',
+                'error': 'Название обязательно',
+                'form_name': name,
+                'form_location': location,
+            })
+        point = QRPoint.objects.create(name=name, location=location, created_by=request.user)
+        # Сразу открываем экран киоска — обычно точку создают, чтобы
+        # немедленно вывести её на экран у входа.
+        return redirect('hr:qr_kiosk', pk=point.pk)
+    return render(request, 'site/hr/attendance/qr_point_form.html', {
+        'title': 'Новая QR-точка',
+        'form_name': '',
+        'form_location': '',
+    })
+
+
+@need_permission(PermissionEnums.HR_JOURNAL)
+def qr_point_edit(request, pk):
+    from hr.models import QRPoint
+    point = get_object_or_404(QRPoint, pk=pk)
+    if request.method == 'POST':
+        point.name = request.POST.get('name', point.name).strip()
+        point.location = request.POST.get('location', point.location).strip()
+        point.is_active = request.POST.get('is_active') == 'on'
+        point.save()
+        return redirect('hr:qr_points_list')
+    return render(request, 'site/hr/attendance/qr_point_form.html', {
+        'title': 'Редактировать QR-точку',
+        'point': point,
+    })
+
+
+@need_permission(PermissionEnums.HR_JOURNAL)
+def qr_point_delete(request, pk):
+    from hr.models import QRPoint
+    point = get_object_or_404(QRPoint, pk=pk)
+    if request.method == 'POST':
+        point.delete()
+        return redirect('hr:qr_points_list')
+    return render(request, 'site/hr/attendance/qr_point_confirm_delete.html', {'point': point})
+
+
+@need_permission(PermissionEnums.HR_JOURNAL)
+def qr_kiosk(request, pk):
+    from hr.models import QRPoint
+    point = get_object_or_404(QRPoint, pk=pk, is_active=True)
+    return render(request, 'site/hr/attendance/qr_kiosk.html', {
+        'point': point,
+        'token_url': reverse('hr:qr_kiosk_token', args=[pk]),
+        'checkin_types': [
+            {'value': 'day_start', 'label': 'Приход'},
+            {'value': 'day_end', 'label': 'Уход'},
+        ],
+    })
+
+
+def qr_kiosk_token(request, pk):
+    from hr.models import QRPoint, QRToken
+    point = get_object_or_404(QRPoint, pk=pk, is_active=True)
+    event_type = request.GET.get('event_type', 'day_start')
+
+    token_value = secrets.token_urlsafe(32)
+    expires_at = timezone.now() + timedelta(seconds=45)
+
+    QRToken.objects.create(
+        token=token_value,
+        qr_point=point,
+        event_type=event_type,
+        expires_at=expires_at,
+        ip_address=request.META.get('REMOTE_ADDR'),
+    )
+
+    scan_url = request.build_absolute_uri(
+        reverse('hr:qr_checkin') + f'?token={token_value}'
+    )
+
+    return JsonResponse({
+        'token': token_value,
+        'scan_url': scan_url,
+        'expires_at': expires_at.isoformat(),
+        'expires_in': 45,
+        'event_type': event_type,
+    })
+
+
+@login_required
+def qr_checkin(request):
+    from hr.models import QRToken, QRScanAudit
+    from account.models import Employee
+
+    token_value = request.POST.get('token') or request.GET.get('token', '')
+    ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+
+    def _audit(action, token_str, qr_point=None):
+        QRScanAudit.objects.create(
+            token=token_str,
+            qr_point=qr_point,
+            user=request.user if request.user.is_authenticated else None,
+            action=action,
+            ip_address=ip,
+        )
+
+    if not token_value:
+        return JsonResponse({'success': False, 'error': 'Недействительный QR-код'}, status=400, json_dumps_params={'ensure_ascii': False})
+
+    try:
+        qr_token = QRToken.objects.select_related('qr_point').get(token=token_value)
+    except QRToken.DoesNotExist:
+        _audit(QRScanAudit.ACTION_INVALID, token_value)
+        return JsonResponse({'success': False, 'error': 'Недействительный QR-код'}, status=400, json_dumps_params={'ensure_ascii': False})
+
+    if qr_token.is_expired:
+        _audit(QRScanAudit.ACTION_EXPIRED, token_value, qr_token.qr_point)
+        return JsonResponse({'success': False, 'error': 'QR-код истёк, отсканируйте текущий код'}, status=410, json_dumps_params={'ensure_ascii': False})
+
+    if qr_token.is_used_by(request.user):
+        _audit(QRScanAudit.ACTION_REPLAY, token_value, qr_token.qr_point)
+        return JsonResponse({'success': False, 'error': 'Этот QR-код уже использован'}, status=409, json_dumps_params={'ensure_ascii': False})
+
+    try:
+        employee = request.user.employee_info
+    except Exception:
+        _audit(QRScanAudit.ACTION_INVALID, token_value, qr_token.qr_point)
+        return JsonResponse({'success': False, 'error': 'Профиль сотрудника не найден'}, status=403, json_dumps_params={'ensure_ascii': False})
+
+    from hr.services import create_attendance_checkin
+
+    create_attendance_checkin(
+        employee=employee,
+        event_type=qr_token.event_type,
+        photo_file=None,
+        ip_address=ip,
+        source='qr',
+    )
+
+    qr_token.used_by.add(request.user)
+    _audit(QRScanAudit.ACTION_SUCCESS, token_value, qr_token.qr_point)
+
+    return JsonResponse({'success': True, 'message': 'Отметка успешно создана'}, json_dumps_params={'ensure_ascii': False})

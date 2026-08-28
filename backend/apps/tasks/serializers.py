@@ -48,7 +48,11 @@ class TaskSerializer(serializers.ModelSerializer):
     status_color = serializers.SerializerMethodField()
     priority_display = serializers.SerializerMethodField()
     available_actions = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
     history = serializers.SerializerMethodField()
+    deleted_at = serializers.DateTimeField(read_only=True)
+    deleted_by = UserBriefSerializer(read_only=True)
+    deleted_reason = serializers.CharField(read_only=True)
     executor_id = serializers.PrimaryKeyRelatedField(
         queryset=UserAccount.objects.all(),
         source='executor',
@@ -76,7 +80,11 @@ class TaskSerializer(serializers.ModelSerializer):
             'co_executor_ids',
             'observer_ids',
             'available_actions',
+            'can_delete',
             'history',
+            'deleted_at',
+            'deleted_by',
+            'deleted_reason',
         )
         read_only_fields = (
             'id',
@@ -87,6 +95,10 @@ class TaskSerializer(serializers.ModelSerializer):
             'status',
             'status_display',
             'available_actions',
+            'can_delete',
+            'deleted_at',
+            'deleted_by',
+            'deleted_reason',
         )
 
     def get_status_display(self, obj):
@@ -106,6 +118,12 @@ class TaskSerializer(serializers.ModelSerializer):
         if not request or not request.user.is_authenticated:
             return []
         return obj.actions(request)
+
+    def get_can_delete(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.can_delete(request.user)
 
     def get_history(self, obj):
         return TaskHistoryEntrySerializer(

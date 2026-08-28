@@ -1,0 +1,74 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Отчёт по ручным отметкам — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock %}
+
+{% block content %}
+<div class="hr-page">
+  <div class="hr-list-top">
+    <h1>Отчёт по ручным отметкам</h1>
+  </div>
+
+  <div class="hr-filter-card">
+    <form id="marFilterForm" class="hr-edit-form" style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;">
+      <div class="hr-edit-field" style="min-width:160px;">
+        <label class="hr-edit-field__label">Период с</label>
+        <input type="date" id="marDateFrom" class="hr-edit-input" />
+      </div>
+      <div class="hr-edit-field" style="min-width:160px;">
+        <label class="hr-edit-field__label">Период по</label>
+        <input type="date" id="marDateTo" class="hr-edit-input" />
+      </div>
+      <div class="hr-edit-field" style="min-width:220px;">
+        <label class="hr-edit-field__label">Сотрудник</label>
+        <select id="marEmployee" class="ma-select2" style="width:100%;">
+          <option value="">Все сотрудники</option>
+          {% for emp in employees %}
+            <option value="{{ emp.id }}">{{ emp.get_display_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="hr-edit-field" style="min-width:220px;">
+        <label class="hr-edit-field__label">Автор ручной отметки</label>
+        <select id="marAuthor" class="ma-select2" style="width:100%;">
+          <option value="">Все авторы</option>
+          {% for emp in employees %}
+            <option value="{{ emp.user_id }}">{{ emp.get_display_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="hr-btn hr-btn--primary">Применить</button>
+      <button type="button" class="hr-btn hr-btn--light" id="marExportBtn">
+        <i class="bi bi-download"></i> Экспорт в Excel
+      </button>
+    </form>
+  </div>
+
+  <div class="hr-card">
+    <div class="hr-table mar-table">
+      <div class="hr-table__head mar-table__head">
+        <div>Сотрудник</div>
+        <div>Отдел</div>
+        <div>Всего отметок</div>
+        <div>Ручных</div>
+        <div>Автоматических</div>
+        <div>Рабочих часов</div>
+      </div>
+      <div class="hr-table__body" id="marTableBody">
+        <div class="ma-table__loading">Задайте параметры и нажмите «Применить»</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/hr-manual-attendance-report.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock %}

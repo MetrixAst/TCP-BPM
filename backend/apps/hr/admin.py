@@ -1,8 +1,9 @@
 from django.contrib import admin
 from .models import (
-    Company, Position, WorkCalendar, 
+    Company, Position, WorkCalendar,
     Vacation, SickLeave, EmploymentContract,
-    LeaveRequest, LeaveType, AttendanceRecord, EmployeeDocument, WorkCategory, EmployeeWorkPermit, CertificationType, EmployeeCertification
+    LeaveRequest, LeaveType, AttendanceRecord, EmployeeDocument, WorkCategory, EmployeeWorkPermit, CertificationType, EmployeeCertification,
+    QRPoint, QRToken, QRScanAudit,
 )
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -80,8 +81,8 @@ class EmploymentContractAdmin(admin.ModelAdmin):
 
 @admin.register(AttendanceRecord)
 class AttendanceRecordAdmin(admin.ModelAdmin):
-    list_display = ('employee', 'event_type', 'timestamp', 'ip_address', 'get_photo_preview')
-    list_filter = ('event_type', 'timestamp', 'employee')
+    list_display = ('employee', 'event_type', 'source', 'timestamp', 'ip_address', 'get_photo_preview')
+    list_filter = ('event_type', 'source', 'timestamp', 'employee')
     search_fields = ('employee__user__last_name', 'ip_address', 'workstation')
     readonly_fields = ('get_photo_preview',)
 
@@ -208,3 +209,25 @@ class EmployeeCertificationAdmin(admin.ModelAdmin):
             status.upper()
         )
     get_status.short_description = 'Статус'
+
+@admin.register(QRPoint)
+class QRPointAdmin(admin.ModelAdmin):
+    # Собственный CRUD-экран (hr:qr_points_list и т.д.) ещё в работе —
+    # админка нужна как временный способ создать/деактивировать точку для
+    # тестирования QR-чекина (см. hr:qr_kiosk).
+    list_display = ('name', 'location', 'is_active', 'created_by', 'created_at')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'location')
+
+@admin.register(QRToken)
+class QRTokenAdmin(admin.ModelAdmin):
+    list_display = ('qr_point', 'event_type', 'expires_at', 'is_expired', 'created_at')
+    list_filter = ('qr_point', 'event_type')
+    readonly_fields = ('token', 'created_at')
+
+@admin.register(QRScanAudit)
+class QRScanAuditAdmin(admin.ModelAdmin):
+    list_display = ('token', 'qr_point', 'user', 'action', 'ip_address', 'created_at')
+    list_filter = ('action', 'qr_point')
+    search_fields = ('token', 'user__username')
+    readonly_fields = ('token', 'qr_point', 'user', 'action', 'ip_address', 'created_at')

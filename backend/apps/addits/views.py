@@ -25,12 +25,22 @@ def custom_page_not_found_view(request, exception):
     return render(
         request,
         "site/error.html",
-        {'title': 'Страница не найдена', 'text': 'Этой страницы не существует, или она была удалена!'},
+        {'code': 404, 'title': 'Страница не найдена', 'text': 'Этой страницы не существует, или она была удалена!'},
         status=404,
     )
 
 def custom_error_view(request, exception=None):
-    return render(request, "site/error.html", {'title': 'Произошла ошибка', 'text': 'Не удалось выполнить запрос!'})
+    return render(request, "site/error.html", {'code': 500, 'title': 'Произошла ошибка', 'text': 'Не удалось выполнить запрос!'})
 
 def custom_permission_denied_view(request, exception=None):
-    return render(request, "site/error.html", {'title': 'Нет доступа', 'text': 'У Вас недостаточно прав для доступа к этой странице!'})
+    reason = str(exception).strip() if exception else ''
+    context = {'code': 403, 'title': 'Нет доступа'}
+    if reason:
+        context.update({
+            'text_prefix': 'Для доступа к этой странице требуется право',
+            'reason': reason,
+            'text_suffix': ', которого у вас нет. Обратитесь к администратору, чтобы получить доступ.',
+        })
+    else:
+        context['text'] = 'У Вас недостаточно прав для доступа к этой странице!'
+    return render(request, "site/error.html", context, status=403)

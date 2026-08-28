@@ -17,6 +17,7 @@ from hr.services import create_attendance_checkin
 
 from tickets.models import ServiceRequest, TicketMessage
 from .idempotency import idempotent
+from tenants.models import Room
 
 from .serializers import (
     ProfileSerializer,
@@ -29,6 +30,7 @@ from .serializers import (
     TicketMessageSerializer,
     TicketMessageCreateSerializer,
     NotificationSerializer,
+    RoomResolveSerializer,
 )
 
 
@@ -366,3 +368,93 @@ class NotificationReadView(APIView):
         NotificationIndicator.readed(request.user, notification.target_id, notification.target_type)
 
         return Response({'success': True})
+
+class RoomResolveView(APIView):
+    """
+    GET /api/v1/mobile/rooms/resolve/?map_id=<value>
+
+    Резолвит map_id из QR-кода помещения в данные комнаты для
+    предзаполнения формы создания заявки. Защищён тем же JWT, что и
+    весь mobile_api — сам map_id в QR передаётся как обычный текст,
+    авторизация нужна на уровне запроса к API, не на уровне QR-кода.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        parameters=[OpenApiParameter('map_id', str, required=True)],
+        responses={200: OpenApiResponse(description='Данные помещения')},
+    )
+    def get(self, request):
+        map_id = request.query_params.get('map_id')
+        if not map_id:
+            return Response({'error': 'Параметр map_id обязателен'}, status=status.HTTP_400_BAD_REQUEST)
+
+        room = Room.objects.filter(map_id=map_id).first()
+        if room is None:
+            return Response({'error': 'Помещение не найдено'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(RoomResolveSerializer(room).data)
+
+
+class AttendanceQRCheckinView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @idempotent('attendance-qr-checkin')
+    def post(self, request):
+        from hr.models import QRToken, QRScanAudit
+        from hr.services import create_attendance_checkin
+
+        token_value = request.data.get('token', '').strip()
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+
+        def _audit(action, qr_token=None):
+            QRScanAudit.objects.create(
+                token=token_value,
+                qr_point=qr_token.qr_point if qr_token else None,
+                user=request.user,
+                action=action,
+                ip_address=ip,
+            )
+
+        if not token_value:
+            return Response({'error': 'Недействительный QR-код'}, status=400)
+
+        try:
+            qr_token = QRToken.objects.select_related('qr_point').get(token=token_value)
+        except QRToken.DoesNotExist:
+            _audit(QRScanAudit.ACTION_INVALID)
+            return Response({'error': 'Недействительный QR-код'}, status=400)
+
+        if qr_token.is_expired:
+            _audit(QRScanAudit.ACTION_EXPIRED, qr_token)
+            return Response({'error': 'QR-код истёк, отсканируйте текущий код'}, status=410)
+
+        if qr_token.is_used_by(request.user):
+            _audit(QRScanAudit.ACTION_REPLAY, qr_token)
+            return Response({'error': 'Этот QR-код уже использован'}, status=409)
+
+        employee = getattr(request.user, 'employee_info', None)
+        if not employee:
+            _audit(QRScanAudit.ACTION_INVALID, qr_token)
+            return Response({'error': 'Профиль сотрудника не найден'}, status=403)
+
+        record = create_attendance_checkin(
+            employee=employee,
+            event_type=qr_token.event_type,
+            photo_file=None,
+            ip_address=ip,
+            source='qr',
+        )
+
+        qr_token.used_by.add(request.user)
+        _audit(QRScanAudit.ACTION_SUCCESS, qr_token)
+
+        return Response({
+            'success': True,
+            'message': 'Отметка успешно создана',
+            'record_id': record.pk,
+            'event_type': record.event_type,
+            'source': record.source,
+            'timestamp': record.timestamp.isoformat(),
+        }, status=201)

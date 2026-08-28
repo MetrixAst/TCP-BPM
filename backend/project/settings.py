@@ -14,6 +14,7 @@ from celery.schedules import crontab
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 
+LOGIN_URL = '/account/auth'
 
 SECRET_KEY = config('SECRET_KEY')
 
@@ -65,6 +66,7 @@ INSTALLED_APPS = [
     'audit',
     'rest_framework',
     'drf_spectacular',
+    'django_filters',
 ]
 
 MIDDLEWARE = [
@@ -73,6 +75,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'account.auth_middleware.LoginRequiredMiddleware',
     'audit.middleware.AuditMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -243,6 +246,20 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'esigner_poll_pending_signings_task',
         'schedule': 600,
     },
+    'tasks-cleanup-bin-daily': {
+        'task': 'tasks.cleanup_bin',
+        'schedule': crontab(hour=3, minute=0),  
+        'kwargs': {'days': 30},
+    },
+    'tickets-sla-escalation': {
+        'task': 'tickets.sla_escalation',
+        'schedule': crontab(hour='*/4', minute=0),  
+    },
+    'account-cleanup-notifications-daily': {
+        'task': 'account.cleanup_notifications',
+        'schedule': crontab(hour=2, minute=0),  
+        'kwargs': {'days': 60},
+    },
     # Курсы НБ РК отключены — в интерфейсе все суммы в ₸
     # 'fetch-exchange-rates-daily': {
     #     'task': 'finances.tasks.fetch_exchange_rates',
@@ -300,3 +317,6 @@ ESIGNER_COMPANY_ID = config('ESIGNER_COMPANY_ID', default=0, cast=int)
 ESIGNER_FOLDER_ID = config('ESIGNER_FOLDER_ID', default='')
 ESIGNER_TIMEOUT = config('ESIGNER_TIMEOUT', default=30, cast=int)
 ESIGNER_WEBHOOK_SECRET = config('ESIGNER_WEBHOOK_SECRET', default='')
+
+ATTENDANCE_DISABLED_TYPES = ['lunch_start', 'lunch_end']
+ATTENDANCE_MAX_EDIT_DAYS = 30

@@ -190,12 +190,19 @@ def create(request):
 def item(request, pk):
     ticket = ServiceRequest.get_by_id(request, pk)
     from .models import TicketMessage
+
+    current_approver = None
+    if ticket.status == TicketStatusEnum.PENDING_APPROVAL.value[0] and ticket.author_id:
+        from .services import get_approver
+        current_approver = get_approver(ticket.author)
+
     context = {
         'ticket': ticket,
         'info': ticket.get_data(),
         'actions': ticket.actions(request),
         'assign_form': TicketAssignForm(instance=ticket) if user_is_manager(request.user) else None,
         'can_chat': TicketMessage.can_view(ticket, request.user),
+        'current_approver': current_approver,
         **_portal_context(request),
     }
     return render(request, 'site/tickets/ticket.html', context)
@@ -365,3 +372,88 @@ def attachment_delete(request, pk, attachment_pk):
     attachment.file.delete(save=False)
     attachment.delete()
     return JsonResponse({'ok': True})
+
+@need_permission(PermissionEnums.SERVICE_REQUESTS)
+def approval_queue(request):
+    if request.user.is_portal_user:
+        return redirect('tickets:home')
+
+    from .services import get_approver
+
+    pending = (
+        ServiceRequest.objects
+        .filter(status=TicketStatusEnum.PENDING_APPROVAL.value[0])
+        .select_related('author', 'department', 'tenant')
+        .order_by('updated_at')
+    )
+
+    queue = [
+        ticket for ticket in pending
+        if ticket.author_id and get_approver(ticket.author) and get_approver(ticket.author).id == request.user.id
+    ]
+
+    return render(request, 'site/tickets/approvals.html', {
+        'queue': queue,
+    })
+
+
+@need_permission(PermissionEnums.MANAGE_PERMISSIONS)
+def workflow_settings(request):
+    from .models import TicketTypeConfig
+    configs = TicketTypeConfig.objects.select_related('department', 'auto_assign_to').all()
+    return render(request, 'site/tickets/workflow_settings.html', {
+        'configs': configs,
+    })
+
+
+@need_permission(PermissionEnums.MANAGE_PERMISSIONS)
+def workflow_settings_edit(request, pk=None):
+    from .models import TicketTypeConfig
+    from .forms import TicketTypeConfigForm
+    from django.core.exceptions import ValidationError
+
+    instance = TicketTypeConfig.objects.filter(pk=pk).first() if pk else None
+
+    if request.method == 'POST':
+        form = TicketTypeConfigForm(request.POST, instance=instance)
+        if form.is_valid():
+            try:
+                obj = form.save(commit=False)
+                obj.full_clean()
+                obj.save()
+                return redirect('tickets:workflow_settings')
+            except ValidationError as e:
+                form.add_error(None, e)
+    else:
+        form = TicketTypeConfigForm(instance=instance)
+
+    return render(request, 'site/tickets/workflow_settings_form.html', {
+        'form': form,
+        'instance': instance,
+    })
+
+
+@need_permission(PermissionEnums.MANAGE_PERMISSIONS)
+@require_http_methods(['POST'])
+def workflow_settings_delete(request, pk):
+    from .models import TicketTypeConfig
+    TicketTypeConfig.objects.filter(pk=pk).delete()
+    return redirect('tickets:workflow_settings')
+
+
+@need_permission(PermissionEnums.SERVICE_REQUESTS)
+@require_http_methods(['GET'])
+def approval_history(request, pk):
+    ticket = ServiceRequest.get_by_id(request, pk)
+    decisions = ticket.approval_decisions.select_related('actor').order_by('created_at')
+    data = [{
+        'id': d.pk,
+        'decision': d.decision,
+        'decision_display': 'Согласовано' if d.decision == 'approve' else 'Отклонено',
+        'actor': d.actor.get_name if d.actor else None,
+        'actor_id': d.actor_id,
+        'comment': d.comment,
+        'ip_address': d.ip_address,
+        'created_at': d.created_at.isoformat(),
+    } for d in decisions]
+    return JsonResponse({'ok': True, 'results': data})

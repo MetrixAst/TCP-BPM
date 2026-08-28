@@ -44,6 +44,44 @@ class NotificationsRepository {
     }
   }
 
+  Future<ApiResult<void>> markAllRead(List<int> unreadIds) async {
+    try {
+      await Future.wait(unreadIds.map(
+        (id) => dio.post('/api/v1/mobile/notifications/$id/read/'),
+      ));
+      return const Success(null);
+    } on DioException catch (e) {
+      return Failure(_errorMessage(e), statusCode: e.response?.statusCode);
+    }
+  }
+
+  Future<ApiResult<void>> dismiss(int id) async {
+    try {
+      await dio.delete('/api/v1/notifications/$id/dismiss/');
+      return const Success(null);
+    } on DioException catch (e) {
+      return Failure(_errorMessage(e), statusCode: e.response?.statusCode);
+    }
+  }
+
+  Future<ApiResult<void>> dismissRead() async {
+    try {
+      await dio.delete('/api/v1/notifications/dismiss-read/');
+      return const Success(null);
+    } on DioException catch (e) {
+      return Failure(_errorMessage(e), statusCode: e.response?.statusCode);
+    }
+  }
+
+  Future<ApiResult<void>> dismissAll() async {
+    try {
+      await dio.delete('/api/v1/notifications/dismiss-all/');
+      return const Success(null);
+    } on DioException catch (e) {
+      return Failure(_errorMessage(e), statusCode: e.response?.statusCode);
+    }
+  }
+
   String _errorMessage(DioException e) {
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {

@@ -48,6 +48,18 @@ def _is_translatable(s: str) -> bool:
     return any('\u0400' <= c <= '\u04FF' or c in 'әғқңөұүіӘҒҚҢӨҰҮІ' for c in s)
 
 
+def _is_translatable_phrase(s: str) -> bool:
+    # Same as _is_translatable but without the 200-char cap: phrases.json is
+    # a curated, developer-maintained list (unlike the auto-walked ru/kk/en
+    # dumps), and legitimately includes long help/warning paragraphs.
+    s = s.strip()
+    if len(s) < 2:
+        return False
+    if any(c.isdigit() for c in s) and sum(c.isalpha() for c in s) < 3:
+        return False
+    return any('\u0400' <= c <= '\u04FF' or c in 'әғқңөұүіӘҒҚҢӨҰҮІ' for c in s)
+
+
 def _norm(s: str) -> str:
     return ' '.join(s.split())
 
@@ -58,7 +70,7 @@ def _load_phrases(by_text: dict):
         return
     for row in json.loads(path.read_text(encoding='utf-8')):
         ru_val = row.get('ru', '').strip()
-        if not _is_translatable(ru_val):
+        if not _is_translatable_phrase(ru_val):
             continue
         key = _norm(ru_val)
         by_text[key] = {

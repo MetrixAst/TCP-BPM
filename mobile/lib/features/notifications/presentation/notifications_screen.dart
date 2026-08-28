@@ -131,11 +131,77 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  Future<void> _handleDismiss(NotificationDto notif) async {
+    setState(() => _notifications.removeWhere((n) => n.id == notif.id));
+
+    final result = await _repository.dismiss(notif.id);
+
+    if (!mounted) return;
+
+    if (result case Failure()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось удалить уведомление')),
+      );
+      _load(reset: true);
+    }
+  }
+
+  Future<bool> _confirm(String title, String message) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: MetrixColors.danger),
+            child: const Text('Подтвердить'),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
+  Future<void> _handleMenuAction(String action) async {
+    switch (action) {
+      case 'mark_all':
+        final unreadIds = _notifications.where((n) => !n.isRead).map((n) => n.id).toList();
+        if (unreadIds.isEmpty) return;
+        await _repository.markAllRead(unreadIds);
+      case 'clear_read':
+        if (!await _confirm('Удалить прочитанные?', 'Все прочитанные уведомления будут удалены.')) return;
+        await _repository.dismissRead();
+      case 'clear_all':
+        if (!await _confirm('Удалить все?', 'Все уведомления будут удалены без возможности восстановления.')) return;
+        await _repository.dismissAll();
+    }
+    if (mounted) _load(reset: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MetrixColors.surfaceMuted,
-      appBar: const AppTopBar(title: 'Уведомления'),
+      appBar: AppTopBar(
+        title: 'Уведомления',
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: MetrixColors.text),
+            onSelected: _handleMenuAction,
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'mark_all', child: Text('Отметить все прочитанными')),
+              PopupMenuItem(value: 'clear_read', child: Text('Удалить прочитанные')),
+              PopupMenuItem(value: 'clear_all', child: Text('Удалить все')),
+            ],
+          ),
+        ],
+      ),
       body: _buildBody(),
     );
   }
@@ -182,7 +248,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             );
           }
           final notif = _notifications[index];
-          return _NotificationTile(notification: notif, onTap: () => _handleTap(notif));
+          return Dismissible(
+            key: ValueKey(notif.id),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              margin: const EdgeInsets.only(bottom: 0),
+              decoration: BoxDecoration(
+                color: MetrixColors.danger,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.delete_outline, color: Colors.white),
+            ),
+            onDismissed: (_) => _handleDismiss(notif),
+            child: _NotificationTile(notification: notif, onTap: () => _handleTap(notif)),
+          );
         },
       ),
     );

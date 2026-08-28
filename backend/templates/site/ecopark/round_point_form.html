@@ -1,0 +1,247 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} — metriX BPM{% endblock %}
+{% block body_classes %}hr-registry-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .equipment-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eceaf3;
+  }
+  .equipment-row__del {
+    background: none;
+    border: 0;
+    color: #dc2626;
+    cursor: pointer;
+    padding: 6px;
+  }
+  .equipment-row.is-removed { display: none; }
+</style>
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-edit-page" id="hrRegistryFormPage">
+  <div class="hr-registry-edit-card">
+
+    <div class="hr-registry-edit-card__header">
+      <h1 class="hr-registry-edit-card__title">{{ title }}</h1>
+      <a href="{% url 'ecopark:round_points_list' %}" class="hr-registry-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
+    </div>
+
+    <form method="post" class="hr-registry-edit-form">
+      {% csrf_token %}
+
+      <div class="hr-registry-edit-card__body">
+        <section class="hr-registry-edit-section">
+          <h2 class="hr-registry-edit-section__title">Данные точки</h2>
+
+          {% if error %}
+            <div class="hr-registry-edit-field__error" style="margin-bottom:12px;">{{ error }}</div>
+          {% endif %}
+
+          <div class="hr-registry-edit-grid">
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="pointName">
+                Название<span>*</span>
+              </label>
+              <input type="text" id="pointName" name="name" class="hr-form-input"
+                     value="{% firstof point.name form_name '' %}"
+                     placeholder="Насосная станция №1" required>
+            </div>
+
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="pointLocation">Местоположение</label>
+              <input type="text" id="pointLocation" name="location" class="hr-form-input"
+                     value="{% firstof point.location form_location '' %}"
+                     placeholder="Подвал, блок Б">
+            </div>
+
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="pointObject">Объект</label>
+              <select id="pointObject" name="eco_object" class="hr-form-input">
+                <option value="">— Не выбран —</option>
+                {% for obj in objects %}
+                  <option value="{{ obj.pk }}" {% if point.eco_object_id == obj.pk %}selected{% endif %}>{{ obj.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="pointChecklist">Чек-лист</label>
+              <select id="pointChecklist" name="checklist" class="hr-form-input">
+                <option value="">— Не назначен —</option>
+                {% for cl in checklists %}
+                  <option value="{{ cl.pk }}" {% if point.checklist_id == cl.pk %}selected{% endif %}>{{ cl.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="pointInterval">Интервал проверки, часов</label>
+              <input type="number" id="pointInterval" name="check_interval_hours" class="hr-form-input" min="1"
+                     value="{% firstof point.check_interval_hours 24 %}">
+              <small class="hr-registry-edit-field__help">
+                Если точку не обойдут за это время — она попадёт в просроченные в журнале.
+              </small>
+            </div>
+
+            <div class="hr-registry-edit-field hr-registry-edit-field--full">
+              <label class="hr-registry-edit-field__label">Координаты точки (необязательно)</label>
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <input type="text" id="pointLat" name="latitude" class="hr-form-input" style="max-width:160px;"
+                       value="{% if point.latitude %}{{ point.latitude }}{% endif %}" placeholder="Широта">
+                <input type="text" id="pointLng" name="longitude" class="hr-form-input" style="max-width:160px;"
+                       value="{% if point.longitude %}{{ point.longitude }}{% endif %}" placeholder="Долгота">
+                <button type="button" class="hr-registry-btn hr-registry-btn--light" id="pointGeoBtn">
+                  <i class="bi bi-geo-alt"></i> Определить по этому устройству
+                </button>
+              </div>
+              <small class="hr-registry-edit-field__help">
+                Если заданы — при обходе будет сверяться, что сотрудник физически рядом
+                (в пределах ~200 м, с запасом на погрешность GPS в помещении). Несовпадение
+                не блокирует обход, а помечается в журнале для проверки.
+              </small>
+            </div>
+
+            {% if point %}
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label">
+                <input type="checkbox" name="is_active" {% if point.is_active %}checked{% endif %}>
+                Активна
+              </label>
+            </div>
+            {% endif %}
+          </div>
+
+          {% if scan_url %}
+          <div class="hr-registry-edit-field" style="margin-top:16px;">
+            <label class="hr-registry-edit-field__label">Ссылка для сканирования</label>
+            <input type="text" class="hr-form-input" value="{{ scan_url }}" readonly onclick="this.select()">
+            <small class="hr-registry-edit-field__help">
+              Именно эта ссылка зашита в QR-этикетку — <a href="{% url 'ecopark:round_point_label' point.pk %}">скачать PDF</a>.
+            </small>
+          </div>
+          {% endif %}
+        </section>
+
+        {% if point %}
+        <section class="hr-registry-edit-section">
+          <h2 class="hr-registry-edit-section__title">Оборудование на точке</h2>
+
+          <div id="equipmentItems">
+            {% for eq in equipment %}
+            <div class="equipment-row">
+              <input type="hidden" name="equipment_id[]" value="{{ eq.pk }}">
+              <input type="text" name="equipment_name[]" class="hr-form-input" value="{{ eq.name }}" placeholder="Название оборудования">
+              <input type="text" name="equipment_description[]" class="hr-form-input" value="{{ eq.description }}" placeholder="Описание">
+              <button type="button" class="equipment-row__del" data-eq-delete title="Удалить">
+                <i class="bi bi-trash"></i>
+              </button>
+              <input type="hidden" name="equipment_delete[]" value="" data-delete-flag>
+            </div>
+            {% empty %}
+            <p class="hr-muted" id="equipmentEmptyHint">Оборудование ещё не добавлено.</p>
+            {% endfor %}
+          </div>
+
+          <button type="button" class="hr-registry-btn hr-registry-btn--light" id="addEquipmentBtn" style="margin-top:10px;">
+            <i class="bi bi-plus-lg"></i> Добавить оборудование
+          </button>
+        </section>
+        {% endif %}
+      </div>
+
+      <div class="hr-registry-edit-card__footer">
+        <a href="{% url 'ecopark:round_points_list' %}" class="hr-registry-edit-btn hr-registry-edit-btn--cancel">
+          Отменить
+        </a>
+        <button type="submit" class="hr-registry-edit-btn hr-registry-edit-btn--save">
+          Сохранить
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var btn = document.getElementById('pointGeoBtn');
+  if (!btn || !navigator.geolocation) return;
+
+  function t(ru) { return window.BPM ? window.BPM.t(ru, ru) : ru; }
+
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    var original = btn.innerHTML;
+    btn.innerHTML = t('Определяем…');
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        document.getElementById('pointLat').value = pos.coords.latitude.toFixed(7);
+        document.getElementById('pointLng').value = pos.coords.longitude.toFixed(7);
+        btn.disabled = false;
+        btn.innerHTML = original;
+      },
+      function () {
+        btn.disabled = false;
+        btn.innerHTML = original;
+        alert(t('Не удалось определить местоположение этого устройства.'));
+      },
+      { timeout: 8000 }
+    );
+  });
+})();
+
+(function () {
+  var container = document.getElementById('equipmentItems');
+  var addBtn = document.getElementById('addEquipmentBtn');
+  if (!container || !addBtn) return;
+
+  function t(ru) { return window.BPM ? window.BPM.t(ru, ru) : ru; }
+
+  function buildRow() {
+    var row = document.createElement('div');
+    row.className = 'equipment-row';
+    row.innerHTML =
+      '<input type="hidden" name="equipment_id[]" value="">' +
+      '<input type="text" name="equipment_name[]" class="hr-form-input" placeholder="' + t('Название оборудования') + '">' +
+      '<input type="text" name="equipment_description[]" class="hr-form-input" placeholder="' + t('Описание') + '">' +
+      '<button type="button" class="equipment-row__del" data-eq-new-remove title="' + t('Убрать') + '">' +
+        '<i class="bi bi-trash"></i>' +
+      '</button>';
+    return row;
+  }
+
+  addBtn.addEventListener('click', function () {
+    var hint = document.getElementById('equipmentEmptyHint');
+    if (hint) hint.remove();
+    container.appendChild(buildRow());
+  });
+
+  container.addEventListener('click', function (e) {
+    var delBtn = e.target.closest('[data-eq-delete]');
+    if (delBtn) {
+      var row = delBtn.closest('.equipment-row');
+      row.classList.add('is-removed');
+      row.querySelector('[data-delete-flag]').value = row.querySelector('input[name="equipment_id[]"]').value;
+      return;
+    }
+    var newDel = e.target.closest('[data-eq-new-remove]');
+    if (newDel) {
+      newDel.closest('.equipment-row').remove();
+    }
+  });
+})();
+</script>
+{% endblock %}

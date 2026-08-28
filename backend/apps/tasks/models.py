@@ -10,6 +10,7 @@ from django.core.validators import MinValueValidator
 from account.models import UserAccount, Notification
 from project.utils import get_or_error, get_or_none
 from .enums import TaskStatusEnum, PriorityEnum, TaskTypeEnum
+from django.utils import timezone
 
 
 class Task(models.Model):
@@ -68,6 +69,51 @@ class Task(models.Model):
     )
     views = models.IntegerField("Просмотры", default=0)
 
+    deleted_at = models.DateTimeField("Удалено в", null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        UserAccount,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="deleted_tasks",
+        verbose_name="Кто удалил",
+    )
+    deleted_reason = models.CharField("Причина удаления", max_length=255, blank=True, default="")
+
+    @property
+    def is_deleted(self):
+        return self.deleted_at is not None
+
+    def soft_delete(self, user, reason=""):
+        self.deleted_at = timezone.now()
+        self.deleted_by = user
+        self.deleted_reason = reason
+        self.save(update_fields=["deleted_at", "deleted_by", "deleted_reason"])
+        self._notify_on_delete(user)
+
+    def _notify_on_delete(self, deleted_by):
+        try:
+            from account.models import Notification
+            users_to_notify = []
+            if self.executor_id and self.executor_id != deleted_by.id:
+                users_to_notify.append(self.executor_id)
+            for obs in self.observers.exclude(id=deleted_by.id).values_list('id', flat=True):
+                users_to_notify.append(obs)
+            for co in self.co_executors.exclude(id=deleted_by.id).values_list('id', flat=True):
+                users_to_notify.append(co)
+
+            if not users_to_notify:
+                return
+
+            notification = Notification.objects.create(
+                title=f'Задача удалена: {self.title}',
+                text=f'Задача «{self.title}» была удалена. Причина: {self.deleted_reason or "не указана"}',
+                target_id=self.id,
+                target_type='task',
+            )
+            notification.users.add(*set(users_to_notify))
+        except Exception:
+            pass
+
     TRANSITIONS = {
         TaskStatusEnum.CREATED.value[0]: {
             'accept': {
@@ -105,6 +151,40 @@ class Task(models.Model):
         },
     }
 
+    def can_delete(self, user):
+        if not user or not user.is_authenticated:
+            return False
+        if getattr(user, 'is_superuser', False):
+            return True
+        from account.role_permissions import RoleEnums
+        role = getattr(user, 'role', None)
+        if hasattr(role, 'value'):
+            role = role.value
+        if role == RoleEnums.ADMINISTRATOR.value:
+            return True
+        if self.author_id == user.id:
+            return True
+        employee = getattr(user, 'employee_info', None)
+        if employee and getattr(employee, 'head', False) and employee.department_id:
+            from account.models import Employee
+            dept_ids = list(
+                employee.department.get_descendants(include_self=True).values_list('id', flat=True)
+            )
+            member_ids = list(
+                Employee.objects.filter(department_id__in=dept_ids).values_list('user_id', flat=True)
+            )
+            if self.author_id in member_ids or self.executor_id in member_ids:
+                return True
+        return False
+
+    def restore(self):
+        self.deleted_at = None
+        self.deleted_by = None
+        self.deleted_reason = ''
+        self.save(update_fields=["deleted_at", "deleted_by", "deleted_reason"])
+
+
+
     def __str__(self):
         return self.title
 
@@ -122,7 +202,7 @@ class Task(models.Model):
         if hasattr(role, 'value'):
             role = role.value
         if getattr(user, 'is_superuser', False) or role == RoleEnums.ADMINISTRATOR.value:
-            return Task.objects.all()
+            return Task.objects.filter(deleted_at__isnull=True)
 
         filters = (
             Q(author=user) |
@@ -131,8 +211,6 @@ class Task(models.Model):
             Q(observers=user)
         )
 
-        # Руководитель отдела видит все задачи сотрудников своего отдела
-        # (и подотделов), где они автор/исполнитель/соисполнитель.
         employee = getattr(user, 'employee_info', None)
         if employee is not None and getattr(employee, 'head', False) and employee.department_id:
             from account.models import Employee
@@ -149,7 +227,7 @@ class Task(models.Model):
                     Q(co_executors__in=member_ids)
                 )
 
-        return Task.objects.filter(filters).distinct()
+        return Task.objects.filter(filters).distinct().filter(deleted_at__isnull=True)
 
     @staticmethod
     def get_by_id(request, id, exception=True):
