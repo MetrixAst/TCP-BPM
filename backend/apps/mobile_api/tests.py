@@ -91,7 +91,7 @@ class IdempotencyKeyTestCase(APITestCase):
 
         response2 = self.client.post(
             self.checkin_url,
-            {'event_type': CheckInEnum.LUNCH_START.value, 'photo': _make_test_image()},
+            {'event_type': CheckInEnum.DAY_END.value, 'photo': _make_test_image()},
             format='multipart',
             HTTP_IDEMPOTENCY_KEY='key-B',
         )
