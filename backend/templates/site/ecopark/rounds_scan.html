@@ -1,0 +1,157 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{% if point %}{{ point.name }} — обход{% else %}Обход{% endif %} — metriX BPM{% endblock %}
+
+{% block styles %}
+<style>
+  .round-scan-page { max-width: 560px; margin: 0 auto; padding: 0 0 24px; }
+  .round-scan-header { background: #fff; border-radius: 18px; padding: 18px 22px; margin-bottom: 14px; }
+  .round-scan-header h1 { margin: 0; font-size: 20px; color: #25233f; }
+  .round-scan-header p { margin: 4px 0 0; color: #74728a; font-size: 13px; }
+  .round-scan-alert {
+    padding: 14px 18px; border-radius: 14px; font-size: 14px; margin-bottom: 14px;
+  }
+  .round-scan-alert--error { background: #feecec; color: #ff3b30; }
+  .round-scan-alert--info { background: #eef2ff; color: #2f6bed; }
+  .round-item-card {
+    background: #fff; border: 1px solid #eceaf3; border-radius: 16px;
+    padding: 16px; margin-bottom: 12px;
+  }
+  .round-item-card__text { font-size: 14.5px; font-weight: 600; color: #25233f; margin-bottom: 10px; }
+  .round-item-toggle { display: flex; gap: 8px; }
+  .round-item-toggle label {
+    flex: 1; text-align: center; padding: 10px; border-radius: 10px;
+    border: 1px solid #eceaf3; cursor: pointer; font-size: 13px; font-weight: 600;
+    color: #74728a;
+  }
+  .round-item-toggle input { display: none; }
+  .round-item-toggle input:checked + span { display: block; }
+  .round-item-toggle .opt-pass input:checked ~ * { color: inherit; }
+  .round-item-toggle label.is-pass-active { background: #dcfce7; border-color: #22a85a; color: #15803d; }
+  .round-item-toggle label.is-fail-active { background: #feecec; border-color: #ff3b30; color: #ff3b30; }
+  .round-item-extra { margin-top: 12px; display: none; }
+  .round-item-extra.is-visible { display: block; }
+  .round-item-extra textarea, .round-item-extra input[type="file"] {
+    width: 100%; border-radius: 10px; border: 1px solid #eceaf3; padding: 8px 10px;
+    font-size: 13px; margin-top: 6px;
+  }
+  .round-item-extra__hint { font-size: 11px; color: #74728a; margin-top: 4px; }
+  .round-scan-comment {
+    width: 100%; border-radius: 10px; border: 1px solid #eceaf3; padding: 10px; font-size: 13px;
+  }
+  .round-scan-submit {
+    width: 100%; height: 46px; border: 0; border-radius: 999px; background: #2f6bed;
+    color: #fff; font-size: 14px; font-weight: 600; margin-top: 16px; cursor: pointer;
+  }
+  .round-scan-submit:disabled { opacity: .6; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="round-scan-page">
+
+  {% if error %}
+    <div class="round-scan-header">
+      <h1>{% if point %}{{ point.name }}{% else %}Точка обхода{% endif %}</h1>
+    </div>
+    <div class="round-scan-alert round-scan-alert--error">{{ error }}</div>
+  {% else %}
+    <div class="round-scan-header">
+      <h1>{{ point.name }}</h1>
+      {% if point.location %}<p>{{ point.location }}</p>{% endif %}
+    </div>
+
+    {% if errors %}
+      <div class="round-scan-alert round-scan-alert--error">
+        {% for e in errors %}<div>«{{ e.item }}»: <span>{{ e.msg }}</span></div>{% endfor %}
+      </div>
+    {% elif not items %}
+      <div class="round-scan-alert round-scan-alert--info">
+        Этой точке ещё не назначен чек-лист. Обратитесь к администратору.
+      </div>
+    {% endif %}
+
+    {% if items %}
+    <form method="post" enctype="multipart/form-data" id="roundScanForm">
+      {% csrf_token %}
+      <input type="hidden" name="latitude" id="roundScanLat">
+      <input type="hidden" name="longitude" id="roundScanLng">
+
+      {% for item in items %}
+      <div class="round-item-card" data-item="{{ item.pk }}">
+        <div class="round-item-card__text">{{ item.text }}</div>
+        <div class="round-item-toggle">
+          <label class="opt-pass" data-pass>
+            <input type="radio" name="item_{{ item.pk }}_passed" value="yes" required>
+            <span>✓ Соответствует</span>
+          </label>
+          <label class="opt-fail" data-fail>
+            <input type="radio" name="item_{{ item.pk }}_passed" value="no">
+            <span>✕ Не соответствует</span>
+          </label>
+        </div>
+        <div class="round-item-extra" data-extra>
+          <textarea name="item_{{ item.pk }}_comment" rows="2" placeholder="Что не так?"></textarea>
+          <input type="file" name="item_{{ item.pk }}_photo" accept="image/*" capture="environment">
+          {% if item.requires_photo_on_fail %}
+            <div class="round-item-extra__hint">Фото обязательно при несоответствии</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <textarea name="comment" class="round-scan-comment" rows="2" placeholder="Комментарий по обходу (необязательно)"></textarea>
+
+      <button type="submit" class="round-scan-submit">Завершить обход</button>
+    </form>
+    {% endif %}
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var form = document.getElementById('roundScanForm');
+  if (!form) return;
+
+  document.querySelectorAll('.round-item-card').forEach(function (card) {
+    var passRadio = card.querySelector('[data-pass] input');
+    var failRadio = card.querySelector('[data-fail] input');
+    var extra = card.querySelector('[data-extra]');
+
+    function update() {
+      card.querySelector('[data-pass]').classList.toggle('is-pass-active', passRadio.checked);
+      card.querySelector('[data-fail]').classList.toggle('is-fail-active', failRadio.checked);
+      extra.classList.toggle('is-visible', failRadio.checked);
+    }
+    passRadio.addEventListener('change', update);
+    failRadio.addEventListener('change', update);
+  });
+
+  function t(ru) { return window.BPM ? window.BPM.t(ru, ru) : ru; }
+
+  form.addEventListener('submit', function () {
+    var btn = form.querySelector('.round-scan-submit');
+    btn.disabled = true;
+    btn.textContent = t('Отправка…');
+  });
+
+  // Best-effort: не блокируем форму, пока идёт определение координат —
+  // если сотрудник отправит раньше, чем GPS ответит, поля просто останутся
+  // пустыми (в журнале это будет видно как "геолокация не получена").
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        document.getElementById('roundScanLat').value = pos.coords.latitude.toFixed(7);
+        document.getElementById('roundScanLng').value = pos.coords.longitude.toFixed(7);
+      },
+      function () { /* отказ/недоступно — оставляем поля пустыми */ },
+      { timeout: 8000, maximumAge: 30000 }
+    );
+  }
+})();
+</script>
+{% endblock %}

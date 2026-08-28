@@ -46,3 +46,4 @@ pytz==2024.2
 
 openpyxl==3.1.2
 xhtml2pdf==0.2.16
+qrcode==7.4.2
