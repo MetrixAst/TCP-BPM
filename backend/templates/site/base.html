@@ -65,6 +65,7 @@
   {% include "site/components/i18n_scripts.html" %}
   <script src="{% static 'site/js/layout.js' %}?v={{ static_version|default:'1' }}"></script>
   <script src="{% static 'site/js/bpm-modal.js' %}?v={{ static_version|default:'1' }}"></script>
+  <script src="{% static 'site/js/apps/notifications.js' %}?v={{ static_version|default:'1' }}"></script>
   {% block scripts %}{% endblock scripts %}
 
 </body>

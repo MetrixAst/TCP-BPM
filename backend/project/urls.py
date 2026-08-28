@@ -50,6 +50,7 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/v1/', include('project.api_urls')),
+    path('api/v1/mobile/', include('mobile_api.urls')),
     path('api/search/', global_search, name='global_search'),
     path('', include(('dashboard.urls', 'dashboard'))),
     path('api/esigner/', include(('esigner.urls', 'esigner'))),

@@ -71,7 +71,20 @@
     </div>
 
     <div class="attendance-checkin-side">
-      <h2 class="attendance-checkin-side__title">Тип отметки</h2>
+      <h2 class="attendance-checkin-side__title">Способ отметки</h2>
+
+      <div class="attendance-checkin-types" id="checkinModeGroup" data-qr-post-url="/hr/attendance/qr-checkin/" data-all-done="{% if all_done_today %}1{% else %}0{% endif %}">
+        <label class="attendance-checkin-type">
+          <input type="radio" name="checkin_mode" value="face" checked>
+          <span><i class="bi bi-camera" style="margin-right:6px"></i>Отметка по лицу</span>
+        </label>
+        <label class="attendance-checkin-type">
+          <input type="radio" name="checkin_mode" value="qr">
+          <span><i class="bi bi-qr-code-scan" style="margin-right:6px"></i>Отметка по QR-коду</span>
+        </label>
+      </div>
+
+      <h2 class="attendance-checkin-side__title" id="typeSectionTitle">Тип отметки</h2>
 
       {% if all_done_today %}
       <div class="attendance-checkin-alert attendance-checkin-alert--success" style="display:block">
@@ -100,7 +113,7 @@
 
       <div class="attendance-checkin-alert" id="checkinMessage" hidden></div>
 
-      <div class="attendance-checkin-actions">
+      <div class="attendance-checkin-actions" id="faceActions">
         <button type="button"
                 class="attendance-checkin-btn attendance-checkin-btn--primary"
                 id="captureBtn"
@@ -128,8 +141,11 @@
         📍 Геопозиция определяется…
       </div>
 
-      <p class="attendance-checkin-note">
+      <p class="attendance-checkin-note" id="faceNote">
         Каждый тип отметки — отдельный снимок: приход, уход.
+      </p>
+      <p class="attendance-checkin-note" id="qrNote" hidden>
+        Наведите камеру на QR-код на экране точки входа. Отметка отправится автоматически.
       </p>
     </div>
   </div>
@@ -137,5 +153,37 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'site/js/vendor/jsQR.min.js' %}"></script>
 <script src="{% static 'site/js/apps/attendance-checkin.js' %}?v={{ static_version|default:'1' }}"></script>
+<script src="{% static 'site/js/apps/attendance-qr-checkin.js' %}?v={{ static_version|default:'1' }}"></script>
+<script>
+  (function () {
+    var modeGroup = document.querySelector('#checkinModeGroup');
+    if (!modeGroup) return;
+
+    var faceActions = document.querySelector('#faceActions');
+    var faceNote = document.querySelector('#faceNote');
+    var qrNote = document.querySelector('#qrNote');
+    var typeSectionTitle = document.querySelector('#typeSectionTitle');
+    var checkinTypes = document.querySelector('#checkinTypes');
+
+    function applyMode(mode) {
+      var isQr = mode === 'qr';
+      if (faceActions) faceActions.hidden = isQr;
+      if (faceNote) faceNote.hidden = isQr;
+      if (qrNote) qrNote.hidden = !isQr;
+      // В QR-режиме тип отметки (приход/уход) определяет сама точка
+      // сканирования — выбор здесь ни на что не влияет, поэтому прячем.
+      if (typeSectionTitle) typeSectionTitle.hidden = isQr;
+      if (checkinTypes) checkinTypes.hidden = isQr;
+      document.dispatchEvent(new CustomEvent('attendance:mode-change', { detail: { mode: mode } }));
+    }
+
+    modeGroup.addEventListener('change', function (e) {
+      if (e.target && e.target.name === 'checkin_mode') {
+        applyMode(e.target.value);
+      }
+    });
+  })();
+</script>
 {% endblock %}

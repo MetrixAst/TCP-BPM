@@ -168,22 +168,14 @@ def _round_geo_coord(value):
         return None
 
 
-def create_attendance_checkin(*, employee, event_type, photo_file, latitude=None, longitude=None, ip_address=None):
-    """
-    Общая бизнес-логика чек-ина посещаемости.
-    Используется и web-view (session-auth), и mobile JWT-endpoint.
-    photo_file — уже готовый Django File/ContentFile объект.
-    """
+def create_attendance_checkin(*, employee, event_type, photo_file, latitude=None, longitude=None, ip_address=None, source='face'):
     from .models import AttendanceRecord
-
     lat = _round_geo_coord(latitude)
     lng = _round_geo_coord(longitude)
-
     location_address = ''
     if lat is not None and lng is not None:
         from .geocoding import reverse_geocode
         location_address = reverse_geocode(lat, lng)
-
     record = AttendanceRecord(
         employee=employee,
         event_type=event_type,
@@ -192,6 +184,7 @@ def create_attendance_checkin(*, employee, event_type, photo_file, latitude=None
         latitude=lat,
         longitude=lng,
         location_address=location_address,
+        source=source,
     )
     record.full_clean()
     record.save()

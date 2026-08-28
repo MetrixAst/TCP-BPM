@@ -88,7 +88,45 @@ class TasksRepository {
     }
   }
 
+  Future<ApiResult<void>> deleteTask(int id, {required String reason}) async {
+    try {
+      await dio.delete('/api/v1/tasks/$id/', data: {'reason': reason});
+      return const Success(null);
+    } on DioException catch (e) {
+      return Failure(_deleteErrorMessage(e), statusCode: e.response?.statusCode);
+    }
+  }
+
+  Future<ApiResult<TaskDto>> restoreTask(int id) async {
+    try {
+      final response = await dio.post('/api/v1/tasks/$id/restore/');
+      return Success(TaskDto.fromJson(response.data as Map<String, dynamic>));
+    } on DioException catch (e) {
+      return Failure(_deleteErrorMessage(e), statusCode: e.response?.statusCode);
+    }
+  }
+
+  String _deleteErrorMessage(DioException e) {
+    final data = e.response?.data;
+    if (e.response?.statusCode == 403) {
+      if (data is Map && data['detail'] != null) return data['detail'].toString();
+      return 'Нет прав на удаление';
+    }
+    if (e.response?.statusCode == 400) {
+      if (data is Map && data['detail'] != null) return data['detail'].toString();
+      return 'Не удалось выполнить действие';
+    }
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      return 'Сервер не отвечает, проверьте соединение';
+    }
+    return 'Ошибка сети, попробуйте ещё раз';
+  }
+
   String _errorMessage(DioException e) {
+    if (e.response?.statusCode == 403) {
+      return 'У вас нет доступа к этому разделу';
+    }
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
       return 'Сервер не отвечает, проверьте соединение';

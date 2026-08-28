@@ -80,12 +80,16 @@
               data-arrival-lat="{{ item.arrival_lat }}"
               data-arrival-lng="{{ item.arrival_lng }}"
               data-arrival-address="{{ item.arrival_address }}"
+              data-arrival-source="{% if item.day_start %}{{ item.arrival_source|default:'face' }}{% endif %}"
               data-lunch-start-photo="{{ item.lunch_start_photo }}"
+              data-lunch-start-source="{% if item.lunch_start %}{{ item.lunch_start_source|default:'face' }}{% endif %}"
               data-lunch-end-photo="{{ item.lunch_end_photo }}"
+              data-lunch-end-source="{% if item.lunch_end %}{{ item.lunch_end_source|default:'face' }}{% endif %}"
               data-departure-photo="{{ item.departure_photo }}"
               data-departure-lat="{{ item.departure_lat }}"
               data-departure-lng="{{ item.departure_lng }}"
-              data-departure-address="{{ item.departure_address }}">
+              data-departure-address="{{ item.departure_address }}"
+              data-departure-source="{% if item.day_end %}{{ item.departure_source|default:'face' }}{% endif %}">
             <td>
               <strong>{{ item.date|date:"d.m.Y" }}</strong>
               <div class="attendance-table__department">{{ item.date|date:"l" }}</div>

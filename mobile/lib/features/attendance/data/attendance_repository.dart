@@ -38,6 +38,27 @@ class AttendanceRepository {
     }
   }
 
+  /// event_type отметки определяет сама QR-точка (зашит в токен) — сервер
+  /// его игнорирует, если прислать свой, и возвращает реальный в ответе.
+  Future<ApiResult<String>> checkinQr({
+    required String token,
+    String? idempotencyKey,
+  }) async {
+    try {
+      final response = await dio.post(
+        '/api/v1/mobile/attendance/qr-checkin/',
+        data: {'token': token},
+        options: idempotencyKey != null
+            ? Options(headers: {'Idempotency-Key': idempotencyKey})
+            : null,
+      );
+      final data = response.data as Map<String, dynamic>;
+      return Success(data['event_type'] as String? ?? '');
+    } on DioException catch (e) {
+      return Failure(_qrErrorMessage(e), statusCode: e.response?.statusCode);
+    }
+  }
+
   Future<ApiResult<List<AttendanceTodayStatus>>> getToday() async {
       try {
         final response = await dio.get('/api/v1/mobile/attendance/today/');
@@ -46,6 +67,32 @@ class AttendanceRepository {
       } on DioException catch (e) {
         return Failure(_errorMessage(e), statusCode: e.response?.statusCode);
       }
+  }
+
+  String _qrErrorMessage(DioException e) {
+    final status = e.response?.statusCode;
+    if (status == 400) {
+      final data = e.response?.data;
+      if (data is Map && data['error'] != null) {
+        return data['error'].toString();
+      }
+      return 'Недействительный QR-код';
+    }
+    if (status == 409) {
+      final data = e.response?.data;
+      if (data is Map && data['error'] != null) {
+        return data['error'].toString();
+      }
+      return 'Этот QR-код уже использован';
+    }
+    if (status == 403) {
+      return 'Профиль сотрудника не найден';
+    }
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      return 'Сервер не отвечает, проверьте соединение';
+    }
+    return 'Ошибка сети, попробуйте ещё раз';
   }
 
   String _errorMessage(DioException e) {

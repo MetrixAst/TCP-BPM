@@ -5,9 +5,10 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import serializers as drf_serializers
 
 from account.drf_permissions import HasAppPermission
-from account.models import UserAccount
+from account.models import UserAccount, Notification, NotificationUser
 from account.models_rbac import AppPermission, PermissionProfile, UserPermissionOverride, ProfileAssignment
 from account.role_permissions import PermissionEnums
 from account.serializers_rbac import (
@@ -20,6 +21,8 @@ from account.serializers_rbac import (
     UserPermissionOverrideSerializer,
     PermissionAuditLogSerializer
 )
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
 
 
 
@@ -301,3 +304,75 @@ class PermissionAuditLogViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             qs = qs.filter(permission_code=permission_code)
 
         return qs
+
+
+class NotificationSerializer(drf_serializers.Serializer):
+    id = drf_serializers.IntegerField()
+    title = drf_serializers.CharField()
+    text = drf_serializers.CharField()
+    created_date = drf_serializers.DateTimeField()
+    target_id = drf_serializers.IntegerField()
+    target_type = drf_serializers.CharField()
+    is_read = drf_serializers.BooleanField()
+    url = drf_serializers.CharField(allow_null=True)
+
+class NotificationViewSet(viewsets.GenericViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        return Notification.objects.filter(users=self.request.user).order_by('-created_date')
+
+    def list(self, request):
+        qs = self.get_queryset()
+        data = [{
+            'id': n.pk,
+            'title': n.title,
+            'text': n.text,
+            'created_date': n.created_date.isoformat(),
+            'target_id': n.target_id,
+            'target_type': n.target_type,
+            'url': n.url,
+            'is_read': NotificationUser.objects.filter(
+                notification=n, user=request.user
+            ).values_list('is_read', flat=True).first() or False,
+        } for n in qs]
+        return Response(data)
+
+    @action(detail=True, methods=['delete'], url_path='dismiss')
+    def dismiss(self, request, pk=None):
+        notification = get_object_or_404(
+            Notification.objects.filter(users=request.user), pk=pk
+        )
+        notification.users.remove(request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['delete'], url_path='dismiss-read')
+    def dismiss_read(self, request):
+        read_ids = NotificationUser.objects.filter(
+            user=request.user, is_read=True
+        ).values_list('notification_id', flat=True)
+        Notification.objects.filter(pk__in=read_ids).first()
+        for n in Notification.objects.filter(pk__in=read_ids):
+            n.users.remove(request.user)
+        return Response({'deleted': len(read_ids)})
+
+    @action(detail=False, methods=['delete'], url_path='dismiss-all')
+    def dismiss_all(self, request):
+        qs = self.get_queryset()
+        count = qs.count()
+        for n in qs:
+            n.users.remove(request.user)
+        return Response({'deleted': count})
+
+    @action(detail=True, methods=['post'], url_path='mark-read')
+    def mark_read(self, request, pk=None):
+        notification = get_object_or_404(
+            Notification.objects.filter(users=request.user), pk=pk
+        )
+        NotificationUser.objects.update_or_create(
+            notification=notification,
+            user=request.user,
+            defaults={'is_read': True, 'read_at': timezone.now()},
+        )
+        return Response({'ok': True})

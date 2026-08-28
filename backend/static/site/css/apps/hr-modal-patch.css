@@ -1204,6 +1204,22 @@
     gap: 6px;
   }
   .att-modal__address i { flex-shrink: 0; margin-top: 1px; color: #9a98aa; }
+  .att-source-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    align-self: flex-start;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #2f6bed;
+  }
+  .att-source-badge--qr {
+    background: #f0fdf4;
+    color: #15803d;
+  }
   
   /* ── Total ── */
   .att-modal__total {

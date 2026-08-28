@@ -221,7 +221,10 @@ class _TasksListScreenState extends State<TasksListScreen> {
           final task = _tasks[index];
           return _TaskCard(
             task: task,
-            onTap: () => context.push('/tasks/${task.id}'),
+            onTap: () async {
+              await context.push('/tasks/${task.id}');
+              if (mounted) _load(reset: true);
+            },
           );
         },
       ),

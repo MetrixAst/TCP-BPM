@@ -532,3 +532,22 @@ class EmployeeStatusLog(models.Model):
 
     def __str__(self):
         return f"{self.employee} | {self.old_status} → {self.new_status} | {self.created_at}"
+
+class NotificationUser(models.Model):
+    notification = models.ForeignKey(
+        Notification,
+        on_delete=models.CASCADE,
+        related_name='notification_users',
+    )
+    user = models.ForeignKey(
+        'UserAccount',
+        on_delete=models.CASCADE,
+        related_name='notification_users',
+    )
+    is_read = models.BooleanField('Прочитано', default=False)
+    read_at = models.DateTimeField('Время прочтения', null=True, blank=True)
+
+    class Meta:
+        unique_together = [('notification', 'user')]
+        verbose_name = 'Уведомление пользователя'
+        verbose_name_plural = 'Уведомления пользователей'

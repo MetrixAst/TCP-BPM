@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -9,6 +11,18 @@ import '../../profile/data/logout_repository.dart';
 import '../../qr/data/qr_room_repository.dart';
 import '../../../core/network/api_result.dart';
 
+/// Ищет пункт меню с данным id в дереве меню (id верхнего уровня либо в submenu),
+/// как его отдаёт `/api/v1/mobile/me/` (сервер: MenuItem.generate_menu).
+bool _menuHasId(List<dynamic> menu, String id) {
+  for (final item in menu) {
+    if (item is! Map) continue;
+    if (item['id'] == id) return true;
+    final submenu = item['submenu'];
+    if (submenu is List && _menuHasId(submenu, id)) return true;
+  }
+  return false;
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -16,17 +30,40 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  static const _pollInterval = Duration(seconds: 30);
+
   int _unreadCount = 0;
   bool _hasFinanceAccess = false;
+  // До первой успешной загрузки /me/ считаем доступными (как было раньше,
+  // когда эти разделы показывались безусловно) — иначе любой сбой сети
+  // на старте (не только реальное отсутствие прав) прячет всё меню разом.
+  bool _hasTasksAccess = true;
+  bool _hasTicketsAccess = true;
   String? _userName;
   String? _userRole;
+  Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadMe();
-    _checkFinanceAccess();
+    _pollTimer = Timer.periodic(_pollInterval, (_) => _loadMe());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadMe();
+    }
   }
 
   Future<void> _loadMe() async {
@@ -38,23 +75,22 @@ class _HomeScreenState extends State<HomeScreen> {
       final total = counts.values.fold<int>(0, (sum, v) => sum + (v as int));
 
       final profile = response.data['profile'] as Map<String, dynamic>;
+      final menu = (response.data['menu'] as List<dynamic>?) ?? const [];
 
       if (mounted) {
         setState(() {
           _unreadCount = total;
           _userName = profile['full_name'] as String?;
           _userRole = profile['role'] as String?;
+          _hasFinanceAccess = _menuHasId(menu, 'finances');
+          _hasTasksAccess = _menuHasId(menu, 'tasks');
+          _hasTicketsAccess = _menuHasId(menu, 'tickets');
         });
       }
-    } catch (_) {}
-  }
-
-  Future<void> _checkFinanceAccess() async {
-    try {
-      await DioClient().dio.get('/api/v1/finances/payments/', queryParameters: {'page': 1});
-      if (mounted) setState(() => _hasFinanceAccess = true);
-    } catch (_) {
-      if (mounted) setState(() => _hasFinanceAccess = false);
+    } catch (e, st) {
+      // /me/ уже вызывался и молча глотался и раньше — но теперь от него
+      // зависит видимость разделов, поэтому при сбое важно видеть причину.
+      debugPrint('HomeScreen._loadMe failed: $e\n$st');
     }
   }
 
@@ -122,20 +158,24 @@ class _HomeScreenState extends State<HomeScreen> {
                     subtitle: 'Мои отметки за сегодня',
                     onTap: () => context.push('/attendance/today'),
                   ),
-                  const _RowDivider(),
-                  _ListRow(
-                    icon: Icons.build_outlined,
-                    title: 'Заявки',
-                    subtitle: 'Список обращений',
-                    onTap: () => context.push('/tickets'),
-                  ),
-                  const _RowDivider(),
-                  _ListRow(
-                    icon: Icons.checklist_rtl_outlined,
-                    title: 'Мои задачи',
-                    subtitle: 'Список поручений',
-                    onTap: () => context.push('/tasks'),
-                  ),
+                  if (_hasTicketsAccess) ...[
+                    const _RowDivider(),
+                    _ListRow(
+                      icon: Icons.build_outlined,
+                      title: 'Заявки',
+                      subtitle: 'Список обращений',
+                      onTap: () => context.push('/tickets'),
+                    ),
+                  ],
+                  if (_hasTasksAccess) ...[
+                    const _RowDivider(),
+                    _ListRow(
+                      icon: Icons.checklist_rtl_outlined,
+                      title: 'Мои задачи',
+                      subtitle: 'Список поручений',
+                      onTap: () => context.push('/tasks'),
+                    ),
+                  ],
                   if (_hasFinanceAccess) ...[
                     const _RowDivider(),
                     _ListRow(

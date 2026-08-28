@@ -1,6 +1,7 @@
 import openpyxl
 import json
 import base64
+import secrets
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.shortcuts import redirect, render, get_object_or_404
@@ -10,6 +11,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
 from django.db import transaction
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal, ROUND_HALF_UP
@@ -1854,3 +1856,159 @@ def manual_attendance_report(request):
     return render(request, 'site/hr/manual_attendance_report.html', {
         'employees': employees,
     })
+@need_permission(PermissionEnums.HR_JOURNAL)
+def qr_points_list(request):
+    from hr.models import QRPoint
+    points = QRPoint.objects.all().order_by('name')
+    return render(request, 'site/hr/attendance/qr_points_list.html', {
+        'points': points,
+    })
+
+
+@need_permission(PermissionEnums.HR_JOURNAL)
+def qr_point_create(request):
+    from hr.models import QRPoint
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        location = request.POST.get('location', '').strip()
+        if not name:
+            return render(request, 'site/hr/attendance/qr_point_form.html', {
+                'title': 'Новая QR-точка',
+                'error': 'Название обязательно',
+                'form_name': name,
+                'form_location': location,
+            })
+        point = QRPoint.objects.create(name=name, location=location, created_by=request.user)
+        # Сразу открываем экран киоска — обычно точку создают, чтобы
+        # немедленно вывести её на экран у входа.
+        return redirect('hr:qr_kiosk', pk=point.pk)
+    return render(request, 'site/hr/attendance/qr_point_form.html', {
+        'title': 'Новая QR-точка',
+        'form_name': '',
+        'form_location': '',
+    })
+
+
+@need_permission(PermissionEnums.HR_JOURNAL)
+def qr_point_edit(request, pk):
+    from hr.models import QRPoint
+    point = get_object_or_404(QRPoint, pk=pk)
+    if request.method == 'POST':
+        point.name = request.POST.get('name', point.name).strip()
+        point.location = request.POST.get('location', point.location).strip()
+        point.is_active = request.POST.get('is_active') == 'on'
+        point.save()
+        return redirect('hr:qr_points_list')
+    return render(request, 'site/hr/attendance/qr_point_form.html', {
+        'title': 'Редактировать QR-точку',
+        'point': point,
+    })
+
+
+@need_permission(PermissionEnums.HR_JOURNAL)
+def qr_point_delete(request, pk):
+    from hr.models import QRPoint
+    point = get_object_or_404(QRPoint, pk=pk)
+    if request.method == 'POST':
+        point.delete()
+        return redirect('hr:qr_points_list')
+    return render(request, 'site/hr/attendance/qr_point_confirm_delete.html', {'point': point})
+
+
+@need_permission(PermissionEnums.HR_JOURNAL)
+def qr_kiosk(request, pk):
+    from hr.models import QRPoint
+    point = get_object_or_404(QRPoint, pk=pk, is_active=True)
+    return render(request, 'site/hr/attendance/qr_kiosk.html', {
+        'point': point,
+        'token_url': reverse('hr:qr_kiosk_token', args=[pk]),
+        'checkin_types': [
+            {'value': 'day_start', 'label': 'Приход'},
+            {'value': 'day_end', 'label': 'Уход'},
+        ],
+    })
+
+
+def qr_kiosk_token(request, pk):
+    from hr.models import QRPoint, QRToken
+    point = get_object_or_404(QRPoint, pk=pk, is_active=True)
+    event_type = request.GET.get('event_type', 'day_start')
+
+    token_value = secrets.token_urlsafe(32)
+    expires_at = timezone.now() + timedelta(seconds=45)
+
+    QRToken.objects.create(
+        token=token_value,
+        qr_point=point,
+        event_type=event_type,
+        expires_at=expires_at,
+        ip_address=request.META.get('REMOTE_ADDR'),
+    )
+
+    scan_url = request.build_absolute_uri(
+        reverse('hr:qr_checkin') + f'?token={token_value}'
+    )
+
+    return JsonResponse({
+        'token': token_value,
+        'scan_url': scan_url,
+        'expires_at': expires_at.isoformat(),
+        'expires_in': 45,
+        'event_type': event_type,
+    })
+
+
+@login_required
+def qr_checkin(request):
+    from hr.models import QRToken, QRScanAudit
+    from account.models import Employee
+
+    token_value = request.POST.get('token') or request.GET.get('token', '')
+    ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+
+    def _audit(action, token_str, qr_point=None):
+        QRScanAudit.objects.create(
+            token=token_str,
+            qr_point=qr_point,
+            user=request.user if request.user.is_authenticated else None,
+            action=action,
+            ip_address=ip,
+        )
+
+    if not token_value:
+        return JsonResponse({'success': False, 'error': 'Недействительный QR-код'}, status=400, json_dumps_params={'ensure_ascii': False})
+
+    try:
+        qr_token = QRToken.objects.select_related('qr_point').get(token=token_value)
+    except QRToken.DoesNotExist:
+        _audit(QRScanAudit.ACTION_INVALID, token_value)
+        return JsonResponse({'success': False, 'error': 'Недействительный QR-код'}, status=400, json_dumps_params={'ensure_ascii': False})
+
+    if qr_token.is_expired:
+        _audit(QRScanAudit.ACTION_EXPIRED, token_value, qr_token.qr_point)
+        return JsonResponse({'success': False, 'error': 'QR-код истёк, отсканируйте текущий код'}, status=410, json_dumps_params={'ensure_ascii': False})
+
+    if qr_token.is_used_by(request.user):
+        _audit(QRScanAudit.ACTION_REPLAY, token_value, qr_token.qr_point)
+        return JsonResponse({'success': False, 'error': 'Этот QR-код уже использован'}, status=409, json_dumps_params={'ensure_ascii': False})
+
+    try:
+        employee = request.user.employee_info
+    except Exception:
+        _audit(QRScanAudit.ACTION_INVALID, token_value, qr_token.qr_point)
+        return JsonResponse({'success': False, 'error': 'Профиль сотрудника не найден'}, status=403, json_dumps_params={'ensure_ascii': False})
+
+    from hr.services import create_attendance_checkin
+
+    create_attendance_checkin(
+        employee=employee,
+        event_type=qr_token.event_type,
+        photo_file=None,
+        ip_address=ip,
+        source='qr',
+    )
+
+    qr_token.used_by.add(request.user)
+    _audit(QRScanAudit.ACTION_SUCCESS, token_value, qr_token.qr_point)
+
+    return JsonResponse({'success': True, 'message': 'Отметка успешно создана'}, json_dumps_params={'ensure_ascii': False})
