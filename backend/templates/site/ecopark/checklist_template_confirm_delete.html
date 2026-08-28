@@ -1,0 +1,58 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Удалить чек-лист — metriX BPM{% endblock %}
+{% block body_classes %}hr-registry-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-edit-page" id="hrRegistryFormPage">
+  <div class="hr-registry-edit-card">
+
+    <div class="hr-registry-edit-card__header">
+      <h1 class="hr-registry-edit-card__title">Удалить чек-лист?</h1>
+      <a href="{% url 'ecopark:checklist_templates_list' %}" class="hr-registry-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="hr-registry-edit-card__body">
+        <p><strong>{{ template.name }}</strong></p>
+        {% if has_history %}
+          <p>
+            По пунктам этого чек-листа уже есть отметки в пройденных обходах — удалить
+            его насовсем нельзя (иначе пропала бы история). Чек-лист можно только
+            деактивировать: он пропадёт из выбора для новых точек, но история сохранится.
+          </p>
+        {% else %}
+          <p>
+            Обходов по этому чек-листу ещё не было, поэтому его можно удалить без следа.
+            С точек, к которым он был привязан, он просто снимется — их нужно будет
+            назначить заново.
+          </p>
+        {% endif %}
+      </div>
+      <div class="hr-registry-edit-card__footer">
+        <a href="{% url 'ecopark:checklist_templates_list' %}" class="hr-registry-edit-btn hr-registry-edit-btn--cancel">
+          Отменить
+        </a>
+        {% if has_history %}
+          <button type="submit" name="action" value="deactivate" class="hr-registry-edit-btn hr-registry-edit-btn--save" style="background:#dc2626;">
+            Деактивировать
+          </button>
+        {% else %}
+          <button type="submit" class="hr-registry-edit-btn hr-registry-edit-btn--save" style="background:#dc2626;">
+            Удалить
+          </button>
+        {% endif %}
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

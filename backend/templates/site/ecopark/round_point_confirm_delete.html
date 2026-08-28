@@ -1,0 +1,58 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Удалить точку обхода — metriX BPM{% endblock %}
+{% block body_classes %}hr-registry-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-edit-page" id="hrRegistryFormPage">
+  <div class="hr-registry-edit-card">
+
+    <div class="hr-registry-edit-card__header">
+      <h1 class="hr-registry-edit-card__title">Удалить точку обхода?</h1>
+      <a href="{% url 'ecopark:round_points_list' %}" class="hr-registry-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="hr-registry-edit-card__body">
+        <p><strong>{{ point.name }}</strong>{% if point.location %} · {{ point.location }}{% endif %}</p>
+        {% if has_history %}
+          <p>
+            По этой точке уже есть обходы в журнале — удалить её насовсем нельзя
+            (иначе пропала бы история). Точку можно только деактивировать:
+            старая QR-этикетка перестанет работать, а история обходов и
+            неисправностей останется в журнале как есть.
+          </p>
+        {% else %}
+          <p>
+            Обходов по этой точке ещё не было, поэтому её можно удалить без следа —
+            вместе со старой QR-этикеткой (напечатанная бумажная копия перестанет работать).
+          </p>
+        {% endif %}
+      </div>
+      <div class="hr-registry-edit-card__footer">
+        <a href="{% url 'ecopark:round_points_list' %}" class="hr-registry-edit-btn hr-registry-edit-btn--cancel">
+          Отменить
+        </a>
+        {% if has_history %}
+          <button type="submit" name="action" value="deactivate" class="hr-registry-edit-btn hr-registry-edit-btn--save" style="background:#dc2626;">
+            Деактивировать
+          </button>
+        {% else %}
+          <button type="submit" class="hr-registry-edit-btn hr-registry-edit-btn--save" style="background:#dc2626;">
+            Удалить
+          </button>
+        {% endif %}
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} — metriX BPM{% endblock %}
+{% block body_classes %}hr-registry-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .checklist-item-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eceaf3;
+  }
+  .checklist-item-row__photo {
+    font-size: 12px;
+    color: #74728a;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .checklist-item-row__del {
+    background: none;
+    border: 0;
+    color: #dc2626;
+    cursor: pointer;
+    padding: 6px;
+  }
+  .checklist-item-row.is-removed { display: none; }
+</style>
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-edit-page" id="hrRegistryFormPage">
+  <div class="hr-registry-edit-card">
+
+    <div class="hr-registry-edit-card__header">
+      <h1 class="hr-registry-edit-card__title">{{ title }}</h1>
+      <a href="{% url 'ecopark:checklist_templates_list' %}" class="hr-registry-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
+    </div>
+
+    <form method="post" class="hr-registry-edit-form" id="checklistForm">
+      {% csrf_token %}
+
+      <div class="hr-registry-edit-card__body">
+        <section class="hr-registry-edit-section">
+          <h2 class="hr-registry-edit-section__title">Данные чек-листа</h2>
+
+          {% if error %}
+            <div class="hr-registry-edit-field__error" style="margin-bottom:12px;">{{ error }}</div>
+          {% endif %}
+
+          <div class="hr-registry-edit-grid">
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="clName">
+                Название<span>*</span>
+              </label>
+              <input type="text" id="clName" name="name" class="hr-form-input"
+                     value="{% firstof template.name form_name '' %}"
+                     placeholder="Обход технических помещений" required>
+            </div>
+
+            {% if template %}
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label">
+                <input type="checkbox" name="is_active" {% if template.is_active %}checked{% endif %}>
+                Активен
+              </label>
+            </div>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="hr-registry-edit-section">
+          <h2 class="hr-registry-edit-section__title">Пункты чек-листа</h2>
+
+          <div id="checklistItems">
+            {% for item in items %}
+            <div class="checklist-item-row">
+              <input type="hidden" name="item_id[]" value="{{ item.pk }}">
+              <input type="text" name="item_text[]" class="hr-form-input" value="{{ item.text }}" placeholder="Пункт проверки">
+              <label class="checklist-item-row__photo">
+                <input type="checkbox" name="item_requires_photo[]" value="{{ forloop.counter0 }}" {% if item.requires_photo_on_fail %}checked{% endif %}>
+                Фото при несоответствии
+              </label>
+              <button type="button" class="checklist-item-row__del" data-item-delete title="Удалить пункт">
+                <i class="bi bi-trash"></i>
+              </button>
+              <input type="hidden" name="item_delete[]" value="" data-delete-flag>
+            </div>
+            {% endfor %}
+          </div>
+
+          <button type="button" class="hr-registry-btn hr-registry-btn--light" id="addItemBtn" style="margin-top:10px;">
+            <i class="bi bi-plus-lg"></i> Добавить пункт
+          </button>
+        </section>
+      </div>
+
+      <div class="hr-registry-edit-card__footer">
+        <a href="{% url 'ecopark:checklist_templates_list' %}" class="hr-registry-edit-btn hr-registry-edit-btn--cancel">
+          Отменить
+        </a>
+        <button type="submit" class="hr-registry-edit-btn hr-registry-edit-btn--save">
+          Сохранить
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var container = document.getElementById('checklistItems');
+  var addBtn = document.getElementById('addItemBtn');
+  var nextIndex = {{ items|length|default:0 }};
+
+  function t(ru) { return window.BPM ? window.BPM.t(ru, ru) : ru; }
+
+  function buildRow() {
+    var row = document.createElement('div');
+    row.className = 'checklist-item-row';
+    row.innerHTML =
+      '<input type="hidden" name="item_id[]" value="">' +
+      '<input type="text" name="item_text[]" class="hr-form-input" placeholder="' + t('Пункт проверки') + '">' +
+      '<label class="checklist-item-row__photo">' +
+        '<input type="checkbox" name="item_requires_photo[]" value="' + nextIndex + '" checked>' +
+        t('Фото при несоответствии') +
+      '</label>' +
+      '<button type="button" class="checklist-item-row__del" data-item-new-remove title="' + t('Убрать пункт') + '">' +
+        '<i class="bi bi-trash"></i>' +
+      '</button>';
+    nextIndex += 1;
+    return row;
+  }
+
+  addBtn.addEventListener('click', function () {
+    container.appendChild(buildRow());
+  });
+
+  container.addEventListener('click', function (e) {
+    var delBtn = e.target.closest('[data-item-delete]');
+    if (delBtn) {
+      var row = delBtn.closest('.checklist-item-row');
+      row.classList.add('is-removed');
+      row.querySelector('[data-delete-flag]').value = row.querySelector('input[name="item_id[]"]').value;
+      return;
+    }
+    var newDel = e.target.closest('[data-item-new-remove]');
+    if (newDel) {
+      newDel.closest('.checklist-item-row').remove();
+    }
+  });
+})();
+</script>
+{% endblock %}

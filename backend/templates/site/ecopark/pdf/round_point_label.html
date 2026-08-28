@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>QR — {{ point.name }}</title>
+  <style>
+    @font-face {
+      font-family: "{{ pdf_font_family }}";
+      src: url("{{ pdf_font_file }}");
+    }
+    @page {
+      size: 10cm 12cm;
+      margin: 0.8cm;
+    }
+    body {
+      font-family: "{{ pdf_font_family }}", sans-serif;
+      color: #25233f;
+      text-align: center;
+    }
+    .name {
+      font-size: 16pt;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .location {
+      font-size: 10pt;
+      color: #74728a;
+      margin-bottom: 16px;
+    }
+    .qr {
+      width: 6.5cm;
+      height: 6.5cm;
+    }
+    .hint {
+      font-size: 8pt;
+      color: #74728a;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="name">{{ point.name }}</div>
+  {% if point.location %}<div class="location">{{ point.location }}</div>{% endif %}
+  <img class="qr" src="{{ qr_data_uri }}" alt="QR">
+  <div class="hint">Отсканируйте камерой телефона, чтобы отметить обход этой точки</div>
+</body>
+</html>

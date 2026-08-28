@@ -50,6 +50,7 @@ class PermissionEnums(Enum):
     HR_REGISTRIES = "hr_registries"
     HR_SELF = "hr_self"
     ECOPARK = "ecopark"
+    ROUNDS_MONITOR = "rounds_monitor"
     REQUISTIONS = "requistions"
     SERVICE_REQUESTS = "service_requests"
     REPORTS = "reports"
@@ -86,6 +87,7 @@ class RolePermissions:
             PermissionEnums.HR_POSITIONS,
             PermissionEnums.HR_REGISTRIES,
             PermissionEnums.ECOPARK,
+            PermissionEnums.ROUNDS_MONITOR,
             PermissionEnums.REQUISTIONS,
             PermissionEnums.SERVICE_REQUESTS,
             PermissionEnums.REPORTS,
@@ -376,7 +378,13 @@ class MenuItem:
                 #MenuItem('onec', '#onec', 'box-arrow-in-down', '1C', submenu=[
                 #   MenuItem('onec_counterparties', 'onec:counterparty_list', '', 'Контрагенты'),
                 # ]),
-                MenuItem('ecopark', 'ecopark:home', 'water', 'Эксплуатация', permission=PermissionEnums.ECOPARK),
+                MenuItem('ecopark', '#ecopark', 'water', 'Эксплуатация', permission=PermissionEnums.ECOPARK, submenu=[
+                    MenuItem('ecopark_works', 'ecopark:home', '', 'Работы'),
+                    MenuItem('round_points', 'ecopark:round_points_list', '', 'Точки обхода'),
+                    MenuItem('checklists', 'ecopark:checklist_templates_list', '', 'Чек-листы'),
+                    MenuItem('rounds_journal', 'ecopark:rounds_journal', '', 'Журнал обходов'),
+                    MenuItem('rounds_defects', 'ecopark:defects_list', '', 'Неисправности'),
+                ]),
                 MenuItem('tickets', 'tickets:kanban', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket', permission=PermissionEnums.SERVICE_REQUESTS),
                 MenuItem('ticket_approvals', 'tickets:approvals', 'inbox-check', 'Согласования', permission=PermissionEnums.SERVICE_REQUESTS),
                 MenuItem('ticket_workflow', 'tickets:workflow_settings', 'gear', 'Workflow заявок', permission=PermissionEnums.MANAGE_PERMISSIONS),
@@ -475,6 +483,18 @@ class MenuItem:
             if not any(i.id == 'ticket_approvals' for i in menu):
                 menu.append(
                     MenuItem('ticket_approvals', 'tickets:approvals', 'inbox-check', 'Согласования', permission=PermissionEnums.SERVICE_REQUESTS)
+                )
+            # permission=None здесь намеренно: доступ определяется тем, что
+            # employee.head уже True (проверено выше), а не ролью — если
+            # навесить PermissionEnums.ROUNDS_MONITOR, _filter_menu тут же
+            # вырежет пункт для ролей, у кого это право не выдано статически.
+            if not any(i.id == 'rounds_journal' for i in menu):
+                menu.append(
+                    MenuItem('rounds_journal', 'ecopark:rounds_journal', 'clipboard-check', 'Журнал обходов')
+                )
+            if not any(i.id == 'rounds_defects' for i in menu):
+                menu.append(
+                    MenuItem('rounds_defects', 'ecopark:defects_list', 'exclamation-triangle', 'Неисправности')
                 )
 
         menu = MenuItem._filter_menu(menu, user)
