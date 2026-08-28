@@ -152,6 +152,26 @@ class TemporaryAccessAPITest(TestCase):
         }, format='json')
         self.assertEqual(r.status_code, 200)
 
+    def test_extend_with_naive_datetime_local_input(self):
+        # Браузерный <input type="datetime-local"> отдаёт строку без смещения
+        # часового пояса (например "2026-08-29T18:00") — именно так шлёт
+        # реальный FE. datetime.fromisoformat() на такой строке даёт naive
+        # datetime, а timezone.now() — aware; их сравнение падало с
+        # TypeError вместо корректного ответа.
+        access = TemporaryAccess.objects.create(
+            user=self.staff,
+            permission=self.perm,
+            date_from=timezone.now() - timedelta(hours=1),
+            date_to=timezone.now() + timedelta(hours=24),
+            reason='тест продления без таймзоны',
+            granted_by=self.admin,
+        )
+        naive_date_to = (timezone.now() + timedelta(days=7)).strftime('%Y-%m-%dT%H:%M')
+        r = self.client.patch(f'/api/v1/permissions/temporary/{access.pk}/extend/', {
+            'date_to': naive_date_to,
+        }, format='json')
+        self.assertEqual(r.status_code, 200)
+
     def test_invalid_date_range(self):
         r = self.client.post('/api/v1/permissions/temporary/', {
             'user': self.staff.pk,

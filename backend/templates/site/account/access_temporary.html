@@ -1,0 +1,117 @@
+{% extends 'site/base.html' %}
+{% load static %}
+
+{% block title %}Временный доступ — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/access.css' %}?v={{ static_version|default:'3' }}" />
+{% endblock %}
+
+{% block content %}
+<div class="access-page" id="taPage">
+
+  <div class="access-list-top">
+    <h1>Временный доступ</h1>
+  </div>
+
+  <div class="access-card ta-grant-card">
+    <h2 class="ta-grant-card__title">Выдать доступ</h2>
+
+    <form id="taGrantForm" class="ta-grant-form">
+      <div class="access-page__field">
+        <label class="access-page__label" for="taUserSelect">Сотрудник</label>
+        <select id="taUserSelect" name="user" class="access-page__select access-page__select--select2" required style="width:100%"></select>
+      </div>
+
+      <div class="access-page__field">
+        <label class="access-page__label" for="taPermSelect">Блок / операция</label>
+        <select id="taPermSelect" name="permission" class="access-page__select access-page__select--select2" required style="width:100%"></select>
+      </div>
+
+      <div class="access-page__field">
+        <label class="access-page__label" for="taDateFrom">Начало</label>
+        <input type="datetime-local" id="taDateFrom" name="date_from" class="access-page__search-input" required>
+      </div>
+
+      <div class="access-page__field">
+        <label class="access-page__label" for="taDateTo">Окончание</label>
+        <input type="datetime-local" id="taDateTo" name="date_to" class="access-page__search-input" required>
+      </div>
+
+      <div class="access-page__field ta-grant-form__reason">
+        <label class="access-page__label" for="taReason">Причина</label>
+        <input type="text" id="taReason" name="reason" class="access-page__search-input" maxlength="255" required placeholder="Например: замена во время отпуска">
+      </div>
+
+      <div class="ta-grant-form__submit">
+        <button type="submit" class="access-page__btn access-page__btn--primary" id="taGrantSubmit">
+          Выдать доступ
+        </button>
+      </div>
+    </form>
+
+    <div class="ta-grant-form__error" id="taGrantError" hidden></div>
+  </div>
+
+  <div class="access-card">
+    <div class="ta-tabs" id="taTabs">
+      <button type="button" class="ta-tab is-active" data-status="active">Активные</button>
+      <button type="button" class="ta-tab" data-status="all">Все</button>
+      <button type="button" class="ta-tab" data-status="revoked">Отозванные</button>
+      <button type="button" class="ta-tab" data-status="expired">Истёкшие</button>
+    </div>
+
+    <div class="ta-table-wrap">
+      <table class="ta-table">
+        <thead>
+          <tr>
+            <th>Сотрудник</th>
+            <th>Блок</th>
+            <th>Операция</th>
+            <th>Начало</th>
+            <th>Окончание</th>
+            <th>Причина</th>
+            <th>Кто выдал</th>
+            <th>Статус</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="taTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="access-empty" id="taEmpty" hidden>
+      <i class="bi bi-clock-history"></i>
+      <h3>Доступов не найдено</h3>
+      <p>Выдайте временный доступ сотруднику через форму выше.</p>
+    </div>
+  </div>
+</div>
+
+<div class="access-modal" id="taExtendModal">
+  <div class="access-modal__dialog" role="dialog" aria-modal="true">
+    <button type="button" class="access-modal__close" data-ta-extend-close aria-label="Закрыть">&times;</button>
+    <div class="access-modal__body">
+      <h3 class="access-modal__title">Продлить доступ</h3>
+      <p class="access-muted" id="taExtendSubtitle"></p>
+      <div class="access-page__field" style="margin-top:14px;">
+        <label class="access-page__label" for="taExtendDateTo">Новая дата окончания</label>
+        <input type="datetime-local" id="taExtendDateTo" class="access-page__search-input">
+      </div>
+      <div class="ta-grant-form__error" id="taExtendError" hidden></div>
+      <div class="ta-grant-form__submit" style="margin-top:16px;">
+        <button type="button" class="access-page__btn access-page__btn--primary" id="taExtendConfirm">
+          Сохранить
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script src="{% static 'site/js/apps/access-temporary.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock %}

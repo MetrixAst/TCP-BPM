@@ -287,4 +287,51 @@
   padding: 14px 16px;
   margin: 8px 0 4px;
 }
+
+/* ── Временный доступ ─────────────────────────────────────────────────── */
+
+.ta-grant-card { margin-bottom: 16px; padding: 20px 22px; }
+.ta-grant-card__title { margin: 0 0 14px; font-size: 16px; font-weight: 700; color: #25233f; }
+
+.ta-grant-form {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  align-items: end;
+}
+.ta-grant-form__reason { grid-column: 1 / -1; }
+.ta-grant-form__submit { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+.ta-grant-form__error {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fdeceb;
+  color: #ef4444;
+  font-size: 13px;
+}
+@media (max-width: 900px) {
+  .ta-grant-form { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .ta-grant-form { grid-template-columns: 1fr; }
+}
+
+.ta-tabs { display: flex; gap: 8px; padding: 16px 22px 0; flex-wrap: wrap; }
+.ta-tab {
+  border: 1px solid #eceaf3;
+  background: #fff;
+  color: #74728a;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.ta-tab.is-active { background: #2f6bed; border-color: #2f6bed; color: #fff; }
+
+.ta-table-wrap { overflow-x: auto; padding: 16px 22px 22px; }
+.ta-table { width: 100%; border-collapse: collapse; min-width: 960px; }
+.ta-table th, .ta-table td { padding: 10px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid #f0eef6; }
+.ta-table th { color: #74728a; font-weight: 600; font-size: 12px; }
+.ta-table__actions { display: flex; gap: 4px; white-space: nowrap; }
 .access-preview-box__count { font-size: 14px; margin-bottom: 4px; }
