@@ -112,3 +112,47 @@ class EmployeeAdmin(admin.ModelAdmin):
 
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
+
+
+from account.models_rbac import AppPermission, PermissionProfile, ProfileAssignment, UserPermissionOverride
+
+
+@admin.register(AppPermission)
+class AppPermissionAdmin(admin.ModelAdmin):
+    list_display = ('code', 'category', 'label', 'is_active')
+    list_filter = ('category', 'is_active')
+    search_fields = ('code', 'label')
+    ordering = ('category', 'code')
+
+
+@admin.register(PermissionProfile)
+class PermissionProfileAdmin(admin.ModelAdmin):
+    list_display = ('name', 'role', 'is_system')
+    list_filter = ('is_system',)
+    search_fields = ('name', 'role')
+    filter_horizontal = ('permissions',)
+
+
+@admin.register(UserPermissionOverride)
+class UserPermissionOverrideAdmin(admin.ModelAdmin):
+    list_display = ('user', 'permission', 'effect', 'reason', 'created_by', 'created_at')
+    list_filter = ('effect', 'permission__category')
+    search_fields = ('user__username', 'permission__code', 'reason')
+    autocomplete_fields = ('user', 'permission', 'created_by')
+    readonly_fields = ('created_at', 'updated_at')
+
+    def save_model(self, request, obj, form, change):
+        if not obj.created_by_id:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+@admin.register(ProfileAssignment)
+class ProfileAssignmentAdmin(admin.ModelAdmin):
+    list_display = ('profile', 'scope_type', 'role', 'department', 'can_delegate', 'assigned_by', 'assigned_at')
+    list_filter = ('scope_type', 'can_delegate', 'profile')
+    readonly_fields = ('assigned_by', 'assigned_at')
+
+    def save_model(self, request, obj, form, change):
+        if not obj.pk:
+            obj.assigned_by = request.user
+        super().save_model(request, obj, form, change)

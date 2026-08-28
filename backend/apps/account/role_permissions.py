@@ -17,7 +17,6 @@ class RoleEnums(Enum):
 
     @staticmethod
     def tenant_roles():
-        """Внутренние роли, получающие уведомления по арендаторам."""
         return [
             RoleEnums.ADMINISTRATOR.value,
             RoleEnums.HR.value,
@@ -56,6 +55,7 @@ class PermissionEnums(Enum):
     REPORTS = "reports"
     COMMENT = "comment"
     USERS_LIST = "users_list"
+    MANAGE_PERMISSIONS = "manage_permissions"
     FINANCE_DASHBOARD = "finance_dashboard"
     FINANCE_BUDGET = "finance_budget"
     FINANCE_SCENARIOS = "finance_scenarios"
@@ -69,6 +69,7 @@ class RolePermissions:
         RoleEnums.ADMINISTRATOR.value: [
             PermissionEnums.PROFILE,
             PermissionEnums.USERS_LIST,
+            PermissionEnums.MANAGE_PERMISSIONS,
             PermissionEnums.DASHBOARD,
             PermissionEnums.TASKS,
             PermissionEnums.EDIT_TASK,
@@ -186,11 +187,17 @@ class RolePermissions:
 
     @classmethod
     def checkPermission(cls, role, permission):
-        key = cls._permission_key(permission)
-        for item in cls.permissions.get(role, []):
-            if cls._permission_key(item) == key:
-                return True
-        return False
+        if hasattr(role, 'value'):
+            role = role.value
+        try:
+            from account.services.permissions import role_has_permission
+            return role_has_permission(role, permission)
+        except Exception:
+            key = cls._permission_key(permission)
+            for item in cls.permissions.get(role, []):
+                if cls._permission_key(item) == key:
+                    return True
+            return False
 
 
 def login_required(function):
@@ -206,27 +213,34 @@ def login_required(function):
     return wrap
 
 
+def _permission_display_label(permission):
+    code = permission.value if hasattr(permission, 'value') else str(permission)
+    try:
+        from account.models_rbac import AppPermission
+        label = (
+            AppPermission.objects
+            .filter(code=code)
+            .values_list('label', flat=True)
+            .first()
+        )
+    except Exception:
+        label = None
+    return label or code
+
+
 def need_permission(permission):
     def _method_wrapper(view_method):
         def _arguments_wrapper(request, *args, **kwargs):
             if request.user.is_authenticated:
-                if getattr(request.user, 'is_superuser', False):
+                from account.services.permissions import user_has_permission
+                if user_has_permission(request.user, permission):
                     return view_method(request, *args, **kwargs)
-
-                role = request.user.role
-                if hasattr(role, 'value'):
-                    role = role.value
-
-                if role is not None and RolePermissions.checkPermission(role, permission):
-                    return view_method(request, *args, **kwargs)
-
-                return HttpResponseForbidden("Permission Denied")
+                from django.core.exceptions import PermissionDenied
+                raise PermissionDenied(_permission_display_label(permission))
             else:
                 response = redirect('account:auth')
                 response['Location'] += f"?next={request.path}"
                 return response
-        _arguments_wrapper.__doc__ = view_method.__doc__
-        _arguments_wrapper.__name__ = view_method.__name__
         return _arguments_wrapper
     return _method_wrapper
 
@@ -242,6 +256,7 @@ class MenuItem:
         url_param=None,
         indicator_alias=None,
         always_expanded=False,
+        permission=None,
     ):
         self.id = id
         self.title = title
@@ -249,12 +264,25 @@ class MenuItem:
         self.submenu = submenu
         self.always_expanded = always_expanded
         self.indicator_alias = indicator_alias or self.id
+        self.permission = permission
         self.url = url
         if url != '#' and not url.startswith("#"):
             if url_param is not None:
                 self.url = reverse(url, args=url_param)
             else:
                 self.url = reverse(url)
+
+    @staticmethod
+    def _filter_menu(items, user):
+        from account.services.permissions import user_has_permission
+        result = []
+        for item in items:
+            if item.permission and not user_has_permission(user, item.permission):
+                continue
+            if item.submenu:
+                item.submenu = MenuItem._filter_menu(item.submenu, user)
+            result.append(item)
+        return result
 
     @staticmethod 
     def first_page(user):
@@ -277,8 +305,10 @@ class MenuItem:
             return reverse(route)
         return None
 
-    @staticmethod 
+    @staticmethod
     def generate_menu(user):
+        from account.services.permissions import user_has_permission
+
         finance_common_submenu = [
             MenuItem('fin_dash', 'finances:dashboard', '', 'Финансовый дашборд'),
             MenuItem('fin_reg', 'finances:reg', '', 'Реестр оплат'),
@@ -308,17 +338,22 @@ class MenuItem:
         items = {
             RoleEnums.ADMINISTRATOR.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
-                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
-                MenuItem('documents', 'documents:list', 'file-earmark-text', 'Документооборот', url_param=['documents']),
-                MenuItem('tenants', '#tenants', 'building', 'Компании', submenu=[
-                    MenuItem('suppliers', 'purchases:suppliers', '', 'Контрагенты'),
-                    MenuItem('tenants_list', 'tenants:list', '', 'Арендаторы'),
+                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task', permission=PermissionEnums.TASKS),
+                MenuItem('tasks_trash', 'tasks:trash', 'trash', 'Корзина задач', permission=PermissionEnums.MANAGE_PERMISSIONS),
+                MenuItem('access', '#access', 'shield-lock', 'Доступы', permission=PermissionEnums.MANAGE_PERMISSIONS, submenu=[
+                    MenuItem('access_users', 'account:access_users', '', 'Пользователи'),
+                    MenuItem('access_profiles', 'account:access_profiles', '', 'Профили доступа'),
                 ]),
-                MenuItem('purchases', 'documents:list', 'folder2', 'Закупки', url_param=['purchases']),
-                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu + [
+                MenuItem('documents', 'documents:list', 'file-earmark-text', 'Документооборот', url_param=['documents'], permission=PermissionEnums.DOCUMENTS),
+                MenuItem('tenants', '#tenants', 'building', 'Компании', submenu=[
+                    MenuItem('suppliers', 'purchases:suppliers', '', 'Контрагенты', permission=PermissionEnums.SUPPLIERS),
+                    MenuItem('tenants_list', 'tenants:list', '', 'Арендаторы', permission=PermissionEnums.TENANTS),
+                ]),
+                MenuItem('purchases', 'documents:list', 'folder2', 'Закупки', url_param=['purchases'], permission=PermissionEnums.PURCHASES),
+                MenuItem('finances', '#finances', 'credit-card', 'Финансы', permission=PermissionEnums.FINANCES, submenu=finance_full_submenu + [
                     MenuItem('bill', 'finances:bill', '', 'Счет компании'),
                 ]),
-                MenuItem('hr', '#hr', 'people', 'HR', submenu=[
+                MenuItem('hr', '#hr', 'people', 'HR', permission=PermissionEnums.HR, submenu=[
                     MenuItem('my_profile', 'hr:my_profile', '', 'Личный профиль'),
                     MenuItem('org', 'hr:org', '', 'Орг. структура'),
                     MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
@@ -332,48 +367,50 @@ class MenuItem:
                     MenuItem('hr_permits', 'hr:permits_list', '', 'Допуски'),
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                     MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
+                    MenuItem('manual_attendance', 'hr:manual_attendance', '', 'Ручные отметки'),
+                    MenuItem('manual_attendance_report', 'hr:manual_attendance_report', '', 'Отчёт по ручным отметкам'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
-                    #MenuItem('hr_vacations', 'hr:vacations', '', 'Отпуска (Enbek)'),
-                    # MenuItem('hr_sick_leaves', 'hr:sick_leaves', '', 'Больничные (Enbek)'),
-                    # MenuItem('hr_contracts', 'hr:contracts', '', 'Договоры (Enbek)'),
                 ]),
-                # MenuItem('onec', '#onec', 'box-arrow-in-down', '1С', submenu=[
-                #     MenuItem('onec_counterparties', 'onec:counterparty_list', '', 'Контрагенты'),
+
+                #MenuItem('onec', '#onec', 'box-arrow-in-down', '1C', submenu=[
+                #   MenuItem('onec_counterparties', 'onec:counterparty_list', '', 'Контрагенты'),
                 # ]),
-                MenuItem('ecopark', 'ecopark:home', 'water', 'Эксплуатация'),
-                MenuItem('tickets', 'tickets:kanban', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket'),
-                MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
+                MenuItem('ecopark', 'ecopark:home', 'water', 'Эксплуатация', permission=PermissionEnums.ECOPARK),
+                MenuItem('tickets', 'tickets:kanban', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket', permission=PermissionEnums.SERVICE_REQUESTS),
+                MenuItem('ticket_approvals', 'tickets:approvals', 'inbox-check', 'Согласования', permission=PermissionEnums.SERVICE_REQUESTS),
+                MenuItem('ticket_workflow', 'tickets:workflow_settings', 'gear', 'Workflow заявок', permission=PermissionEnums.MANAGE_PERMISSIONS),
+                MenuItem('reports', 'reports:home', 'eye', 'Показатели', permission=PermissionEnums.REPORTS),
             ],
 
             RoleEnums.OWNER.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
-                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
-                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
-                MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
+                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task', permission=PermissionEnums.TASKS),
+                MenuItem('finances', '#finances', 'credit-card', 'Финансы', permission=PermissionEnums.FINANCES, submenu=finance_full_submenu),
+                MenuItem('reports', 'reports:home', 'eye', 'Показатели', permission=PermissionEnums.REPORTS),
             ],
 
             RoleEnums.CFO.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
-                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
-                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_full_submenu),
-                MenuItem('reports', 'reports:home', 'eye', 'Показатели'),
+                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task', permission=PermissionEnums.TASKS),
+                MenuItem('finances', '#finances', 'credit-card', 'Финансы', permission=PermissionEnums.FINANCES, submenu=finance_full_submenu),
+                MenuItem('reports', 'reports:home', 'eye', 'Показатели', permission=PermissionEnums.REPORTS),
             ],
 
             RoleEnums.CHIEF_ACCOUNTANT.value: [
                 MenuItem('my_profile', 'hr:my_profile', 'person-circle', 'Личный профиль'),
-                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
-                MenuItem('hr', '#hr', 'people', 'HR', submenu=[
+                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task', permission=PermissionEnums.TASKS),
+                MenuItem('hr', '#hr', 'people', 'HR', permission=PermissionEnums.HR, submenu=[
                     MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
                     MenuItem('hr_documents', 'hr:documents_list', '', 'Кадровые документы'),
                     MenuItem('hr_permits', 'hr:permits_list', '', 'Допуски'),
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                 ]),
-                MenuItem('finances', '#finances', 'credit-card', 'Финансы', submenu=finance_readonly_submenu),
+                MenuItem('finances', '#finances', 'credit-card', 'Финансы', permission=PermissionEnums.FINANCES, submenu=finance_readonly_submenu),
             ],
 
             RoleEnums.HR.value: [
-                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
-                MenuItem('hr', '#hr', 'people', 'HR', submenu=[
+                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task', permission=PermissionEnums.TASKS),
+                MenuItem('hr', '#hr', 'people', 'HR', permission=PermissionEnums.HR, submenu=[
                     MenuItem('my_profile', 'hr:my_profile', '', 'Личный профиль'),
                     MenuItem('org', 'hr:org', '', 'Орг. структура'),
                     MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
@@ -387,24 +424,27 @@ class MenuItem:
                     MenuItem('hr_permits', 'hr:permits_list', '', 'Допуски'),
                     MenuItem('hr_certifications', 'hr:certifications_list', '', 'Сертификации'),
                     MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
+                    MenuItem('manual_attendance', 'hr:manual_attendance', '', 'Ручные отметки'),
+                    MenuItem('manual_attendance_report', 'hr:manual_attendance_report', '', 'Отчёт по ручным отметкам'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
                 ]),
             ],
 
             RoleEnums.STAFF.value: [
-                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task'),
-                MenuItem('tickets', 'tickets:kanban', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket'),
+                MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task', permission=PermissionEnums.TASKS),
+                MenuItem('tickets', 'tickets:kanban', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket', permission=PermissionEnums.SERVICE_REQUESTS),
             ],
 
             RoleEnums.GUEST.value: [
-                MenuItem('tickets', 'tickets:home', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket'),
+                MenuItem('tickets', 'tickets:home', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket', permission=PermissionEnums.SERVICE_REQUESTS),
             ],
 
             RoleEnums.TENANT.value: [
-                MenuItem('my_requisitions', 'requistions:home', 'inbox', 'Заявки на пропуск'),
-                MenuItem('tickets', 'tickets:home', 'tools', 'Заявки на обслуживание', indicator_alias='ticket'),
+                #MenuItem('my_requisitions', 'requistions:home', 'inbox', 'Заявки на пропуск', permission=PermissionEnums.REQUISTIONS),
+                MenuItem('tickets', 'tickets:home', 'tools', 'Заявки на обслуживание', indicator_alias='ticket', permission=PermissionEnums.SERVICE_REQUESTS),
             ],
         }
+
         role = user.role
         if hasattr(role, 'value'):
             role = role.value
@@ -425,7 +465,34 @@ class MenuItem:
                     MenuItem('employees', 'hr:employees', '', 'Сотрудники'),
                 ]
             menu.append(
-                MenuItem('hr', '#hr', 'user', 'HR', submenu=hr_submenu)
+                MenuItem('hr', '#hr', 'user', 'HR', permission=PermissionEnums.HR_SELF, submenu=hr_submenu)
             )
+
+        employee = getattr(user, 'employee_info', None)
+        if employee and getattr(employee, 'head', False) and role != RoleEnums.ADMINISTRATOR.value:
+            if not any(i.id == 'ticket_approvals' for i in menu):
+                menu.append(
+                    MenuItem('ticket_approvals', 'tickets:approvals', 'inbox-check', 'Согласования', permission=PermissionEnums.SERVICE_REQUESTS)
+                )
+
+        menu = MenuItem._filter_menu(menu, user)
+
+        # ── Довыдаём пункты, доступные пользователю сверх стандартного набора его роли
+        # (индивидуальные ALLOW-права или пакетные назначения профиля через FE-03).
+        # Работает только для верхнеуровневых пунктов, не для отдельных элементов
+        # внутри чужого подменю — такое считаем более редким кейсом. ──
+        existing_ids = {i.id for i in menu}
+        extra_pool = {}
+        for role_items in items.values():
+            for candidate in role_items:
+                if candidate.permission and candidate.id not in extra_pool:
+                    extra_pool[candidate.id] = candidate
+
+        for item_id, candidate in extra_pool.items():
+            if item_id in existing_ids:
+                continue
+            if user_has_permission(user, candidate.permission):
+                menu.append(candidate)
+                existing_ids.add(item_id)
 
         return menu

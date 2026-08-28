@@ -1,16 +1,18 @@
 from django_filters import rest_framework as filters
-from rest_framework import viewsets, status
+from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from account.drf_permissions import HrApiPermission
+from account.drf_permissions import HrApiPermission, HROrAdminPermission
 from account.models import Employee, Department
 from audit.models import AuditLog
 from audit.services import diff_instances, log_event
 
 from .models import Company
-from .serializers import CompanySerializer, DepartmentSerializer, EmployeeSerializer
+from .serializers import CompanySerializer, DepartmentSerializer, EmployeeSerializer, AttendanceRecordSerializer
+from hr.models import AttendanceRecord
+
 
 
 class CompanyFilter(filters.FilterSet):
@@ -99,7 +101,6 @@ class DepartmentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='tree')
     def tree(self, request):
-        """Плоский список отделов для селектов и редактора оргструктуры."""
         qs = self.filter_queryset(self.get_queryset())
         company_id = request.query_params.get('company')
         if company_id:
@@ -122,3 +123,274 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     search_fields = ['user__username', 'user__first_name', 'user__last_name', 'iin']
     ordering_fields = ['id', 'hire_date', 'status']
     ordering = ['-head', 'user__last_name']
+
+    @action(detail=True, methods=['post'], url_path='deactivate')
+    def deactivate(self, request, pk=None):
+        employee = self.get_object()
+        reason = request.data.get('reason', '').strip()
+        if len(reason) < 5:
+            return Response(
+                {'detail': 'Причина деактивации обязательна (минимум 5 символов).'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        old_status = employee.status
+        employee.status = 'dismissed'
+        employee.save(update_fields=['status'])
+
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+        from account.models import EmployeeStatusLog
+        EmployeeStatusLog.objects.create(
+            employee=employee,
+            actor=request.user,
+            old_status=old_status,
+            new_status='dismissed',
+            reason=reason,
+            ip_address=ip,
+        )
+        return Response(EmployeeSerializer(employee).data)
+
+
+    @action(detail=True, methods=['post'], url_path='activate')
+    def activate(self, request, pk=None):
+        employee = self.get_object()
+        reason = request.data.get('reason', '').strip()
+        old_status = employee.status
+        employee.status = 'active'
+        employee.save(update_fields=['status'])
+
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+        from account.models import EmployeeStatusLog
+        EmployeeStatusLog.objects.create(
+            employee=employee,
+            actor=request.user,
+            old_status=old_status,
+            new_status='active',
+            reason=reason,
+            ip_address=ip,
+        )
+        return Response(EmployeeSerializer(employee).data)
+
+
+    @action(detail=False, methods=['post'], url_path='batch-status')
+    def batch_status(self, request):
+        employee_ids = request.data.get('employee_ids', [])
+        action_type = request.data.get('action', '')
+        reason = request.data.get('reason', '').strip()
+
+        if not isinstance(employee_ids, list) or not employee_ids:
+            return Response({'detail': 'employee_ids обязателен.'}, status=status.HTTP_400_BAD_REQUEST)
+        if action_type not in ('activate', 'deactivate'):
+            return Response({'detail': 'action должен быть activate или deactivate.'}, status=status.HTTP_400_BAD_REQUEST)
+        if action_type == 'deactivate' and len(reason) < 5:
+            return Response({'detail': 'Причина деактивации обязательна.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        new_status = 'active' if action_type == 'activate' else 'dismissed'
+        employees = Employee.objects.filter(id__in=employee_ids)
+
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+        from account.models import EmployeeStatusLog
+
+        logs = []
+        for emp in employees:
+            old_status = emp.status
+            emp.status = new_status
+            emp.save(update_fields=['status'])
+            logs.append(EmployeeStatusLog(
+                employee=emp,
+                actor=request.user,
+                old_status=old_status,
+                new_status=new_status,
+                reason=reason,
+                ip_address=ip,
+            ))
+        EmployeeStatusLog.objects.bulk_create(logs)
+
+        return Response({
+            'updated': len(employees),
+            'action': action_type,
+            'employee_ids': list(employees.values_list('id', flat=True)),
+        })
+
+class ManualAttendanceViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = AttendanceRecordSerializer
+
+    def get_permissions(self):
+        from account.drf_permissions import HROrAdminPermission
+        return [HROrAdminPermission()]
+
+    def get_queryset(self):
+        return AttendanceRecord.objects.filter(is_manual=True).select_related(
+            'employee', 'manual_author', 'manual_reason'
+        ).order_by('-timestamp')
+
+    def _get_ip(self, request):
+        return request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+
+    def _record_snapshot(self, record):
+        return {
+            'event_type': record.event_type,
+            'timestamp': record.timestamp.isoformat(),
+            'manual_comment': record.manual_comment,
+            'manual_reason_id': record.manual_reason_id,
+        }
+
+    def perform_create(self, serializer):
+        from hr.models import AttendanceEditLog
+        record = serializer.save(
+            is_manual=True,
+            manual_author=self.request.user,
+        )
+        AttendanceEditLog.objects.create(
+            record=record,
+            actor=self.request.user,
+            action='create',
+            before=None,
+            after=self._record_snapshot(record),
+            ip_address=self._get_ip(self.request),
+        )
+
+    def perform_update(self, serializer):
+        from hr.models import AttendanceEditLog
+        before = self._record_snapshot(serializer.instance)
+        record = serializer.save()
+        AttendanceEditLog.objects.create(
+            record=record,
+            actor=self.request.user,
+            action='update',
+            before=before,
+            after=self._record_snapshot(record),
+            ip_address=self._get_ip(self.request),
+        )
+
+    def perform_destroy(self, instance):
+        from hr.models import AttendanceEditLog
+        AttendanceEditLog.objects.create(
+            record=instance,
+            actor=self.request.user,
+            action='delete',
+            before=self._record_snapshot(instance),
+            after=None,
+            ip_address=self._get_ip(self.request),
+        )
+        instance.delete()
+
+    @action(detail=True, methods=['get'], url_path='history')
+    def history(self, request, pk=None):
+        from hr.models import AttendanceEditLog
+        record = self.get_object()
+        logs = AttendanceEditLog.objects.filter(record=record).select_related('actor').order_by('-id')
+        data = [{
+            'id': log.id,
+            'action': log.action,
+            'action_display': dict(AttendanceEditLog._meta.get_field('action').choices).get(log.action, log.action),
+            'actor': log.actor.get_name if log.actor else None,
+            'before': log.before,
+            'after': log.after,
+            'ip_address': log.ip_address,
+            'created_at': log.created_at.isoformat(),
+        } for log in logs]
+        return Response({'results': data})
+
+
+class AttendanceReportViewSet(viewsets.ViewSet):
+
+    def get_permissions(self):
+        return [HROrAdminPermission()]
+
+    def list(self, request):
+        from datetime import date, timedelta
+        from django.utils import timezone
+        from hr.models import AttendanceRecord
+        from account.models import Employee
+
+        date_from_str = request.query_params.get('date_from')
+        date_to_str = request.query_params.get('date_to')
+        employee_id = request.query_params.get('employee_id')
+        author_id = request.query_params.get('author_id')
+
+        date_from = date.fromisoformat(date_from_str) if date_from_str else date.today() - timedelta(days=30)
+        date_to = date.fromisoformat(date_to_str) if date_to_str else date.today()
+
+        employees = Employee.objects.filter(status='active').select_related('user', 'department')
+        if employee_id:
+            employees = employees.filter(pk=employee_id)
+
+        report = []
+        for emp in employees:
+            records = AttendanceRecord.objects.filter(
+                employee=emp,
+                timestamp__date__gte=date_from,
+                timestamp__date__lte=date_to,
+            )
+            if author_id:
+                records = records.filter(manual_author_id=author_id)
+
+            manual_records = records.filter(is_manual=True)
+            auto_records = records.filter(is_manual=False)
+
+            total_manual = manual_records.count()
+            total_auto = auto_records.count()
+
+            total_work_time_seconds = 0
+            current = date_from
+            while current <= date_to:
+                summary = AttendanceRecord.get_daily_summary(emp, current)
+                total_work_time_seconds += summary['total_work_time'].total_seconds()
+                current += timedelta(days=1)
+
+            report.append({
+                'employee_id': emp.pk,
+                'employee_name': emp.user.get_name,
+                'department': emp.department.name if emp.department else None,
+                'total_records': total_manual + total_auto,
+                'manual_records': total_manual,
+                'auto_records': total_auto,
+                'total_work_hours': round(total_work_time_seconds / 3600, 2),
+                'period': {
+                    'date_from': date_from.isoformat(),
+                    'date_to': date_to.isoformat(),
+                },
+            })
+
+        export = request.query_params.get('export')
+        if export == 'xlsx':
+            return self._export_xlsx(report, date_from, date_to)
+
+        return Response(report)
+
+    def _export_xlsx(self, report, date_from, date_to):
+        import openpyxl
+        from django.http import HttpResponse
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Отчёт по отметкам"
+
+        headers = [
+            'Сотрудник', 'Отдел', 'Всего отметок',
+            'Ручных', 'Автоматических', 'Рабочих часов'
+        ]
+        ws.append(headers)
+
+        for row in report:
+            ws.append([
+                row['employee_name'],
+                row['department'] or '-',
+                row['total_records'],
+                row['manual_records'],
+                row['auto_records'],
+                row['total_work_hours'],
+            ])
+
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="attendance_report_{date_from}_{date_to}.xlsx"'
+        wb.save(response)
+        return response

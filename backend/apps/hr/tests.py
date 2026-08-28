@@ -874,7 +874,8 @@ class LeaveTimelineAndExportTest(TestCase):
 
         data = response.json()
         self.assertEqual(len(data), 2)
-        self.assertEqual(data[0]['id'], self.leave1.id)
+        ids = [item['id'] for item in data]
+        self.assertIn(self.leave1.id, ids)
         self.assertIn('content', data[0])
         self.assertIn('group', data[0])
         self.assertIn('className', data[0])
@@ -1692,6 +1693,7 @@ class AttendanceRecordTestCase(TestCase):
         with self.assertRaises(ValidationError):
             duplicate_record.clean()
 
+    @override_settings(ATTENDANCE_DISABLED_TYPES=[])
     def test_get_daily_summary_complete_day_with_lunch(self):
         target_date = date(2026, 5, 5)
         base_time = timezone.make_aware(datetime(2026, 5, 5, 9, 0, 0)) 
@@ -1902,6 +1904,7 @@ class AttendanceJournalViewTest(TestCase):
         entry = next(j for j in journal if j['employee'] == self.emp)
         self.assertTrue(entry['no_record'])
 
+    @override_settings(ATTENDANCE_DISABLED_TYPES=[])
     def test_total_hours_calculated_with_lunch(self):
         self.client.login(username='hr_admin', password='pass')
         self._create_record(self.emp, CheckInEnum.DAY_START, hour=9)

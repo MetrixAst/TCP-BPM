@@ -136,14 +136,6 @@
               {% if schedule_form.work_end.errors %}<div class="hr-edit-field__error">{{ schedule_form.work_end.errors.0 }}</div>{% endif %}
             </div>
             <div class="hr-edit-field">
-              <label class="hr-edit-field__label">Начало обеда</label>
-              {{ schedule_form.lunch_start }}
-            </div>
-            <div class="hr-edit-field">
-              <label class="hr-edit-field__label">Конец обеда</label>
-              {{ schedule_form.lunch_end }}
-            </div>
-            <div class="hr-edit-field">
               <label class="hr-edit-field__label">Допустимое опоздание, мин</label>
               {{ schedule_form.grace_minutes }}
               {% if schedule_form.grace_minutes.errors %}<div class="hr-edit-field__error">{{ schedule_form.grace_minutes.errors.0 }}</div>{% endif %}

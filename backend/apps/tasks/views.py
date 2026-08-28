@@ -229,6 +229,7 @@ def task(request, pk):
         "is_favorite": current.user_flags.filter(
             user=request.user, flag=TaskUserFlag.FAVORITE
         ).exists(),
+        "can_delete": current.can_delete(request.user),
     }
 
     return render(request, "site/tasks/task.html", context)
@@ -275,12 +276,16 @@ def task_action(request, pk, action):
         return HttpResponseForbidden("405 Method Not Allowed")
 
     if action == "cancel":
-        is_author = current.author_id == request.user.id
-        if not (is_author or getattr(request.user, 'is_superuser', False)):
+        if not current.can_delete(request.user):
             if is_ajax(request):
-                return JsonResponse({"ok": False, "message": "Удалить может только автор"}, status=403)
+                return JsonResponse({"ok": False, "message": "Нет прав на удаление"}, status=403)
             return HttpResponseForbidden("403 Forbidden")
-        current.delete()
+        reason = request.POST.get('reason', '').strip()
+        if len(reason) < 5:
+            if is_ajax(request):
+                return JsonResponse({"ok": False, "message": "Причина должна содержать не менее 5 символов"}, status=400)
+            return HttpResponseForbidden("Причина слишком короткая")
+        current.soft_delete(request.user, reason=reason)
         if is_ajax(request):
             return JsonResponse({
                 "ok": True,
@@ -555,3 +560,15 @@ def task_counterparty(request, pk):
     task.counterparty = cp
     task.save(update_fields=['counterparty'])
     return JsonResponse({'ok': True, 'counterparty': {'id': cp.id, 'name': str(cp)}})
+
+@need_permission(PermissionEnums.TASKS)
+def trash_list(request):
+    from account.role_permissions import RoleEnums
+    role = getattr(request.user, 'role', None)
+    if hasattr(role, 'value'):
+        role = role.value
+    if not (getattr(request.user, 'is_superuser', False) or role == RoleEnums.ADMINISTRATOR.value):
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied('Корзина задач')
+
+    return render(request, 'site/tasks/trash.html', {})

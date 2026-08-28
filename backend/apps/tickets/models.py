@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.http import Http404
-
+from django.core.exceptions import ValidationError
 from project.utils import PathAndRename
 from account.models import UserAccount, Department
 from account.role_permissions import RoleEnums, RolePermissions, PermissionEnums
@@ -89,13 +89,21 @@ class ServiceRequest(models.Model):
 
     @staticmethod
     def get_available_queryset(request):
+        from tickets.enums import TicketStatusEnum
+        from tickets.services import can_bypass_approval
+
         user = request.user
         base = ServiceRequest.objects.select_related(
             'tenant', 'author', 'assignee', 'department',
         )
         if user_is_manager(user):
-            return base
-        # портальный арендатор/гость видит только свои заявки
+            if can_bypass_approval(user):
+                return base
+            return base.filter(
+                ~Q(status=TicketStatusEnum.PENDING_APPROVAL.value[0]) |
+                Q(author=user)
+            )
+
         return base.filter(Q(author=user) | Q(tenant__portal_users=user)).distinct()
 
     @staticmethod
@@ -141,13 +149,26 @@ class ServiceRequest(models.Model):
         return result
 
     def apply_action(self, request, action, comment='', assignee=None):
-        """Применяет переход статуса, если он разрешён пользователю."""
         allowed = {a['action']: a for a in self.actions(request)}
         if action not in allowed:
             return False, 'Действие недоступно'
 
         if action == 'accept' and not self.assignee and not assignee:
             return False, 'Выберите исполнителя перед принятием заявки'
+
+        if action in ('approve', 'reject') and self.status == TicketStatusEnum.PENDING_APPROVAL.value[0]:
+            from account.role_permissions import RoleEnums
+            from .services import get_approver
+
+            user = request.user
+            is_admin = getattr(user, 'is_superuser', False) or user.role == RoleEnums.ADMINISTRATOR.value
+            approver = get_approver(self.author) if self.author_id else None
+
+            if not is_admin and (not approver or approver.id != user.id):
+                return False, 'Только назначенный согласующий может принять решение по этой заявке'
+
+        if action == 'reject' and len((comment or '').strip()) < 5:
+            return False, 'Комментарий при отклонении обязателен'
 
         if action == 'accept' and assignee:
             self.assignee = assignee
@@ -162,15 +183,37 @@ class ServiceRequest(models.Model):
             request=self, user=request.user, status=self.status,
             comment=comment or '',
         )
+
+        if action in ('approve', 'reject'):
+            from .models import ApprovalDecision
+            ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+            ApprovalDecision.objects.create(
+                ticket=self,
+                actor=request.user,
+                decision='approve' if action == 'approve' else 'reject',
+                comment=comment or '',
+                ip_address=ip,
+            )
+
         from .services import notify_ticket_status
         notify_ticket_status(self, actor=request.user)
+
         if action == 'accept' and assignee:
             from .services import notify_ticket_assigned
             notify_ticket_assigned(self, actor=request.user)
+
+        if action == 'request_approval':
+            from .services import get_approver, notify_approval_requested
+            approver = get_approver(request.user)
+            notify_approval_requested(self, approver)
+
+        if action in ('approve', 'reject'):
+            from .services import notify_approval_decision
+            notify_approval_decision(self, action, actor=request.user)
+
         return True, None
 
     def assign(self, request, department=None, assignee=None, priority=None, comment=''):
-        """Маршрутизация заявки: отдел / ответственный / приоритет (только сотрудник)."""
         if not self.can_manage(request.user):
             return False
         changed = []
@@ -306,4 +349,101 @@ class TicketAttachment(models.Model):
     def display_name(self):
         """Показываем оригинальное имя если есть, иначе хэш"""
         return self.original_name if self.original_name else self.filename
+
+class TicketTypeConfig(models.Model):
+    ticket_type = models.CharField('Тип заявки', max_length=64, choices=TicketCategoryEnum.list())
+    department = models.ForeignKey(
+        'account.Department',
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='ticket_type_configs',
+        verbose_name='Отдел',
+        help_text='Пусто — настройка действует для всех отделов по умолчанию.',
+    )
+    requires_approval = models.BooleanField('Требует согласования', default=False)
+    sla_hours = models.PositiveIntegerField(
+        'SLA, часов',
+        null=True, blank=True,
+        help_text='Срок на обработку заявки этого типа. Пусто — SLA не задан.',
+    )
+    auto_assign_to = models.ForeignKey(
+        'account.UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='auto_assigned_tickets',
+        verbose_name='Автоназначение на',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Настройка типа заявки'
+        verbose_name_plural = 'Настройки типов заявок'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['ticket_type', 'department'],
+                name='unique_tickettypeconfig_type_department',
+            )
+        ]
+        ordering = ['ticket_type', 'department_id']
+
+    def clean(self):
+        super().clean()
+        if self.sla_hours is not None and self.sla_hours <= 0:
+            raise ValidationError('SLA должен быть положительным числом часов.')
+
+        if self.requires_approval and self.department_id:
+            from account.models import Employee
+            has_head = Employee.objects.filter(
+                department_id=self.department_id, head=True, status='active',
+            ).exists()
+            if not has_head:
+                raise ValidationError(
+                    f'В отделе «{self.department}» нет активного руководителя — '
+                    f'согласование по умолчанию перейдёт администратору. '
+                    f'Назначьте руководителя отдела или отключите обязательное согласование.'
+                )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        dept = self.department.name if self.department else 'все отделы'
+        return f"{self.ticket_type} / {dept} (согласование: {self.requires_approval})"
+
+
+class ApprovalDecision(models.Model):
+    DECISION_APPROVE = 'approve'
+    DECISION_REJECT = 'reject'
+    DECISION_CHOICES = [
+        (DECISION_APPROVE, 'Согласовано'),
+        (DECISION_REJECT, 'Отклонено'),
+    ]
+
+    ticket = models.ForeignKey(
+        'ServiceRequest',
+        on_delete=models.CASCADE,
+        related_name='approval_decisions',
+        verbose_name='Заявка',
+    )
+    actor = models.ForeignKey(
+        'account.UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='approval_actions',
+        verbose_name='Кто принял решение',
+    )
+    decision = models.CharField('Решение', max_length=16, choices=DECISION_CHOICES)
+    comment = models.TextField('Комментарий', blank=True, default='')
+    ip_address = models.GenericIPAddressField('IP адрес', null=True, blank=True)
+    created_at = models.DateTimeField('Время', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Решение по согласованию'
+        verbose_name_plural = 'Решения по согласованию'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.ticket} | {self.decision} | {self.actor}"
  

@@ -15,4 +15,10 @@ urlpatterns = [
     path('item/<int:pk>/attachments/', views.attachments_list, name="attachments_list"),
     path('item/<int:pk>/attachments/upload/', views.attachment_upload, name="attachment_upload"),
     path('item/<int:pk>/attachments/<int:attachment_pk>/delete/', views.attachment_delete, name="attachment_delete"),
+    path('item/<int:pk>/approval-history/', views.approval_history, name='approval_history'),
+    path('approvals/', views.approval_queue, name="approvals"),
+    path('workflow/', views.workflow_settings, name="workflow_settings"),
+    path('workflow/new/', views.workflow_settings_edit, name="workflow_settings_create"),
+    path('workflow/<int:pk>/edit/', views.workflow_settings_edit, name="workflow_settings_edit"),
+    path('workflow/<int:pk>/delete/', views.workflow_settings_delete, name="workflow_settings_delete"),
 ]

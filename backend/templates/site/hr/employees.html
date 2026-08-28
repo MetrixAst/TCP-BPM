@@ -20,6 +20,11 @@
         <i class="bi bi-plus-lg"></i>
         <span>Новый сотрудник</span>
       </a>
+
+      <a href="{% url 'account:access_users' %}" class="hr-btn hr-btn--light">
+        <i class="bi bi-shield-lock"></i>
+        <span>Доступы</span>
+      </a>
     </div>
   </div>
 
@@ -31,16 +36,22 @@
     {% if paginator.items %}
       <div class="hr-table hr-table--employees">
         <div class="hr-table__head">
+          <div></div>
           <div>Сотрудник</div>
           <div>Отдел</div>
           <div>Должность</div>
           <div>Статус</div>
         </div>
 
-        <div class="hr-table__body">
+        <div class="hr-table__body" id="employeesTableBody">
           {% for current in paginator.items %}
-          <a href="{% url 'hr:employee_detail' current.id %}" class="hr-table__row">
-            <div class="hr-employee">
+          <div class="hr-table__row hr-table__row--selectable" data-employee-row data-employee-id="{{ current.id }}">
+            <label class="hr-row-checkbox" onclick="event.stopPropagation()">
+              <input type="checkbox" data-employee-checkbox value="{{ current.id }}"
+                     data-employee-name="{% if current.user.get_name %}{{ current.user.get_name }}{% else %}{{ current.user.username }}{% endif %}"
+                     data-employee-status="{{ current.status }}" />
+            </label>
+            <a href="{% url 'hr:employee_detail' current.id %}" class="hr-employee" style="text-decoration:none;color:inherit;">
               <div class="hr-avatar">
                 {% if current.user.first_name %}
                   {{ current.user.first_name|slice:":1" }}
@@ -54,23 +65,21 @@
                 </div>
                 <div class="hr-employee__meta">@{{ current.user.username }}</div>
               </div>
-            </div>
-
+            </a>
             <div class="hr-muted {% if current.head %}hr-head{% endif %}">
               {% if current.department %}{{ current.department }}{% else %}—{% endif %}
             </div>
-
             <div class="hr-muted">
               {% if current.position %}{{ current.position.title }}{% else %}—{% endif %}
             </div>
-
             <div>
               <span class="hr-status hr-status--{{ current.status }}">
                 {{ current.get_status_display }}
               </span>
             </div>
-          </a>
+          </div>
           {% endfor %}
+        </div>
         </div>
       </div>
 
@@ -86,9 +95,20 @@
     {% endif %}
   </div>
 </div>
+<div class="hr-bulk-bar" id="employeesBulkBar" hidden>
+  <span class="hr-bulk-bar__count" id="employeesBulkCount">0 выбрано</span>
+  <button type="button" class="hr-btn hr-btn--light" data-bulk-action="activate">
+    <i class="bi bi-person-check"></i> Активировать
+  </button>
+  <button type="button" class="hr-btn hr-btn--light" data-bulk-action="deactivate">
+    <i class="bi bi-person-x"></i> Деактивировать
+  </button>
+  <button type="button" class="hr-btn hr-btn--light" id="employeesBulkClear">Отменить выбор</button>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
 <script src="{% static 'site/js/apps/hr.js' %}?v={{ static_version|default:'1' }}"></script>
+<script src="{% static 'site/js/apps/hr-status-actions.js' %}?v={{ static_version|default:'1' }}"></script>
 {% endblock scripts %}

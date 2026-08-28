@@ -18,4 +18,5 @@ urlpatterns = [
     path('task/<int:pk>/files/<int:file_id>/delete/', views.task_file_delete, name="file_delete"),
     path('task/<int:pk>/counterparty/', views.task_counterparty, name="task_counterparty"),
     path('task/<int:pk>/flag/', views.task_toggle_flag, name="task_flag"),
+    path('trash/', views.trash_list, name="trash"),
 ]

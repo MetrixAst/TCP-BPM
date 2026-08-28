@@ -65,6 +65,21 @@
             <i class="bi bi-pencil"></i> Редактировать
           </a>
           {% if not is_own_profile %}
+            {% if employee.status == 'active' %}
+              <button type="button" class="hr-btn hr-btn--light" data-status-action="deactivate"
+                      data-employee-id="{{ employee.pk }}"
+                      data-employee-name="{{ user.get_name|default:user.username }}"
+                      data-employee-status="{{ employee.get_status_display }}">
+                <i class="bi bi-person-x"></i> Деактивировать
+              </button>
+            {% else %}
+              <button type="button" class="hr-btn hr-btn--light" data-status-action="activate"
+                      data-employee-id="{{ employee.pk }}"
+                      data-employee-name="{{ user.get_name|default:user.username }}"
+                      data-employee-status="{{ employee.get_status_display }}">
+                <i class="bi bi-person-check"></i> Активировать
+              </button>
+            {% endif %}
             <form method="post" action="{% url 'hr:delete_employee' employee.pk %}" class="d-inline"
                   onsubmit="return confirm('Удалить сотрудника без возможности восстановления?');">
               {% csrf_token %}
@@ -189,9 +204,6 @@
         <dl class="emp-dl">
           {% if work_schedule %}
             <div><dt>Рабочий день</dt><dd>{{ work_schedule.work_start|time:"H:i" }} – {{ work_schedule.work_end|time:"H:i" }}</dd></div>
-            {% if work_schedule.lunch_start and work_schedule.lunch_end %}
-              <div><dt>Обед</dt><dd>{{ work_schedule.lunch_start|time:"H:i" }} – {{ work_schedule.lunch_end|time:"H:i" }}</dd></div>
-            {% endif %}
             <div><dt>Допустимое опоздание</dt><dd>{{ work_schedule.grace_minutes }} мин</dd></div>
           {% else %}
             <div><dt>Рабочий день</dt><dd>09:00 – 18:00 (по умолчанию)</dd></div>
@@ -679,4 +691,5 @@
     overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
   });
   </script>
+  <script src="{% static 'site/js/apps/hr-status-actions.js' %}?v={{ static_version|default:'1' }}"></script>
   {% endblock %}

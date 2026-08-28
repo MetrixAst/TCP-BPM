@@ -20,4 +20,7 @@ urlpatterns = [
     path("mobile/side_menu", views.get_side_menu, name="side_menu_mobile"),
     path("mobile/push_token", views.push_token, name="push_token_mobile"),
 
+    path('access', views.access_users, name="access_users"),
+    path('access/profiles', views.access_profiles, name="access_profiles"),
+
 ]

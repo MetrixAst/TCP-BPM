@@ -2,18 +2,18 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm, PasswordChangeForm
 from django.core.exceptions import ValidationError 
 
-from addits.forms import CustomModelForm
+from addits.forms import CustomModelForm, Select2FieldDefault, Select2ChoiceField
 import re
 
 from hr.models import Position
-from .models import UserAccount, Employee
+from .models import UserAccount, Employee, Department
 from hr.enums import EmployeeStatusEnum
 ROLE_PICK_NEW = '__new_role__'
 
 
 def validate_iin_logic(iin):
     if not iin:
-        raise ValidationError("ИИН обязателен для заполнения.")
+        return iin  
     if not iin.isdigit():
         raise ValidationError("ИИН должен содержать только цифры.")
     if len(iin) != 12:
@@ -141,7 +141,7 @@ class EmployeeForm(CustomModelForm):
         label="ИИН",
         min_length=12, 
         max_length=12,
-        required=True, 
+        required=False, 
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ИИН (12 цифр)'})
     )
     hire_date = forms.DateField(
@@ -232,3 +232,24 @@ class EmployeeAdminForm(forms.ModelForm):
     
     def clean_iin(self):
         return validate_iin_logic(self.cleaned_data.get('iin'))
+
+class AccessUserFilterForm(forms.Form):
+    search = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Поиск по имени или логину'}),
+        required=False,
+    )
+    department = Select2FieldDefault(
+        queryset=Department.objects.all(),
+        placeholder='Отдел',
+        required=False,
+    )
+    role = Select2ChoiceField(
+        choices=[('', 'Роль')] + list(UserAccount.ROLES),
+        required=False,
+        placeholder='Роль',
+    )
+    status = Select2ChoiceField(
+        choices=[('', 'Статус')] + list(EmployeeStatusEnum.choices),
+        required=False,
+        placeholder='Статус',
+    )

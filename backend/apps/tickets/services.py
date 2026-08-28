@@ -70,3 +70,58 @@ def notify_ticket_assigned(ticket, actor=None):
         ticket,
         recipients,
     )
+
+def get_approver(user):
+    from account.models import Employee
+
+    employee = getattr(user, 'employee_info', None)
+    if employee and employee.department_id:
+        head = Employee.objects.filter(
+            department_id=employee.department_id,
+            head=True,
+            status='active',
+        ).exclude(user_id=user.id).select_related('user').first()
+        if head:
+            return head.user
+
+    admin = UserAccount.objects.filter(role=RoleEnums.ADMINISTRATOR.value).first()
+    return admin
+
+
+def can_bypass_approval(user):
+    from account.models import Employee
+
+    if user.role == RoleEnums.ADMINISTRATOR.value:
+        return True
+
+    employee = getattr(user, 'employee_info', None)
+    if employee and getattr(employee, 'head', False):
+        return True
+
+    return False
+
+
+def notify_approval_requested(ticket, approver):
+    if not approver:
+        return
+    _push(
+        f'Заявка {ticket.number} ожидает согласования',
+        f'Заявка «{ticket.title}» направлена вам на согласование.',
+        ticket,
+        {approver.id},
+    )
+
+
+def notify_approval_decision(ticket, decision, actor=None):
+    decision_text = 'согласована' if decision == 'approve' else 'отклонена'
+    recipients = set()
+    if ticket.author_id:
+        recipients.add(ticket.author_id)
+    if actor:
+        recipients.discard(actor.id)
+    _push(
+        f'Заявка {ticket.number} {decision_text}',
+        f'Заявка «{ticket.title}» была {decision_text}.',
+        ticket,
+        recipients,
+    )

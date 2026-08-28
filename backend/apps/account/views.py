@@ -3,7 +3,7 @@ from django.shortcuts import redirect, render
 from django.http import HttpResponse
 from django.views import View
 
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 
@@ -13,9 +13,9 @@ from django.contrib.auth.views import LoginView, LogoutView
 
 from .role_permissions import need_permission, PermissionEnums, login_required
 
-from .forms import CustomAuthenticationForm, EditProfileForm, CustomPasswordChangeForm
+from .forms import CustomAuthenticationForm, EditProfileForm, CustomPasswordChangeForm, AccessUserFilterForm
 from .utils import get_structure_data
-from .models import UserAccount, PushToken, NotificationIndicator
+from .models import UserAccount, PushToken, NotificationIndicator, Department
 
 #AUTH
 from account.forms import CustomAuthenticationForm
@@ -24,6 +24,7 @@ from django.contrib.auth import login as auth_login
 #MENU
 from account.role_permissions import MenuItem
 
+from project.paginator import CustomPaginator, page_from_request
 
 class CustomLoginView(LoginView):
     form_class = CustomAuthenticationForm
@@ -446,3 +447,51 @@ def indicator_readed(request, target_id, target_type):
     
     return JsonResponse({'success': False})
 
+@need_permission(PermissionEnums.MANAGE_PERMISSIONS)
+def access_users(request):
+    queryset = (
+        UserAccount.objects
+        .select_related('employee_info', 'employee_info__department')
+        .annotate(override_count=Count('permission_overrides'))
+    )
+
+    filter_form = AccessUserFilterForm(request.GET)
+    if filter_form.is_valid():
+        data = filter_form.cleaned_data
+
+        search = data.get('search', '')
+        if search:
+            queryset = queryset.filter(
+                Q(username__icontains=search) |
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search)
+            )
+        if data.get('department'):
+            queryset = queryset.filter(employee_info__department=data['department'])
+        if data.get('role'):
+            queryset = queryset.filter(role=data['role'])
+        if data.get('status'):
+            queryset = queryset.filter(employee_info__status=data['status'])
+
+    page = page_from_request(request)
+    paginator = CustomPaginator(queryset, page)
+
+    return render(request, 'site/account/access_users.html', {
+        'paginator': paginator,
+        'filter_form': filter_form,
+    })
+
+@need_permission(PermissionEnums.MANAGE_PERMISSIONS)
+def access_profiles(request):
+    from account.models_rbac import PermissionProfile
+    profiles = (
+        PermissionProfile.objects
+        .prefetch_related('permissions')
+        .annotate(permission_count=Count('permissions'))
+        .order_by('name')
+    )
+    return render(request, 'site/account/access_profiles.html', {
+        'profiles': profiles,
+        'departments': Department.objects.all(),
+        'roles': UserAccount.ROLES,
+    })

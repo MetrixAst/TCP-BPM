@@ -43,8 +43,11 @@
             <a href="{% url 'tasks:edit' task.id %}" class="task-deal__icon-btn" title="{% t 'common.edit' 'Редактировать' %}">
               <i class="bi bi-pencil"></i>
             </a>
+          {% endif %}
+          {% if can_delete %}
             <button type="button" class="task-deal__icon-btn task-deal__icon-btn--danger"
                     title="{% t 'common.delete' 'Удалить' %}" data-task-delete
+                    data-task-title="{{ task.title }}"
                     data-url="{% url 'tasks:task_action' task.id 'cancel' %}">
               <i class="bi bi-trash"></i>
             </button>

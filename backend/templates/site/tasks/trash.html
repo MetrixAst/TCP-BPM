@@ -1,0 +1,70 @@
+{% extends 'site/base.html' %}
+{% load static site_tags %}
+
+{% block title %}{% t 'tasks.trash_title' 'Корзина задач' %} — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'6' }}" />
+{% endblock %}
+
+{% block content %}
+<div class="tasks-page" id="tasksTrashPage">
+  <div class="tasks-page__top">
+    <div class="tasks-page__header">
+      <h1 class="tasks-page__title">{% t 'tasks.trash_title' 'Корзина задач' %}</h1>
+
+      <div class="tasks-page__toolbar" style="margin-left:auto">
+        <div class="tasks-page__field">
+          <label class="tasks-page__label" for="trashSearch">{% t 'common.search' 'Поиск' %}</label>
+          <div class="tasks-page__search">
+            <i class="bi bi-search tasks-page__search-icon"></i>
+            <input type="search"
+                   class="tasks-page__search-input"
+                   id="trashSearch"
+                   placeholder="{% t 'tasks.trash_search_placeholder' 'Поиск по названию' %}"
+                   autocomplete="off" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tasks-panel">
+    <div class="tasks-table-wrap" id="trashTableWrap">
+      <table class="tasks-table">
+        <thead>
+          <tr>
+            <th class="tasks-table__th">{% t 'tasks.col_name' 'Название' %}</th>
+            <th class="tasks-table__th">{% t 'tasks.trash_col_author' 'Автор задачи' %}</th>
+            <th class="tasks-table__th">{% t 'tasks.trash_col_deleted_by' 'Кто удалил' %}</th>
+            <th class="tasks-table__th">{% t 'tasks.trash_col_deleted_at' 'Дата удаления' %}</th>
+            <th class="tasks-table__th">{% t 'tasks.trash_col_reason' 'Причина' %}</th>
+            <th class="tasks-table__th">{% t 'tasks.trash_col_purge' 'Будет удалено' %}</th>
+            <th class="tasks-table__th"></th>
+          </tr>
+        </thead>
+        <tbody id="trashTableBody">
+          <tr>
+            <td colspan="7" class="tasks-table__empty">
+              <div class="tasks-empty">
+                <div class="tasks-empty__title">{% t 'common.loading' 'Загрузка…' %}</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="trash-modal" id="trashViewModal">
+  <div class="trash-modal__dialog" role="dialog" aria-modal="true">
+    <button type="button" class="trash-modal__close" data-trash-modal-close aria-label="Закрыть">&times;</button>
+    <div class="trash-modal__body" data-trash-modal-body></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/apps/tasks-trash.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock %}

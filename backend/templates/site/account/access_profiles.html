@@ -1,0 +1,88 @@
+{% extends 'site/base.html' %}
+{% load static site_tags %}
+
+{% block title %}{% t 'access.profiles_title' 'Профили доступа' %} — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/access.css' %}?v={{ static_version|default:'4' }}" />
+{% endblock %}
+
+{% block content %}
+<div class="access-page" id="accessProfilesPage">
+
+  <div class="access-list-top">
+    <h1>{% t 'access.profiles_title' 'Профили доступа' %}</h1>
+    <button type="button" class="access-page__btn access-page__btn--primary" id="createProfileBtn">
+      + {% t 'access.new_profile' 'Новый профиль' %}
+    </button>
+  </div>
+
+  <div class="access-card">
+    <div class="access-table" id="profilesTable">
+      <div class="access-table__head access-table__head--profiles">
+        <div>{% t 'access.col_profile' 'Профиль' %}</div>
+        <div>{% t 'access.col_role_binding' 'Системная роль' %}</div>
+        <div>{% t 'access.col_permissions_count' 'Прав' %}</div>
+        <div></div>
+      </div>
+      <div class="access-table__body">
+        {% for profile in profiles %}
+        <div class="access-table__row access-table__row--profiles" data-profile-id="{{ profile.id }}">
+          <div>
+            <div class="access-user__name">{{ profile.name }}</div>
+            {% if profile.description %}<div class="access-user__meta">{{ profile.description }}</div>{% endif %}
+          </div>
+          <div class="access-muted">{{ profile.role|default:"—" }}</div>
+          <div class="access-muted">{{ profile.permission_count }}</div>
+          <div class="access-table__actions">
+            <button type="button" class="access-page__btn access-page__btn--light" data-edit-profile="{{ profile.id }}">
+              {% t 'access.edit_matrix' 'Матрица' %}
+            </button>
+            <button type="button" class="access-page__btn access-page__btn--light" data-assign-profile="{{ profile.id }}" data-profile-name="{{ profile.name }}">
+              {% t 'access.assign' 'Назначить' %}
+            </button>
+          </div>
+        </div>
+        {% empty %}
+        <div class="access-empty">
+          <i class="bi bi-collection"></i>
+          <h3>{% t 'access.no_profiles_title' 'Профилей пока нет' %}</h3>
+          <p>{% t 'access.no_profiles_text' 'Создайте первый профиль прав.' %}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: создание / редактирование матрицы профиля -->
+<div class="access-modal" id="profileMatrixModal">
+  <div class="access-modal__dialog access-modal__dialog--wide" role="dialog" aria-modal="true">
+    <button type="button" class="access-modal__close" data-profile-modal-close aria-label="Закрыть">&times;</button>
+    <div class="access-modal__body" data-profile-modal-body>
+      <div class="access-modal__loading">{% t 'common.loading' 'Загрузка…' %}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: назначение профиля с предпросмотром -->
+<div class="access-modal" id="assignModal">
+  <div class="access-modal__dialog" role="dialog" aria-modal="true">
+    <button type="button" class="access-modal__close" data-assign-modal-close aria-label="Закрыть">&times;</button>
+    <div class="access-modal__body" data-assign-modal-body></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script>
+  window.ACCESS_ROLES = [{% for value, label in roles %}{ value: "{{ value }}", label: "{{ label }}" }{% if not forloop.last %},{% endif %}{% endfor %}];
+  window.ACCESS_DEPARTMENTS = [{% for dept in departments %}{ id: {{ dept.id }}, name: "{{ dept.name|escapejs }}" }{% if not forloop.last %},{% endif %}{% endfor %}];
+</script>
+<script src="{% static 'site/js/apps/access.js' %}?v={{ static_version|default:'3' }}"></script>
+<script src="{% static 'site/js/apps/access-profiles.js' %}?v={{ static_version|default:'1' }}"></script>
+{% endblock %}

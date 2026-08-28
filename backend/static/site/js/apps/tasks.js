@@ -1,6 +1,10 @@
 (function () {
   'use strict';
 
+  function t(text) {
+    return (window.BPM && window.BPM.t) ? window.BPM.t(text, text) : text;
+  }
+
   function getCsrf() {
     const tag = document.querySelector('[name=csrfmiddlewaretoken]');
     if (tag) return tag.value;
@@ -102,8 +106,9 @@
   }
 
   function notifyError(text) {
-    if (window.bpmModal) window.bpmModal.alert(text, { variant: 'danger', title: 'Ошибка' });
-    else alert(text);
+    var translated = t(text);
+    if (window.bpmModal) window.bpmModal.alert(translated, { variant: 'danger', title: t('Ошибка') });
+    else alert(translated);
   }
 
   // ============================================================
@@ -155,8 +160,9 @@ if (!$stateSel.hasClass('select2-hidden-accessible')) {
     search?.addEventListener('input', debounce(updateFilters, 500));
 
     document.getElementById('taskSettingsBtn')?.addEventListener('click', function () {
-      if (window.bpmModal) window.bpmModal.alert('Настройка отображения колонок будет реализована позже.', { variant: 'info', title: 'Скоро' });
-      else alert('Настройка отображения колонок будет реализована позже.');
+      var msg = t('Настройка отображения колонок будет реализована позже.');
+      if (window.bpmModal) window.bpmModal.alert(msg, { variant: 'info', title: t('Скоро') });
+      else alert(msg);
     });
   }
 
@@ -237,7 +243,7 @@ if (!$stateSel.hasClass('select2-hidden-accessible')) {
     document.querySelector('[data-copy-link]')?.addEventListener('click', function () {
       const url  = window.location.href;
       const done = function () {
-        if (window.bpmModal) window.bpmModal.alert('Ссылка скопирована в буфер обмена', { variant: 'success', title: 'Готово' });
+        if (window.bpmModal) window.bpmModal.alert(t('Ссылка скопирована в буфер обмена'), { variant: 'success', title: t('Готово') });
       };
       if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).then(done).catch(function () {});
       else {
@@ -255,20 +261,90 @@ if (!$stateSel.hasClass('select2-hidden-accessible')) {
       button.addEventListener('click', async function (event) {
         event.preventDefault();
         const url = button.getAttribute('data-url');
+        const taskTitle = button.getAttribute('data-task-title') || '';
         if (!url) return;
-        let ok = window.bpmModal
-          ? await window.bpmModal.confirm('Задача будет удалена без возможности восстановления.', { title: 'Удалить задачу?', variant: 'danger', confirmText: 'Удалить' })
-          : confirm('Удалить задачу?');
-        if (!ok) return;
+
+        const reason = await openDeleteReasonModal(taskTitle);
+        if (reason === null) return; // отмена
+
         button.disabled = true;
         try {
-          const res = await postAjax(url);
-          if (res.ok) window.location.href = '/tasks/';
-          else notifyError('Не удалось удалить задачу.');
-        } catch (e) { console.error(e); notifyError('Ошибка сети.'); }
-        finally { button.disabled = false; }
+          const fd = new FormData();
+          fd.append('reason', reason);
+          const res = await postAjax(url, fd);
+          let data = {};
+          try { data = await res.json(); } catch (e) { /* не JSON — ок для редиректа */ }
+
+          if (res.ok && data.ok !== false) {
+            window.location.href = '/tasks/';
+          } else {
+            notifyError(data.message || 'Не удалось удалить задачу.');
+          }
+        } catch (e) {
+          console.error(e);
+          notifyError('Ошибка сети.');
+        } finally {
+          button.disabled = false;
+        }
       });
     });
+
+    // Кастомный диалог удаления: показывает задачу, требует причину ≥5 символов.
+    // Возвращает Promise<string|null> — строку причины или null при отмене.
+    function openDeleteReasonModal(taskTitle) {
+      return new Promise(function (resolve) {
+        const overlay = document.createElement('div');
+        overlay.className = 'task-delete-modal';
+        overlay.innerHTML =
+          '<div class="task-delete-modal__dialog" role="dialog" aria-modal="true">' +
+            '<h3 class="task-delete-modal__title">' + t('Удалить задачу?') + '</h3>' +
+            '<p class="task-delete-modal__task-name">«' + escapeHtml(taskTitle) + '»</p>' +
+            '<p class="task-delete-modal__hint">' + t('Действие необратимо без восстановления администратором. Укажите причину удаления (минимум 5 символов):') + '</p>' +
+            '<textarea class="task-delete-modal__textarea" data-delete-reason rows="3" placeholder="' + t('Например: дубликат задачи, создана по ошибке') + '"></textarea>' +
+            '<p class="task-delete-modal__error" data-delete-error style="display:none"></p>' +
+            '<div class="task-delete-modal__actions">' +
+              '<button type="button" class="task-deal__action-btn" data-delete-cancel>' + t('Отмена') + '</button>' +
+              '<button type="button" class="task-deal__action-btn task-deal__action-btn--danger" data-delete-confirm>' + t('Удалить') + '</button>' +
+            '</div>' +
+          '</div>';
+        (document.getElementById('bpmMain') || document.body).appendChild(overlay);
+
+        if (window.BPM && window.BPM.applyTranslations) {
+          window.BPM.applyTranslations();
+        }
+
+        const textarea = overlay.querySelector('[data-delete-reason]');
+        const errorEl = overlay.querySelector('[data-delete-error]');
+        const confirmBtn = overlay.querySelector('[data-delete-confirm]');
+        const cancelBtn = overlay.querySelector('[data-delete-cancel]');
+
+        function close(result) {
+          (document.getElementById('bpmMain') || document.body).removeChild(overlay)
+          document.removeEventListener('keydown', onKey);
+          resolve(result);
+        }
+
+        function onKey(e) {
+          if (e.key === 'Escape') close(null);
+        }
+
+        confirmBtn.addEventListener('click', function () {
+          const reason = textarea.value.trim();
+          if (reason.length < 5) {
+            errorEl.textContent = t('Причина должна содержать не менее 5 символов.');
+            errorEl.style.display = 'block';
+            textarea.focus();
+            return;
+          }
+          close(reason);
+        });
+        cancelBtn.addEventListener('click', function () { close(null); });
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) close(null); });
+        document.addEventListener('keydown', onKey);
+
+        requestAnimationFrame(function () { overlay.classList.add('is-open'); textarea.focus(); });
+      });
+    }
 
     // ── workflow actions ──
     document.querySelectorAll('[data-task-action]').forEach(function (button) {
@@ -279,8 +355,8 @@ if (!$stateSel.hasClass('select2-hidden-accessible')) {
         const label    = (button.textContent || 'действие').trim();
         const isDanger = button.getAttribute('data-task-action') === 'cancel' || /отклон|удал/i.test(label);
         let confirmed = window.bpmModal
-          ? await window.bpmModal.confirm('Вы собираетесь выполнить: «' + label + '».', { title: 'Подтверждение действия', confirmText: label, variant: isDanger ? 'danger' : 'info', checkboxLabel: 'Подтверждаю выполнение действия' })
-          : window.confirm('Выполнить «' + label + '»?');
+          ? await window.bpmModal.confirm(t('Вы собираетесь выполнить:') + ' «' + label + '».', { title: t('Подтверждение действия'), confirmText: label, variant: isDanger ? 'danger' : 'info', checkboxLabel: t('Подтверждаю выполнение действия') })
+          : window.confirm(t('Выполнить') + ' «' + label + '»?');
         if (!confirmed) return;
         button.disabled = true;
         button.classList.add('is-loading');
@@ -417,8 +493,8 @@ if (!$stateSel.hasClass('select2-hidden-accessible')) {
     document.querySelectorAll('[data-file-delete]').forEach(function (btn) {
       btn.addEventListener('click', async function () {
         let ok = window.bpmModal
-          ? await window.bpmModal.confirm('Удалить этот файл?', { title: 'Удаление файла', variant: 'danger', confirmText: 'Удалить' })
-          : confirm('Удалить файл?');
+          ? await window.bpmModal.confirm(t('Удалить этот файл?'), { title: t('Удаление файла'), variant: 'danger', confirmText: t('Удалить') })
+          : confirm(t('Удалить файл?'));
         if (!ok) return;
         const res = await postAjax(btn.dataset.url);
         if (res.ok) btn.closest('[data-file-id]')?.remove();
