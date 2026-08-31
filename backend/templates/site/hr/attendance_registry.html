@@ -44,11 +44,11 @@
   <form class="ar-filters" id="arFilters">
     <div>
       <label for="arDateFrom">С даты</label>
-      <input type="date" id="arDateFrom" name="date_from" class="hr-form-input">
+      <input type="text" id="arDateFrom" name="date_from" class="hr-form-input single_date_picker" autocomplete="off" placeholder="дд.мм.гггг">
     </div>
     <div>
       <label for="arDateTo">По дату</label>
-      <input type="date" id="arDateTo" name="date_to" class="hr-form-input">
+      <input type="text" id="arDateTo" name="date_to" class="hr-form-input single_date_picker" autocomplete="off" placeholder="дд.мм.гггг">
     </div>
     <div>
       <label for="arDepartment">Отдел</label>
@@ -103,5 +103,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
 <script src="{% static 'site/js/apps/attendance-registry.js' %}?v={{ static_version|default:'1' }}"></script>
 {% endblock %}

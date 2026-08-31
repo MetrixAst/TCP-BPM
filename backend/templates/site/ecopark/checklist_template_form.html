@@ -68,7 +68,7 @@
 
             {% if template %}
             <div class="hr-registry-edit-field">
-              <label class="hr-registry-edit-field__label">
+              <label class="hr-registry-edit-field__label hr-toggle">
                 <input type="checkbox" name="is_active" {% if template.is_active %}checked{% endif %}>
                 Активен
               </label>
@@ -85,9 +85,9 @@
             <div class="checklist-item-row">
               <input type="hidden" name="item_id[]" value="{{ item.pk }}">
               <input type="text" name="item_text[]" class="hr-form-input" value="{{ item.text }}" placeholder="Пункт проверки">
-              <label class="checklist-item-row__photo">
+              <label class="checklist-item-row__photo hr-checkbox">
                 <input type="checkbox" name="item_requires_photo[]" value="{{ forloop.counter0 }}" {% if item.requires_photo_on_fail %}checked{% endif %}>
-                Фото при несоответствии
+                <span>Фото при несоответствии</span>
               </label>
               <button type="button" class="checklist-item-row__del" data-item-delete title="Удалить пункт">
                 <i class="bi bi-trash"></i>
@@ -132,9 +132,9 @@
     row.innerHTML =
       '<input type="hidden" name="item_id[]" value="">' +
       '<input type="text" name="item_text[]" class="hr-form-input" placeholder="' + t('Пункт проверки') + '">' +
-      '<label class="checklist-item-row__photo">' +
+      '<label class="checklist-item-row__photo hr-checkbox">' +
         '<input type="checkbox" name="item_requires_photo[]" value="' + nextIndex + '" checked>' +
-        t('Фото при несоответствии') +
+        '<span>' + t('Фото при несоответствии') + '</span>' +
       '</label>' +
       '<button type="button" class="checklist-item-row__del" data-item-new-remove title="' + t('Убрать пункт') + '">' +
         '<i class="bi bi-trash"></i>' +

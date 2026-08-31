@@ -79,15 +79,28 @@
 
     var employeeOptions = Array.from(employeeSelect.options);
 
+    // date_from/date_to в самих полях всегда дд.мм.гггг (как и остальные
+    // single_date_picker на сайте) — в ISO переводим только перед запросом к API.
+    function toIsoDate(ddmmyyyy) {
+      var m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec((ddmmyyyy || '').trim());
+      return m ? (m[3] + '-' + m[2] + '-' + m[1]) : '';
+    }
+
     function setDefaultDates() {
       var today = new Date();
       var from = new Date(today.getTime() - 29 * 24 * 3600 * 1000);
       function fmt(d) {
         var pad = function (n) { return String(n).padStart(2, '0'); };
-        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+        return pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear();
       }
       dateFrom.value = fmt(from);
       dateTo.value = fmt(today);
+    }
+
+    function initDatepickers() {
+      if (window.jQuery && jQuery.fn.datepicker) {
+        jQuery([dateFrom, dateTo]).datepicker({ autoclose: true, locale: 'ru', language: 'ru' });
+      }
     }
 
     function filterEmployeesByDepartment() {
@@ -106,8 +119,10 @@
 
     function currentParams() {
       var params = new URLSearchParams();
-      if (dateFrom.value) params.set('date_from', dateFrom.value);
-      if (dateTo.value) params.set('date_to', dateTo.value);
+      var isoFrom = toIsoDate(dateFrom.value);
+      var isoTo = toIsoDate(dateTo.value);
+      if (isoFrom) params.set('date_from', isoFrom);
+      if (isoTo) params.set('date_to', isoTo);
       if (departmentSelect.value) params.set('department_id', departmentSelect.value);
       if (employeeSelect.value) params.set('employee_id', employeeSelect.value);
       return params;
@@ -166,6 +181,7 @@
     });
 
     setDefaultDates();
+    initDatepickers();
     loadList();
   });
 })();
