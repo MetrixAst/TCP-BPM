@@ -142,7 +142,8 @@ body.hr-edit-body .bpm-content {
 #hrEmployeeForm input,
 #hrEmployeeForm select,
 #hrEmployeeForm textarea,
-.hr-edit-select {
+.hr-edit-select,
+.hr-edit-input {
   width: 100%;
   height: 32px !important;
   min-height: 32px !important;
@@ -160,13 +161,15 @@ body.hr-edit-body .bpm-content {
 #hrEmployeeForm input::placeholder,
 #hrEmployeeForm select::placeholder,
 #hrEmployeeForm textarea::placeholder,
-.hr-edit-select::placeholder {
+.hr-edit-select::placeholder,
+.hr-edit-input::placeholder {
   color: #9a98aa;
 }
 #hrEmployeeForm input:focus,
 #hrEmployeeForm select:focus,
 #hrEmployeeForm textarea:focus,
-.hr-edit-select:focus {
+.hr-edit-select:focus,
+.hr-edit-input:focus {
   box-shadow: 0 0 0 2px rgba(54, 100, 220, 0.15) !important;
 }
 
@@ -293,6 +296,35 @@ body.hr-edit-body .bpm-content {
 }
 
 #hrEmployeeForm .select2-selection__arrow {
+  height: 32px !important;
+  right: 10px !important;
+}
+
+/* Отчёт по ручным отметкам (marFilterForm) — те же пилюли, что у hrEmployeeForm */
+#marFilterForm .select2-container {
+  width: 100% !important;
+}
+#marFilterForm .select2-container--default .select2-selection--single,
+#marFilterForm .select2-container--bootstrap4 .select2-selection--single {
+  height: 32px !important;
+  min-height: 32px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f5f3fa !important;
+  box-shadow: none !important;
+  display: flex;
+  align-items: center;
+}
+#marFilterForm .select2-selection__rendered {
+  height: 32px !important;
+  line-height: 32px !important;
+  padding-left: 16px !important;
+  padding-right: 34px !important;
+  color: #25233f !important;
+  font-size: 13px !important;
+  font-weight: 500;
+}
+#marFilterForm .select2-selection__arrow {
   height: 32px !important;
   right: 10px !important;
 }
