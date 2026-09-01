@@ -74,16 +74,17 @@
     </div>
     <div>
       <label>С даты</label>
-      <input type="date" name="date_from" class="hr-form-input" value="{{ request.GET.date_from }}">
+      <input type="text" name="date_from" class="hr-form-input single_date_picker" autocomplete="off" placeholder="дд.мм.гггг" value="{{ request.GET.date_from }}">
     </div>
     <div>
       <label>По дату</label>
-      <input type="date" name="date_to" class="hr-form-input" value="{{ request.GET.date_to }}">
+      <input type="text" name="date_to" class="hr-form-input single_date_picker" autocomplete="off" placeholder="дд.мм.гггг" value="{{ request.GET.date_to }}">
     </div>
     <div>
       <label style="visibility:hidden;">.</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#25233f;">
-        <input type="checkbox" name="overdue" {% if request.GET.overdue %}checked{% endif %}> Только просроченные
+      <label class="hr-checkbox">
+        <input type="checkbox" name="overdue" {% if request.GET.overdue %}checked{% endif %}>
+        <span>Только просроченные</span>
       </label>
     </div>
     <button type="submit" class="hr-registry-btn hr-registry-btn--primary">
@@ -151,4 +152,41 @@
   </div>
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
+<script>
+(function () {
+  var form = document.querySelector('.rj-filters');
+  var dateInputs = form.querySelectorAll('.single_date_picker');
+
+  // Значения из request.GET приходят в ISO (YYYY-MM-DD) — для показа
+  // переводим в привычный дд.мм.гггг, как это делает main.js для остальных
+  // single_date_picker полей на сайте.
+  dateInputs.forEach(function (input) {
+    var val = input.value;
+    if (val) {
+      input.value = val.split('-').reverse().join('.');
+    }
+  });
+
+  if (window.jQuery && jQuery.fn.datepicker) {
+    jQuery(dateInputs).datepicker({ autoclose: true, locale: 'ru', language: 'ru' });
+  }
+
+  // Перед отправкой формы — обратно в ISO, т.к. сервер ждёт date_from/date_to
+  // в формате YYYY-MM-DD (сравнение напрямую со строкой в ORM-фильтре).
+  form.addEventListener('submit', function () {
+    dateInputs.forEach(function (input) {
+      var val = input.value.trim();
+      var m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(val);
+      if (m) {
+        input.value = m[3] + '-' + m[2] + '-' + m[1];
+      }
+    });
+  });
+})();
+</script>
 {% endblock %}

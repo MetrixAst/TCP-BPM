@@ -260,6 +260,10 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=2, minute=0),  
         'kwargs': {'days': 60},
     },
+    'account-expire-temporary-accesses': {
+        'task': 'account.expire_temporary_accesses',
+        'schedule': crontab(minute=0, hour='*/1'),  
+    },
     # Курсы НБ РК отключены — в интерфейсе все суммы в ₸
     # 'fetch-exchange-rates-daily': {
     #     'task': 'finances.tasks.fetch_exchange_rates',

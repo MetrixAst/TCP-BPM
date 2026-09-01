@@ -109,3 +109,22 @@ class HROrAdminPermission(BasePermission):
         if hasattr(role, 'value'):
             role = role.value
         return role in (RoleEnums.ADMINISTRATOR.value, RoleEnums.HR.value)
+
+class AttendanceRegistryPermission(BasePermission):
+    ALLOWED_ROLES = {'administrator', 'hr', 'owner'}
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if getattr(request.user, 'is_superuser', False):
+            return True
+        role = request.user.role
+        if hasattr(role, 'value'):
+            role = role.value
+        if role in self.ALLOWED_ROLES:
+            return True
+ 
+        employee = getattr(request.user, 'employee_info', None)
+        if employee and getattr(employee, 'head', False):
+            return True
+        return False

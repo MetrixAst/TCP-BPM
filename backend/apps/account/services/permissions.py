@@ -137,6 +137,21 @@ def user_has_permission(user, permission) -> bool:
     if code in assignment_permission_codes(user):
         return True
 
+    from django.utils import timezone
+    from account.models_rbac import TemporaryAccess, AppPermission
+    try:
+        perm_obj = AppPermission.objects.filter(code=code).first()
+        if perm_obj and TemporaryAccess.objects.filter(
+            user=user,
+            permission=perm_obj,
+            status=TemporaryAccess.STATUS_ACTIVE,
+            date_from__lte=timezone.now(),
+            date_to__gte=timezone.now(),
+        ).exists():
+            return True
+    except Exception:
+        pass
+
     return False
 
 

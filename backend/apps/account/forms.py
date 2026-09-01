@@ -13,7 +13,12 @@ ROLE_PICK_NEW = '__new_role__'
 
 def validate_iin_logic(iin):
     if not iin:
-        return iin  
+        # Пустая строка из формы не должна попадать в БД как есть: iin
+        # unique=True, и '' — это реальное значение для UNIQUE-проверки
+        # (в отличие от NULL), поэтому второй сотрудник без ИИН всегда
+        # "уже существовал" бы. None — единственное значение, которое
+        # Django/Postgres не считают конфликтующим друг с другом.
+        return None
     if not iin.isdigit():
         raise ValidationError("ИИН должен содержать только цифры.")
     if len(iin) != 12:
@@ -119,7 +124,10 @@ class UserAccountForm(UserCreationForm):
 
 
 class EditProfileForm(CustomModelForm):
-    birthday = forms.DateField(widget=forms.TextInput(attrs={'class':'form-control single_date_picker', 'placeholder': 'День рождения'}))
+    birthday = forms.DateField(
+    required=False,
+    widget=forms.TextInput(attrs={'class': 'form-control single_date_picker', 'placeholder': 'День рождения'}),
+    )
 
     class Meta:
         model = UserAccount
