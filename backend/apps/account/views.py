@@ -495,3 +495,7 @@ def access_profiles(request):
         'departments': Department.objects.all(),
         'roles': UserAccount.ROLES,
     })
+
+@need_permission(PermissionEnums.MANAGE_PERMISSIONS)
+def access_temporary(request):
+    return render(request, 'site/account/access_temporary.html', {})

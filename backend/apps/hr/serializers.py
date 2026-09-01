@@ -180,7 +180,10 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
     def validate_iin(self, value):
         if not value:
-            return value
+            # '' — реальное значение для UNIQUE-проверки (в отличие от NULL),
+            # так что пустая строка от клиента конфликтовала бы с любым другим
+            # сотрудником без ИИН. Нормализуем к None, как и в EmployeeForm.
+            return None
         if not value.isdigit() or len(value) != 12:
             raise serializers.ValidationError('ИИН должен содержать ровно 12 цифр.')
         qs = Employee.objects.filter(iin=value)

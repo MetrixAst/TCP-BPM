@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from tasks.api import TaskViewSet
-from hr.api import EmployeeViewSet, DepartmentViewSet, CompanyViewSet, ManualAttendanceViewSet, AttendanceReportViewSet
+from hr.api import EmployeeViewSet, DepartmentViewSet, CompanyViewSet, ManualAttendanceViewSet, AttendanceReportViewSet, AttendanceRegistryViewSet
 from finances.api import (
     TenantPaymentRegistryViewSet,
     PaymentCalendarEntryViewSet,
@@ -16,8 +16,10 @@ from account.api_rbac import (
     ProfileAssignmentViewSet,
     UserPermissionsViewSet,
     PermissionAuditLogViewSet,
-    NotificationViewSet
+    NotificationViewSet,
+    TemporaryAccessViewSet
 )
+
 
 
 router = DefaultRouter()
@@ -39,6 +41,8 @@ router.register('permissions/assignments',  ProfileAssignmentViewSet,    basenam
 router.register('permissions/delegate',     DelegationViewSet,           basename='perm-delegate')
 router.register('permissions/audit', PermissionAuditLogViewSet, basename='perm-audit')
 router.register('notifications', NotificationViewSet, basename='notification')
+router.register('permissions/temporary', TemporaryAccessViewSet, basename='temp-access')
+router.register('hr/attendance/registry', AttendanceRegistryViewSet, basename='attendance-registry')
 
 
 urlpatterns = [

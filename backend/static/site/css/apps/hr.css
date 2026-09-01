@@ -142,7 +142,8 @@ body.hr-edit-body .bpm-content {
 #hrEmployeeForm input,
 #hrEmployeeForm select,
 #hrEmployeeForm textarea,
-.hr-edit-select {
+.hr-edit-select,
+.hr-edit-input {
   width: 100%;
   height: 32px !important;
   min-height: 32px !important;
@@ -160,13 +161,15 @@ body.hr-edit-body .bpm-content {
 #hrEmployeeForm input::placeholder,
 #hrEmployeeForm select::placeholder,
 #hrEmployeeForm textarea::placeholder,
-.hr-edit-select::placeholder {
+.hr-edit-select::placeholder,
+.hr-edit-input::placeholder {
   color: #9a98aa;
 }
 #hrEmployeeForm input:focus,
 #hrEmployeeForm select:focus,
 #hrEmployeeForm textarea:focus,
-.hr-edit-select:focus {
+.hr-edit-select:focus,
+.hr-edit-input:focus {
   box-shadow: 0 0 0 2px rgba(54, 100, 220, 0.15) !important;
 }
 
@@ -293,6 +296,35 @@ body.hr-edit-body .bpm-content {
 }
 
 #hrEmployeeForm .select2-selection__arrow {
+  height: 32px !important;
+  right: 10px !important;
+}
+
+/* Отчёт по ручным отметкам (marFilterForm) — те же пилюли, что у hrEmployeeForm */
+#marFilterForm .select2-container {
+  width: 100% !important;
+}
+#marFilterForm .select2-container--default .select2-selection--single,
+#marFilterForm .select2-container--bootstrap4 .select2-selection--single {
+  height: 32px !important;
+  min-height: 32px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f5f3fa !important;
+  box-shadow: none !important;
+  display: flex;
+  align-items: center;
+}
+#marFilterForm .select2-selection__rendered {
+  height: 32px !important;
+  line-height: 32px !important;
+  padding-left: 16px !important;
+  padding-right: 34px !important;
+  color: #25233f !important;
+  font-size: 13px !important;
+  font-weight: 500;
+}
+#marFilterForm .select2-selection__arrow {
   height: 32px !important;
   right: 10px !important;
 }
@@ -2550,7 +2582,8 @@ body.hr-registry-edit-body .bpm-content {
 
 .hr-registry-edit-field input,
 .hr-registry-edit-field select,
-.hr-registry-edit-field textarea {
+.hr-registry-edit-field textarea,
+.hr-form-input {
   width: 100%;
   height: 32px !important;
   min-height: 32px !important;
@@ -2576,14 +2609,28 @@ body.hr-registry-edit-body .bpm-content {
 }
 
 .hr-registry-edit-field input::placeholder,
-.hr-registry-edit-field textarea::placeholder {
+.hr-registry-edit-field textarea::placeholder,
+.hr-form-input::placeholder {
   color: #9a98aa;
 }
 
 .hr-registry-edit-field input:focus,
 .hr-registry-edit-field select:focus,
-.hr-registry-edit-field textarea:focus {
+.hr-registry-edit-field textarea:focus,
+.hr-form-input:focus {
   box-shadow: 0 0 0 2px rgba(54, 100, 220, 0.15) !important;
+}
+
+.hr-form-input:not([multiple]) {
+  appearance: none;
+}
+select.hr-form-input:not([multiple]) {
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B6880' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 12px 8px !important;
+  padding-right: 36px !important;
+  cursor: pointer;
 }
 
 .hr-registry-edit-field__help {
@@ -3978,6 +4025,96 @@ body.hr-registry-edit-body .bpm-content {
 
 .mar-table__row:first-of-type {
   border-top: 0;
+}
+
+/* ── Стилизованный чекбокс (фильтры, пункты списков) ────────────────────── */
+.hr-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #25233f;
+  user-select: none;
+}
+.hr-checkbox input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1.5px solid #d8d6e3;
+  border-radius: 5px;
+  background: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: background .15s, border-color .15s;
+}
+.hr-checkbox input[type="checkbox"]:checked {
+  background: #2f6bed;
+  border-color: #2f6bed;
+}
+.hr-checkbox input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.hr-checkbox input[type="checkbox"]:focus-visible {
+  outline: 2px solid #2f6bed;
+  outline-offset: 2px;
+}
+
+/* ── Тумблер вкл/выкл (поля статуса вроде "Активна") ─────────────────────── */
+.hr-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #25233f;
+  user-select: none;
+}
+.hr-toggle input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 38px;
+  height: 22px;
+  margin: 0;
+  border-radius: 999px;
+  background: #d8d6e3;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .15s;
+}
+.hr-toggle input[type="checkbox"]::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  transition: transform .15s;
+}
+.hr-toggle input[type="checkbox"]:checked {
+  background: #2f6bed;
+}
+.hr-toggle input[type="checkbox"]:checked::after {
+  transform: translateX(16px);
+}
+.hr-toggle input[type="checkbox"]:focus-visible {
+  outline: 2px solid #2f6bed;
+  outline-offset: 2px;
 }
 
 /*# sourceMappingURL=hr.css.map */

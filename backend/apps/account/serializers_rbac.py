@@ -279,3 +279,40 @@ class PermissionAuditLogSerializer(serializers.ModelSerializer):
             'before', 'after', 
             'ip_address', 'created_at',
         ]
+
+class TemporaryAccessSerializer(serializers.ModelSerializer):
+    permission_code = serializers.CharField(source='permission.code', read_only=True)
+    permission_label = serializers.CharField(source='permission.label', read_only=True)
+    block = serializers.CharField(source='permission.block', read_only=True)
+    operation = serializers.CharField(source='permission.operation', read_only=True)
+    granted_by_name = serializers.CharField(source='granted_by.get_name', read_only=True, default=None)
+    user_name = serializers.CharField(source='user.get_name', read_only=True)
+    is_active = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        from account.models_rbac import TemporaryAccess
+        model = TemporaryAccess
+        fields = [
+            'id', 'user', 'user_name',
+            'permission', 'permission_code', 'permission_label',
+            'block', 'operation',
+            'status', 'is_active',
+            'date_from', 'date_to',
+            'reason', 'granted_by', 'granted_by_name',
+            'revoked_by', 'revoked_at',
+            'ip_address', 'created_at',
+        ]
+        read_only_fields = [
+            'id', 'status', 'granted_by', 'revoked_by',
+            'revoked_at', 'ip_address', 'created_at',
+        ]
+
+    def validate(self, data):
+        from django.utils import timezone
+        date_from = data.get('date_from')
+        date_to = data.get('date_to')
+        if date_from and date_to and date_to <= date_from:
+            raise serializers.ValidationError('Дата окончания должна быть позже даты начала.')
+        if date_to and date_to <= timezone.now():
+            raise serializers.ValidationError('Дата окончания должна быть в будущем.')
+        return data

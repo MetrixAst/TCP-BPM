@@ -49,6 +49,7 @@ urlpatterns = [
     path('attendance/resolve-address/', views.attendance_resolve_address, name='attendance_resolve_address'),
     path('attendance/my/', views.attendance_my, name='attendance_my'),
     path('attendance/journal/', views.attendance_journal, name='attendance_journal'),
+    path('attendance/registry/', views.attendance_registry, name='attendance_registry'),
     path('attendance/export/', views.attendance_export, name='attendance_export'),
     path('attendance/manual/', views.manual_attendance, name='manual_attendance'),
     path('attendance/manual/report/', views.manual_attendance_report, name='manual_attendance_report'),
