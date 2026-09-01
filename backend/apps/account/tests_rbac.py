@@ -90,6 +90,7 @@ class OverridePriorityTest(TestCase):
 class CacheInvalidationTest(TestCase):
     def setUp(self):
         cache.clear()
+        self.addCleanup(cache.clear)
         _seed()
 
     def test_profile_change_invalidates_cache(self):
