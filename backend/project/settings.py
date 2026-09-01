@@ -248,21 +248,21 @@ CELERY_BEAT_SCHEDULE = {
     },
     'tasks-cleanup-bin-daily': {
         'task': 'tasks.cleanup_bin',
-        'schedule': crontab(hour=3, minute=0),  
+        'schedule': crontab(hour=3, minute=0),
         'kwargs': {'days': 30},
     },
     'tickets-sla-escalation': {
         'task': 'tickets.sla_escalation',
-        'schedule': crontab(hour='*/4', minute=0),  
+        'schedule': crontab(hour='*/4', minute=0),
     },
     'account-cleanup-notifications-daily': {
         'task': 'account.cleanup_notifications',
-        'schedule': crontab(hour=2, minute=0),  
+        'schedule': crontab(hour=2, minute=0),
         'kwargs': {'days': 60},
     },
     'account-expire-temporary-accesses': {
         'task': 'account.expire_temporary_accesses',
-        'schedule': crontab(minute=0, hour='*/1'),  
+        'schedule': crontab(minute=0, hour='*/1'),
     },
     # Курсы НБ РК отключены — в интерфейсе все суммы в ₸
     # 'fetch-exchange-rates-daily': {

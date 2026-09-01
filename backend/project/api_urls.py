@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from tasks.api import TaskViewSet
-from hr.api import EmployeeViewSet, DepartmentViewSet, CompanyViewSet, ManualAttendanceViewSet, AttendanceReportViewSet, AttendanceRegistryViewSet 
+from hr.api import EmployeeViewSet, DepartmentViewSet, CompanyViewSet, ManualAttendanceViewSet, AttendanceReportViewSet, AttendanceRegistryViewSet
 from finances.api import (
     TenantPaymentRegistryViewSet,
     PaymentCalendarEntryViewSet,

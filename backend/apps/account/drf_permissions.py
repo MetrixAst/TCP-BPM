@@ -123,7 +123,7 @@ class AttendanceRegistryPermission(BasePermission):
             role = role.value
         if role in self.ALLOWED_ROLES:
             return True
- 
+
         employee = getattr(request.user, 'employee_info', None)
         if employee and getattr(employee, 'head', False):
             return True
