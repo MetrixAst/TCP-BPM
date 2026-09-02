@@ -76,6 +76,32 @@ class QRCheckinWebTest(TestCase):
             employee=self.employee, source='qr'
         ).exists())
 
+    def test_valid_token_from_phone_camera_renders_confirmation(self):
+        token = make_token(self.point)
+
+        response = self.client.get(
+            f'/hr/attendance/qr-checkin/?token={token.token}'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Отметка посещаемости успешно создана')
+        self.assertTrue(
+            AttendanceRecord.objects.filter(
+                employee=self.employee,
+                source='qr',
+            ).exists()
+        )
+
+    def test_checkin_page_embeds_dynamic_qr_generator(self):
+        response = self.client.get('/hr/attendance/checkin/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'dynamicQrPanel')
+        self.assertIn('/hr/attendance/kiosk/', response.context['qr_token_url'])
+        self.assertTrue(
+            QRPoint.objects.filter(name='Веб-терминал посещаемости').exists()
+        )
+
     def test_expired_token_returns_410(self):
         token = make_token(self.point, expired=True)
         r = self.client.post('/hr/attendance/qr-checkin/', {'token': token.token})
@@ -166,6 +192,22 @@ class QRKioskTokenTest(TestCase):
         r = self.client.get(f'/hr/attendance/kiosk/{self.point.pk}/token/?event_type=day_end')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json()['event_type'], 'day_end')
+
+    def test_kiosk_token_rejects_unknown_event_type(self):
+        response = self.client.get(
+            f'/hr/attendance/kiosk/{self.point.pk}/token/?event_type=unknown'
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_kiosk_token_requires_login(self):
+        self.client.logout()
+
+        response = self.client.get(
+            f'/hr/attendance/kiosk/{self.point.pk}/token/'
+        )
+
+        self.assertEqual(response.status_code, 302)
 
     def test_inactive_point_returns_404(self):
         self.point.is_active = False

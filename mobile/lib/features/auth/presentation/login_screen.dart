@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -68,16 +70,22 @@ class _LoginScreenState extends State<LoginScreen> {
     switch (result) {
       case Success():
         if (mounted) {
-          final fcmToken = await _pushService.getToken();
-          if (fcmToken != null) {
-            try {
-              await _pushRepository.registerToken(fcmToken);
-            } catch (_) {}
-          }
-          if (mounted) context.go('/');
+          context.go('/');
+          unawaited(_registerPushToken());
         }
       case Failure(:final message):
         setState(() => _errorMessage = message);
+    }
+  }
+
+  Future<void> _registerPushToken() async {
+    try {
+      final fcmToken = await _pushService.getToken();
+      if (fcmToken != null) {
+        await _pushRepository.registerToken(fcmToken);
+      }
+    } catch (_) {
+      // Push недоступен, но это не должно блокировать вход в приложение.
     }
   }
 
@@ -108,7 +116,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: Column(
                   children: [
-                    const Icon(Icons.dashboard_rounded, color: Colors.white, size: 36),
+                    const Icon(
+                      Icons.dashboard_rounded,
+                      color: Colors.white,
+                      size: 36,
+                    ),
                     const SizedBox(height: AppSpacing.sm),
                     RichText(
                       text: const TextSpan(
@@ -118,8 +130,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontSize: 22,
                         ),
                         children: [
-                          TextSpan(text: 'metri', style: TextStyle(color: Colors.white)),
-                          TextSpan(text: 'X', style: TextStyle(color: Color(0xFFB4D0FF))),
+                          TextSpan(
+                            text: 'metri',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          TextSpan(
+                            text: 'X',
+                            style: TextStyle(color: Color(0xFFB4D0FF)),
+                          ),
                         ],
                       ),
                     ),
@@ -175,7 +193,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: AppSpacing.sm),
                         Text(
                           _errorMessage!,
-                          style: const TextStyle(color: MetrixColors.danger, fontSize: 13),
+                          style: const TextStyle(
+                            color: MetrixColors.danger,
+                            fontSize: 13,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ],

@@ -47,10 +47,13 @@ def reports(request):
     tickets_by_status = []
     try:
         from tickets.models import ServiceRequest
-        tickets_total     = ServiceRequest.objects.filter(created_at__date__gte=date_from).count()
-        tickets_open      = ServiceRequest.objects.filter(status__in=['new', 'accepted', 'in_progress']).count()
+        tickets_period = ServiceRequest.objects.filter(created_at__date__gte=date_from)
+        tickets_total = tickets_period.count()
+        tickets_open = tickets_period.filter(
+            status__in=['new', 'accepted', 'in_progress']
+        ).count()
         tickets_by_status = list(
-            ServiceRequest.objects.values('status').annotate(cnt=Count('id')).order_by('-cnt')[:6]
+            tickets_period.values('status').annotate(cnt=Count('id')).order_by('-cnt')[:6]
         )
     except Exception:
         tickets_by_status = []
@@ -63,10 +66,10 @@ def reports(request):
         eco_qs        = EcoWork.objects.filter(date__gte=date_from)
         eco_total     = eco_qs.count()
         eco_done      = eco_qs.filter(status='done').count()
-        eco_pending   = EcoWork.objects.filter(status__in=['pending', 'in_progress']).count()
+        eco_pending   = eco_qs.filter(status__in=['pending', 'progress']).count()
         eco_amount    = eco_qs.aggregate(s=Sum('amount'))['s'] or Decimal('0')
         eco_by_status = list(
-            EcoWork.objects.values('status').annotate(cnt=Count('id')).order_by('-cnt')
+            eco_qs.values('status').annotate(cnt=Count('id')).order_by('-cnt')
         )
     except Exception:
         pass

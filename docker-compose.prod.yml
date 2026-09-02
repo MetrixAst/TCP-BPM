@@ -25,8 +25,22 @@ services:
 
   nginx:
     restart: always
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/conf.d/nginx.conf:ro
+      - certbot_conf:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
     ports:
       - "80:80"
+      - "443:443"
+
+  certbot:
+    image: certbot/certbot
+    profiles:
+      - certbot
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    command: renew --webroot --webroot-path=/var/www/certbot --quiet
 
   db:
     restart: always

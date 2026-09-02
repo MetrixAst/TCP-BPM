@@ -32,6 +32,7 @@
             <th>Название</th>
             <th>Объект</th>
             <th>Чек-лист</th>
+            <th>Ответственные</th>
             <th>Статус</th>
             <th class="hr-registry-table__actions">Действия</th>
           </tr>
@@ -45,6 +46,20 @@
             </td>
             <td>{{ point.eco_object.name|default:"—" }}</td>
             <td>{{ point.checklist.name|default:"—" }}</td>
+            <td>
+              {% if point.responsible_employee %}
+                <strong>{{ point.responsible_employee.get_display_name }}</strong>
+              {% endif %}
+              {% if point.responsible_department %}
+                <div class="hr-muted">{{ point.responsible_department.name }}</div>
+              {% endif %}
+              {% if point.substitute_employee %}
+                <div class="hr-muted">Замена: {{ point.substitute_employee.get_display_name }}</div>
+              {% endif %}
+              {% if not point.responsible_employee and not point.responsible_department and not point.substitute_employee %}
+                <span class="hr-muted">Любой сотрудник</span>
+              {% endif %}
+            </td>
             <td>
               {% if not point.is_active %}
                 <span class="hr-registry-status hr-registry-status--expired">Неактивна</span>
@@ -72,7 +87,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="5">
+            <td colspan="6">
               <div class="hr-registry-empty">
                 <i class="bi bi-geo-alt"></i>
                 <strong>Точек ещё нет</strong>

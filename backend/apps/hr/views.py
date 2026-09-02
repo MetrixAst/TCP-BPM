@@ -1058,6 +1058,15 @@ def attendance_checkin(request):
         if preselect in completed_types and next_event:
             preselect = next_event
 
+        from hr.models import QRPoint
+        web_qr_point, _ = QRPoint.objects.get_or_create(
+            name='Веб-терминал посещаемости',
+            defaults={
+                'location': 'Основная страница отметки посещаемости',
+                'created_by': request.user,
+            },
+        )
+
         return render(request, 'site/hr/attendance/checkin.html', {
             'today_marks': today_marks,
             'completed_types': completed_types,
@@ -1065,6 +1074,7 @@ def attendance_checkin(request):
             'next_event_label': event_labels.get(next_event, '') if next_event else '',
             'preselect_event': preselect,
             'all_done_today': all_done,
+            'qr_token_url': reverse('hr:qr_kiosk_token', args=[web_qr_point.pk]),
         })
 
 
@@ -1985,10 +1995,17 @@ def qr_kiosk(request, pk):
     })
 
 
+@login_required
 def qr_kiosk_token(request, pk):
     from hr.models import QRPoint, QRToken
     point = get_object_or_404(QRPoint, pk=pk, is_active=True)
     event_type = request.GET.get('event_type', 'day_start')
+    if event_type not in (CheckInEnum.DAY_START, CheckInEnum.DAY_END):
+        return JsonResponse(
+            {'error': 'Недопустимый тип отметки'},
+            status=400,
+            json_dumps_params={'ensure_ascii': False},
+        )
 
     token_value = secrets.token_urlsafe(32)
     expires_at = timezone.now() + timedelta(seconds=45)
@@ -2017,10 +2034,24 @@ def qr_kiosk_token(request, pk):
 @login_required
 def qr_checkin(request):
     from hr.models import QRToken, QRScanAudit
-    from account.models import Employee
 
     token_value = request.POST.get('token') or request.GET.get('token', '')
     ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+
+    def _response(success, message, status=200):
+        if request.method == 'GET':
+            return render(
+                request,
+                'site/hr/attendance/qr_checkin_result.html',
+                {'success': success, 'message': message},
+                status=status,
+            )
+        key = 'message' if success else 'error'
+        return JsonResponse(
+            {'success': success, key: message},
+            status=status,
+            json_dumps_params={'ensure_ascii': False},
+        )
 
     def _audit(action, token_str, qr_point=None):
         QRScanAudit.objects.create(
@@ -2032,27 +2063,31 @@ def qr_checkin(request):
         )
 
     if not token_value:
-        return JsonResponse({'success': False, 'error': 'Недействительный QR-код'}, status=400, json_dumps_params={'ensure_ascii': False})
+        return _response(False, 'Недействительный QR-код', status=400)
 
     try:
         qr_token = QRToken.objects.select_related('qr_point').get(token=token_value)
     except QRToken.DoesNotExist:
         _audit(QRScanAudit.ACTION_INVALID, token_value)
-        return JsonResponse({'success': False, 'error': 'Недействительный QR-код'}, status=400, json_dumps_params={'ensure_ascii': False})
+        return _response(False, 'Недействительный QR-код', status=400)
 
     if qr_token.is_expired:
         _audit(QRScanAudit.ACTION_EXPIRED, token_value, qr_token.qr_point)
-        return JsonResponse({'success': False, 'error': 'QR-код истёк, отсканируйте текущий код'}, status=410, json_dumps_params={'ensure_ascii': False})
+        return _response(
+            False,
+            'QR-код истёк, отсканируйте текущий код',
+            status=410,
+        )
 
     if qr_token.is_used_by(request.user):
         _audit(QRScanAudit.ACTION_REPLAY, token_value, qr_token.qr_point)
-        return JsonResponse({'success': False, 'error': 'Этот QR-код уже использован'}, status=409, json_dumps_params={'ensure_ascii': False})
+        return _response(False, 'Этот QR-код уже использован', status=409)
 
     try:
         employee = request.user.employee_info
     except Exception:
         _audit(QRScanAudit.ACTION_INVALID, token_value, qr_token.qr_point)
-        return JsonResponse({'success': False, 'error': 'Профиль сотрудника не найден'}, status=403, json_dumps_params={'ensure_ascii': False})
+        return _response(False, 'Профиль сотрудника не найден', status=403)
 
     from hr.services import create_attendance_checkin
 
@@ -2067,4 +2102,4 @@ def qr_checkin(request):
     qr_token.used_by.add(request.user)
     _audit(QRScanAudit.ACTION_SUCCESS, token_value, qr_token.qr_point)
 
-    return JsonResponse({'success': True, 'message': 'Отметка успешно создана'}, json_dumps_params={'ensure_ascii': False})
+    return _response(True, 'Отметка посещаемости успешно создана')

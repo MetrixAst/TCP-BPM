@@ -124,6 +124,30 @@ class RoundPoint(models.Model):
         ChecklistTemplate, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='points', verbose_name='Чек-лист',
     )
+    responsible_employee = models.ForeignKey(
+        'account.Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='responsible_round_points',
+        verbose_name='Ответственный сотрудник',
+    )
+    responsible_department = models.ForeignKey(
+        'account.Department',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='responsible_round_points',
+        verbose_name='Ответственный отдел',
+    )
+    substitute_employee = models.ForeignKey(
+        'account.Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='substitute_round_points',
+        verbose_name='Замещающий сотрудник',
+    )
     check_interval_hours = models.PositiveIntegerField(
         'Интервал проверки, ч', default=24,
     )
@@ -157,6 +181,22 @@ class RoundPoint(models.Model):
     def is_overdue(self):
         deadline_base = self.last_visit.created_at if self.last_visit else self.created_at
         return timezone.now() > deadline_base + timezone.timedelta(hours=self.check_interval_hours)
+
+    def can_be_visited_by(self, employee):
+        assignment_ids = (
+            self.responsible_employee_id,
+            self.responsible_department_id,
+            self.substitute_employee_id,
+        )
+        if not any(assignment_ids):
+            return True
+        return (
+            employee.pk in (
+                self.responsible_employee_id,
+                self.substitute_employee_id,
+            )
+            or employee.department_id == self.responsible_department_id
+        )
 
 
 class Equipment(models.Model):

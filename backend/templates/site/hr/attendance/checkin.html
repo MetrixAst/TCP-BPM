@@ -1,10 +1,10 @@
 {% extends 'site/base.html' %}
 {% load static %}
 
-{% block title %}Фотофиксация — metriX BPM{% endblock %}
+{% block title %}Отметка посещаемости — metriX BPM{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/attendance.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/attendance.css' %}?v={{ static_version|default:'1' }}&qr=2">
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}&t=6">
 {% endblock %}
 
@@ -13,8 +13,8 @@
 
   <div class="attendance-checkin-page__top">
     <div>
-      <h1 class="attendance-checkin-page__title">Фотофиксация</h1>
-      <p class="attendance-checkin-page__subtitle">Отметка посещаемости с фото и геопозицией</p>
+      <h1 class="attendance-checkin-page__title">Отметка посещаемости</h1>
+      <p class="attendance-checkin-page__subtitle">Выберите отметку по лицу или динамическому QR-коду</p>
     </div>
 
     <a href="{% url 'hr:attendance_my' %}" class="attendance-checkin-btn attendance-checkin-btn--ghost">
@@ -67,6 +67,20 @@
         <i class="bi bi-camera-video"></i>
         <strong>Камера не запущена</strong>
         <span>Разрешите доступ к камере</span>
+      </div>
+
+      <div class="attendance-dynamic-qr"
+           id="dynamicQrPanel"
+           data-token-url="{{ qr_token_url }}"
+           data-all-done="{% if all_done_today %}1{% else %}0{% endif %}"
+           hidden>
+        <div class="attendance-dynamic-qr__code" id="dynamicQrCode"></div>
+        <strong>Отсканируйте камерой телефона</strong>
+        <span>Приложение устанавливать не нужно — откроется защищённая страница отметки.</span>
+        <div class="attendance-dynamic-qr__timer">
+          Новый код через <b id="dynamicQrCountdown">45</b> сек.
+        </div>
+        <small id="dynamicQrStatus">Генерация QR-кода…</small>
       </div>
     </div>
 
@@ -145,7 +159,7 @@
         Каждый тип отметки — отдельный снимок: приход, уход.
       </p>
       <p class="attendance-checkin-note" id="qrNote" hidden>
-        Наведите камеру на QR-код на экране точки входа. Отметка отправится автоматически.
+        Выберите «Приход» или «Уход» и отсканируйте появившийся код обычной камерой телефона.
       </p>
     </div>
   </div>
@@ -153,9 +167,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'site/js/vendor/jsQR.min.js' %}"></script>
-<script src="{% static 'site/js/apps/attendance-checkin.js' %}?v={{ static_version|default:'1' }}"></script>
-<script src="{% static 'site/js/apps/attendance-qr-checkin.js' %}?v={{ static_version|default:'1' }}"></script>
+<script src="{% static 'site/js/vendor/qrcode-generator.min.js' %}"></script>
+<script src="{% static 'site/js/apps/attendance-checkin.js' %}?v={{ static_version|default:'1' }}&qr=2"></script>
 <script>
   (function () {
     var modeGroup = document.querySelector('#checkinModeGroup');
@@ -164,18 +177,14 @@
     var faceActions = document.querySelector('#faceActions');
     var faceNote = document.querySelector('#faceNote');
     var qrNote = document.querySelector('#qrNote');
-    var typeSectionTitle = document.querySelector('#typeSectionTitle');
-    var checkinTypes = document.querySelector('#checkinTypes');
+    var geoStatus = document.querySelector('#checkinGeoStatus');
 
     function applyMode(mode) {
       var isQr = mode === 'qr';
       if (faceActions) faceActions.hidden = isQr;
       if (faceNote) faceNote.hidden = isQr;
       if (qrNote) qrNote.hidden = !isQr;
-      // В QR-режиме тип отметки (приход/уход) определяет сама точка
-      // сканирования — выбор здесь ни на что не влияет, поэтому прячем.
-      if (typeSectionTitle) typeSectionTitle.hidden = isQr;
-      if (checkinTypes) checkinTypes.hidden = isQr;
+      if (geoStatus) geoStatus.hidden = isQr;
       document.dispatchEvent(new CustomEvent('attendance:mode-change', { detail: { mode: mode } }));
     }
 

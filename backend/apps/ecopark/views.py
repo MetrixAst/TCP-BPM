@@ -2,15 +2,19 @@ import json
 import os
 import secrets
 
-from django.http import Http404, JsonResponse, HttpResponse
-from django.urls import reverse
-from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.http import Http404, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
-from documents import onlyoffice
-from django.shortcuts import redirect, render, get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.template.loader import render_to_string
+
+from account.role_permissions import PermissionEnums, need_permission
+from documents import onlyoffice
+
 from .models import (
     EcoObject, EcoExecutor, EcoWork,
     RoundPoint, ChecklistTemplate, ChecklistItem, Equipment,
@@ -22,6 +26,7 @@ def _fmt_amount(value):
     return f'{int(value):,}'.replace(',', ' ')
 
 
+@need_permission(PermissionEnums.ECOPARK)
 def home(request):
     works = EcoWork.objects.select_related('eco_object', 'executor').all()
 
@@ -54,6 +59,7 @@ def home(request):
     return render(request, 'site/ecopark/ecopark.html', context)
 
 
+@need_permission(PermissionEnums.ECOPARK)
 def item(request, pk):
     work = get_object_or_404(
         EcoWork.objects.select_related('eco_object', 'executor'), pk=pk
@@ -69,6 +75,7 @@ def item(request, pk):
     return render(request, 'site/ecopark/ecopark_item.html', context)
 
 
+@need_permission(PermissionEnums.ECOPARK)
 def create(request):
     if request.method == 'POST':
         title = request.POST.get('title')
@@ -97,6 +104,7 @@ def create(request):
     return render(request, 'site/ecopark/ecopark_create.html', context)
 
 
+@need_permission(PermissionEnums.ECOPARK)
 def work_editor(request, pk):
     work = get_object_or_404(EcoWork, pk=pk)
     if not work.document:
@@ -133,6 +141,7 @@ def work_editor_callback(request, pk):
     return JsonResponse({'error': 0})
 
 
+@need_permission(PermissionEnums.ECOPARK)
 def edit(request, pk):
     work = get_object_or_404(EcoWork, pk=pk)
     if request.method == 'POST':
@@ -157,20 +166,22 @@ def edit(request, pk):
     return render(request, 'site/ecopark/ecopark_edit.html', context)
 
 
+@need_permission(PermissionEnums.ECOPARK)
+@require_POST
 def delete(request, pk):
-    if request.method == 'POST':
-        work = get_object_or_404(EcoWork, pk=pk)
-        if work.document:
-            work.document.delete(save=False)
-        work.delete()
+    work = get_object_or_404(EcoWork, pk=pk)
+    if work.document:
+        work.document.delete(save=False)
+    work.delete()
     return redirect('ecopark:home')
 
 
+@need_permission(PermissionEnums.ECOPARK)
+@require_POST
 def work_delete_doc(request, pk):
-    if request.method == 'POST':
-        work = get_object_or_404(EcoWork, pk=pk)
-        if work.document:
-            work.document.delete(save=True)
+    work = get_object_or_404(EcoWork, pk=pk)
+    if work.document:
+        work.document.delete(save=True)
     return redirect('ecopark:item', pk=pk)
 
 
@@ -206,8 +217,31 @@ def _rounds_monitor_required(view):
 
 
 def round_points_list(request):
-    points = RoundPoint.objects.select_related('eco_object', 'checklist').order_by('name')
+    points = RoundPoint.objects.select_related(
+        'eco_object',
+        'checklist',
+        'responsible_employee__user',
+        'responsible_employee__position',
+        'responsible_department',
+        'substitute_employee__user',
+        'substitute_employee__position',
+    ).order_by('name')
     return render(request, 'site/ecopark/round_points_list.html', {'points': points})
+
+
+def _round_assignment_options():
+    from account.models import Department, Employee
+
+    employees = Employee.objects.filter(status='active').select_related(
+        'user',
+        'position',
+        'department',
+    ).order_by('user__last_name', 'user__first_name', 'user__username')
+    departments = Department.objects.select_related('company').order_by(
+        'company__name',
+        'name',
+    )
+    return employees, departments
 
 
 def _parse_geo_field(value):
@@ -223,6 +257,7 @@ def _parse_geo_field(value):
 
 
 def round_point_create(request):
+    employees, departments = _round_assignment_options()
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         location = request.POST.get('location', '').strip()
@@ -237,12 +272,17 @@ def round_point_create(request):
                 'form_location': location,
                 'objects': EcoObject.objects.filter(is_active=True),
                 'checklists': ChecklistTemplate.objects.filter(is_active=True),
+                'employees': employees,
+                'departments': departments,
             })
         point = RoundPoint.objects.create(
             name=name,
             location=location,
             eco_object_id=eco_object_id,
             checklist_id=checklist_id,
+            responsible_employee_id=request.POST.get('responsible_employee') or None,
+            responsible_department_id=request.POST.get('responsible_department') or None,
+            substitute_employee_id=request.POST.get('substitute_employee') or None,
             check_interval_hours=interval,
             latitude=_parse_geo_field(request.POST.get('latitude')),
             longitude=_parse_geo_field(request.POST.get('longitude')),
@@ -256,6 +296,8 @@ def round_point_create(request):
         'form_location': '',
         'objects': EcoObject.objects.filter(is_active=True),
         'checklists': ChecklistTemplate.objects.filter(is_active=True),
+        'employees': employees,
+        'departments': departments,
     })
 
 
@@ -285,11 +327,15 @@ def _save_equipment(request, point):
 
 def round_point_edit(request, pk):
     point = get_object_or_404(RoundPoint, pk=pk)
+    employees, departments = _round_assignment_options()
     if request.method == 'POST':
         point.name = request.POST.get('name', point.name).strip()
         point.location = request.POST.get('location', point.location).strip()
         point.eco_object_id = request.POST.get('eco_object') or None
         point.checklist_id = request.POST.get('checklist') or None
+        point.responsible_employee_id = request.POST.get('responsible_employee') or None
+        point.responsible_department_id = request.POST.get('responsible_department') or None
+        point.substitute_employee_id = request.POST.get('substitute_employee') or None
         point.check_interval_hours = request.POST.get('check_interval_hours') or point.check_interval_hours
         point.latitude = _parse_geo_field(request.POST.get('latitude'))
         point.longitude = _parse_geo_field(request.POST.get('longitude'))
@@ -303,6 +349,8 @@ def round_point_edit(request, pk):
         'point': point,
         'objects': EcoObject.objects.filter(is_active=True),
         'checklists': ChecklistTemplate.objects.filter(is_active=True),
+        'employees': employees,
+        'departments': departments,
         'equipment': point.equipment.order_by('name'),
         'scan_url': request.build_absolute_uri(reverse('ecopark:rounds_scan', args=[point.uuid])),
     })
@@ -544,6 +592,11 @@ def rounds_scan(request, point_uuid):
     if not employee:
         return render(request, 'site/ecopark/rounds_scan.html', {
             'error': 'Профиль сотрудника не найден',
+            'point': point,
+        }, status=403)
+    if not point.can_be_visited_by(employee):
+        return render(request, 'site/ecopark/rounds_scan.html', {
+            'error': 'Вы не назначены ответственным за обход этой точки',
             'point': point,
         }, status=403)
 

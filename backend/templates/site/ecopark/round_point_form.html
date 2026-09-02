@@ -86,6 +86,51 @@
             </div>
 
             <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="pointResponsibleEmployee">
+                Ответственный сотрудник
+              </label>
+              <select id="pointResponsibleEmployee" name="responsible_employee" class="hr-form-input">
+                <option value="">— Любой сотрудник —</option>
+                {% for employee in employees %}
+                  <option value="{{ employee.pk }}" {% if point.responsible_employee_id == employee.pk %}selected{% endif %}>
+                    {{ employee.get_display_with_position }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="pointResponsibleDepartment">
+                Ответственный отдел
+              </label>
+              <select id="pointResponsibleDepartment" name="responsible_department" class="hr-form-input">
+                <option value="">— Не выбран —</option>
+                {% for department in departments %}
+                  <option value="{{ department.pk }}" {% if point.responsible_department_id == department.pk %}selected{% endif %}>
+                    {{ department }}
+                  </option>
+                {% endfor %}
+              </select>
+              <small class="hr-registry-edit-field__help">
+                Если выбран отдел, обход разрешён всем его сотрудникам.
+              </small>
+            </div>
+
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="pointSubstituteEmployee">
+                Замещающий сотрудник
+              </label>
+              <select id="pointSubstituteEmployee" name="substitute_employee" class="hr-form-input">
+                <option value="">— Не назначен —</option>
+                {% for employee in employees %}
+                  <option value="{{ employee.pk }}" {% if point.substitute_employee_id == employee.pk %}selected{% endif %}>
+                    {{ employee.get_display_with_position }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="hr-registry-edit-field">
               <label class="hr-registry-edit-field__label" for="pointInterval">Интервал проверки, часов</label>
               <input type="number" id="pointInterval" name="check_interval_hours" class="hr-form-input" min="1"
                      value="{% firstof point.check_interval_hours 24 %}">

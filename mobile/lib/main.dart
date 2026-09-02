@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -36,62 +38,74 @@ void _handleDeepLink(Map<String, dynamic> data) {
   }
 }
 
-
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-  FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-    try {
-      await PushRepository(dio: DioClient().dio).registerToken(newToken);
-    } catch (_) {}
-  });
-
-  await _pushService.initLocalNotifications(
-    onNotificationTap: (payload) {
-      if (payload != null) {
-        final data = PushService.decodePayload(payload);
-        _handleDeepLink(data);
-      }
-    },
-  );
-
-  // Foreground: показываем локальную нотификацию (система сама не показывает баннер)
-  _pushService.listenToMessages(
-    onForegroundMessage: (message) {
-      _pushService.showLocalNotification(message);
-    },
-    onMessageOpenedApp: (message) {
-      _handleDeepLink(message.data);
-    },
-  );
-
-  // Terminated: приложение было открыто нажатием на push
-  final initialMessage = await _pushService.getInitialMessage();
-  if (initialMessage != null) {
-    // откладываем до первого кадра, чтобы GoRouter успел инициализироваться
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _handleDeepLink(initialMessage.data);
-    });
-  }
-  
-  final db = AppDatabase.instance;
-  final outboxRepo = OutboxRepository(db: db);
-  final syncWorker = SyncWorker(
-    outboxRepo: outboxRepo,
-    attendanceRepo: AttendanceRepository(dio: DioClient().dio),
-    ticketRepo: TicketDetailRepository(dio: DioClient().dio),
-    tasksRepo: TasksRepository(dio: DioClient().dio),
-  );
-  syncWorker.startListening();
-  // Попробуем синхронизировать сразу при старте, если сеть уже есть
-  syncWorker.syncNow();
-
   runApp(const MetrixApp());
+  unawaited(_initializeServices());
+}
+
+Future<void> _initializeServices() async {
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      try {
+        await PushRepository(dio: DioClient().dio).registerToken(newToken);
+      } catch (_) {}
+    });
+
+    await _pushService.initLocalNotifications(
+      onNotificationTap: (payload) {
+        if (payload != null) {
+          final data = PushService.decodePayload(payload);
+          _handleDeepLink(data);
+        }
+      },
+    );
+
+    // Foreground: показываем локальную нотификацию (система сама не показывает баннер)
+    _pushService.listenToMessages(
+      onForegroundMessage: (message) {
+        _pushService.showLocalNotification(message);
+      },
+      onMessageOpenedApp: (message) {
+        _handleDeepLink(message.data);
+      },
+    );
+
+    // Terminated: приложение было открыто нажатием на push
+    final initialMessage = await _pushService.getInitialMessage();
+    if (initialMessage != null) {
+      // откладываем до первого кадра, чтобы GoRouter успел инициализироваться
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleDeepLink(initialMessage.data);
+      });
+    }
+
+    final db = AppDatabase.instance;
+    final outboxRepo = OutboxRepository(db: db);
+    final syncWorker = SyncWorker(
+      outboxRepo: outboxRepo,
+      attendanceRepo: AttendanceRepository(dio: DioClient().dio),
+      ticketRepo: TicketDetailRepository(dio: DioClient().dio),
+      tasksRepo: TasksRepository(dio: DioClient().dio),
+    );
+    syncWorker.startListening();
+    // Попробуем синхронизировать сразу при старте, если сеть уже есть
+    syncWorker.syncNow();
+  } catch (error, stackTrace) {
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stackTrace,
+        library: 'app initialization',
+      ),
+    );
+  }
 }
 
 class MetrixApp extends StatelessWidget {

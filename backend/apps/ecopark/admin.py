@@ -28,8 +28,18 @@ class EquipmentInline(admin.TabularInline):
 
 @admin.register(RoundPoint)
 class RoundPointAdmin(admin.ModelAdmin):
-    list_display = ('name', 'location', 'checklist', 'is_active', 'check_interval_hours', 'created_at')
-    list_filter = ('is_active', 'checklist')
+    list_display = (
+        'name',
+        'location',
+        'checklist',
+        'responsible_employee',
+        'responsible_department',
+        'substitute_employee',
+        'is_active',
+        'check_interval_hours',
+        'created_at',
+    )
+    list_filter = ('is_active', 'checklist', 'responsible_department')
     inlines = [EquipmentInline]
 
 

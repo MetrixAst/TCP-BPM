@@ -132,6 +132,102 @@ class RoundsAdminAccessTest(TestCase):
         self.assertEqual(response.status_code, 403)
 
 
+class RoundAssignmentTest(TestCase):
+    def setUp(self):
+        (
+            self.admin,
+            self.staff_user,
+            self.employee,
+            self.checklist,
+            self.point,
+            self.item_no_photo,
+            self.item_photo,
+        ) = make_setup()
+        self.other_user = UserAccount.objects.create_user(
+            username='other_rounds',
+            password='pass',
+            role='staff',
+        )
+        self.other_employee = Employee.objects.create(
+            user=self.other_user,
+            department=self.employee.department,
+            status='active',
+        )
+
+    def _scan_url(self):
+        return f'/ecopark/rounds/scan/{self.point.uuid}/'
+
+    def test_unassigned_point_is_available_to_any_employee(self):
+        self.client.force_login(self.other_user)
+
+        response = self.client.get(self._scan_url())
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_unassigned_employee_is_rejected(self):
+        self.point.responsible_employee = self.employee
+        self.point.save(update_fields=['responsible_employee'])
+        self.client.force_login(self.other_user)
+
+        response = self.client.get(self._scan_url())
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_responsible_employee_is_allowed(self):
+        self.point.responsible_employee = self.employee
+        self.point.save(update_fields=['responsible_employee'])
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(self._scan_url())
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_responsible_department_employee_is_allowed(self):
+        self.point.responsible_department = self.employee.department
+        self.point.save(update_fields=['responsible_department'])
+        self.client.force_login(self.other_user)
+
+        response = self.client.get(self._scan_url())
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_substitute_employee_is_allowed(self):
+        self.point.responsible_employee = self.employee
+        self.point.substitute_employee = self.other_employee
+        self.point.save(
+            update_fields=['responsible_employee', 'substitute_employee']
+        )
+        self.client.force_login(self.other_user)
+
+        response = self.client.get(self._scan_url())
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_admin_can_save_round_assignments(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            f'/ecopark/rounds/points/{self.point.pk}/edit/',
+            {
+                'name': self.point.name,
+                'check_interval_hours': 12,
+                'is_active': 'on',
+                'responsible_employee': self.employee.pk,
+                'responsible_department': self.employee.department_id,
+                'substitute_employee': self.other_employee.pk,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.point.refresh_from_db()
+        self.assertEqual(self.point.responsible_employee, self.employee)
+        self.assertEqual(
+            self.point.responsible_department,
+            self.employee.department,
+        )
+        self.assertEqual(self.point.substitute_employee, self.other_employee)
+
+
 class RoundsMonitorAccessTest(TestCase):
     def setUp(self):
         self.admin, self.staff_user, self.employee, self.checklist, self.point, self.item_no_photo, self.item_photo = make_setup()

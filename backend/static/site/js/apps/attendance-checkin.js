@@ -11,10 +11,16 @@
     const retakeBtn = document.querySelector('#retakeBtn');
     const submitBtn = document.querySelector('#submitBtn');
     const message = document.querySelector('#checkinMessage');
+    const qrPanel = document.querySelector('#dynamicQrPanel');
+    const qrCode = document.querySelector('#dynamicQrCode');
+    const qrCountdown = document.querySelector('#dynamicQrCountdown');
+    const qrStatus = document.querySelector('#dynamicQrStatus');
   
     let stream = null;
     let capturedPhoto = null;
     let capturedGeo = null;   // { latitude, longitude } или null
+    let qrTimer = null;
+    let qrSecondsLeft = 45;
   
     function showMessage(text, type) {
       message.textContent = text;
@@ -85,7 +91,81 @@
       hideMessage();
     }
 
+    function stopDynamicQr() {
+      if (qrTimer) {
+        clearInterval(qrTimer);
+        qrTimer = null;
+      }
+      if (qrPanel) qrPanel.hidden = true;
+      if (qrCode) qrCode.innerHTML = '';
+    }
+
+    function renderDynamicQr(text) {
+      if (!qrCode || typeof window.qrcode !== 'function') {
+        throw new Error('Модуль QR-кода не загрузился. Обновите страницу.');
+      }
+      const qr = window.qrcode(0, 'H');
+      qr.addData(text);
+      qr.make();
+      qrCode.innerHTML = qr.createSvgTag({
+        cellSize: 6,
+        margin: 4,
+        scalable: true
+      });
+    }
+
+    async function refreshDynamicQr() {
+      if (!qrPanel) return;
+      if (qrPanel.dataset.allDone === '1') {
+        qrStatus.textContent = 'На сегодня все отметки уже сданы.';
+        return;
+      }
+
+      const tokenUrl = qrPanel.dataset.tokenUrl;
+      const separator = tokenUrl.indexOf('?') === -1 ? '?' : '&';
+      qrStatus.textContent = 'Генерация QR-кода…';
+
+      try {
+        const response = await fetch(
+          tokenUrl + separator + 'event_type=' + encodeURIComponent(getEventType()),
+          { credentials: 'same-origin' }
+        );
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Не удалось создать QR-код.');
+        }
+
+        renderDynamicQr(data.scan_url);
+        qrSecondsLeft = data.expires_in || 45;
+        qrCountdown.textContent = qrSecondsLeft;
+        qrStatus.textContent = 'Код активен. Откройте камеру телефона и наведите её на QR.';
+
+        if (qrTimer) clearInterval(qrTimer);
+        qrTimer = setInterval(function () {
+          qrSecondsLeft -= 1;
+          qrCountdown.textContent = Math.max(qrSecondsLeft, 0);
+          if (qrSecondsLeft <= 0) {
+            clearInterval(qrTimer);
+            qrTimer = null;
+            refreshDynamicQr();
+          }
+        }, 1000);
+      } catch (error) {
+        qrStatus.textContent = error.message || 'Ошибка генерации QR-кода.';
+        if (qrTimer) clearInterval(qrTimer);
+        qrTimer = setTimeout(refreshDynamicQr, 3000);
+      }
+    }
+
+    function startDynamicQr() {
+      stopCamera();
+      empty.hidden = true;
+      qrPanel.hidden = false;
+      refreshDynamicQr();
+    }
+
     async function startCamera() {
+      stopDynamicQr();
       hideMessage();
 
       if (!isWebRTCSupported()) {
@@ -219,6 +299,7 @@
     submitBtn.addEventListener('click', submitPhoto);
   
     window.addEventListener('beforeunload', function () {
+      stopDynamicQr();
       if (stream) {
         stream.getTracks().forEach(function (track) {
           track.stop();
@@ -230,8 +311,14 @@
       if (e.detail.mode === 'face') {
         startCamera();
       } else {
-        stopCamera();
+        startDynamicQr();
       }
+    });
+
+    document.querySelectorAll('input[name="event_type"]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        if (currentMode() === 'qr') refreshDynamicQr();
+      });
     });
 
     if (currentMode() === 'face') {

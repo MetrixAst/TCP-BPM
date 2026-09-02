@@ -1,10 +1,11 @@
-from django.contrib import messages
-from django.http import JsonResponse, Http404
-from django.shortcuts import redirect, render, get_object_or_404
-from django.db.models import Q
-from django.views.decorators.http import require_POST
-from django.http import HttpResponse
 import json
+from decimal import Decimal
+
+from django.contrib import messages
+from django.db.models import Q
+from django.http import Http404, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from account.role_permissions import need_permission, PermissionEnums
 from project.paginator import CustomPaginator
@@ -68,10 +69,31 @@ def tenant_detail(request, pk):
         target_type='tenant', target_id=current.pk
     ).select_related('user').order_by('id')
 
+    monthly_base_rent = (
+        Decimal(str(current.area or 0)) * Decimal(str(current.price or 0))
+    )
+    lease_fields = (
+        ('Начало аренды', current.start_date),
+        ('Завершение аренды', current.end_date),
+        ('Срок скидки', current.discount_date),
+        ('Повышение ставки', current.increase_type),
+        ('Ответственное лицо', current.contact),
+        ('Телефон', current.phone),
+        ('Email', current.email),
+    )
+    missing_lease_fields = [label for label, value in lease_fields if not value]
+    lease_completeness = round(
+        (len(lease_fields) - len(missing_lease_fields)) / len(lease_fields) * 100
+    )
+
     return render(request, 'site/tenants/tenant_detail.html', {
         'tenant': current,
         'has_portal': has_portal,
         'comments': comments,
+        'monthly_base_rent': monthly_base_rent,
+        'annual_base_rent': monthly_base_rent * 12,
+        'missing_lease_fields': missing_lease_fields,
+        'lease_completeness': lease_completeness,
     })
 
 

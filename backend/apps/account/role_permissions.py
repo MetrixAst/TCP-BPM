@@ -123,6 +123,7 @@ class RolePermissions:
             PermissionEnums.FINANCE_REPORTS,
             PermissionEnums.FINANCE_INVOICES,
             PermissionEnums.FINANCE_REGISTERS,
+            PermissionEnums.REPORTS,
             PermissionEnums.TASKS,
             PermissionEnums.EDIT_TASK,
             PermissionEnums.COMMENT,

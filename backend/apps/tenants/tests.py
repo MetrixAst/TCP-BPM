@@ -99,6 +99,19 @@ class TenantPortalAccessTest(TestCase):
         self.assertEqual(resp.status_code, 400)
         self.assertIn('уже используется', resp.json()['message'])
 
+    def test_detail_shows_calculated_rent_and_complete_terms(self):
+        self.client.force_login(self.staff)
+
+        resp = self.client.get(reverse('tenants:detail', args=[self.tenant.id]))
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['monthly_base_rent'], 90000)
+        self.assertEqual(resp.context['annual_base_rent'], 1080000)
+        self.assertEqual(resp.context['lease_completeness'], 100)
+        self.assertContains(resp, 'Базовая аренда в месяц')
+        self.assertContains(resp, 'Контакты арендатора')
+
+
 class TenantOnboardingFormTest(TestCase):
     def test_creates_room_and_default_category(self):
         form = TenantForm(data={

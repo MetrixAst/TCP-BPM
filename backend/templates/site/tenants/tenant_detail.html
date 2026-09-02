@@ -7,6 +7,7 @@
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
 <link rel="stylesheet" href="{% static 'site/css/apps/tasks.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/tenants.css' %}?v={{ static_version|default:'1' }}">
 {% endblock %}
 
 {% block content %}
@@ -38,28 +39,49 @@
         </div>
       </div>
 
-      <h1 class="onec-detail-title">{{ tenant.name }}</h1>
-
-      <div class="onec-detail-meta">
-        <div>
-          <div class="onec-detail-meta__label">Категория</div>
-          <div class="onec-detail-meta__value">{% if tenant.category %}{{ tenant.category.title }}{% else %}—{% endif %}</div>
+      <div class="tenant-detail-hero">
+        <div class="tenant-detail-logo">
+          {% if tenant.image %}
+            <img src="{{ tenant.image.url }}" alt="">
+          {% else %}
+            <span>{{ tenant.name|slice:":1"|upper }}</span>
+          {% endif %}
         </div>
-        <div>
-          <div class="onec-detail-meta__label">Помещение</div>
-          <div class="onec-detail-meta__value">{{ tenant.number }}</div>
-        </div>
-        <div>
-          <div class="onec-detail-meta__label">Статус договора</div>
-          <div class="onec-detail-meta__value">
+        <div class="tenant-detail-identity">
+          <h1 class="onec-detail-title">{{ tenant.name }}</h1>
+          <div class="tenant-detail-badges">
+            <span class="tenant-detail-badge"><i class="bi bi-door-open"></i> {{ tenant.number }}</span>
+            {% if tenant.room %}<span class="tenant-detail-badge"><i class="bi bi-layers"></i> {{ tenant.room.floor }} этаж</span>{% endif %}
+            {% if tenant.category %}<span class="tenant-detail-badge"><i class="bi bi-tag"></i> {{ tenant.category.title }}</span>{% endif %}
             {% if tenant.status == 'green' %}
-              <span class="onec-type-badge onec-type-badge--success">Стабильно</span>
+              <span class="onec-type-badge onec-type-badge--success">Договор действует</span>
             {% elif tenant.status == 'yellow' %}
-              <span class="onec-type-badge onec-type-badge--warning">Внимание</span>
+              <span class="onec-type-badge onec-type-badge--warning">Срок подходит</span>
+            {% elif tenant.status == 'gray' %}
+              <span class="tenant-detail-badge tenant-detail-badge--muted">Срок не указан</span>
             {% else %}
-              <span class="onec-type-badge onec-type-badge--danger">Срочно</span>
+              <span class="onec-type-badge onec-type-badge--danger">Требует внимания</span>
             {% endif %}
           </div>
+        </div>
+      </div>
+
+      <div class="tenant-kpi-grid">
+        <div class="tenant-kpi-card">
+          <span class="tenant-kpi-card__icon tenant-kpi-card__icon--blue"><i class="bi bi-bounding-box"></i></span>
+          <div><small>Площадь</small><strong>{{ tenant.area|floatformat:0 }} {% t 'common.sqm' 'м²' %}</strong></div>
+        </div>
+        <div class="tenant-kpi-card">
+          <span class="tenant-kpi-card__icon tenant-kpi-card__icon--purple"><i class="bi bi-cash"></i></span>
+          <div><small>Ставка за {% t 'common.sqm' 'м²' %}</small><strong>{{ tenant.price|floatformat:0 }} ₸</strong></div>
+        </div>
+        <div class="tenant-kpi-card">
+          <span class="tenant-kpi-card__icon tenant-kpi-card__icon--green"><i class="bi bi-calendar2-check"></i></span>
+          <div><small>Базовая аренда в месяц</small><strong>{{ monthly_base_rent|floatformat:0 }} ₸</strong></div>
+        </div>
+        <div class="tenant-kpi-card">
+          <span class="tenant-kpi-card__icon tenant-kpi-card__icon--orange"><i class="bi bi-graph-up-arrow"></i></span>
+          <div><small>Базовая аренда в год</small><strong>{{ annual_base_rent|floatformat:0 }} ₸</strong></div>
         </div>
       </div>
 
@@ -77,52 +99,68 @@
       </div>
 
       <div class="onec-tab-panel is-active" id="terms">
-        <div class="onec-req-grid">
-          <div>
-            <div class="onec-req__label">Площадь</div>
-            <div class="onec-req__value">{{ tenant.area|floatformat:0 }} {% t 'common.sqm' 'м²' %}</div>
+        {% if missing_lease_fields %}
+          <div class="tenant-data-alert">
+            <span class="tenant-data-alert__icon"><i class="bi bi-info-circle"></i></span>
+            <div>
+              <strong>Условия договора заполнены на {{ lease_completeness }}%</strong>
+              <p>Не указано: {{ missing_lease_fields|join:", " }}. Эти значения не были переданы при онбординге.</p>
+            </div>
           </div>
-          <div>
-            <div class="onec-req__label">Ставка за {% t 'common.sqm' 'м²' %}</div>
-            <div class="onec-req__value">{{ tenant.price|floatformat:0 }} ₸</div>
-          </div>
-          <div>
-            <div class="onec-req__label">Скидка</div>
-            <div class="onec-req__value">{% if tenant.discount %}{{ tenant.discount }}%{% else %}—{% endif %}</div>
-          </div>
-          <div>
-            <div class="onec-req__label">Процент с оборота</div>
-            <div class="onec-req__value">{% if tenant.percent %}{{ tenant.percent }}%{% else %}—{% endif %}</div>
-          </div>
-          <div>
-            <div class="onec-req__label">Начало аренды</div>
-            <div class="onec-req__value">{{ tenant.start_date|date:"d.m.Y"|default:"—" }}</div>
-          </div>
-          <div>
-            <div class="onec-req__label">Завершение аренды</div>
-            <div class="onec-req__value">{{ tenant.end_date|date:"d.m.Y"|default:"—" }}</div>
-          </div>
-          <div>
-            <div class="onec-req__label">Срок скидки</div>
-            <div class="onec-req__value">{{ tenant.discount_date|date:"d.m.Y"|default:"—" }}</div>
-          </div>
-          <div>
-            <div class="onec-req__label">Повышение ставки</div>
-            <div class="onec-req__value">{{ tenant.get_increase_type_display|default:"—" }}</div>
-          </div>
+        {% endif %}
+
+        <div class="tenant-terms-grid">
+          <section class="tenant-terms-group">
+            <div class="tenant-terms-group__head"><i class="bi bi-calendar-range"></i><span>Срок аренды</span></div>
+            <dl>
+              <div><dt>Начало аренды</dt><dd>{{ tenant.start_date|date:"d.m.Y"|default:"Не указано" }}</dd></div>
+              <div><dt>Завершение аренды</dt><dd>{{ tenant.end_date|date:"d.m.Y"|default:"Не указано" }}</dd></div>
+              <div><dt>Статус</dt><dd>{% if tenant.status == 'gray' %}Срок не указан{% elif tenant.status == 'green' %}Действует{% elif tenant.status == 'yellow' %}Подходит к завершению{% else %}Требует внимания{% endif %}</dd></div>
+            </dl>
+          </section>
+
+          <section class="tenant-terms-group">
+            <div class="tenant-terms-group__head"><i class="bi bi-percent"></i><span>Скидки и оборот</span></div>
+            <dl>
+              <div><dt>Скидка</dt><dd>{% if tenant.discount %}{{ tenant.discount }}%{% else %}Нет{% endif %}</dd></div>
+              <div><dt>Срок скидки</dt><dd>{{ tenant.discount_date|date:"d.m.Y"|default:"Не применяется" }}</dd></div>
+              <div><dt>Процент с оборота</dt><dd>{% if tenant.percent %}{{ tenant.percent }}%{% else %}Не применяется{% endif %}</dd></div>
+            </dl>
+          </section>
+
+          <section class="tenant-terms-group">
+            <div class="tenant-terms-group__head"><i class="bi bi-bar-chart-line"></i><span>Индексация</span></div>
+            <dl>
+              <div><dt>Повышение ставки</dt><dd>{{ tenant.get_increase_type_display|default:"Не указано" }}</dd></div>
+              <div><dt>Текущая ставка</dt><dd>{{ tenant.price|floatformat:0 }} ₸ / {% t 'common.sqm' 'м²' %}</dd></div>
+              <div><dt>Расчётная сумма</dt><dd>{{ monthly_base_rent|floatformat:0 }} ₸ / месяц</dd></div>
+            </dl>
+          </section>
         </div>
       </div>
 
       <div class="onec-tab-panel" id="requests" hidden>
-        <div class="onec-empty-small">Заявок пока нет.</div>
+        <div class="tenant-empty-state">
+          <span><i class="bi bi-inbox"></i></span>
+          <strong>Заявок пока нет</strong>
+          <p>Обращения арендатора на обслуживание появятся в этом разделе.</p>
+        </div>
       </div>
 
       <div class="onec-tab-panel" id="docs" hidden>
-        <div class="onec-empty-small">Документов пока нет.</div>
+        <div class="tenant-empty-state">
+          <span><i class="bi bi-file-earmark-text"></i></span>
+          <strong>Документы не привязаны</strong>
+          <p>Договоры и дополнительные соглашения появятся после привязки к арендатору.</p>
+        </div>
       </div>
 
       <div class="onec-tab-panel" id="history" hidden>
-        <div class="onec-empty-small">История изменений пока недоступна.</div>
+        <div class="tenant-empty-state">
+          <span><i class="bi bi-clock-history"></i></span>
+          <strong>История пока пуста</strong>
+          <p>Здесь будут отображаться изменения условий и события по карточке.</p>
+        </div>
       </div>
     </section>
 
@@ -165,41 +203,30 @@
   <aside class="onec-detail-aside">
 
     <section class="onec-aside-card">
-      <div class="onec-aside-card__head"><h2>Телефоны</h2></div>
-      <div class="onec-info-list">
-        {% if tenant.phone %}<p>{{ tenant.phone }}</p>{% else %}<p class="onec-muted">—</p>{% endif %}
+      <div class="tenant-aside-title">
+        <span class="tenant-aside-title__icon"><i class="bi bi-person-lines-fill"></i></span>
+        <div><small>Связь</small><h2>Контакты арендатора</h2></div>
+      </div>
+      <div class="tenant-contact-list">
+        <div><i class="bi bi-person"></i><span><small>Ответственное лицо</small><strong>{{ tenant.contact|default:"Не указано" }}</strong></span></div>
+        <div><i class="bi bi-telephone"></i><span><small>Телефон</small><strong>{{ tenant.phone|default:"Не указано" }}</strong></span></div>
+        <div><i class="bi bi-envelope"></i><span><small>Email</small><strong>{{ tenant.email|default:"Не указано" }}</strong></span></div>
+        <div><i class="bi bi-geo-alt"></i><span><small>Адрес</small><strong>{{ tenant.address|default:"Не указано" }}</strong></span></div>
       </div>
     </section>
 
     <section class="onec-aside-card">
-      <div class="onec-aside-card__head"><h2>Почта</h2></div>
-      <div class="onec-info-list">
-        {% if tenant.email %}<p>{{ tenant.email }}</p>{% else %}<p class="onec-muted">—</p>{% endif %}
+      <div class="tenant-aside-title">
+        <span class="tenant-aside-title__icon tenant-aside-title__icon--purple"><i class="bi bi-building"></i></span>
+        <div><small>Объект</small><h2>Карточка помещения</h2></div>
       </div>
-    </section>
-
-    <section class="onec-aside-card">
-      <div class="onec-aside-card__head"><h2>Адреса</h2></div>
-      <div class="onec-info-list">
-        {% if tenant.address %}<p>{{ tenant.address }}</p>{% else %}<p class="onec-muted">—</p>{% endif %}
-      </div>
-    </section>
-
-    <section class="onec-aside-card">
-      <div class="onec-aside-card__head"><h2>Ответственное лицо</h2></div>
-      <div class="onec-info-list">
-        {% if tenant.contact %}<p>{{ tenant.contact }}</p>{% else %}<p class="onec-muted">—</p>{% endif %}
-      </div>
-    </section>
-
-    <section class="onec-aside-card">
-      <div class="onec-aside-card__head"><h2>Дополнительно</h2></div>
-      <div class="onec-extra">
-        <span>Помещение</span><p>{{ tenant.number }}</p>
-        <span>Площадь</span><p>{{ tenant.area|floatformat:0 }} {% t 'common.sqm' 'м²' %}</p>
-        <span>Ставка за {% t 'common.sqm' 'м²' %}</span><p>{{ tenant.price|floatformat:0 }} ₸</p>
-        {% if tenant.category %}<span>Категория</span><p>{{ tenant.category.title }}</p>{% endif %}
-        <span>Портал</span><p>{% if has_portal %}Доступ выдан{% else %}Не подключён{% endif %}</p>
+      <div class="tenant-property-list">
+        <div><span>Помещение</span><strong>{{ tenant.number }}</strong></div>
+        {% if tenant.room %}<div><span>Этаж</span><strong>{{ tenant.room.floor }}</strong></div>{% endif %}
+        <div><span>Категория</span><strong>{% if tenant.category %}{{ tenant.category.title }}{% else %}Не указана{% endif %}</strong></div>
+        <div><span>Портал</span><strong class="{% if has_portal %}is-success{% else %}is-muted{% endif %}">{% if has_portal %}Доступ выдан{% else %}Не подключён{% endif %}</strong></div>
+        <div><span>Заполнение данных</span><strong>{{ lease_completeness }}%</strong></div>
+        <div class="tenant-progress"><span style="width: {{ lease_completeness }}%"></span></div>
       </div>
     </section>
 

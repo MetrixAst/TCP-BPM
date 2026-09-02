@@ -80,6 +80,65 @@
   font-size: 13px;
 }
 
+.attendance-dynamic-qr {
+  position: absolute;
+  inset: 0;
+  padding: 32px;
+  background: linear-gradient(145deg, #0f172a, #1e293b);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.attendance-dynamic-qr[hidden] {
+  display: none;
+}
+
+.attendance-dynamic-qr__code {
+  width: 280px;
+  height: 280px;
+  padding: 16px;
+  margin-bottom: 4px;
+  border-radius: 18px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.attendance-dynamic-qr__code svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.attendance-dynamic-qr > strong {
+  font-size: 18px;
+}
+
+.attendance-dynamic-qr > span {
+  max-width: 480px;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.attendance-dynamic-qr__timer {
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.attendance-dynamic-qr__timer b {
+  color: #60a5fa;
+}
+
+.attendance-dynamic-qr small {
+  color: #94a3b8;
+}
+
 .attendance-checkin-side {
   background: #fbfbfd;
   border: 1px solid #eceaf3;
@@ -232,6 +291,13 @@
   }
   .attendance-checkin-btn {
     width: 100%;
+  }
+  .attendance-dynamic-qr {
+    padding: 20px;
+  }
+  .attendance-dynamic-qr__code {
+    width: min(260px, 78vw);
+    height: min(260px, 78vw);
   }
 }
 
