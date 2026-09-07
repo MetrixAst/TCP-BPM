@@ -25,16 +25,14 @@ class ReportsIndicatorsViewTest(TestCase):
         self.assertEqual(r.status_code, 302)
 
     def test_cfo_can_open_reports_from_its_menu(self):
-        cfo = UserAccount.objects.create_user(
-            username='reports_cfo',
+        owner = UserAccount.objects.create_user(
+            username='reports_owner',
             password='pass',
-            email='cfo@test.local',
-            role=RoleEnums.CFO.value,
+            email='owner@test.local',
+            role=RoleEnums.OWNER.value,
         )
-        self.client.force_login(cfo)
-
+        self.client.force_login(owner)
         response = self.client.get(reverse('reports:home'))
-
         self.assertEqual(response.status_code, 200)
 
     def test_period_scopes_ticket_and_exploitation_kpis(self):
