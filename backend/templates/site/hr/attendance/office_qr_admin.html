@@ -1,0 +1,89 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Офисный QR — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .oqr-layout {
+    display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;
+  }
+  .oqr-card {
+    background: #fff; border-radius: 14px; padding: 24px;
+    flex: 0 0 320px; text-align: center;
+  }
+  .oqr-card img { width: 220px; height: 220px; }
+  .oqr-info {
+    background: #fff; border-radius: 14px; padding: 24px; flex: 1 1 320px; min-width: 280px;
+  }
+  .oqr-info h2 { font-size: 15px; font-weight: 700; color: #25233f; margin-bottom: 12px; }
+  .oqr-info__url {
+    font-size: 12px; color: #74728a; word-break: break-all;
+    background: #f5f3fa; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px;
+  }
+  .oqr-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+</style>
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page" id="officeQrPage">
+
+  <div class="hr-registry-top">
+    <div>
+      <h1>Офисный QR</h1>
+      <p class="attendance-page__subtitle">
+        Единый QR-код для отметки прихода/ухода на входе в офис
+      </p>
+    </div>
+  </div>
+
+  <div class="oqr-layout">
+    <div class="oqr-card">
+      <img src="{{ qr_data_uri }}" alt="Офисный QR">
+      <div class="oqr-actions" style="margin-top:16px; justify-content:center;">
+        <a href="{% url 'hr:office_qr_label_pdf' %}" class="hr-registry-btn hr-registry-btn--primary">
+          <i class="bi bi-file-earmark-pdf"></i> Печать PDF
+        </a>
+      </div>
+    </div>
+
+    <div class="oqr-info">
+      <h2>{{ point.name }}</h2>
+      <div class="oqr-info__url">{{ scan_url }}</div>
+
+      <div class="oqr-actions">
+        <form method="post" action="{% url 'hr:office_qr_reissue' %}" id="officeQrReissueForm">
+          {% csrf_token %}
+          <button type="submit" class="hr-registry-btn hr-registry-btn--light">
+            <i class="bi bi-arrow-repeat"></i> Перевыпустить QR
+          </button>
+        </form>
+      </div>
+
+      <p class="hr-muted" style="margin-top:16px; font-size:12px;">
+        Перевыпуск меняет код в QR — все ранее напечатанные копии перестают работать.
+        Печатайте новую этикетку после каждого перевыпуска.
+      </p>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var form = document.getElementById('officeQrReissueForm');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+      var text = window.BPM
+        ? window.BPM.t('Перевыпустить QR? Старая распечатка перестанет действовать.', 'Перевыпустить QR? Старая распечатка перестанет действовать.')
+        : 'Перевыпустить QR? Старая распечатка перестанет действовать.';
+      if (!confirm(text)) {
+        e.preventDefault();
+      }
+    });
+  })();
+</script>
+{% endblock %}
