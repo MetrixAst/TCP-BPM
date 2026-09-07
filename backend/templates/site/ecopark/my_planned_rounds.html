@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Мои обходы</title>
+</head>
+<body>
+    <h1>Мои плановые обходы</h1>
+    {% for round in rounds %}
+    <div>
+        <strong>{{ round.route.name }}</strong>
+        {{ round.planned_start }} — {{ round.get_status_display }}
+        {% if round.is_overdue %}<span style="color:red">Просрочен</span>{% endif %}
+    </div>
+    {% empty %}
+    <p>Нет заданий</p>
+    {% endfor %}
+</body>
+</html>

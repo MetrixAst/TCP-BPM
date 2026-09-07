@@ -375,3 +375,189 @@ class Defect(models.Model):
 
     def __str__(self):
         return f"{self.point} | {self.description[:40]}"
+
+class Route(models.Model):
+    name = models.CharField('Название', max_length=255)
+    description = models.TextField('Описание', blank=True)
+    eco_object = models.ForeignKey(
+        EcoObject,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='routes',
+        verbose_name='Объект',
+    )
+    assigned_employee = models.ForeignKey(
+        'account.UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='assigned_routes',
+        verbose_name='Ответственный сотрудник',
+    )
+    assigned_department = models.ForeignKey(
+        'account.Department',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='assigned_routes',
+        verbose_name='Ответственный отдел',
+    )
+    substitute_employee = models.ForeignKey(
+        'account.UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='substitute_routes',
+        verbose_name='Заместитель',
+    )
+    substitute_from = models.DateTimeField('Заместитель с', null=True, blank=True)
+    substitute_to = models.DateTimeField('Заместитель до', null=True, blank=True)
+    is_active = models.BooleanField('Активен', default=True)
+    created_by = models.ForeignKey(
+        'account.UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='created_routes',
+        verbose_name='Создал',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Маршрут'
+        verbose_name_plural = 'Маршруты'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def get_current_assignee(self):
+        from django.utils import timezone
+        now = timezone.now()
+        if (
+            self.substitute_employee and
+            self.substitute_from and
+            self.substitute_to and
+            self.substitute_from <= now <= self.substitute_to
+        ):
+            return self.substitute_employee
+        return self.assigned_employee
+
+
+class RoutePoint(models.Model):
+    route = models.ForeignKey(
+        Route,
+        on_delete=models.CASCADE,
+        related_name='route_points',
+        verbose_name='Маршрут',
+    )
+    point = models.ForeignKey(
+        RoundPoint,
+        on_delete=models.CASCADE,
+        related_name='route_points',
+        verbose_name='QR-точка',
+    )
+    order = models.PositiveIntegerField('Порядок', default=0)
+
+    class Meta:
+        verbose_name = 'Точка маршрута'
+        verbose_name_plural = 'Точки маршрута'
+        ordering = ['route', 'order']
+        unique_together = [('route', 'point')]
+
+    def __str__(self):
+        return f"{self.route.name} — {self.point.name} (#{self.order})"
+
+
+class RouteSchedule(models.Model):
+    FREQ_DAILY = 'daily'
+    FREQ_WEEKLY = 'weekly'
+    FREQ_CUSTOM = 'custom'
+    FREQ_CHOICES = [
+        (FREQ_DAILY, 'Ежедневно'),
+        (FREQ_WEEKLY, 'Еженедельно'),
+        (FREQ_CUSTOM, 'Произвольно'),
+    ]
+
+    route = models.ForeignKey(
+        Route,
+        on_delete=models.CASCADE,
+        related_name='schedules',
+        verbose_name='Маршрут',
+    )
+    frequency = models.CharField('Частота', max_length=16, choices=FREQ_CHOICES, default=FREQ_DAILY)
+    interval_hours = models.PositiveIntegerField('Интервал', default=24)
+    window_hours = models.PositiveIntegerField('Временное окно', default=2)
+    is_active = models.BooleanField('Активно', default=True)
+
+    class Meta:
+        verbose_name = 'Расписание маршрута'
+        verbose_name_plural = 'Расписания маршрутов'
+
+    def __str__(self):
+        return f"{self.route.name} — каждые {self.interval_hours}ч"
+
+
+class PlannedRound(models.Model):
+    STATUS_PENDING = 'pending'
+    STATUS_IN_PROGRESS = 'in_progress'
+    STATUS_COMPLETED = 'completed'
+    STATUS_MISSED = 'missed'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Ожидает'),
+        (STATUS_IN_PROGRESS, 'В процессе'),
+        (STATUS_COMPLETED, 'Завершён'),
+        (STATUS_MISSED, 'Пропущен'),
+    ]
+
+    route = models.ForeignKey(
+        Route,
+        on_delete=models.CASCADE,
+        related_name='planned_rounds',
+        verbose_name='Маршрут',
+    )
+    assigned_to = models.ForeignKey(
+        'account.UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='planned_rounds',
+        verbose_name='Назначен',
+    )
+    status = models.CharField('Статус', max_length=16, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    planned_start = models.DateTimeField('Плановое начало')
+    planned_end = models.DateTimeField('Плановый конец (окно)')
+    started_at = models.DateTimeField('Начат', null=True, blank=True)
+    completed_at = models.DateTimeField('Завершён', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Плановый обход'
+        verbose_name_plural = 'Плановые обходы'
+        ordering = ['-planned_start']
+        unique_together = [('route', 'planned_start')]
+
+    def __str__(self):
+        return f"{self.route.name} — {self.planned_start:%d.%m.%Y %H:%M} [{self.get_status_display()}]"
+
+    @property
+    def is_overdue(self):
+        from django.utils import timezone
+        return (
+            self.status == self.STATUS_PENDING and
+            timezone.now() > self.planned_end
+        )
+
+    def visits(self):
+        point_ids = self.route.route_points.values_list('point_id', flat=True)
+        return RoundVisit.objects.filter(
+            point_id__in=point_ids,
+            created_at__gte=self.planned_start,
+            created_at__lte=self.planned_end,
+            employee__user=self.assigned_to,
+        )
+
+    def completed_points_count(self):
+        return self.visits().count()
+
+    def total_points_count(self):
+        return self.route.route_points.count()
+
+    def is_all_points_done(self):
+        return self.completed_points_count() >= self.total_points_count()
