@@ -64,6 +64,9 @@ urlpatterns = [
 
     path('attendance/qr-checkin/', views.qr_checkin, name='qr_checkin'),
 
+    path('attendance/office-qr/<uuid:public_id>/', views.office_qr_preview, name='office_qr_preview'),
+    path('attendance/office-qr/<uuid:public_id>/checkin/', views.office_qr_checkin, name='office_qr_checkin'),
+
     path('documents/', views.documents_list, name='documents_list'),
     path('documents/create/', views.documents_create, name='documents_create'),
     path('documents/<int:pk>/edit/', views.documents_edit, name='documents_edit'),

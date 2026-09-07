@@ -5,6 +5,7 @@ from datetime import date, time
 from account.models import UserAccount, Employee
 from datetime import timedelta
 from .enums import CalendarItemType, DayTypeEnum, LeaveStatusEnum, CheckInEnum, DocumentTypeEnum, DocumentStatusEnum, CertificationStatusEnum
+import uuid as uuid_lib
 
 
 class CalendarItem(models.Model):
@@ -755,3 +756,35 @@ class QRScanAudit(models.Model):
 
     def __str__(self):
         return f"{self.token} | {self.action} | {self.created_at}"
+
+class OfficeQRPoint(models.Model):
+    name = models.CharField('Название', max_length=128)
+    public_id = models.UUIDField(
+        'Публичный ID',
+        default=uuid_lib.uuid4,
+        unique=True,
+        editable=False,
+    )
+    is_active = models.BooleanField('Активна', default=True)
+    created_by = models.ForeignKey(
+        'account.UserAccount',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='created_office_qr_points',
+        verbose_name='Создал',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Офисная QR-точка'
+        verbose_name_plural = 'Офисные QR-точки'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def reissue(self):
+        self.public_id = uuid_lib.uuid4()
+        self.save(update_fields=['public_id', 'updated_at'])
+        return self.public_id

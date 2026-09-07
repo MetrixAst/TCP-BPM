@@ -15,6 +15,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal, ROUND_HALF_UP
+from django.views.decorators.http import require_http_methods
 
 
 from project.utils import get_or_none, get_or_error
@@ -2103,3 +2104,110 @@ def qr_checkin(request):
     _audit(QRScanAudit.ACTION_SUCCESS, token_value, qr_token.qr_point)
 
     return _response(True, 'Отметка посещаемости успешно создана')
+
+
+@login_required
+def office_qr_preview(request, public_id):
+    from hr.models import OfficeQRPoint, AttendanceRecord
+    from hr.enums import CheckInEnum
+    from django.utils import timezone
+
+    point = get_object_or_404(OfficeQRPoint, public_id=public_id, is_active=True)
+
+    employee = getattr(request.user, 'employee_info', None)
+    if not employee:
+        return render(request, 'site/hr/attendance/office_qr_no_profile.html', {
+            'point': point,
+        })
+
+    today = timezone.now().date()
+    has_day_start = AttendanceRecord.objects.filter(
+        employee=employee,
+        event_type=CheckInEnum.DAY_START,
+        timestamp__date=today,
+    ).exists()
+    has_day_end = AttendanceRecord.objects.filter(
+        employee=employee,
+        event_type=CheckInEnum.DAY_END,
+        timestamp__date=today,
+    ).exists()
+
+    if not has_day_start:
+        next_action = 'day_start'
+        next_label = 'Подтвердить приход'
+    elif has_day_start and not has_day_end:
+        next_action = 'day_end'
+        next_label = 'Подтвердить уход'
+    else:
+        next_action = None
+        next_label = None
+
+    return render(request, 'site/hr/attendance/office_qr_preview.html', {
+        'point': point,
+        'employee': employee,
+        'next_action': next_action,
+        'next_label': next_label,
+        'already_done': next_action is None,
+    })
+
+
+@login_required
+@require_http_methods(['POST'])
+def office_qr_checkin(request, public_id):
+    from hr.models import OfficeQRPoint, AttendanceRecord, QRScanAudit
+    from hr.enums import CheckInEnum
+    from hr.services import create_attendance_checkin
+    from django.utils import timezone
+
+    point = get_object_or_404(OfficeQRPoint, public_id=public_id, is_active=True)
+    ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+
+    employee = getattr(request.user, 'employee_info', None)
+    if not employee:
+        return JsonResponse({'success': False, 'error': 'Профиль сотрудника не найден'}, status=403, json_dumps_params={'ensure_ascii': False})
+
+    today = timezone.now().date()
+    has_day_start = AttendanceRecord.objects.filter(
+        employee=employee,
+        event_type=CheckInEnum.DAY_START,
+        timestamp__date=today,
+    ).exists()
+    has_day_end = AttendanceRecord.objects.filter(
+        employee=employee,
+        event_type=CheckInEnum.DAY_END,
+        timestamp__date=today,
+    ).exists()
+
+    if not has_day_start:
+        event_type = CheckInEnum.DAY_START
+    elif has_day_start and not has_day_end:
+        event_type = CheckInEnum.DAY_END
+    else:
+
+        return JsonResponse({
+            'success': True,
+            'already_done': True,
+            'message': 'Отметки на сегодня уже сделаны',
+        }, json_dumps_params={'ensure_ascii': False})
+
+    record = create_attendance_checkin(
+        employee=employee,
+        event_type=event_type,
+        photo_file=None,
+        ip_address=ip,
+        source='qr',
+    )
+
+    QRScanAudit.objects.create(
+        token=str(point.public_id),
+        user=request.user,
+        action=QRScanAudit.ACTION_SUCCESS,
+        ip_address=ip,
+    )
+
+    return JsonResponse({
+        'success': True,
+        'already_done': False,
+        'event_type': event_type,
+        'message': 'Приход зафиксирован' if event_type == CheckInEnum.DAY_START else 'Уход зафиксирован',
+    }, json_dumps_params={'ensure_ascii': False})
