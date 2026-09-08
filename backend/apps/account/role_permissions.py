@@ -375,7 +375,7 @@ class MenuItem:
                     MenuItem('manual_attendance', 'hr:manual_attendance', '', 'Ручные отметки'),
                     MenuItem('manual_attendance_report', 'hr:manual_attendance_report', '', 'Отчёт по ручным отметкам'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
-                    MenuItem('qr_points', 'hr:qr_points_list', '', 'QR-точки'),
+                    MenuItem('office_qr', 'hr:office_qr_admin', '', 'Офисный QR'),
                 ]),
 
                 #MenuItem('onec', '#onec', 'box-arrow-in-down', '1C', submenu=[
@@ -441,7 +441,7 @@ class MenuItem:
                     MenuItem('manual_attendance', 'hr:manual_attendance', '', 'Ручные отметки'),
                     MenuItem('manual_attendance_report', 'hr:manual_attendance_report', '', 'Отчёт по ручным отметкам'),
                     MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
-                    MenuItem('qr_points', 'hr:qr_points_list', '', 'QR-точки'),
+                    MenuItem('office_qr', 'hr:office_qr_admin', '', 'Офисный QR'),
                 ]),
             ],
 

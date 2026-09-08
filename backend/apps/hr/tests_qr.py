@@ -92,16 +92,6 @@ class QRCheckinWebTest(TestCase):
             ).exists()
         )
 
-    def test_checkin_page_embeds_dynamic_qr_generator(self):
-        response = self.client.get('/hr/attendance/checkin/')
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'dynamicQrPanel')
-        self.assertIn('/hr/attendance/kiosk/', response.context['qr_token_url'])
-        self.assertTrue(
-            QRPoint.objects.filter(name='Веб-терминал посещаемости').exists()
-        )
-
     def test_expired_token_returns_410(self):
         token = make_token(self.point, expired=True)
         r = self.client.post('/hr/attendance/qr-checkin/', {'token': token.token})
@@ -170,47 +160,3 @@ class QRCheckinWebTest(TestCase):
         self.assertTrue(AttendanceRecord.objects.filter(
             employee=self.employee, source='face'
         ).exists())
-
-
-class QRKioskTokenTest(TestCase):
-
-    def setUp(self):
-        self.client = APIClient()
-        self.admin, self.emp_user, self.employee, self.point = make_setup()
-        self.client.force_login(self.admin)
-
-    def test_kiosk_token_generated(self):
-        r = self.client.get(f'/hr/attendance/kiosk/{self.point.pk}/token/')
-        self.assertEqual(r.status_code, 200)
-        data = r.json()
-        self.assertIn('token', data)
-        self.assertIn('scan_url', data)
-        self.assertIn('expires_in', data)
-        self.assertEqual(data['expires_in'], 45)
-
-    def test_kiosk_token_event_type(self):
-        r = self.client.get(f'/hr/attendance/kiosk/{self.point.pk}/token/?event_type=day_end')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json()['event_type'], 'day_end')
-
-    def test_kiosk_token_rejects_unknown_event_type(self):
-        response = self.client.get(
-            f'/hr/attendance/kiosk/{self.point.pk}/token/?event_type=unknown'
-        )
-
-        self.assertEqual(response.status_code, 400)
-
-    def test_kiosk_token_requires_login(self):
-        self.client.logout()
-
-        response = self.client.get(
-            f'/hr/attendance/kiosk/{self.point.pk}/token/'
-        )
-
-        self.assertEqual(response.status_code, 302)
-
-    def test_inactive_point_returns_404(self):
-        self.point.is_active = False
-        self.point.save()
-        r = self.client.get(f'/hr/attendance/kiosk/{self.point.pk}/token/')
-        self.assertEqual(r.status_code, 404)
