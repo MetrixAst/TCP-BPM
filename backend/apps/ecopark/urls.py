@@ -47,6 +47,6 @@ urlpatterns = [
 
     # Плановые обходы
     path('rounds/my/', views.my_planned_rounds, name='my_planned_rounds'),
-    path('rounds/planned/', _perm(views.planned_rounds_journal), name='planned_rounds_journal'),
+    path('rounds/planned/', views.planned_rounds_journal, name='planned_rounds_journal'),
     path('rounds/planned/create/', _perm(views.planned_round_create), name='planned_round_create'),
 ]

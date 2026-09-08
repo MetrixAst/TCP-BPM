@@ -1,0 +1,260 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{% if route %}Редактировать маршрут{% else %}Новый маршрут{% endif %} — metriX BPM{% endblock %}
+{% block body_classes %}hr-registry-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .route-point-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eceaf3;
+  }
+  .route-point-row__order {
+    font-size: 12px;
+    font-weight: 700;
+    color: #74728a;
+    width: 20px;
+    text-align: center;
+  }
+  .route-point-row__del {
+    background: none;
+    border: 0;
+    color: #dc2626;
+    cursor: pointer;
+    padding: 6px;
+  }
+  .route-point-row.is-removed { display: none; }
+</style>
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-edit-page" id="hrRegistryFormPage">
+  <div class="hr-registry-edit-card">
+
+    <div class="hr-registry-edit-card__header">
+      <h1 class="hr-registry-edit-card__title">{% if route %}Редактировать маршрут{% else %}Новый маршрут{% endif %}</h1>
+      <a href="{% url 'ecopark:routes_list' %}" class="hr-registry-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
+    </div>
+
+    <form method="post" class="hr-registry-edit-form" id="routeForm">
+      {% csrf_token %}
+
+      <div class="hr-registry-edit-card__body">
+        <section class="hr-registry-edit-section">
+          <h2 class="hr-registry-edit-section__title">Данные маршрута</h2>
+
+          {% if error %}
+            <div class="hr-registry-edit-field__error" style="margin-bottom:12px;">{{ error }}</div>
+          {% endif %}
+
+          <div class="hr-registry-edit-grid">
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="routeName">
+                Название<span>*</span>
+              </label>
+              <input type="text" id="routeName" name="name" class="hr-form-input"
+                     value="{% firstof route.name form_name '' %}"
+                     placeholder="Обход технических помещений" required>
+            </div>
+
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="routeObject">Объект</label>
+              <select id="routeObject" name="eco_object" class="hr-form-input">
+                <option value="">— Не выбран —</option>
+                {% for obj in eco_objects %}
+                  <option value="{{ obj.pk }}" {% if route.eco_object_id == obj.pk %}selected{% endif %}>{{ obj.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="hr-registry-edit-field hr-registry-edit-field--full">
+              <label class="hr-registry-edit-field__label" for="routeDescription">Описание</label>
+              <textarea id="routeDescription" name="description" class="hr-form-input" style="height:64px;padding-top:8px;">{% firstof route.description '' %}</textarea>
+            </div>
+
+            {% if route %}
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label hr-toggle">
+                <input type="checkbox" name="is_active" {% if route.is_active %}checked{% endif %}>
+                Активен
+              </label>
+            </div>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="hr-registry-edit-section">
+          <h2 class="hr-registry-edit-section__title">Назначение</h2>
+          <div class="hr-registry-edit-grid">
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="routeAssignedEmployee">Ответственный сотрудник</label>
+              <select id="routeAssignedEmployee" name="assigned_employee" class="hr-form-input">
+                <option value="">— Не назначен —</option>
+                {% for u in employees %}
+                  <option value="{{ u.pk }}" {% if route.assigned_employee_id == u.pk %}selected{% endif %}>{{ u.get_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="routeAssignedDepartment">Ответственный отдел</label>
+              <select id="routeAssignedDepartment" name="assigned_department" class="hr-form-input">
+                <option value="">— Не выбран —</option>
+                {% for department in departments %}
+                  <option value="{{ department.pk }}" {% if route.assigned_department_id == department.pk %}selected{% endif %}>{{ department.name }}</option>
+                {% endfor %}
+              </select>
+              <small class="hr-registry-edit-field__help">
+                Если выбран отдел — обход может выполнить любой его сотрудник.
+              </small>
+            </div>
+
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="routeSubstituteEmployee">Заместитель</label>
+              <select id="routeSubstituteEmployee" name="substitute_employee" class="hr-form-input">
+                <option value="">— Не назначен —</option>
+                {% for u in employees %}
+                  <option value="{{ u.pk }}" {% if route.substitute_employee_id == u.pk %}selected{% endif %}>{{ u.get_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label">Период замещения</label>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <input type="datetime-local" name="substitute_from" class="hr-form-input"
+                       value="{% if route.substitute_from %}{{ route.substitute_from|date:'Y-m-d\TH:i' }}{% endif %}">
+                <input type="datetime-local" name="substitute_to" class="hr-form-input"
+                       value="{% if route.substitute_to %}{{ route.substitute_to|date:'Y-m-d\TH:i' }}{% endif %}">
+              </div>
+              <small class="hr-registry-edit-field__help">
+                Пока текущее время внутри этого периода — обходы автоматически назначаются заместителю.
+              </small>
+            </div>
+          </div>
+        </section>
+
+        <section class="hr-registry-edit-section">
+          <h2 class="hr-registry-edit-section__title">Расписание</h2>
+          {% with schedule=schedule %}
+          <div class="hr-registry-edit-grid">
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="routeFrequency">Частота</label>
+              <select id="routeFrequency" name="frequency" class="hr-form-input">
+                <option value="daily" {% if schedule.frequency == 'daily' or not schedule %}selected{% endif %}>Ежедневно</option>
+                <option value="weekly" {% if schedule.frequency == 'weekly' %}selected{% endif %}>Еженедельно</option>
+                <option value="custom" {% if schedule.frequency == 'custom' %}selected{% endif %}>Произвольно</option>
+              </select>
+            </div>
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="routeInterval">Интервал, часов</label>
+              <input type="number" id="routeInterval" name="interval_hours" class="hr-form-input" min="1"
+                     value="{% firstof schedule.interval_hours 24 %}">
+            </div>
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="routeWindow">Окно на выполнение, часов</label>
+              <input type="number" id="routeWindow" name="window_hours" class="hr-form-input" min="1"
+                     value="{% firstof schedule.window_hours 2 %}">
+              <small class="hr-registry-edit-field__help">
+                Если обход не начат за это время после планового старта — он считается просроченным.
+              </small>
+            </div>
+          </div>
+          {% endwith %}
+        </section>
+
+        <section class="hr-registry-edit-section">
+          <h2 class="hr-registry-edit-section__title">Точки маршрута, по порядку</h2>
+
+          <div id="routePoints">
+            {% for rp in selected_points %}
+            <div class="route-point-row">
+              <span class="route-point-row__order">{{ forloop.counter }}</span>
+              <select name="points" class="hr-form-input">
+                {% for p in points %}
+                  <option value="{{ p.pk }}" {% if p.pk == rp.point_id %}selected{% endif %}>{{ p.name }}</option>
+                {% endfor %}
+              </select>
+              <button type="button" class="route-point-row__del" data-point-remove title="Убрать точку">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+            {% empty %}
+            <p class="hr-muted" id="routePointsEmptyHint">Точки ещё не добавлены.</p>
+            {% endfor %}
+          </div>
+
+          <button type="button" class="hr-registry-btn hr-registry-btn--light" id="addRoutePointBtn" style="margin-top:10px;">
+            <i class="bi bi-plus-lg"></i> Добавить точку
+          </button>
+        </section>
+      </div>
+
+      <div class="hr-registry-edit-card__footer">
+        <a href="{% url 'ecopark:routes_list' %}" class="hr-registry-edit-btn hr-registry-edit-btn--cancel">
+          Отменить
+        </a>
+        <button type="submit" class="hr-registry-edit-btn hr-registry-edit-btn--save">
+          Сохранить
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var container = document.getElementById('routePoints');
+  var addBtn = document.getElementById('addRoutePointBtn');
+  if (!container || !addBtn) return;
+
+  var pointOptionsHtml = {{ points_options_json|default:"''"|safe }};
+
+  function t(ru) { return window.BPM ? window.BPM.t(ru, ru) : ru; }
+
+  function renumber() {
+    var rows = container.querySelectorAll('.route-point-row:not(.is-removed)');
+    rows.forEach(function (row, i) {
+      row.querySelector('.route-point-row__order').textContent = i + 1;
+    });
+  }
+
+  function buildRow() {
+    var row = document.createElement('div');
+    row.className = 'route-point-row';
+    row.innerHTML =
+      '<span class="route-point-row__order"></span>' +
+      '<select name="points" class="hr-form-input">' + pointOptionsHtml + '</select>' +
+      '<button type="button" class="route-point-row__del" data-point-remove title="' + t('Убрать точку') + '">' +
+        '<i class="bi bi-trash"></i>' +
+      '</button>';
+    return row;
+  }
+
+  addBtn.addEventListener('click', function () {
+    var hint = document.getElementById('routePointsEmptyHint');
+    if (hint) hint.remove();
+    container.appendChild(buildRow());
+    renumber();
+  });
+
+  container.addEventListener('click', function (e) {
+    var delBtn = e.target.closest('[data-point-remove]');
+    if (!delBtn) return;
+    delBtn.closest('.route-point-row').remove();
+    renumber();
+  });
+})();
+</script>
+{% endblock %}
