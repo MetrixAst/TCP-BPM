@@ -1,0 +1,164 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}План/факт обходов — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .prj-filters {
+    background: #fff; border-radius: 14px; padding: 14px 18px; margin-bottom: 14px;
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+  }
+  .prj-filters .hr-form-input { min-width: 160px; }
+  .prj-filters label { font-size: 11px; color: #74728a; display: block; margin-bottom: 3px; }
+</style>
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page" id="hrRegistryPage">
+
+  <div class="hr-registry-top">
+    <div>
+      <h1>План/факт обходов</h1>
+      <p class="attendance-page__subtitle">Плановые обходы по маршрутам: план, факт и просрочка</p>
+    </div>
+    <div class="hr-registry-top__actions">
+      <a href="{% url 'ecopark:planned_round_create' %}" class="hr-registry-btn hr-registry-btn--primary">
+        <i class="bi bi-plus-lg"></i> Запланировать обход
+      </a>
+    </div>
+  </div>
+
+  <form method="get" class="prj-filters">
+    <div>
+      <label>Маршрут</label>
+      <select name="route" class="hr-form-input">
+        <option value="">Все</option>
+        {% for route in routes %}
+          <option value="{{ route.pk }}" {% if request.GET.route == route.pk|stringformat:"s" %}selected{% endif %}>{{ route.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Статус</label>
+      <select name="status" class="hr-form-input">
+        <option value="">Все</option>
+        {% for value, label in status_choices %}
+          <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>С даты</label>
+      <input type="text" name="date_from" class="hr-form-input single_date_picker" autocomplete="off" placeholder="дд.мм.гггг" value="{{ request.GET.date_from }}">
+    </div>
+    <div>
+      <label>По дату</label>
+      <input type="text" name="date_to" class="hr-form-input single_date_picker" autocomplete="off" placeholder="дд.мм.гггг" value="{{ request.GET.date_to }}">
+    </div>
+    <button type="submit" class="hr-registry-btn hr-registry-btn--primary">
+      <i class="bi bi-search"></i> Показать
+    </button>
+  </form>
+
+  <div class="hr-registry-panel">
+    <div class="hr-registry-table-wrap">
+      <table class="hr-registry-table">
+        <thead>
+          <tr>
+            <th>Маршрут</th>
+            <th>Сотрудник</th>
+            <th>План</th>
+            <th>Факт</th>
+            <th>Статус</th>
+            <th>Дефекты</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for round in rounds %}
+          <tr>
+            <td>{{ round.route.name }}</td>
+            <td>{{ round.assigned_to.get_name|default:"—" }}</td>
+            <td>
+              {{ round.planned_start|date:"d.m.Y H:i" }} — {{ round.planned_end|date:"H:i" }}
+            </td>
+            <td>
+              {{ round.completed_points_count }} / {{ round.total_points_count }} точек
+              {% if round.last_visit_at %}
+                <div class="hr-muted">последняя: {{ round.last_visit_at|date:"d.m.Y H:i" }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% if round.is_overdue %}
+                <span class="hr-registry-status hr-registry-status--expired">Просрочен</span>
+              {% elif round.status == 'completed' %}
+                <span class="hr-registry-status hr-registry-status--active">Завершён</span>
+              {% elif round.status == 'missed' %}
+                <span class="hr-registry-status hr-registry-status--expired">Пропущен</span>
+              {% elif round.status == 'in_progress' %}
+                <span class="hr-registry-status hr-registry-status--expiring">В процессе</span>
+              {% else %}
+                <span class="hr-registry-status">Ожидает</span>
+              {% endif %}
+            </td>
+            <td>
+              {% with dc=round.defects_count %}
+                {% if dc %}
+                  <a href="{% url 'ecopark:defects_list' %}" class="hr-registry-status hr-registry-status--expired">{{ dc }}</a>
+                {% else %}
+                  <span class="hr-muted">—</span>
+                {% endif %}
+              {% endwith %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6">
+              <div class="hr-registry-empty">
+                <i class="bi bi-calendar-check"></i>
+                <strong>Плановых обходов не найдено</strong>
+                <span>Запланируйте обход по одному из маршрутов.</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/datepicker/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'site/js/vendor/datepicker/locales/bootstrap-datepicker.ru.min.js' %}"></script>
+<script>
+(function () {
+  var form = document.querySelector('.prj-filters');
+  var dateInputs = form.querySelectorAll('.single_date_picker');
+
+  dateInputs.forEach(function (input) {
+    var val = input.value;
+    if (val) {
+      input.value = val.split('-').reverse().join('.');
+    }
+  });
+
+  if (window.jQuery && jQuery.fn.datepicker) {
+    jQuery(dateInputs).datepicker({ autoclose: true, locale: 'ru', language: 'ru' });
+  }
+
+  form.addEventListener('submit', function () {
+    dateInputs.forEach(function (input) {
+      var val = input.value.trim();
+      var m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(val);
+      if (m) {
+        input.value = m[3] + '-' + m[2] + '-' + m[1];
+      }
+    });
+  });
+})();
+</script>
+{% endblock %}

@@ -561,3 +561,10 @@ class PlannedRound(models.Model):
 
     def is_all_points_done(self):
         return self.completed_points_count() >= self.total_points_count()
+
+    def last_visit_at(self):
+        last = self.visits().order_by('-created_at').first()
+        return last.created_at if last else None
+
+    def defects_count(self):
+        return Defect.objects.filter(visit__in=self.visits()).count()

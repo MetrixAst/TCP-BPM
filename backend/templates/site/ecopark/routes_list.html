@@ -1,0 +1,109 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Маршруты — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page" id="hrRegistryPage">
+
+  <div class="hr-registry-top">
+    <div>
+      <h1>Маршруты</h1>
+      <p class="attendance-page__subtitle">
+        Последовательности точек обхода с расписанием и назначенным сотрудником
+      </p>
+    </div>
+    <div class="hr-registry-top__actions">
+      <a href="{% url 'ecopark:route_create' %}" class="hr-registry-btn hr-registry-btn--primary">
+        <i class="bi bi-plus-lg"></i> Добавить маршрут
+      </a>
+    </div>
+  </div>
+
+  <div class="hr-registry-panel">
+    <div class="hr-registry-table-wrap">
+      <table class="hr-registry-table">
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Точек</th>
+            <th>Назначен</th>
+            <th>Заместитель</th>
+            <th>Расписание</th>
+            <th class="hr-registry-table__actions">Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for route in routes %}
+          <tr>
+            <td>
+              <strong>{{ route.name }}</strong>
+              {% if route.eco_object %}<div class="hr-muted">{{ route.eco_object.name }}</div>{% endif %}
+            </td>
+            <td>{{ route.route_points.count }}</td>
+            <td>
+              {% if route.assigned_employee %}
+                <strong>{{ route.assigned_employee.get_name }}</strong>
+              {% endif %}
+              {% if route.assigned_department %}
+                <div class="hr-muted">{{ route.assigned_department.name }}</div>
+              {% endif %}
+              {% if not route.assigned_employee and not route.assigned_department %}
+                <span class="hr-muted">Не назначен</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if route.substitute_employee %}
+                {{ route.substitute_employee.get_name }}
+                {% if route.substitute_from and route.substitute_to %}
+                  <div class="hr-muted">{{ route.substitute_from|date:"d.m.Y H:i" }} — {{ route.substitute_to|date:"d.m.Y H:i" }}</div>
+                {% endif %}
+              {% else %}
+                <span class="hr-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% with schedule=route.schedules.first %}
+                {% if schedule %}
+                  {{ schedule.get_frequency_display }}, каждые {{ schedule.interval_hours }}ч
+                {% else %}
+                  <span class="hr-muted">Не задано</span>
+                {% endif %}
+              {% endwith %}
+            </td>
+            <td>
+              <div class="hr-registry-actions">
+                <a href="{% url 'ecopark:planned_round_create' %}?route={{ route.pk }}" class="hr-icon-btn" title="Запланировать обход">
+                  <i class="bi bi-calendar-plus"></i>
+                </a>
+                <a href="{% url 'ecopark:route_edit' route.pk %}" class="hr-icon-btn" title="Редактировать">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'ecopark:route_delete' route.pk %}" class="hr-icon-btn hr-icon-btn--danger" title="Удалить">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6">
+              <div class="hr-registry-empty">
+                <i class="bi bi-signpost-2"></i>
+                <strong>Маршрутов ещё нет</strong>
+                <span>Соберите маршрут из точек обхода и назначьте сотрудника.</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

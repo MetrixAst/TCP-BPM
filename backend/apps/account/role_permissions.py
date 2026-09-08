@@ -385,7 +385,9 @@ class MenuItem:
                     MenuItem('ecopark_works', 'ecopark:home', '', 'Работы'),
                     MenuItem('round_points', 'ecopark:round_points_list', '', 'Точки обхода'),
                     MenuItem('checklists', 'ecopark:checklist_templates_list', '', 'Чек-листы'),
+                    MenuItem('routes', 'ecopark:routes_list', '', 'Маршруты'),
                     MenuItem('rounds_journal', 'ecopark:rounds_journal', '', 'Журнал обходов'),
+                    MenuItem('planned_rounds_journal', 'ecopark:planned_rounds_journal', '', 'План/факт обходов'),
                     MenuItem('rounds_defects', 'ecopark:defects_list', '', 'Неисправности'),
                 ]),
                 MenuItem('tickets', 'tickets:kanban', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket', permission=PermissionEnums.SERVICE_REQUESTS),
@@ -498,10 +500,22 @@ class MenuItem:
                 menu.append(
                     MenuItem('rounds_journal', 'ecopark:rounds_journal', 'clipboard-check', 'Журнал обходов')
                 )
+            if not any(i.id == 'planned_rounds_journal' for i in menu):
+                menu.append(
+                    MenuItem('planned_rounds_journal', 'ecopark:planned_rounds_journal', 'calendar-check', 'План/факт обходов')
+                )
             if not any(i.id == 'rounds_defects' for i in menu):
                 menu.append(
                     MenuItem('rounds_defects', 'ecopark:defects_list', 'exclamation-triangle', 'Неисправности')
                 )
+
+        # "Мои обходы" — любой сотрудник с профилем может быть назначен на
+        # маршрут (PlannedRound.assigned_to), независимо от роли и от того,
+        # руководитель он или нет — поэтому не завязано на employee.head.
+        if employee and not any(i.id == 'my_planned_rounds' for i in menu):
+            menu.append(
+                MenuItem('my_planned_rounds', 'ecopark:my_planned_rounds', 'compass', 'Мои обходы')
+            )
 
         menu = MenuItem._filter_menu(menu, user)
 

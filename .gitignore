@@ -107,3 +107,8 @@ mobile/android/local.properties
 # Firebase service account credentials (secrets, never commit)
 backend/metrix-abde2-firebase-adminsdk*.json
 backend/*firebase-adminsdk*.json
+
+# Stray local scratch files (never committed, keep out of every git add .)
+backend/app_icon_clean.png
+backend/qr_r305.png
+backend/splash_icon.png
