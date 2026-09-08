@@ -11,7 +11,9 @@ final _uuidPattern = RegExp(
 /// Office и round QR кодируют полный веб-URL (страницу подтверждения/скана
 /// на сайте) с UUID точки/точки-офиса в хвосте пути — тип отметки зашит не
 /// в самом коде, а определяется сервером через rounds/resolve/?qr=<uuid>.
-String? _extractAttendanceQrId(String rawValue) {
+/// Публичная — переиспользуется там, где нужно просто сверить содержимое
+/// скана с уже известным UUID (см. RouteDetailScreen: "тот ли это столб").
+String? extractQrUuid(String rawValue) {
   final match = _uuidPattern.firstMatch(rawValue);
   return match?.group(0);
 }
@@ -31,7 +33,7 @@ class QrRouterRepository {
       return Success(RoomScanTarget(mapId));
     }
 
-    final qrId = _extractAttendanceQrId(rawValue);
+    final qrId = extractQrUuid(rawValue);
     if (qrId == null) {
       return const Failure('QR-код не распознан');
     }

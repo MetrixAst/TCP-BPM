@@ -485,6 +485,40 @@ class RoundsTodayView(APIView):
         return Response(data)
 
 
+class RoundsHistoryView(APIView):
+    """GET /api/v1/mobile/rounds/history/ — прошлые обходы (не сегодняшние
+    и/или уже не в статусе "ожидает"), для экрана истории. today() отдаёт
+    только planned_start__date=today, этот — всё остальное своё, свежее
+    сверху, максимум 50 штук (пагинация не нужна для мобильного списка)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Q
+        from django.utils import timezone
+        from ecopark.models import PlannedRound
+
+        today = timezone.now().date()
+        rounds = PlannedRound.objects.filter(
+            assigned_to=request.user,
+        ).filter(
+            Q(planned_start__date__lt=today) | ~Q(status=PlannedRound.STATUS_PENDING)
+        ).select_related('route').order_by('-planned_start')[:50]
+
+        data = [{
+            'id': r.pk,
+            'route_name': r.route.name,
+            'status': r.status,
+            'planned_start': r.planned_start.isoformat(),
+            'planned_end': r.planned_end.isoformat(),
+            'completed_at': r.completed_at.isoformat() if r.completed_at else None,
+            'is_overdue': r.is_overdue,
+            'total_points': r.total_points_count(),
+            'completed_points': r.completed_points_count(),
+        } for r in rounds]
+        return Response(data)
+
+
 class RoundsResolveQRView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 

@@ -132,6 +132,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     subtitle: 'Мои отметки за сегодня',
                     onTap: () => context.push('/attendance/today'),
                   ),
+                  const _RowDivider(),
+                  _ListRow(
+                    icon: Icons.assignment_turned_in_outlined,
+                    title: 'Обходы',
+                    subtitle: 'Задания на сегодня, маршрут и история',
+                    onTap: () => context.push('/rounds/today'),
+                  ),
                   if (_hasTicketsAccess) ...[
                     const _RowDivider(),
                     _ListRow(

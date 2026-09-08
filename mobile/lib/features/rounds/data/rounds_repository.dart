@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/network/api_result.dart';
+import 'planned_round_summary.dart';
+import 'round_detail.dart';
 import 'round_item_answer.dart';
 import 'round_point_detail.dart';
 
@@ -8,6 +10,35 @@ class RoundsRepository {
   final Dio dio;
 
   RoundsRepository({required this.dio});
+
+  Future<ApiResult<List<PlannedRoundSummary>>> getToday() async {
+    try {
+      final response = await dio.get('/api/v1/mobile/rounds/today/');
+      final list = response.data as List<dynamic>;
+      return Success(list.map((e) => PlannedRoundSummary.fromJson(e as Map<String, dynamic>)).toList());
+    } on DioException catch (e) {
+      return Failure(_errorMessage(e), statusCode: e.response?.statusCode);
+    }
+  }
+
+  Future<ApiResult<List<PlannedRoundSummary>>> getHistory() async {
+    try {
+      final response = await dio.get('/api/v1/mobile/rounds/history/');
+      final list = response.data as List<dynamic>;
+      return Success(list.map((e) => PlannedRoundSummary.fromJson(e as Map<String, dynamic>)).toList());
+    } on DioException catch (e) {
+      return Failure(_errorMessage(e), statusCode: e.response?.statusCode);
+    }
+  }
+
+  Future<ApiResult<RoundDetail>> getRouteDetail(int plannedRoundId) async {
+    try {
+      final response = await dio.get('/api/v1/mobile/rounds/$plannedRoundId/');
+      return Success(RoundDetail.fromJson(response.data as Map<String, dynamic>));
+    } on DioException catch (e) {
+      return Failure(_routeErrorMessage(e), statusCode: e.response?.statusCode);
+    }
+  }
 
   Future<ApiResult<RoundPointDetail>> getPointDetail(String pointUuid) async {
     try {
@@ -63,6 +94,21 @@ class RoundsRepository {
     }
     if (e.response?.statusCode == 403) {
       return 'Профиль сотрудника не найден';
+    }
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      return 'Сервер не отвечает, проверьте соединение';
+    }
+    return 'Ошибка сети, попробуйте ещё раз';
+  }
+
+  String _routeErrorMessage(DioException e) {
+    final status = e.response?.statusCode;
+    if (status == 404) {
+      return 'Задание не найдено';
+    }
+    if (status == 403) {
+      return 'Нет доступа к этому заданию';
     }
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
