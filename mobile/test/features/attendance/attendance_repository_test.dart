@@ -161,6 +161,83 @@ void main() {
     });
   });
 
+  group('checkinOfficeQr', () {
+    const publicId = '087fd4d6-e01c-48e9-8307-b4a49e943470';
+
+    test('успешная отметка возвращает Success с event_type', () async {
+      when(() => dio.post(
+        '/api/v1/mobile/attendance/office-qr/$publicId/checkin/',
+        options: any(named: 'options'),
+      )).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/api/v1/mobile/attendance/office-qr/$publicId/checkin/'),
+          statusCode: 201,
+          data: {'success': true, 'already_done': false, 'event_type': 'day_start', 'message': 'Приход зафиксирован'},
+        ),
+      );
+
+      final result = await repository.checkinOfficeQr(publicId: publicId, idempotencyKey: 'key-1');
+
+      expect(result, isA<Success<Map<String, dynamic>>>());
+      final data = (result as Success<Map<String, dynamic>>).data;
+      expect(data['event_type'], 'day_start');
+    });
+
+    test('404 — QR не найден', () async {
+      when(() => dio.post(
+        '/api/v1/mobile/attendance/office-qr/$publicId/checkin/',
+        options: any(named: 'options'),
+      )).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/api/v1/mobile/attendance/office-qr/$publicId/checkin/'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/api/v1/mobile/attendance/office-qr/$publicId/checkin/'),
+            statusCode: 404,
+          ),
+        ),
+      );
+
+      final result = await repository.checkinOfficeQr(publicId: publicId);
+
+      expect((result as Failure<Map<String, dynamic>>).message, 'QR-код не найден или неактивен');
+    });
+
+    test('403 — нет профиля сотрудника', () async {
+      when(() => dio.post(
+        '/api/v1/mobile/attendance/office-qr/$publicId/checkin/',
+        options: any(named: 'options'),
+      )).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/api/v1/mobile/attendance/office-qr/$publicId/checkin/'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/api/v1/mobile/attendance/office-qr/$publicId/checkin/'),
+            statusCode: 403,
+          ),
+        ),
+      );
+
+      final result = await repository.checkinOfficeQr(publicId: publicId);
+
+      expect((result as Failure<Map<String, dynamic>>).message, 'Профиль сотрудника не найден');
+    });
+
+    test('сетевой таймаут возвращает Failure', () async {
+      when(() => dio.post(
+        '/api/v1/mobile/attendance/office-qr/$publicId/checkin/',
+        options: any(named: 'options'),
+      )).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/api/v1/mobile/attendance/office-qr/$publicId/checkin/'),
+          type: DioExceptionType.connectionTimeout,
+        ),
+      );
+
+      final result = await repository.checkinOfficeQr(publicId: publicId);
+
+      expect(result, isA<Failure<Map<String, dynamic>>>());
+    });
+  });
+
   group('getToday', () {
     test('возвращает список из 2 активных типов, один завершён', () async {
       when(() => dio.get('/api/v1/mobile/attendance/today/')).thenAnswer(

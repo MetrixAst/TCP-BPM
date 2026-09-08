@@ -14,6 +14,9 @@ import '../features/tasks/presentation/tasks_list_screen.dart';
 import '../features/tasks/presentation/task_detail_screen.dart';
 import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/qr/presentation/qr_scanner_screen.dart';
+import '../features/qr/presentation/office_qr_confirm_screen.dart';
+import '../features/qr/data/qr_scan_target.dart';
+import '../features/rounds/presentation/round_point_confirm_screen.dart';
 import '../features/finances/presentation/finances_screen.dart';
 
 
@@ -62,6 +65,14 @@ final router = GoRouter(
 
     GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
     GoRoute(path: '/qr-scanner', builder: (context, state) => const QrScannerScreen()),
+    GoRoute(
+      path: '/attendance/office-confirm',
+      builder: (context, state) => OfficeQrConfirmScreen(target: state.extra as OfficeScanTarget),
+    ),
+    GoRoute(
+      path: '/rounds/point-confirm',
+      builder: (context, state) => RoundPointConfirmScreen(target: state.extra as RoundScanTarget),
+    ),
     GoRoute(path: '/finances', builder: (context, state) => const FinancesScreen()),
   ],
 );

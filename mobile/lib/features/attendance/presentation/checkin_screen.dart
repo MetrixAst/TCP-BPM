@@ -1,8 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_result.dart';
@@ -17,6 +15,7 @@ import '../../../shared/widgets/app_top_bar.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/outbox_repository.dart';
+import '../../qr/presentation/qr_router.dart';
 
 enum _CheckinMode { face, qr }
 
@@ -40,6 +39,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
   bool _isCapturing = false;
   bool _isSubmitting = false;
+  bool _isScanningQr = false;
   bool _isLoadingStatus = true;
   String? _errorMessage;
   String? _successMessage;
@@ -168,68 +168,17 @@ class _CheckinScreenState extends State<CheckinScreen> {
     });
   }
 
-  /// QR на киоске кодирует полную ссылку вида ".../qr-checkin/?token=...",
-  /// а не голый токен — вытаскиваем параметр, если он есть, иначе считаем
-  /// декодированный текст уже готовым токеном.
-  String _extractToken(String scanned) {
-    final uri = Uri.tryParse(scanned);
-    final fromQuery = uri?.queryParameters['token'];
-    return (fromQuery != null && fromQuery.isNotEmpty) ? fromQuery : scanned;
-  }
-
+  /// Единый роутер сканера (office/round/room QR, см. features/qr/presentation/
+  /// qr_router.dart) сам решает сценарий и открывает нужный экран
+  /// подтверждения — здесь просто дожидаемся возврата и обновляем статус
+  /// за сегодня, если это была офисная отметка.
   Future<void> _handleScanQr() async {
-    final scanned = await context.push<String>('/qr-scanner');
-    if (scanned == null || !mounted) return;
-    final token = _extractToken(scanned);
-
-    setState(() {
-      _isSubmitting = true;
-      _errorMessage = null;
-      _successMessage = null;
-    });
-
-    final connectivity = await Connectivity().checkConnectivity();
-    final isOffline = connectivity.every((r) => r == ConnectivityResult.none);
-
-    // QR-токен короткоживущий: если сохранить попытку в offline-очередь и
-    // отправить её позже, к моменту доставки токен почти наверняка истечёт,
-    // а сотруднику уже показали бы "успех". Поэтому в офлайне сразу ошибка,
-    // без записи в OutboxRepository (в отличие от Face-чекина).
-    if (isOffline) {
-      if (!mounted) return;
-      setState(() {
-        _isSubmitting = false;
-        _errorMessage = 'Нет сети. Отсканируйте QR ещё раз, когда появится соединение.';
-      });
-      return;
-    }
-
-    final result = await _repository.checkinQr(
-      token: token,
-      idempotencyKey: const Uuid().v4(),
-    );
-
+    if (_isScanningQr) return;
+    setState(() => _isScanningQr = true);
+    await handleQrScan(context);
     if (!mounted) return;
-
-    setState(() {
-      _isSubmitting = false;
-      switch (result) {
-        case Success(:final data):
-          _successMessage = 'Отметка сохранена';
-          // Тип отметки решает точка сканирования, а не выбор в приложении —
-          // отмечаем как выполненный именно тот тип, что подтвердил сервер.
-          final markedType = CheckinEventType.values
-              .where((t) => t.value == data)
-              .firstOrNull;
-          if (markedType != null) {
-            _completedTypes = {..._completedTypes, markedType};
-          }
-          final available = CheckinEventType.values.where((t) => !_completedTypes.contains(t));
-          _selectedType = available.isNotEmpty ? available.first : null;
-        case Failure(:final message):
-          _errorMessage = message;
-      }
-    });
+    setState(() => _isScanningQr = false);
+    await _loadTodayStatus();
   }
 
   @override
@@ -391,7 +340,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   const Text(
-                    'Наведите камеру на QR-код на экране точки входа',
+                    'Отсканируйте QR-этикетку на входе в офис',
                     style: TextStyle(fontSize: 12, color: MetrixColors.textMuted),
                     textAlign: TextAlign.center,
                   ),
@@ -399,7 +348,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   AppButton(
                     label: 'Сканировать QR',
                     icon: Icons.qr_code_scanner,
-                    isLoading: _isSubmitting,
+                    isLoading: _isScanningQr,
                     onPressed: _handleScanQr,
                   ),
                 ],

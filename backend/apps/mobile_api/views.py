@@ -496,11 +496,33 @@ class RoundsResolveQRView(APIView):
 
         try:
             from hr.models import OfficeQRPoint
+            from hr.enums import CheckInEnum
             import uuid
             office_point = OfficeQRPoint.objects.get(public_id=uuid.UUID(qr), is_active=True)
+
+            employee = getattr(request.user, 'employee_info', None)
+            next_action = None
+            already_done = False
+            if employee:
+                today = timezone.now().date()
+                has_day_start = AttendanceRecord.objects.filter(
+                    employee=employee, event_type=CheckInEnum.DAY_START, timestamp__date=today,
+                ).exists()
+                has_day_end = AttendanceRecord.objects.filter(
+                    employee=employee, event_type=CheckInEnum.DAY_END, timestamp__date=today,
+                ).exists()
+                if not has_day_start:
+                    next_action = CheckInEnum.DAY_START
+                elif not has_day_end:
+                    next_action = CheckInEnum.DAY_END
+                else:
+                    already_done = True
+
             return Response({
                 'type': 'office_checkin',
                 'point_name': office_point.name,
+                'next_action': next_action,
+                'already_done': already_done,
                 'checkin_url': f'/api/v1/mobile/attendance/office-qr/{qr}/checkin/',
             })
         except Exception:
@@ -570,6 +592,51 @@ class RoundDetailView(APIView):
             'points': points_data,
             'completed': sum(1 for p in points_data if p['is_visited']),
             'total': len(points_data),
+        })
+
+
+class RoundPointDetailView(APIView):
+    """GET /api/v1/mobile/rounds/points/<uuid>/ — чек-лист конкретной точки
+    для экрана подтверждения после сканирования round QR. Отдельно от
+    RoundDetailView (тот про весь маршрут по id планового обхода) — здесь
+    нужна точка сама по себе, ещё до того как известен plan (см.
+    RoundsResolveQRView, который может вернуть planned_round_id=null)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, point_uuid):
+        from ecopark.models import RoundPoint, RoundVisit
+        from django.utils import timezone
+
+        try:
+            point = RoundPoint.objects.select_related('checklist').get(uuid=point_uuid, is_active=True)
+        except RoundPoint.DoesNotExist:
+            return Response({'error': 'Точка не найдена или неактивна'}, status=404)
+
+        employee = getattr(request.user, 'employee_info', None)
+        if not employee:
+            return Response({'error': 'Профиль сотрудника не найден'}, status=403)
+
+        today = timezone.now().date()
+        already_visited = RoundVisit.objects.filter(
+            point=point, employee=employee, created_at__date=today,
+        ).exists()
+
+        items = []
+        if point.checklist:
+            for item in point.checklist.items.order_by('order'):
+                items.append({
+                    'id': item.pk,
+                    'text': item.text,
+                    'requires_photo_on_fail': item.requires_photo_on_fail,
+                })
+
+        return Response({
+            'point_uuid': str(point.uuid),
+            'point_name': point.name,
+            'location': point.location,
+            'items': items,
+            'already_visited': already_visited,
         })
 
 
@@ -658,4 +725,71 @@ class RoundPointAnswerView(APIView):
             'visit_id': visit.pk,
             'message': 'Точка отмечена',
             'defects_created': Defect.objects.filter(visit=visit).count(),
+        }, status=status.HTTP_201_CREATED)
+
+
+class AttendanceOfficeQRCheckinView(APIView):
+    """POST /api/v1/mobile/attendance/office-qr/<uuid>/checkin/ — тот же
+    статичный офисный QR (BE-FT-01), что и на вебе (hr:office_qr_checkin),
+    просто под JWT + Idempotency-Key вместо сессии. Приход/уход определяется
+    сервером по тому, какие отметки уже есть за сегодня — клиент не выбирает
+    тип отметки сам."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @idempotent('attendance-office-qr-checkin')
+    def post(self, request, public_id):
+        from hr.models import OfficeQRPoint, QRScanAudit
+        from hr.enums import CheckInEnum
+        from django.utils import timezone
+
+        try:
+            point = OfficeQRPoint.objects.get(public_id=public_id, is_active=True)
+        except OfficeQRPoint.DoesNotExist:
+            return Response({'error': 'QR-код не найден или неактивен'}, status=404)
+
+        employee = getattr(request.user, 'employee_info', None)
+        if not employee:
+            return Response({'error': 'Профиль сотрудника не найден'}, status=403)
+
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+        today = timezone.now().date()
+        has_day_start = AttendanceRecord.objects.filter(
+            employee=employee, event_type=CheckInEnum.DAY_START, timestamp__date=today,
+        ).exists()
+        has_day_end = AttendanceRecord.objects.filter(
+            employee=employee, event_type=CheckInEnum.DAY_END, timestamp__date=today,
+        ).exists()
+
+        if not has_day_start:
+            event_type = CheckInEnum.DAY_START
+        elif not has_day_end:
+            event_type = CheckInEnum.DAY_END
+        else:
+            return Response({
+                'success': True,
+                'already_done': True,
+                'message': 'Отметки на сегодня уже сделаны',
+            })
+
+        record = create_attendance_checkin(
+            employee=employee,
+            event_type=event_type,
+            photo_file=None,
+            ip_address=ip,
+            source='qr',
+        )
+
+        QRScanAudit.objects.create(
+            token=str(point.public_id),
+            user=request.user,
+            action=QRScanAudit.ACTION_SUCCESS,
+            ip_address=ip,
+        )
+
+        return Response({
+            'success': True,
+            'already_done': False,
+            'event_type': record.event_type,
+            'message': 'Приход зафиксирован' if event_type == CheckInEnum.DAY_START else 'Уход зафиксирован',
         }, status=status.HTTP_201_CREATED)

@@ -59,6 +59,40 @@ class AttendanceRepository {
     }
   }
 
+  /// Статичный офисный QR (BE-FT-01): сервер сам решает приход это или
+  /// уход по тому, какие отметки уже есть за сегодня — тело запроса пустое.
+  Future<ApiResult<Map<String, dynamic>>> checkinOfficeQr({
+    required String publicId,
+    String? idempotencyKey,
+  }) async {
+    try {
+      final response = await dio.post(
+        '/api/v1/mobile/attendance/office-qr/$publicId/checkin/',
+        options: idempotencyKey != null
+            ? Options(headers: {'Idempotency-Key': idempotencyKey})
+            : null,
+      );
+      return Success(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      return Failure(_officeQrErrorMessage(e), statusCode: e.response?.statusCode);
+    }
+  }
+
+  String _officeQrErrorMessage(DioException e) {
+    final status = e.response?.statusCode;
+    if (status == 404) {
+      return 'QR-код не найден или неактивен';
+    }
+    if (status == 403) {
+      return 'Профиль сотрудника не найден';
+    }
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      return 'Сервер не отвечает, проверьте соединение';
+    }
+    return 'Ошибка сети, попробуйте ещё раз';
+  }
+
   Future<ApiResult<List<AttendanceTodayStatus>>> getToday() async {
       try {
         final response = await dio.get('/api/v1/mobile/attendance/today/');
