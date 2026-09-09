@@ -643,6 +643,26 @@ def rounds_scan(request, point_uuid):
                         reported_by=employee,
                     )
 
+            # Веб-скан (в отличие от мобильного RoundPointAnswerView) не знает
+            # заранее свой planned_round_id — точку сканируют напрямую по QR.
+            # Ищем плановые обходы, в маршрут которых входит эта точка и чьё
+            # окно [planned_start, planned_end] покрывает этот визит, и
+            # закрываем их, если после этого визита пройдены все точки —
+            # иначе журнал план/факт никогда не увидит "Завершён" для
+            # обходов, сделанных через веб (см. FE-FT-05).
+            from .models import PlannedRound
+            candidate_rounds = PlannedRound.objects.filter(
+                assigned_to=request.user,
+                route__route_points__point=point,
+                planned_start__lte=visit.created_at,
+                planned_end__gte=visit.created_at,
+            ).distinct()
+            for planned in candidate_rounds:
+                if planned.status == PlannedRound.STATUS_PENDING and planned.is_all_points_done():
+                    planned.status = PlannedRound.STATUS_COMPLETED
+                    planned.completed_at = timezone.now()
+                    planned.save(update_fields=['status', 'completed_at'])
+
         return render(request, 'site/ecopark/rounds_scan_done.html', {'point': point, 'visit': visit})
 
     return render(request, 'site/ecopark/rounds_scan.html', {'point': point, 'items': items})

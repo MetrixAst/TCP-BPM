@@ -743,9 +743,11 @@ class RoundPointAnswerView(APIView):
                 if item_status == 'fail':
                     Defect.objects.create(
                         visit=visit,
+                        answer=answer,
                         point=point,
                         description=item_comment or f'Неисправность: {item.text}',
                         priority=Defect.PRIORITY_HIGH,
+                        reported_by=employee,
                     )
 
         if planned.is_all_points_done():

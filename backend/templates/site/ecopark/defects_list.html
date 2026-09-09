@@ -48,7 +48,13 @@
                 <div><a href="{{ defect.photo.url }}" target="_blank" rel="noopener">Фото</a></div>
               {% endif %}
             </td>
-            <td>{{ defect.reported_by.user.get_full_name|default:defect.reported_by.user.username|default:"—" }}</td>
+            <td>
+              {% if defect.reported_by %}
+                {{ defect.reported_by.user.get_full_name|default:defect.reported_by.user.username }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
             <td>{{ defect.created_at|date:"d.m.Y H:i" }}</td>
             <td>
               <span class="hr-registry-status hr-registry-status--{% if defect.status == 'resolved' %}active{% elif defect.status == 'in_progress' %}expiring{% else %}expired{% endif %}">
