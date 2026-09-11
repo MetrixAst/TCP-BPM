@@ -2,7 +2,13 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from account.models import PushToken, UserAccount, Notification, NotificationIndicator
+from account.models import (
+    Notification,
+    NotificationIndicator,
+    NotificationUser,
+    PushToken,
+    UserAccount,
+)
 
 import io
 
@@ -837,19 +843,19 @@ class NotificationsApiTests(APITestCase):
         results = response.data['results']
         self.assertEqual(results[0]['is_read'], False)
 
-    def test_notification_read_when_no_indicator(self):
+    def test_notification_unread_when_no_read_state(self):
         notif = Notification.objects.create(
             title='Старое уведомление', text='...',
             target_type='task', target_id=99,
         )
         notif.users.add(self.user)
-        # индикатора нет -> уже прочитано (или прочитали ранее)
+        # Без явного NotificationUser(is_read=True) уведомление не прочитано.
 
         self.client.force_authenticate(user=self.user)
         response = self.client.get(self.list_url)
 
         results = response.data['results']
-        self.assertEqual(results[0]['is_read'], True)
+        self.assertEqual(results[0]['is_read'], False)
 
     def test_mark_as_read_removes_indicator(self):
         notif = Notification.objects.create(
@@ -871,6 +877,15 @@ class NotificationsApiTests(APITestCase):
                 user=self.user, target_type='task', target_id=7
             ).exists()
         )
+        read_state = NotificationUser.objects.get(
+            notification=notif,
+            user=self.user,
+        )
+        self.assertTrue(read_state.is_read)
+        self.assertIsNotNone(read_state.read_at)
+
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.data['results'][0]['is_read'], True)
 
     def test_mark_as_read_for_nonexistent_notification_returns_404(self):
         self.client.force_authenticate(user=self.user)
