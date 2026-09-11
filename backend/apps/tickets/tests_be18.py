@@ -108,3 +108,39 @@ class NotificationsOnApprovalTest(TestCase):
         self.ticket.apply_action(request, 'reject', comment='причина отклонения')
         count_after = Notification.objects.count()
         self.assertGreater(count_after, count_before)
+
+
+class ApprovalQueueAccessTest(TestCase):
+
+    def setUp(self):
+        from django.test import Client
+
+        self.client = Client()
+        self.company = make_company()
+        self.dept = make_dept(self.company)
+        self.primary_admin = make_user('primary_admin_be18', role='administrator')
+        self.second_admin = make_user('second_admin_be18', role='administrator')
+        self.author = make_user('author_queue_be18')
+        make_employee(self.author, self.dept)
+        self.ticket = make_ticket(self.author)
+
+    def test_every_administrator_sees_pending_approval(self):
+        self.client.login(username='second_admin_be18', password='pass')
+        response = self.client.get('/tickets/approvals/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.ticket.title)
+
+    def test_unrelated_department_head_does_not_see_pending_approval(self):
+        other_dept = Department.objects.create(
+            name='BE18 Other Dept',
+            company=self.company,
+        )
+        unrelated_head = make_user('unrelated_head_be18')
+        make_employee(unrelated_head, other_dept, head=True)
+
+        self.client.login(username='unrelated_head_be18', password='pass')
+        response = self.client.get('/tickets/approvals/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, self.ticket.title)
