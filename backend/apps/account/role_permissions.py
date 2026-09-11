@@ -509,10 +509,14 @@ class MenuItem:
                     MenuItem('rounds_defects', 'ecopark:defects_list', 'exclamation-triangle', 'Неисправности')
                 )
 
-        # "Мои обходы" — любой сотрудник с профилем может быть назначен на
-        # маршрут (PlannedRound.assigned_to), независимо от роли и от того,
-        # руководитель он или нет — поэтому не завязано на employee.head.
-        if employee and not any(i.id == 'my_planned_rounds' for i in menu):
+        # Исполнитель видит раздел только после назначения на маршрут/обход.
+        # Руководитель без собственного назначения использует журналы выше.
+        from ecopark.access import user_has_round_assignment
+        if (
+            employee
+            and user_has_round_assignment(user)
+            and not any(i.id == 'my_planned_rounds' for i in menu)
+        ):
             menu.append(
                 MenuItem('my_planned_rounds', 'ecopark:my_planned_rounds', 'compass', 'Мои обходы')
             )
