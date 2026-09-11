@@ -39,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // на старте (не только реальное отсутствие прав) прячет всё меню разом.
   bool _hasTasksAccess = true;
   bool _hasTicketsAccess = true;
+  bool _hasRoundsAccess = false;
   String? _userName;
   String? _userRole;
   Timer? _pollTimer;
@@ -84,6 +85,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _hasFinanceAccess = _menuHasId(menu, 'finances');
           _hasTasksAccess = _menuHasId(menu, 'tasks');
           _hasTicketsAccess = _menuHasId(menu, 'tickets');
+          _hasRoundsAccess = _menuHasId(menu, 'my_planned_rounds');
         });
       }
     } catch (e, st) {
@@ -132,13 +134,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     subtitle: 'Мои отметки за сегодня',
                     onTap: () => context.push('/attendance/today'),
                   ),
-                  const _RowDivider(),
-                  _ListRow(
-                    icon: Icons.assignment_turned_in_outlined,
-                    title: 'Обходы',
-                    subtitle: 'Задания на сегодня, маршрут и история',
-                    onTap: () => context.push('/rounds/today'),
-                  ),
+                  if (_hasRoundsAccess) ...[
+                    const _RowDivider(),
+                    _ListRow(
+                      icon: Icons.assignment_turned_in_outlined,
+                      title: 'Обходы',
+                      subtitle: 'Задания на сегодня, маршрут и история',
+                      onTap: () => context.push('/rounds/today'),
+                    ),
+                  ],
                   if (_hasTicketsAccess) ...[
                     const _RowDivider(),
                     _ListRow(

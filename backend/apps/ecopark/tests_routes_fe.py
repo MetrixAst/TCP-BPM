@@ -3,6 +3,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from account.models import UserAccount, Employee, Department
+from account.role_permissions import MenuItem
 from hr.models import Company
 from ecopark.models import (
     EcoObject, RoundPoint, ChecklistTemplate,
@@ -238,3 +239,66 @@ class MyPlannedRoundsProgressTest(TestCase):
         result = r.context['rounds'][0]
         self.assertIsNone(result.next_point)
         self.assertEqual(result.progress_completed, 2)
+
+
+class MyRoundsVisibilityTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        (
+            self.admin,
+            self.head_user,
+            self.staff_user,
+            self.route,
+            self.point1,
+            self.point2,
+            self.dept,
+        ) = make_setup()
+        self.unassigned_user = UserAccount.objects.create_user(
+            username='unassigned_rtfe',
+            password='pass',
+            role='staff',
+        )
+        Employee.objects.create(
+            user=self.unassigned_user,
+            department=self.dept,
+            status='active',
+        )
+
+    @staticmethod
+    def _menu_ids(user):
+        return {item.id for item in MenuItem.generate_menu(user)}
+
+    def test_unassigned_employee_does_not_see_rounds_and_cannot_open_page(self):
+        self.assertNotIn('my_planned_rounds', self._menu_ids(self.unassigned_user))
+        self.client.login(username='unassigned_rtfe', password='pass')
+        response = self.client.get('/ecopark/rounds/my/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_directly_assigned_employee_sees_rounds_and_can_open_page(self):
+        self.assertIn('my_planned_rounds', self._menu_ids(self.staff_user))
+        self.client.login(username='staff_rtfe', password='pass')
+        response = self.client.get('/ecopark/rounds/my/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_department_assignment_grants_rounds_access(self):
+        Route.objects.create(
+            name='Маршрут отдела',
+            assigned_department=self.dept,
+            created_by=self.admin,
+        )
+        self.assertIn('my_planned_rounds', self._menu_ids(self.unassigned_user))
+
+    def test_existing_planned_round_keeps_history_access(self):
+        self.route.assigned_employee = None
+        self.route.is_active = False
+        self.route.save(update_fields=['assigned_employee', 'is_active'])
+        now = timezone.now()
+        PlannedRound.objects.create(
+            route=self.route,
+            assigned_to=self.unassigned_user,
+            planned_start=now - timedelta(days=2),
+            planned_end=now - timedelta(days=2) + timedelta(hours=2),
+            status=PlannedRound.STATUS_COMPLETED,
+        )
+        self.assertIn('my_planned_rounds', self._menu_ids(self.unassigned_user))

@@ -943,8 +943,13 @@ def route_delete(request, pk):
 
 @login_required
 def my_planned_rounds(request):
+    from ecopark.access import user_has_round_assignment
     from ecopark.models import PlannedRound
     from django.utils import timezone
+
+    if not user_has_round_assignment(request.user):
+        raise PermissionDenied('Обходы не назначены')
+
     rounds = PlannedRound.objects.filter(
         assigned_to=request.user,
     ).select_related('route').order_by('-planned_start')[:100]
