@@ -310,6 +310,7 @@ class MenuItem:
 
     @staticmethod
     def generate_menu(user):
+        from django.conf import settings
         from account.services.permissions import user_has_permission
 
         finance_common_submenu = [
@@ -467,6 +468,8 @@ class MenuItem:
             role = role.value
 
         menu = list(items.get(role, []))
+        if not settings.FINANCES_MENU_ENABLED:
+            menu = [item for item in menu if item.id != 'finances']
 
         if role == RoleEnums.STAFF.value:
             hr_submenu = [
@@ -531,6 +534,8 @@ class MenuItem:
         extra_pool = {}
         for role_items in items.values():
             for candidate in role_items:
+                if candidate.id == 'finances' and not settings.FINANCES_MENU_ENABLED:
+                    continue
                 if candidate.permission and candidate.id not in extra_pool:
                     extra_pool[candidate.id] = candidate
 
