@@ -5,7 +5,7 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
-from account.role_permissions import need_permission, PermissionEnums
+from account.role_permissions import need_permission, PermissionEnums, RoleEnums
 from project.paginator import CustomPaginator
 
 from .models import ServiceRequest, user_is_manager
@@ -387,10 +387,21 @@ def approval_queue(request):
         .order_by('updated_at')
     )
 
-    queue = [
-        ticket for ticket in pending
-        if ticket.author_id and get_approver(ticket.author) and get_approver(ticket.author).id == request.user.id
-    ]
+    is_admin = (
+        request.user.is_superuser
+        or request.user.role == RoleEnums.ADMINISTRATOR.value
+    )
+    if is_admin:
+        queue = list(pending)
+    else:
+        queue = [
+            ticket for ticket in pending
+            if (
+                ticket.author_id
+                and (approver := get_approver(ticket.author))
+                and approver.id == request.user.id
+            )
+        ]
 
     return render(request, 'site/tickets/approvals.html', {
         'queue': queue,
