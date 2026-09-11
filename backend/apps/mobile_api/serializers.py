@@ -17,9 +17,8 @@ class NotificationSerializer(serializers.Serializer):
     is_read = serializers.SerializerMethodField()
 
     def get_is_read(self, obj):
-        unread_target_ids = self.context.get('unread_targets', set())
-        key = (obj.target_type, obj.target_id)
-        return key not in unread_target_ids
+        read_notification_ids = self.context.get('read_notification_ids', set())
+        return obj.pk in read_notification_ids
 
 class TicketMessageSerializer(serializers.Serializer):
     id = serializers.IntegerField()
