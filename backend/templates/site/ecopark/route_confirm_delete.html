@@ -1,7 +1,7 @@
 {% extends "site/base.html" %}
 {% load static %}
 
-{% block title %}Удалить QR-точку — metriX BPM{% endblock %}
+{% block title %}Удалить маршрут — metriX BPM{% endblock %}
 {% block body_classes %}hr-registry-edit-body{% endblock %}
 
 {% block styles %}
@@ -13,8 +13,8 @@
   <div class="hr-registry-edit-card">
 
     <div class="hr-registry-edit-card__header">
-      <h1 class="hr-registry-edit-card__title">Удалить QR-точку?</h1>
-      <a href="{% url 'hr:qr_points_list' %}" class="hr-registry-edit-card__close" aria-label="Закрыть">
+      <h1 class="hr-registry-edit-card__title">Удалить маршрут?</h1>
+      <a href="{% url 'ecopark:routes_list' %}" class="hr-registry-edit-card__close" aria-label="Закрыть">
         <i class="bi bi-x"></i>
       </a>
     </div>
@@ -22,18 +22,18 @@
     <form method="post">
       {% csrf_token %}
       <div class="hr-registry-edit-card__body">
-        <p><strong>{{ point.name }}</strong>{% if point.location %} · {{ point.location }}{% endif %}</p>
+        <p><strong>{{ route.name }}</strong></p>
         <p>
-          Точка будет удалена без возможности восстановления. Уже сделанные по ней отметки
-          посещаемости не пострадают — удаляется только сама точка.
+          Маршрут будет деактивирован — история плановых и фактических обходов по нему
+          останется в журнале, но новые обходы по нему планироваться не будут.
         </p>
       </div>
       <div class="hr-registry-edit-card__footer">
-        <a href="{% url 'hr:qr_points_list' %}" class="hr-registry-edit-btn hr-registry-edit-btn--cancel">
+        <a href="{% url 'ecopark:routes_list' %}" class="hr-registry-edit-btn hr-registry-edit-btn--cancel">
           Отменить
         </a>
         <button type="submit" class="hr-registry-edit-btn hr-registry-edit-btn--save" style="background:#dc2626;">
-          Удалить
+          Деактивировать
         </button>
       </div>
     </form>

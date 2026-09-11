@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Отметка посещаемости — {{ point.name }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: sans-serif;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: 0 4px 24px rgba(0,0,0,.08);
+            text-align: center;
+        }
+        .point-name { font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
+        .employee-name { font-size: 15px; color: #64748b; margin-bottom: 24px; }
+        .action-label {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 24px;
+        }
+        .btn-confirm {
+            width: 100%;
+            padding: 14px;
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-confirm.day_end { background: #f59e0b; }
+        .already-done {
+            font-size: 16px;
+            color: #22c55e;
+            font-weight: 600;
+        }
+        .success-msg { display: none; }
+        .error-msg { display: none; color: #ef4444; margin-top: 12px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="point-name">{{ point.name }}</div>
+        <div class="employee-name">{{ employee.user.get_name }}</div>
+
+        {% if already_done %}
+            <div class="already-done"> Отметки на сегодня уже сделаны</div>
+        {% else %}
+            <div class="action-label">
+                {% if next_action == 'day_start' %} Подтвердите приход{% else %} Подтвердите уход{% endif %}
+            </div>
+            <button
+                class="btn-confirm {{ next_action }}"
+                id="confirm-btn"
+                onclick="confirm_checkin()">
+                {{ next_label }}
+            </button>
+            <div class="success-msg" id="success-msg"></div>
+            <div class="error-msg" id="error-msg"></div>
+        {% endif %}
+    </div>
+
+    <script>
+        async function confirm_checkin() {
+            const btn = document.getElementById('confirm-btn');
+            btn.disabled = true;
+            btn.textContent = 'Сохранение...';
+
+            try {
+                const res = await fetch(window.location.pathname + 'checkin/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrf(),
+                        'Content-Type': 'application/json',
+                    },
+                });
+                const data = await res.json();
+                if (data.success) {
+                    btn.style.display = 'none';
+                    const msg = document.getElementById('success-msg');
+                    msg.style.display = 'block';
+                    msg.textContent = '✓ ' + data.message;
+                    msg.style.color = '#22c55e';
+                    msg.style.fontSize = '18px';
+                    msg.style.fontWeight = '600';
+                    msg.style.marginTop = '16px';
+                } else {
+                    document.getElementById('error-msg').style.display = 'block';
+                    document.getElementById('error-msg').textContent = data.error || 'Ошибка';
+                    btn.disabled = false;
+                    btn.textContent = '{{ next_label }}';
+                }
+            } catch(e) {
+                document.getElementById('error-msg').style.display = 'block';
+                document.getElementById('error-msg').textContent = 'Ошибка соединения';
+                btn.disabled = false;
+                btn.textContent = '{{ next_label }}';
+            }
+        }
+
+        function getCsrf() {
+            return document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='))?.split('=')[1] || '';
+        }
+    </script>
+</body>
+</html>

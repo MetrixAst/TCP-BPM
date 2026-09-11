@@ -1,0 +1,83 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Мои обходы — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .mpr-grid { display: grid; gap: 12px; }
+  .mpr-card {
+    background: #fff; border-radius: 14px; padding: 16px 18px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+  }
+  .mpr-card__main { flex: 1 1 220px; min-width: 0; }
+  .mpr-card__name { font-size: 15px; font-weight: 700; color: #25233f; }
+  .mpr-card__time { font-size: 12px; color: #74728a; margin-top: 2px; }
+  .mpr-card__progress-wrap { flex: 1 1 160px; min-width: 140px; }
+  .mpr-progress { height: 8px; border-radius: 999px; background: #f0eff6; overflow: hidden; }
+  .mpr-progress__fill { height: 100%; background: #3b82f6; border-radius: 999px; }
+  .mpr-progress__label { font-size: 12px; color: #74728a; margin-top: 4px; }
+  .mpr-card__actions { flex: 0 0 auto; }
+</style>
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page" id="myPlannedRoundsPage">
+
+  <div class="hr-registry-top">
+    <div>
+      <h1>Мои обходы</h1>
+      <p class="attendance-page__subtitle">Назначенные вам маршруты и прогресс по ним</p>
+    </div>
+  </div>
+
+  <div class="hr-registry-panel">
+    <div class="mpr-grid">
+      {% for round in rounds %}
+        <div class="mpr-card">
+          <div class="mpr-card__main">
+            <div class="mpr-card__name">{{ round.route.name }}</div>
+            <div class="mpr-card__time">
+              {{ round.planned_start|date:"d.m.Y H:i" }} — {{ round.planned_end|date:"H:i" }}
+              {% if round.is_overdue %}
+                <span class="hr-registry-status hr-registry-status--expired" style="margin-left:6px;">Просрочен</span>
+              {% elif round.status == 'completed' %}
+                <span class="hr-registry-status hr-registry-status--active" style="margin-left:6px;">Завершён</span>
+              {% elif round.status == 'missed' %}
+                <span class="hr-registry-status hr-registry-status--expired" style="margin-left:6px;">Пропущен</span>
+              {% else %}
+                <span class="hr-registry-status hr-registry-status--expiring" style="margin-left:6px;">{{ round.get_status_display }}</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mpr-card__progress-wrap">
+            <div class="mpr-progress">
+              <div class="mpr-progress__fill" style="width:{{ round.progress_percent }}%;"></div>
+            </div>
+            <div class="mpr-progress__label">{{ round.progress_completed }} / {{ round.progress_total }} точек</div>
+          </div>
+
+          <div class="mpr-card__actions">
+            {% if round.status != 'completed' and round.next_point %}
+              <a href="{% url 'ecopark:rounds_scan' round.next_point.uuid %}" class="hr-registry-btn hr-registry-btn--primary">
+                {% if round.progress_completed %}Продолжить{% else %}Начать{% endif %}
+              </a>
+            {% elif round.status == 'completed' %}
+              <span class="hr-muted"><i class="bi bi-check-circle"></i> Выполнен</span>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <div class="hr-registry-empty">
+          <i class="bi bi-compass"></i>
+          <strong>Обходов пока нет</strong>
+          <span>Как только вам назначат маршрут — он появится здесь.</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -6,7 +6,7 @@ from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse
-from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, Http404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
@@ -15,6 +15,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal, ROUND_HALF_UP
+from django.views.decorators.http import require_http_methods
 
 
 from project.utils import get_or_none, get_or_error
@@ -1058,15 +1059,6 @@ def attendance_checkin(request):
         if preselect in completed_types and next_event:
             preselect = next_event
 
-        from hr.models import QRPoint
-        web_qr_point, _ = QRPoint.objects.get_or_create(
-            name='Веб-терминал посещаемости',
-            defaults={
-                'location': 'Основная страница отметки посещаемости',
-                'created_by': request.user,
-            },
-        )
-
         return render(request, 'site/hr/attendance/checkin.html', {
             'today_marks': today_marks,
             'completed_types': completed_types,
@@ -1074,7 +1066,6 @@ def attendance_checkin(request):
             'next_event_label': event_labels.get(next_event, '') if next_event else '',
             'preselect_event': preselect,
             'all_done_today': all_done,
-            'qr_token_url': reverse('hr:qr_kiosk_token', args=[web_qr_point.pk]),
         })
 
 
@@ -1922,115 +1913,6 @@ def manual_attendance_report(request):
     return render(request, 'site/hr/manual_attendance_report.html', {
         'employees': employees,
     })
-@need_permission(PermissionEnums.HR_JOURNAL)
-def qr_points_list(request):
-    from hr.models import QRPoint
-    points = QRPoint.objects.all().order_by('name')
-    return render(request, 'site/hr/attendance/qr_points_list.html', {
-        'points': points,
-    })
-
-
-@need_permission(PermissionEnums.HR_JOURNAL)
-def qr_point_create(request):
-    from hr.models import QRPoint
-    if request.method == 'POST':
-        name = request.POST.get('name', '').strip()
-        location = request.POST.get('location', '').strip()
-        if not name:
-            return render(request, 'site/hr/attendance/qr_point_form.html', {
-                'title': 'Новая QR-точка',
-                'error': 'Название обязательно',
-                'form_name': name,
-                'form_location': location,
-            })
-        point = QRPoint.objects.create(name=name, location=location, created_by=request.user)
-        # Сразу открываем экран киоска — обычно точку создают, чтобы
-        # немедленно вывести её на экран у входа.
-        return redirect('hr:qr_kiosk', pk=point.pk)
-    return render(request, 'site/hr/attendance/qr_point_form.html', {
-        'title': 'Новая QR-точка',
-        'form_name': '',
-        'form_location': '',
-    })
-
-
-@need_permission(PermissionEnums.HR_JOURNAL)
-def qr_point_edit(request, pk):
-    from hr.models import QRPoint
-    point = get_object_or_404(QRPoint, pk=pk)
-    if request.method == 'POST':
-        point.name = request.POST.get('name', point.name).strip()
-        point.location = request.POST.get('location', point.location).strip()
-        point.is_active = request.POST.get('is_active') == 'on'
-        point.save()
-        return redirect('hr:qr_points_list')
-    return render(request, 'site/hr/attendance/qr_point_form.html', {
-        'title': 'Редактировать QR-точку',
-        'point': point,
-    })
-
-
-@need_permission(PermissionEnums.HR_JOURNAL)
-def qr_point_delete(request, pk):
-    from hr.models import QRPoint
-    point = get_object_or_404(QRPoint, pk=pk)
-    if request.method == 'POST':
-        point.delete()
-        return redirect('hr:qr_points_list')
-    return render(request, 'site/hr/attendance/qr_point_confirm_delete.html', {'point': point})
-
-
-@need_permission(PermissionEnums.HR_JOURNAL)
-def qr_kiosk(request, pk):
-    from hr.models import QRPoint
-    point = get_object_or_404(QRPoint, pk=pk, is_active=True)
-    return render(request, 'site/hr/attendance/qr_kiosk.html', {
-        'point': point,
-        'token_url': reverse('hr:qr_kiosk_token', args=[pk]),
-        'checkin_types': [
-            {'value': 'day_start', 'label': 'Приход'},
-            {'value': 'day_end', 'label': 'Уход'},
-        ],
-    })
-
-
-@login_required
-def qr_kiosk_token(request, pk):
-    from hr.models import QRPoint, QRToken
-    point = get_object_or_404(QRPoint, pk=pk, is_active=True)
-    event_type = request.GET.get('event_type', 'day_start')
-    if event_type not in (CheckInEnum.DAY_START, CheckInEnum.DAY_END):
-        return JsonResponse(
-            {'error': 'Недопустимый тип отметки'},
-            status=400,
-            json_dumps_params={'ensure_ascii': False},
-        )
-
-    token_value = secrets.token_urlsafe(32)
-    expires_at = timezone.now() + timedelta(seconds=45)
-
-    QRToken.objects.create(
-        token=token_value,
-        qr_point=point,
-        event_type=event_type,
-        expires_at=expires_at,
-        ip_address=request.META.get('REMOTE_ADDR'),
-    )
-
-    scan_url = request.build_absolute_uri(
-        reverse('hr:qr_checkin') + f'?token={token_value}'
-    )
-
-    return JsonResponse({
-        'token': token_value,
-        'scan_url': scan_url,
-        'expires_at': expires_at.isoformat(),
-        'expires_in': 45,
-        'event_type': event_type,
-    })
-
-
 @login_required
 def qr_checkin(request):
     from hr.models import QRToken, QRScanAudit
@@ -2103,3 +1985,199 @@ def qr_checkin(request):
     _audit(QRScanAudit.ACTION_SUCCESS, token_value, qr_token.qr_point)
 
     return _response(True, 'Отметка посещаемости успешно создана')
+
+
+def _office_qr_data_uri(text):
+    import base64
+    import io
+    import qrcode
+
+    img = qrcode.make(text, box_size=8, border=2)
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('ascii')
+
+
+def _office_qr_pdf_font_path():
+    from pathlib import Path
+    from django.conf import settings
+    candidates = [
+        Path(settings.BASE_DIR) / 'static' / 'site' / 'fonts' / 'NotoSans-Regular.ttf',
+        Path('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'),
+    ]
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
+
+
+def _get_office_qr_point():
+    from hr.models import OfficeQRPoint
+    point = OfficeQRPoint.objects.filter(is_active=True).order_by('pk').first()
+    if point:
+        return point
+    return OfficeQRPoint.objects.create(name='Офис')
+
+
+@need_permission(PermissionEnums.HR_JOURNAL)
+def office_qr_admin(request):
+    point = _get_office_qr_point()
+    scan_url = request.build_absolute_uri(reverse('hr:office_qr_preview', args=[point.public_id]))
+    return render(request, 'site/hr/attendance/office_qr_admin.html', {
+        'point': point,
+        'scan_url': scan_url,
+        'qr_data_uri': _office_qr_data_uri(scan_url),
+    })
+
+
+@need_permission(PermissionEnums.HR_JOURNAL)
+@require_http_methods(['POST'])
+def office_qr_reissue(request):
+    point = _get_office_qr_point()
+    point.reissue()
+    messages.success(request, 'QR-код перевыпущен. Старая распечатка больше не действительна.')
+    return redirect('hr:office_qr_admin')
+
+
+@need_permission(PermissionEnums.HR_JOURNAL)
+def office_qr_label_pdf(request):
+    from xhtml2pdf import pisa
+    from io import BytesIO
+    from django.template.loader import render_to_string
+
+    point = _get_office_qr_point()
+    scan_url = request.build_absolute_uri(reverse('hr:office_qr_preview', args=[point.public_id]))
+    font_path = _office_qr_pdf_font_path()
+    if not font_path:
+        raise Http404('Не найден шрифт для PDF (static/site/fonts/NotoSans-Regular.ttf)')
+
+    html = render_to_string('site/hr/pdf/office_qr_label.html', {
+        'point': point,
+        'qr_data_uri': _office_qr_data_uri(scan_url),
+        'pdf_font_family': 'OfficeQrLabelFont',
+        'pdf_font_file': font_path.name,
+    })
+
+    def _link_callback(uri, rel):
+        if uri == font_path.name:
+            return str(font_path)
+        return uri
+
+    result = BytesIO()
+    pdf_status = pisa.CreatePDF(
+        html, dest=result, encoding='utf-8',
+        link_callback=_link_callback, path=str(font_path.parent),
+    )
+    if pdf_status.err:
+        raise Http404('Не удалось сформировать PDF')
+
+    response = HttpResponse(result.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="office-qr.pdf"'
+    return response
+
+
+@login_required
+def office_qr_preview(request, public_id):
+    from hr.models import OfficeQRPoint, AttendanceRecord
+    from hr.enums import CheckInEnum
+    from django.utils import timezone
+
+    point = get_object_or_404(OfficeQRPoint, public_id=public_id, is_active=True)
+
+    employee = getattr(request.user, 'employee_info', None)
+    if not employee:
+        return render(request, 'site/hr/attendance/office_qr_no_profile.html', {
+            'point': point,
+        })
+
+    today = timezone.now().date()
+    has_day_start = AttendanceRecord.objects.filter(
+        employee=employee,
+        event_type=CheckInEnum.DAY_START,
+        timestamp__date=today,
+    ).exists()
+    has_day_end = AttendanceRecord.objects.filter(
+        employee=employee,
+        event_type=CheckInEnum.DAY_END,
+        timestamp__date=today,
+    ).exists()
+
+    if not has_day_start:
+        next_action = 'day_start'
+        next_label = 'Подтвердить приход'
+    elif has_day_start and not has_day_end:
+        next_action = 'day_end'
+        next_label = 'Подтвердить уход'
+    else:
+        next_action = None
+        next_label = None
+
+    return render(request, 'site/hr/attendance/office_qr_preview.html', {
+        'point': point,
+        'employee': employee,
+        'next_action': next_action,
+        'next_label': next_label,
+        'already_done': next_action is None,
+    })
+
+
+@login_required
+@require_http_methods(['POST'])
+def office_qr_checkin(request, public_id):
+    from hr.models import OfficeQRPoint, AttendanceRecord, QRScanAudit
+    from hr.enums import CheckInEnum
+    from hr.services import create_attendance_checkin
+    from django.utils import timezone
+
+    point = get_object_or_404(OfficeQRPoint, public_id=public_id, is_active=True)
+    ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+
+    employee = getattr(request.user, 'employee_info', None)
+    if not employee:
+        return JsonResponse({'success': False, 'error': 'Профиль сотрудника не найден'}, status=403, json_dumps_params={'ensure_ascii': False})
+
+    today = timezone.now().date()
+    has_day_start = AttendanceRecord.objects.filter(
+        employee=employee,
+        event_type=CheckInEnum.DAY_START,
+        timestamp__date=today,
+    ).exists()
+    has_day_end = AttendanceRecord.objects.filter(
+        employee=employee,
+        event_type=CheckInEnum.DAY_END,
+        timestamp__date=today,
+    ).exists()
+
+    if not has_day_start:
+        event_type = CheckInEnum.DAY_START
+    elif has_day_start and not has_day_end:
+        event_type = CheckInEnum.DAY_END
+    else:
+
+        return JsonResponse({
+            'success': True,
+            'already_done': True,
+            'message': 'Отметки на сегодня уже сделаны',
+        }, json_dumps_params={'ensure_ascii': False})
+
+    record = create_attendance_checkin(
+        employee=employee,
+        event_type=event_type,
+        photo_file=None,
+        ip_address=ip,
+        source='qr',
+    )
+
+    QRScanAudit.objects.create(
+        token=str(point.public_id),
+        user=request.user,
+        action=QRScanAudit.ACTION_SUCCESS,
+        ip_address=ip,
+    )
+
+    return JsonResponse({
+        'success': True,
+        'already_done': False,
+        'event_type': event_type,
+        'message': 'Приход зафиксирован' if event_type == CheckInEnum.DAY_START else 'Уход зафиксирован',
+    }, json_dumps_params={'ensure_ascii': False})

@@ -3,7 +3,7 @@ from .models import (
     Company, Position, WorkCalendar,
     Vacation, SickLeave, EmploymentContract,
     LeaveRequest, LeaveType, AttendanceRecord, EmployeeDocument, WorkCategory, EmployeeWorkPermit, CertificationType, EmployeeCertification,
-    QRPoint, QRToken, QRScanAudit,
+    QRPoint, QRToken, QRScanAudit, OfficeQRPoint,
 )
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -212,9 +212,9 @@ class EmployeeCertificationAdmin(admin.ModelAdmin):
 
 @admin.register(QRPoint)
 class QRPointAdmin(admin.ModelAdmin):
-    # Собственный CRUD-экран (hr:qr_points_list и т.д.) ещё в работе —
-    # админка нужна как временный способ создать/деактивировать точку для
-    # тестирования QR-чекина (см. hr:qr_kiosk).
+    # Веб-экран киоска (динамическая QR-панель) убран в пользу статичного
+    # OfficeQRPoint (hr:office_qr_admin) — эта админка остаётся единственным
+    # способом управлять QRPoint/QRToken напрямую, если понадобится.
     list_display = ('name', 'location', 'is_active', 'created_by', 'created_at')
     list_filter = ('is_active',)
     search_fields = ('name', 'location')
@@ -231,3 +231,10 @@ class QRScanAuditAdmin(admin.ModelAdmin):
     list_filter = ('action', 'qr_point')
     search_fields = ('token', 'user__username')
     readonly_fields = ('token', 'qr_point', 'user', 'action', 'ip_address', 'created_at')
+
+@admin.register(OfficeQRPoint)
+class OfficeQRPointAdmin(admin.ModelAdmin):
+    list_display = ('name', 'public_id', 'is_active', 'created_by', 'created_at', 'updated_at')
+    list_filter = ('is_active',)
+    search_fields = ('name',)
+    readonly_fields = ('public_id', 'created_at', 'updated_at')

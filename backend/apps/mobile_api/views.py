@@ -458,3 +458,374 @@ class AttendanceQRCheckinView(APIView):
             'source': record.source,
             'timestamp': record.timestamp.isoformat(),
         }, status=201)
+
+
+class RoundsTodayView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from django.utils import timezone
+        from ecopark.models import PlannedRound
+        today = timezone.now().date()
+        rounds = PlannedRound.objects.filter(
+            assigned_to=request.user,
+            planned_start__date=today,
+        ).select_related('route').order_by('planned_start')
+
+        data = [{
+            'id': r.pk,
+            'route_name': r.route.name,
+            'status': r.status,
+            'planned_start': r.planned_start.isoformat(),
+            'planned_end': r.planned_end.isoformat(),
+            'is_overdue': r.is_overdue,
+            'total_points': r.total_points_count(),
+            'completed_points': r.completed_points_count(),
+        } for r in rounds]
+        return Response(data)
+
+
+class RoundsHistoryView(APIView):
+    """GET /api/v1/mobile/rounds/history/ — прошлые обходы (не сегодняшние
+    и/или уже не в статусе "ожидает"), для экрана истории. today() отдаёт
+    только planned_start__date=today, этот — всё остальное своё, свежее
+    сверху, максимум 50 штук (пагинация не нужна для мобильного списка)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Q
+        from django.utils import timezone
+        from ecopark.models import PlannedRound
+
+        today = timezone.now().date()
+        rounds = PlannedRound.objects.filter(
+            assigned_to=request.user,
+        ).filter(
+            Q(planned_start__date__lt=today) | ~Q(status=PlannedRound.STATUS_PENDING)
+        ).select_related('route').order_by('-planned_start')[:50]
+
+        data = [{
+            'id': r.pk,
+            'route_name': r.route.name,
+            'status': r.status,
+            'planned_start': r.planned_start.isoformat(),
+            'planned_end': r.planned_end.isoformat(),
+            'completed_at': r.completed_at.isoformat() if r.completed_at else None,
+            'is_overdue': r.is_overdue,
+            'total_points': r.total_points_count(),
+            'completed_points': r.completed_points_count(),
+        } for r in rounds]
+        return Response(data)
+
+
+class RoundsResolveQRView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from django.utils import timezone
+        qr = request.query_params.get('qr', '').strip()
+        if not qr:
+            return Response({'error': 'QR не указан'}, status=400)
+
+        try:
+            from hr.models import OfficeQRPoint
+            from hr.enums import CheckInEnum
+            import uuid
+            office_point = OfficeQRPoint.objects.get(public_id=uuid.UUID(qr), is_active=True)
+
+            employee = getattr(request.user, 'employee_info', None)
+            next_action = None
+            already_done = False
+            if employee:
+                today = timezone.now().date()
+                has_day_start = AttendanceRecord.objects.filter(
+                    employee=employee, event_type=CheckInEnum.DAY_START, timestamp__date=today,
+                ).exists()
+                has_day_end = AttendanceRecord.objects.filter(
+                    employee=employee, event_type=CheckInEnum.DAY_END, timestamp__date=today,
+                ).exists()
+                if not has_day_start:
+                    next_action = CheckInEnum.DAY_START
+                elif not has_day_end:
+                    next_action = CheckInEnum.DAY_END
+                else:
+                    already_done = True
+
+            return Response({
+                'type': 'office_checkin',
+                'point_name': office_point.name,
+                'next_action': next_action,
+                'already_done': already_done,
+                'checkin_url': f'/api/v1/mobile/attendance/office-qr/{qr}/checkin/',
+            })
+        except Exception:
+            pass
+
+        try:
+            from ecopark.models import RoundPoint, PlannedRound
+            import uuid
+            point = RoundPoint.objects.get(uuid=str(qr), is_active=True)
+            today = timezone.now().date()
+            planned = PlannedRound.objects.filter(
+                assigned_to=request.user,
+                route__route_points__point=point,
+                planned_start__date=today,
+            ).first()
+            return Response({
+                'type': 'round_point',
+                'point_name': point.name,
+                'point_uuid': str(point.uuid),
+                'planned_round_id': planned.pk if planned else None,
+            })
+        except Exception:
+            pass
+
+        return Response({'error': 'QR не распознан'}, status=404)
+
+
+class RoundDetailView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        from ecopark.models import PlannedRound, RoundVisit
+        try:
+            planned = PlannedRound.objects.select_related('route').get(pk=pk)
+        except PlannedRound.DoesNotExist:
+            return Response({'error': 'Задание не найдено'}, status=404)
+
+        if planned.assigned_to != request.user:
+            return Response({'error': 'Нет доступа'}, status=403)
+
+        points = planned.route.route_points.select_related('point').order_by('order')
+        today = planned.planned_start.date()
+
+        points_data = []
+        for rp in points:
+            visit = RoundVisit.objects.filter(
+                point=rp.point,
+                employee__user=request.user,
+                created_at__date=today,
+            ).first()
+            points_data.append({
+                'order': rp.order,
+                'point_uuid': str(rp.point.uuid),
+                'point_name': rp.point.name,
+                'location': rp.point.location,
+                'is_visited': visit is not None,
+                'visit_id': visit.pk if visit else None,
+            })
+
+        return Response({
+            'id': planned.pk,
+            'route_name': planned.route.name,
+            'status': planned.status,
+            'planned_start': planned.planned_start.isoformat(),
+            'planned_end': planned.planned_end.isoformat(),
+            'is_overdue': planned.is_overdue,
+            'points': points_data,
+            'completed': sum(1 for p in points_data if p['is_visited']),
+            'total': len(points_data),
+        })
+
+
+class RoundPointDetailView(APIView):
+    """GET /api/v1/mobile/rounds/points/<uuid>/ — чек-лист конкретной точки
+    для экрана подтверждения после сканирования round QR. Отдельно от
+    RoundDetailView (тот про весь маршрут по id планового обхода) — здесь
+    нужна точка сама по себе, ещё до того как известен plan (см.
+    RoundsResolveQRView, который может вернуть planned_round_id=null)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, point_uuid):
+        from ecopark.models import RoundPoint, RoundVisit
+        from django.utils import timezone
+
+        try:
+            point = RoundPoint.objects.select_related('checklist').get(uuid=point_uuid, is_active=True)
+        except RoundPoint.DoesNotExist:
+            return Response({'error': 'Точка не найдена или неактивна'}, status=404)
+
+        employee = getattr(request.user, 'employee_info', None)
+        if not employee:
+            return Response({'error': 'Профиль сотрудника не найден'}, status=403)
+
+        today = timezone.now().date()
+        already_visited = RoundVisit.objects.filter(
+            point=point, employee=employee, created_at__date=today,
+        ).exists()
+
+        items = []
+        if point.checklist:
+            for item in point.checklist.items.order_by('order'):
+                items.append({
+                    'id': item.pk,
+                    'text': item.text,
+                    'requires_photo_on_fail': item.requires_photo_on_fail,
+                })
+
+        return Response({
+            'point_uuid': str(point.uuid),
+            'point_name': point.name,
+            'location': point.location,
+            'items': items,
+            'already_visited': already_visited,
+        })
+
+
+class RoundPointAnswerView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    @idempotent('round-point-answer')
+    def post(self, request, pk, point_uuid):
+        from ecopark.models import PlannedRound, RoundPoint, RoundVisit, RoundVisitAnswer, Defect
+        import uuid
+        from django.utils import timezone
+
+        try:
+            planned = PlannedRound.objects.get(pk=pk, assigned_to=request.user)
+        except PlannedRound.DoesNotExist:
+            return Response({'error': 'Задание не найдено или нет доступа'}, status=403)
+
+        try:
+            point = RoundPoint.objects.get(uuid=point_uuid, is_active=True)
+        except RoundPoint.DoesNotExist:
+            return Response({'error': 'Точка не найдена'}, status=404)
+
+        employee = getattr(request.user, 'employee_info', None)
+        if not employee:
+            return Response({'error': 'Профиль сотрудника не найден'}, status=403)
+
+        today = planned.planned_start.date()
+
+        visit, created = RoundVisit.objects.get_or_create(
+            point=point,
+            employee=employee,
+            created_at__date=today,
+            defaults={
+                'comment': request.data.get('comment', ''),
+                'latitude': request.data.get('latitude'),
+                'longitude': request.data.get('longitude'),
+            }
+        )
+
+        if not created:
+            return Response({
+                'success': True,
+                'already_done': True,
+                'visit_id': visit.pk,
+                'message': 'Точка уже отмечена',
+            })
+
+        from ecopark.models import ChecklistItem
+        answers = []
+        checklist = point.checklist
+        if checklist:
+            for item in checklist.items.all():
+                status_key = f'item_{item.pk}_status'
+                comment_key = f'item_{item.pk}_comment'
+                photo_key = f'item_{item.pk}_photo'
+                item_status = request.data.get(status_key, 'ok')
+                item_comment = request.data.get(comment_key, '')
+                item_photo = request.FILES.get(photo_key)
+
+                answer = RoundVisitAnswer.objects.create(
+                    visit=visit,
+                    item=item,
+                    passed=item_status == 'ok',
+                    comment=item_comment,
+                    photo=item_photo,
+                )
+                answers.append(answer)
+
+                if item_status == 'fail':
+                    Defect.objects.create(
+                        visit=visit,
+                        answer=answer,
+                        point=point,
+                        description=item_comment or f'Неисправность: {item.text}',
+                        priority=Defect.PRIORITY_HIGH,
+                        reported_by=employee,
+                    )
+
+        if planned.is_all_points_done():
+            planned.status = PlannedRound.STATUS_COMPLETED
+            planned.completed_at = timezone.now()
+            planned.save(update_fields=['status', 'completed_at'])
+
+        return Response({
+            'success': True,
+            'already_done': False,
+            'visit_id': visit.pk,
+            'message': 'Точка отмечена',
+            'defects_created': Defect.objects.filter(visit=visit).count(),
+        }, status=status.HTTP_201_CREATED)
+
+
+class AttendanceOfficeQRCheckinView(APIView):
+    """POST /api/v1/mobile/attendance/office-qr/<uuid>/checkin/ — тот же
+    статичный офисный QR (BE-FT-01), что и на вебе (hr:office_qr_checkin),
+    просто под JWT + Idempotency-Key вместо сессии. Приход/уход определяется
+    сервером по тому, какие отметки уже есть за сегодня — клиент не выбирает
+    тип отметки сам."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @idempotent('attendance-office-qr-checkin')
+    def post(self, request, public_id):
+        from hr.models import OfficeQRPoint, QRScanAudit
+        from hr.enums import CheckInEnum
+        from django.utils import timezone
+
+        try:
+            point = OfficeQRPoint.objects.get(public_id=public_id, is_active=True)
+        except OfficeQRPoint.DoesNotExist:
+            return Response({'error': 'QR-код не найден или неактивен'}, status=404)
+
+        employee = getattr(request.user, 'employee_info', None)
+        if not employee:
+            return Response({'error': 'Профиль сотрудника не найден'}, status=403)
+
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+        today = timezone.now().date()
+        has_day_start = AttendanceRecord.objects.filter(
+            employee=employee, event_type=CheckInEnum.DAY_START, timestamp__date=today,
+        ).exists()
+        has_day_end = AttendanceRecord.objects.filter(
+            employee=employee, event_type=CheckInEnum.DAY_END, timestamp__date=today,
+        ).exists()
+
+        if not has_day_start:
+            event_type = CheckInEnum.DAY_START
+        elif not has_day_end:
+            event_type = CheckInEnum.DAY_END
+        else:
+            return Response({
+                'success': True,
+                'already_done': True,
+                'message': 'Отметки на сегодня уже сделаны',
+            })
+
+        record = create_attendance_checkin(
+            employee=employee,
+            event_type=event_type,
+            photo_file=None,
+            ip_address=ip,
+            source='qr',
+        )
+
+        QRScanAudit.objects.create(
+            token=str(point.public_id),
+            user=request.user,
+            action=QRScanAudit.ACTION_SUCCESS,
+            ip_address=ip,
+        )
+
+        return Response({
+            'success': True,
+            'already_done': False,
+            'event_type': record.event_type,
+            'message': 'Приход зафиксирован' if event_type == CheckInEnum.DAY_START else 'Уход зафиксирован',
+        }, status=status.HTTP_201_CREATED)

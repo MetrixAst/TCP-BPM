@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.template.loader import render_to_string
+from django.contrib.auth.decorators import login_required
 
 from account.role_permissions import PermissionEnums, need_permission
 from documents import onlyoffice
@@ -642,6 +643,26 @@ def rounds_scan(request, point_uuid):
                         reported_by=employee,
                     )
 
+            # Веб-скан (в отличие от мобильного RoundPointAnswerView) не знает
+            # заранее свой planned_round_id — точку сканируют напрямую по QR.
+            # Ищем плановые обходы, в маршрут которых входит эта точка и чьё
+            # окно [planned_start, planned_end] покрывает этот визит, и
+            # закрываем их, если после этого визита пройдены все точки —
+            # иначе журнал план/факт никогда не увидит "Завершён" для
+            # обходов, сделанных через веб (см. FE-FT-05).
+            from .models import PlannedRound
+            candidate_rounds = PlannedRound.objects.filter(
+                assigned_to=request.user,
+                route__route_points__point=point,
+                planned_start__lte=visit.created_at,
+                planned_end__gte=visit.created_at,
+            ).distinct()
+            for planned in candidate_rounds:
+                if planned.status == PlannedRound.STATUS_PENDING and planned.is_all_points_done():
+                    planned.status = PlannedRound.STATUS_COMPLETED
+                    planned.completed_at = timezone.now()
+                    planned.save(update_fields=['status', 'completed_at'])
+
         return render(request, 'site/ecopark/rounds_scan_done.html', {'point': point, 'visit': visit})
 
     return render(request, 'site/ecopark/rounds_scan.html', {'point': point, 'items': items})
@@ -770,3 +791,256 @@ def defect_escalate(request, pk):
             defect.status = Defect.STATUS_IN_PROGRESS
         defect.save()
     return redirect('ecopark:defects_list')
+
+
+def _parse_local_datetime(value):
+    """datetime-local инпут отдаёт наивную строку — делаем aware, иначе
+    Django сравнивает/хранит её как UTC и время съезжает на несколько часов
+    (тот же баг, что был в TemporaryAccessViewSet.extend())."""
+    if not value:
+        return None
+    from datetime import datetime
+    dt = datetime.fromisoformat(value)
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt)
+    return dt
+
+
+def _route_points_options_json(points):
+    import json
+    from django.utils.html import escape
+    html = ''.join(
+        f'<option value="{p.pk}">{escape(p.name)}</option>' for p in points
+    )
+    return json.dumps(html)
+
+
+def _save_route_schedule(route, request):
+    from .models import RouteSchedule
+    frequency = request.POST.get('frequency', '').strip()
+    if not frequency:
+        return
+    interval_hours = int(request.POST.get('interval_hours') or 24)
+    window_hours = int(request.POST.get('window_hours') or 2)
+    RouteSchedule.objects.update_or_create(
+        route=route,
+        defaults={
+            'frequency': frequency,
+            'interval_hours': interval_hours,
+            'window_hours': window_hours,
+            'is_active': True,
+        }
+    )
+
+
+@_rounds_monitor_required
+def routes_list(request):
+    from ecopark.models import Route
+    routes = Route.objects.select_related(
+        'eco_object', 'assigned_employee', 'assigned_department'
+    ).filter(is_active=True).order_by('name')
+    return render(request, 'site/ecopark/routes_list.html', {'routes': routes})
+
+
+@_rounds_monitor_required
+def route_create(request):
+    from ecopark.models import Route, RoundPoint
+    from account.models import UserAccount, Department
+    points_qs = RoundPoint.objects.filter(is_active=True)
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        if not name:
+            return render(request, 'site/ecopark/route_form.html', {
+                'error': 'Название обязательно',
+                'points': points_qs,
+                'employees': UserAccount.objects.filter(is_active=True),
+                'departments': Department.objects.all(),
+                'eco_objects': EcoObject.objects.filter(is_active=True),
+                'points_options_json': _route_points_options_json(points_qs),
+            })
+        route = Route.objects.create(
+            name=name,
+            description=request.POST.get('description', ''),
+            eco_object_id=request.POST.get('eco_object') or None,
+            assigned_employee_id=request.POST.get('assigned_employee') or None,
+            assigned_department_id=request.POST.get('assigned_department') or None,
+            substitute_employee_id=request.POST.get('substitute_employee') or None,
+            substitute_from=_parse_local_datetime(request.POST.get('substitute_from')),
+            substitute_to=_parse_local_datetime(request.POST.get('substitute_to')),
+            created_by=request.user,
+        )
+        point_ids = request.POST.getlist('points')
+        from ecopark.models import RoutePoint
+        for i, pid in enumerate(point_ids):
+            if pid:
+                RoutePoint.objects.get_or_create(
+                    route=route, point_id=pid,
+                    defaults={'order': i}
+                )
+        _save_route_schedule(route, request)
+        return redirect('ecopark:routes_list')
+
+    return render(request, 'site/ecopark/route_form.html', {
+        'points': points_qs,
+        'employees': UserAccount.objects.filter(is_active=True),
+        'departments': Department.objects.all(),
+        'eco_objects': EcoObject.objects.filter(is_active=True),
+        'points_options_json': _route_points_options_json(points_qs),
+    })
+
+
+@_rounds_monitor_required
+def route_edit(request, pk):
+    from ecopark.models import Route, RoutePoint, RoundPoint
+    from account.models import UserAccount, Department
+    route = get_object_or_404(Route, pk=pk)
+    if request.method == 'POST':
+        route.name = request.POST.get('name', route.name).strip()
+        route.description = request.POST.get('description', route.description)
+        route.eco_object_id = request.POST.get('eco_object') or None
+        route.assigned_employee_id = request.POST.get('assigned_employee') or None
+        route.assigned_department_id = request.POST.get('assigned_department') or None
+        route.substitute_employee_id = request.POST.get('substitute_employee') or None
+        route.substitute_from = _parse_local_datetime(request.POST.get('substitute_from'))
+        route.substitute_to = _parse_local_datetime(request.POST.get('substitute_to'))
+        route.is_active = request.POST.get('is_active') == 'on'
+        route.save()
+
+        point_ids = [pid for pid in request.POST.getlist('points') if pid]
+        route.route_points.exclude(point_id__in=point_ids).delete()
+        for i, pid in enumerate(point_ids):
+            RoutePoint.objects.update_or_create(
+                route=route, point_id=pid,
+                defaults={'order': i}
+            )
+        _save_route_schedule(route, request)
+        return redirect('ecopark:routes_list')
+
+    edit_points_qs = RoundPoint.objects.filter(is_active=True)
+    return render(request, 'site/ecopark/route_form.html', {
+        'route': route,
+        'points': edit_points_qs,
+        'employees': UserAccount.objects.filter(is_active=True),
+        'departments': Department.objects.all(),
+        'eco_objects': EcoObject.objects.filter(is_active=True),
+        'selected_points': route.route_points.select_related('point').order_by('order'),
+        'schedule': route.schedules.first(),
+        'points_options_json': _route_points_options_json(edit_points_qs),
+    })
+
+
+@_rounds_monitor_required
+def route_delete(request, pk):
+    from ecopark.models import Route
+    route = get_object_or_404(Route, pk=pk)
+    if request.method == 'POST':
+        route.is_active = False
+        route.save()
+        return redirect('ecopark:routes_list')
+    return render(request, 'site/ecopark/route_confirm_delete.html', {'route': route})
+
+
+
+@login_required
+def my_planned_rounds(request):
+    from ecopark.models import PlannedRound
+    from django.utils import timezone
+    rounds = PlannedRound.objects.filter(
+        assigned_to=request.user,
+    ).select_related('route').order_by('-planned_start')[:100]
+
+    for r in rounds:
+        visited_point_ids = set(r.visits().values_list('point_id', flat=True))
+        next_point = None
+        for rp in r.route.route_points.select_related('point').order_by('order'):
+            if rp.point_id not in visited_point_ids:
+                next_point = rp.point
+                break
+        r.progress_completed = len(visited_point_ids)
+        r.progress_total = r.total_points_count()
+        r.progress_percent = (
+            int(r.progress_completed * 100 / r.progress_total) if r.progress_total else 0
+        )
+        r.next_point = next_point
+
+    return render(request, 'site/ecopark/my_planned_rounds.html', {
+        'rounds': rounds,
+        'now': timezone.now(),
+    })
+
+
+@_rounds_monitor_required
+def planned_rounds_journal(request):
+    from ecopark.models import PlannedRound, Route
+    from django.utils import timezone
+
+    route_id = request.GET.get('route')
+    status = request.GET.get('status')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+
+    rounds = PlannedRound.objects.select_related(
+        'route', 'assigned_to'
+    ).order_by('-planned_start')
+
+    if route_id:
+        rounds = rounds.filter(route_id=route_id)
+    if status:
+        rounds = rounds.filter(status=status)
+    if date_from:
+        rounds = rounds.filter(planned_start__date__gte=date_from)
+    if date_to:
+        rounds = rounds.filter(planned_start__date__lte=date_to)
+
+    return render(request, 'site/ecopark/planned_rounds_journal.html', {
+        'rounds': rounds[:200],
+        'routes': Route.objects.filter(is_active=True),
+        'status_choices': PlannedRound.STATUS_CHOICES,
+        'now': timezone.now(),
+    })
+
+
+@_rounds_monitor_required
+def planned_round_create(request):
+    from ecopark.models import PlannedRound, Route
+    from account.models import UserAccount
+    from django.utils import timezone
+    if request.method == 'POST':
+        route_id = request.POST.get('route')
+        assigned_to_id = request.POST.get('assigned_to')
+        planned_start = request.POST.get('planned_start')
+        window_hours = int(request.POST.get('window_hours') or 2)
+
+        start_dt = _parse_local_datetime(planned_start)
+        route = Route.objects.filter(pk=route_id, is_active=True).first() if route_id else None
+
+        if not route or not start_dt:
+            return render(request, 'site/ecopark/planned_round_form.html', {
+                'error': 'Укажите маршрут и плановое время начала',
+                'routes': Route.objects.filter(is_active=True),
+                'employees': UserAccount.objects.filter(is_active=True),
+                'preselected_route_id': route_id or '',
+                'form_planned_start': planned_start,
+                'form_window_hours': window_hours,
+            })
+
+        from datetime import timedelta
+        end_dt = start_dt + timedelta(hours=window_hours)
+        assignee = route.get_current_assignee()
+
+        PlannedRound.objects.get_or_create(
+            route=route,
+            planned_start=start_dt,
+            defaults={
+                'assigned_to_id': assigned_to_id or (assignee.pk if assignee else None),
+                'planned_end': end_dt,
+                'status': PlannedRound.STATUS_PENDING,
+            }
+        )
+        return redirect('ecopark:planned_rounds_journal')
+
+    return render(request, 'site/ecopark/planned_round_form.html', {
+        'routes': Route.objects.filter(is_active=True),
+        'employees': UserAccount.objects.filter(is_active=True),
+        'preselected_route_id': request.GET.get('route', ''),
+    })

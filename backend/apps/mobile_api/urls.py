@@ -8,7 +8,15 @@ from .views import (
     NotificationsListView, NotificationReadView,
     RoomResolveView,
     AttendanceQRCheckinView,
+    AttendanceOfficeQRCheckinView,
+    RoundsTodayView,
+    RoundsHistoryView,
+    RoundsResolveQRView,
+    RoundDetailView,
+    RoundPointDetailView,
+    RoundPointAnswerView,
 )
+
 
 app_name = 'mobile_api'
 
@@ -24,4 +32,11 @@ urlpatterns = [
     path('notifications/<int:pk>/read/', NotificationReadView.as_view(), name='notifications-read'),
     path('rooms/resolve/', RoomResolveView.as_view(), name='room-resolve'),
     path('attendance/qr-checkin/', AttendanceQRCheckinView.as_view(), name='attendance-qr-checkin'),
+    path('attendance/office-qr/<uuid:public_id>/checkin/', AttendanceOfficeQRCheckinView.as_view(), name='attendance-office-qr-checkin'),
+    path('rounds/today/', RoundsTodayView.as_view(), name='rounds-today'),
+    path('rounds/history/', RoundsHistoryView.as_view(), name='rounds-history'),
+    path('rounds/resolve/', RoundsResolveQRView.as_view(), name='rounds-resolve'),
+    path('rounds/points/<uuid:point_uuid>/', RoundPointDetailView.as_view(), name='round-point-detail'),
+    path('rounds/<int:pk>/', RoundDetailView.as_view(), name='round-detail'),
+    path('rounds/<int:pk>/points/<uuid:point_uuid>/answer/', RoundPointAnswerView.as_view(), name='round-point-answer'),
 ]

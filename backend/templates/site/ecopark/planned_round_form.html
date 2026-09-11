@@ -1,0 +1,86 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Запланировать обход — metriX BPM{% endblock %}
+{% block body_classes %}hr-registry-edit-body{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-edit-page" id="hrRegistryFormPage">
+  <div class="hr-registry-edit-card">
+
+    <div class="hr-registry-edit-card__header">
+      <h1 class="hr-registry-edit-card__title">Запланировать обход</h1>
+      <a href="{% url 'ecopark:planned_rounds_journal' %}" class="hr-registry-edit-card__close" aria-label="Закрыть">
+        <i class="bi bi-x"></i>
+      </a>
+    </div>
+
+    <form method="post" class="hr-registry-edit-form">
+      {% csrf_token %}
+
+      <div class="hr-registry-edit-card__body">
+        <section class="hr-registry-edit-section">
+          {% if error %}
+            <div class="hr-registry-edit-field__error" style="margin-bottom:12px;">{{ error }}</div>
+          {% endif %}
+
+          <div class="hr-registry-edit-grid">
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="plannedRoute">
+                Маршрут<span>*</span>
+              </label>
+              <select id="plannedRoute" name="route" class="hr-form-input" required>
+                <option value="">— Выберите маршрут —</option>
+                {% for route in routes %}
+                  <option value="{{ route.pk }}" {% if preselected_route_id == route.pk|stringformat:"s" %}selected{% endif %}>{{ route.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="plannedAssignedTo">Назначить (необязательно)</label>
+              <select id="plannedAssignedTo" name="assigned_to" class="hr-form-input">
+                <option value="">— По умолчанию (ответственный маршрута) —</option>
+                {% for u in employees %}
+                  <option value="{{ u.pk }}">{{ u.get_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="plannedStart">
+                Плановое начало<span>*</span>
+              </label>
+              <input type="datetime-local" id="plannedStart" name="planned_start" class="hr-form-input"
+                     value="{{ form_planned_start|default:'' }}" required>
+            </div>
+
+            <div class="hr-registry-edit-field">
+              <label class="hr-registry-edit-field__label" for="plannedWindow">Окно на выполнение, часов</label>
+              <input type="number" id="plannedWindow" name="window_hours" class="hr-form-input" min="1"
+                     value="{{ form_window_hours|default:2 }}">
+              <small class="hr-registry-edit-field__help">
+                Если обход не начат за это время — он попадёт в просроченные.
+              </small>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="hr-registry-edit-card__footer">
+        <a href="{% url 'ecopark:planned_rounds_journal' %}" class="hr-registry-edit-btn hr-registry-edit-btn--cancel">
+          Отменить
+        </a>
+        <button type="submit" class="hr-registry-edit-btn hr-registry-edit-btn--save">
+          Запланировать
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

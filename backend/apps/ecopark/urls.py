@@ -38,4 +38,15 @@ urlpatterns = [
     path('rounds/defects/',                views.defects_list,    name='defects_list'),
     path('rounds/defects/<int:pk>/resolve/', views.defect_resolve, name='defect_resolve'),
     path('rounds/defects/<int:pk>/escalate/', views.defect_escalate, name='defect_escalate'),
+
+        # Маршруты
+    path('rounds/routes/', _perm(views.routes_list), name='routes_list'),
+    path('rounds/routes/create/', _perm(views.route_create), name='route_create'),
+    path('rounds/routes/<int:pk>/edit/', _perm(views.route_edit), name='route_edit'),
+    path('rounds/routes/<int:pk>/delete/', _perm(views.route_delete), name='route_delete'),
+
+    # Плановые обходы
+    path('rounds/my/', views.my_planned_rounds, name='my_planned_rounds'),
+    path('rounds/planned/', views.planned_rounds_journal, name='planned_rounds_journal'),
+    path('rounds/planned/create/', _perm(views.planned_round_create), name='planned_round_create'),
 ]
