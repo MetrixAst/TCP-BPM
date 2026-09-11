@@ -1,4 +1,4 @@
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from account.models import UserAccount, Department, Employee 
 from hr.models import Company, Position
@@ -103,3 +103,23 @@ class HRMenuAndAccessTest(TestCase):
             )
         else:
             self.assertIn(response.status_code, [403, 302])
+
+
+class FinanceMenuVisibilityTest(TestCase):
+
+    def setUp(self):
+        self.admin = UserAccount.objects.create_user(
+            username='finance_menu_admin',
+            password='password123',
+            role=RoleEnums.ADMINISTRATOR.value,
+        )
+
+    @override_settings(FINANCES_MENU_ENABLED=False)
+    def test_finance_menu_is_hidden_when_feature_is_disabled(self):
+        menu_ids = {item.id for item in MenuItem.generate_menu(self.admin)}
+        self.assertNotIn('finances', menu_ids)
+
+    @override_settings(FINANCES_MENU_ENABLED=True)
+    def test_finance_menu_can_be_enabled_without_restoring_code(self):
+        menu_ids = {item.id for item in MenuItem.generate_menu(self.admin)}
+        self.assertIn('finances', menu_ids)

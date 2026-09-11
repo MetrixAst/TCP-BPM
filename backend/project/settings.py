@@ -19,6 +19,7 @@ LOGIN_URL = '/account/auth'
 SECRET_KEY = config('SECRET_KEY')
 
 DEBUG = config('DEBUG', default=True, cast=bool)
+FINANCES_MENU_ENABLED = config('FINANCES_MENU_ENABLED', default=False, cast=bool)
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = not DEBUG
