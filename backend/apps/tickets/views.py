@@ -1,5 +1,6 @@
 import json
 
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
 from django.http import HttpResponseForbidden, JsonResponse
 from django.urls import reverse
@@ -377,6 +378,8 @@ def attachment_delete(request, pk, attachment_pk):
 def approval_queue(request):
     if request.user.is_portal_user:
         return redirect('tickets:home')
+    if not user_is_manager(request.user):
+        raise PermissionDenied('Согласование заявок доступно только руководителям')
 
     from .services import get_approver
 

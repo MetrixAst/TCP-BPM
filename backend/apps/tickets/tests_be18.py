@@ -1,5 +1,6 @@
 from django.test import TestCase, RequestFactory
 from account.models import UserAccount, Employee, Department
+from account.role_permissions import MenuItem
 from hr.models import Company
 from tickets.models import ServiceRequest, ApprovalDecision
 from tickets.enums import TicketStatusEnum
@@ -130,6 +131,23 @@ class ApprovalQueueAccessTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.ticket.title)
+
+    def test_plain_staff_has_no_management_menu_or_direct_approval_access(self):
+        menu_ids = {item.id for item in MenuItem.generate_menu(self.author)}
+        self.assertNotIn('tickets', menu_ids)
+        self.assertNotIn('ticket_approvals', menu_ids)
+
+        self.client.login(username='author_queue_be18', password='pass')
+        response = self.client.get('/tickets/approvals/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_department_head_sees_ticket_management_menu(self):
+        head = make_user('head_queue_be18')
+        make_employee(head, self.dept, head=True)
+
+        menu_ids = {item.id for item in MenuItem.generate_menu(head)}
+        self.assertIn('tickets', menu_ids)
+        self.assertIn('ticket_approvals', menu_ids)
 
     def test_unrelated_department_head_does_not_see_pending_approval(self):
         other_dept = Department.objects.create(
