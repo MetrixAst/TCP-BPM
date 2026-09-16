@@ -70,6 +70,8 @@
 		<string>Приложению нужен доступ к камере для фотофиксации при чек-ине</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>Приложению нужен доступ к геолокации для отметки места чек-ина</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>Геолокация используется для подтверждения места чек-ина и прохождения точки обхода только при выполнении действия сотрудником</string>
 		<key>UIStatusBarHidden</key>
 		<false/>
 		<key>UIBackgroundModes</key>
