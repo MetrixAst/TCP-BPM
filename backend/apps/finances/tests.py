@@ -2139,7 +2139,6 @@ from unittest.mock import patch, MagicMock
 from finances.models import GeneratedInvoice, GeneratedInvoiceItem
 from finances.services.notifications import (
     send_invoice_via_email,
-    send_invoice_via_messenger,
     _resolve_recipient_email,
     _mark_sent,
 )
@@ -2203,25 +2202,10 @@ class SendInvoiceEmailTest(TestCase):
         self.assertEqual(invoice.status, GeneratedInvoice.Status.CREATED)
 
 
-class SendInvoiceMessengerTest(TestCase):
-    def setUp(self):
-        self.tenant = make_tenant('msg_tenant')
-
-    def test_whatsapp_marks_sent(self):
-        invoice = _make_invoice(tenant=self.tenant)
-        result = send_invoice_via_messenger(invoice, 'whatsapp')
-        self.assertTrue(result)
-        invoice.refresh_from_db()
-        self.assertEqual(invoice.status, GeneratedInvoice.Status.SENT)
-        self.assertEqual(invoice.sent_via, 'whatsapp')
-        self.assertIsNotNone(invoice.sent_at)
-
-    def test_telegram_marks_sent(self):
-        invoice = _make_invoice(tenant=self.tenant)
-        result = send_invoice_via_messenger(invoice, 'telegram')
-        self.assertTrue(result)
-        invoice.refresh_from_db()
-        self.assertEqual(invoice.sent_via, 'telegram')
+class InvoiceDeliveryOptionsTest(TestCase):
+    def test_messenger_delivery_options_are_not_available(self):
+        values = {value for value, _label in GeneratedInvoice.SentVia.choices}
+        self.assertEqual(values, {'email', 'manual'})
 
 
 class ResolveRecipientEmailTest(TestCase):
