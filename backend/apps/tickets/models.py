@@ -4,7 +4,7 @@ from django.http import Http404
 from django.core.exceptions import ValidationError
 from project.utils import PathAndRename
 from account.models import UserAccount, Department
-from account.role_permissions import RoleEnums, RolePermissions, PermissionEnums
+from account.role_permissions import RoleEnums
 
 from .enums import (
     TicketCategoryEnum,
@@ -21,9 +21,10 @@ def user_is_manager(user):
     if getattr(user, 'is_superuser', False):
         return True
     role = user.role
-    if role in RoleEnums.portal_roles():
-        return False
-    return RolePermissions.checkPermission(role, PermissionEnums.SERVICE_REQUESTS)
+    if role == RoleEnums.ADMINISTRATOR.value:
+        return True
+    employee = getattr(user, 'employee_info', None)
+    return bool(employee and getattr(employee, 'head', False))
 
 
 class ServiceRequest(models.Model):

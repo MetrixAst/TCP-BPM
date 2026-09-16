@@ -471,6 +471,14 @@ class MenuItem:
         if not settings.FINANCES_MENU_ENABLED:
             menu = [item for item in menu if item.id != 'finances']
 
+        employee = getattr(user, 'employee_info', None)
+        can_manage_tickets = (
+            role == RoleEnums.ADMINISTRATOR.value
+            or bool(employee and getattr(employee, 'head', False))
+        )
+        if role == RoleEnums.STAFF.value and not can_manage_tickets:
+            menu = [item for item in menu if item.id != 'tickets']
+
         if role == RoleEnums.STAFF.value:
             hr_submenu = [
                 MenuItem('my_profile', 'hr:my_profile', '', 'Личный профиль'),
@@ -478,7 +486,6 @@ class MenuItem:
                 MenuItem('attendance_my', 'hr:attendance_my', '', 'Моя посещаемость'),
                 MenuItem('hr_documents', 'hr:documents_list', '', 'Мои документы'),
             ]
-            employee = getattr(user, 'employee_info', None)
             if employee and employee.head:
                 hr_submenu[1:1] = [
                     MenuItem('org', 'hr:org', '', 'Орг. структура'),
@@ -489,7 +496,6 @@ class MenuItem:
                 MenuItem('hr', '#hr', 'user', 'HR', permission=PermissionEnums.HR_SELF, submenu=hr_submenu)
             )
 
-        employee = getattr(user, 'employee_info', None)
         if employee and getattr(employee, 'head', False) and role != RoleEnums.ADMINISTRATOR.value:
             if not any(i.id == 'ticket_approvals' for i in menu):
                 menu.append(
@@ -541,6 +547,8 @@ class MenuItem:
 
         for item_id, candidate in extra_pool.items():
             if item_id in existing_ids:
+                continue
+            if item_id in {'tickets', 'ticket_approvals'} and not can_manage_tickets:
                 continue
             if user_has_permission(user, candidate.permission):
                 menu.append(candidate)
