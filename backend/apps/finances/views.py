@@ -432,10 +432,7 @@ def invoice_send(request, pk):
     if request.method == 'POST' and invoice.status == GeneratedInvoice.Status.CREATED:
         sent_via = request.POST.get('sent_via', GeneratedInvoice.SentVia.EMAIL)
 
-        from finances.services.notifications import (
-            send_invoice_via_email,
-            send_invoice_via_messenger,
-        )
+        from finances.services.notifications import send_invoice_via_email
 
         if sent_via == GeneratedInvoice.SentVia.EMAIL:
             ok = send_invoice_via_email(invoice)
@@ -453,16 +450,14 @@ def invoice_send(request, pk):
                 invoice.sent_at  = timezone.now()
                 invoice.save()
                 messages.warning(request, f'Счёт №{invoice.number} отмечен как отправленный, но письмо не доставлено.')
-        elif sent_via in (GeneratedInvoice.SentVia.WHATSAPP, GeneratedInvoice.SentVia.TELEGRAM):
-            send_invoice_via_messenger(invoice, sent_via)
-            messages.success(request, f'Счёт №{invoice.number} отправлен через {invoice.get_sent_via_display()}.')
-        else:
-            # manual
+        elif sent_via == GeneratedInvoice.SentVia.MANUAL:
             invoice.status   = GeneratedInvoice.Status.SENT
             invoice.sent_via = sent_via
             invoice.sent_at  = timezone.now()
             invoice.save()
             messages.success(request, f'Счёт №{invoice.number} отмечен как отправленный вручную.')
+        else:
+            messages.error(request, 'Выбран неподдерживаемый способ отправки.')
 
         try:
             from onec.services.sync_invoices import notify_onec_invoice_sent

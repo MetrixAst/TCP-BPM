@@ -68,22 +68,6 @@ def send_invoice_via_email(invoice) -> bool:
         return False
 
 
-def send_invoice_via_messenger(invoice, channel: str) -> bool:
-    """
-    Заглушка отправки через мессенджер (WhatsApp / Telegram).
-
-    Логирует факт отправки, обновляет статус и сохраняет объект.
-    Возвращает True.
-    """
-    _mark_sent(invoice, channel)
-
-    logger.info(
-        f"invoice_messenger_stub: invoice_id={invoice.pk} number={invoice.number} "
-        f"channel={channel}"
-    )
-    return True
-
-
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 def _resolve_recipient_email(invoice) -> str | None:
