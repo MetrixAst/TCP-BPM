@@ -1,0 +1,10 @@
+# Isolated VM overlay. TLS terminates on the existing edge proxy (VM 100);
+# this stack only accepts private HTTP traffic from that proxy.
+services:
+  nginx:
+    ports: !override
+      - "80:80"
+    volumes: !override
+      - static_volume:/home/app/web/static
+      - media_volume:/home/app/web/media
+      - ./nginx/nginx.vm.conf:/etc/nginx/conf.d/nginx.conf:ro
