@@ -2,7 +2,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class PushService {
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  // Firebase инициализируется асинхронно после runApp, поэтому instance
+  // нельзя брать при создании сервиса (LoginScreen создаёт его в initState).
+  FirebaseMessaging get _messaging => FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 

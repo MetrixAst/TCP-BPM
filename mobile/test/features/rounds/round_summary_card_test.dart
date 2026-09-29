@@ -32,6 +32,19 @@ void main() {
     expect(find.text('1 / 4 точек'), findsOneWidget);
   });
 
+  test('время из API в UTC показывается в местном часовом поясе', () {
+    final start = DateTime.parse('2026-09-29T03:00:00+00:00');
+    final end = DateTime.parse('2026-09-29T15:00:00+00:00');
+    final localStart = start.toLocal();
+    final localEnd = end.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+
+    expect(
+      formatTimeRange(start, end),
+      '${two(localStart.hour)}:${two(localStart.minute)} — ${two(localEnd.hour)}:${two(localEnd.minute)}',
+    );
+  });
+
   testWidgets('просроченное задание показывает бейдж "Просрочен"', (tester) async {
     await tester.pumpWidget(wrap(RoundSummaryCard(round: buildSummary(isOverdue: true))));
     expect(find.text('Просрочен'), findsOneWidget);
