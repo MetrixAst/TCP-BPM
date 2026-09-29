@@ -8,3 +8,4 @@ services:
       - static_volume:/home/app/web/static
       - media_volume:/home/app/web/media
       - ./nginx/nginx.vm.conf:/etc/nginx/conf.d/nginx.conf:ro
+      - ./nginx/legal:/etc/nginx/legal:ro

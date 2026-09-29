@@ -8,7 +8,9 @@ import '../../data/planned_round_summary.dart';
 String _twoDigits(int n) => n.toString().padLeft(2, '0');
 
 String formatTimeRange(DateTime start, DateTime end) {
-  return '${_twoDigits(start.hour)}:${_twoDigits(start.minute)} — ${_twoDigits(end.hour)}:${_twoDigits(end.minute)}';
+  final s = start.toLocal();
+  final e = end.toLocal();
+  return '${_twoDigits(s.hour)}:${_twoDigits(s.minute)} — ${_twoDigits(e.hour)}:${_twoDigits(e.minute)}';
 }
 
 class _StatusInfo {
