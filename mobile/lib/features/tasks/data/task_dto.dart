@@ -54,6 +54,20 @@ class TaskDto {
     required this.history,
   });
 
+  /// Сервер отдаёт срок как `2026-10-06`; в интерфейсе нужен привычный
+  /// порядок — `06.10.2026`.
+  String? get deadlineLabel {
+    final raw = deadline;
+    if (raw == null) return null;
+
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+
+    final dd = parsed.day.toString().padLeft(2, '0');
+    final mm = parsed.month.toString().padLeft(2, '0');
+    return '$dd.$mm.${parsed.year}';
+  }
+
   factory TaskDto.fromJson(Map<String, dynamic> json) {
     return TaskDto(
       id: json['id'] as int,

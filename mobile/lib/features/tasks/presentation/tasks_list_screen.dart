@@ -520,7 +520,7 @@ class _TaskCard extends StatelessWidget {
                   const SizedBox(width: 12),
                   const Icon(Icons.event_outlined, size: 14, color: MetrixColors.textMuted),
                   const SizedBox(width: 4),
-                  Text(task.deadline!, style: const TextStyle(fontSize: 12, color: MetrixColors.textMuted)),
+                  Text(task.deadlineLabel!, style: const TextStyle(fontSize: 12, color: MetrixColors.textMuted)),
                 ],
                 const Spacer(),
                 if (task.executor != null)
