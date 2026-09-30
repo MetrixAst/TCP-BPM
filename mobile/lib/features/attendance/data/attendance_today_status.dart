@@ -14,6 +14,21 @@ class AttendanceTodayStatus {
   });
 
   bool get isCompleted => time != null;
+
+  /// Сервер отдаёт ISO-строку в UTC (`2026-09-30T03:47:00+00:00`), а в
+  /// интерфейсе нужно местное время отметки в виде `08:47`.
+  String? get timeLabel {
+    final raw = time;
+    if (raw == null) return null;
+
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+
+    final local = parsed.toLocal();
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '$hh:$mm';
+  }
 }
 
 List<AttendanceTodayStatus> buildTodayStatus(List<dynamic> marksJson) {

@@ -260,6 +260,12 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'tickets.sla_escalation',
         'schedule': crontab(hour='*/4', minute=0),
     },
+    # Обходы и отметки демо-аккаунта привязаны к дате, поэтому без
+    # ежедневного переноса проверяющий из App Review видит пустые экраны.
+    'mobile-refresh-review-demo': {
+        'task': 'mobile_api.refresh_review_demo',
+        'schedule': crontab(hour=0, minute=10),
+    },
     'account-cleanup-notifications-daily': {
         'task': 'account.cleanup_notifications',
         'schedule': crontab(hour=2, minute=0),

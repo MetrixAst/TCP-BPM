@@ -121,6 +121,31 @@ class RoundDetailTest(TestCase):
         r = self.client.get(f'/api/v1/mobile/rounds/{self.planned.pk}/')
         self.assertEqual(r.status_code, 403)
 
+    def test_visit_counts_only_inside_round_window(self):
+        """Точка, пройденная в другом обходе того же дня, не должна
+        считаться пройденной здесь — иначе экран маршрута расходится
+        со списком обходов, который считает по окну."""
+        RoundVisit.objects.create(point=self.point, employee=self.emp)
+        earlier = self.planned.planned_start - timedelta(hours=3)
+        RoundVisit.objects.filter(point=self.point).update(created_at=earlier)
+
+        r = self.client.get(f'/api/v1/mobile/rounds/{self.planned.pk}/')
+
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['completed'], 0)
+        self.assertFalse(r.data['points'][0]['is_visited'])
+        self.assertEqual(self.planned.completed_points_count(), 0)
+
+    def test_visit_inside_window_is_counted(self):
+        RoundVisit.objects.create(point=self.point, employee=self.emp)
+
+        r = self.client.get(f'/api/v1/mobile/rounds/{self.planned.pk}/')
+
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['completed'], 1)
+        self.assertTrue(r.data['points'][0]['is_visited'])
+        self.assertEqual(self.planned.completed_points_count(), 1)
+
 
 class RoundPointAnswerTest(TestCase):
 
