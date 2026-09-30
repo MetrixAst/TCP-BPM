@@ -1,17 +1,24 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../core/database/local_data_cleaner.dart';
 import '../../../core/network/api_result.dart';
 import 'auth_tokens.dart';
 
 class AuthRepository {
   final Dio dio;
   final FlutterSecureStorage storage;
+  final LocalDataCleaner? localDataCleaner;
 
   static const _accessKey = 'auth_access_token';
   static const _refreshKey = 'auth_refresh_token';
+  static const _accountKey = 'auth_account';
 
-  AuthRepository({required this.dio, required this.storage});
+  AuthRepository({
+    required this.dio,
+    required this.storage,
+    this.localDataCleaner,
+  });
 
   Future<ApiResult<AuthTokens>> login({
     required String username,
@@ -24,6 +31,7 @@ class AuthRepository {
       );
 
       final tokens = AuthTokens.fromJson(response.data as Map<String, dynamic>);
+      await _dropDataOfPreviousAccount(username);
       await _saveTokens(tokens);
       return Success(tokens);
     } on DioException catch (e) {
@@ -58,6 +66,24 @@ class AuthRepository {
         statusCode: e.response?.statusCode,
       );
     }
+  }
+
+  /// Страховка на случай, когда предыдущий вход завершился не логаутом,
+  /// а истёкшим refresh-токеном: офлайн-кэш и очередь от чужого аккаунта
+  /// не должны достаться новому пользователю или другому серверу.
+  Future<void> _dropDataOfPreviousAccount(String username) async {
+    final account = '${dio.options.baseUrl}|$username';
+    final previous = await storage.read(key: _accountKey);
+
+    if (previous != null && previous != account) {
+      try {
+        await (localDataCleaner ?? LocalDataCleaner()).clear();
+      } catch (_) {
+        // Вход блокировать нельзя, но и молча оставлять чужой кэш тоже.
+      }
+    }
+
+    await storage.write(key: _accountKey, value: account);
   }
 
   Future<void> _saveTokens(AuthTokens tokens) async {

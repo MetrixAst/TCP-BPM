@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:metrix_app/core/database/local_data_cleaner.dart';
 import 'package:metrix_app/features/profile/data/logout_repository.dart';
 import 'package:metrix_app/features/push/data/push_service.dart';
 
@@ -11,21 +12,28 @@ class MockSecureStorage extends Mock implements FlutterSecureStorage {}
 
 class MockPushService extends Mock implements PushService {}
 
+class MockLocalDataCleaner extends Mock implements LocalDataCleaner {}
+
 void main() {
   late MockDio dio;
   late MockSecureStorage storage;
   late MockPushService pushService;
+  late MockLocalDataCleaner cleaner;
   late LogoutRepository repository;
 
   setUp(() {
     dio = MockDio();
     storage = MockSecureStorage();
     pushService = MockPushService();
+    cleaner = MockLocalDataCleaner();
     repository = LogoutRepository(
       dio: dio,
       storage: storage,
       pushService: pushService,
+      localDataCleaner: cleaner,
     );
+
+    when(() => cleaner.clear()).thenAnswer((_) async {});
   });
 
   test('успешный logout отвязывает fcm-токен и чистит storage', () async {
@@ -78,6 +86,38 @@ void main() {
       ),
     );
     when(() => storage.delete(key: any(named: 'key'))).thenAnswer((_) async {});
+
+    await repository.logout();
+
+    verify(() => storage.delete(key: 'auth_access_token')).called(1);
+    verify(() => storage.delete(key: 'auth_refresh_token')).called(1);
+  });
+
+  test('logout удаляет офлайн-кэш и неотправленную очередь', () async {
+    when(() => pushService.getToken()).thenAnswer((_) async => null);
+    when(() => dio.delete('/api/v1/mobile/devices/')).thenAnswer(
+      (_) async => Response(
+        requestOptions: RequestOptions(path: '/api/v1/mobile/devices/'),
+        statusCode: 200,
+      ),
+    );
+    when(() => storage.delete(key: any(named: 'key'))).thenAnswer((_) async {});
+
+    await repository.logout();
+
+    verify(() => cleaner.clear()).called(1);
+  });
+
+  test('сбой очистки кэша не оставляет пользователя залогиненным', () async {
+    when(() => pushService.getToken()).thenAnswer((_) async => null);
+    when(() => dio.delete('/api/v1/mobile/devices/')).thenAnswer(
+      (_) async => Response(
+        requestOptions: RequestOptions(path: '/api/v1/mobile/devices/'),
+        statusCode: 200,
+      ),
+    );
+    when(() => storage.delete(key: any(named: 'key'))).thenAnswer((_) async {});
+    when(() => cleaner.clear()).thenThrow(Exception('disk error'));
 
     await repository.logout();
 
