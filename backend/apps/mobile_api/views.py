@@ -618,14 +618,18 @@ class RoundDetailView(APIView):
             return Response({'error': 'Нет доступа'}, status=403)
 
         points = planned.route.route_points.select_related('point').order_by('order')
-        today = planned.planned_start.date()
 
         points_data = []
         for rp in points:
+            # Окно обхода, а не календарные сутки: по дате точка, пройденная
+            # в утреннем обходе, считалась пройденной и в вечернем, поэтому
+            # экран маршрута расходился со списком, который всегда считал по
+            # окну (см. PlannedRound.visits).
             visit = RoundVisit.objects.filter(
                 point=rp.point,
                 employee__user=request.user,
-                created_at__date=today,
+                created_at__gte=planned.planned_start,
+                created_at__lte=planned.planned_end,
             ).first()
             points_data.append({
                 'order': rp.order,

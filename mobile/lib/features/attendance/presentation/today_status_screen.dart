@@ -100,7 +100,7 @@ class _TodayStatusScreenState extends State<TodayStatusScreen> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  '$completedCount/4',
+                  '$completedCount/${statuses.length}',
                   style: const TextStyle(fontWeight: FontWeight.w700, color: MetrixColors.primary, fontSize: 14),
                 ),
               ),
@@ -165,7 +165,7 @@ class _StatusRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 1),
                   Text(
-                    done ? status.time! : 'Ещё не отмечено',
+                    done ? status.timeLabel! : 'Ещё не отмечено',
                     style: TextStyle(
                       fontSize: 12.5,
                       color: done ? MetrixColors.textMuted : MetrixColors.textMuted.withValues(alpha: 0.7),
