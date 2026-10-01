@@ -2203,9 +2203,9 @@ class SendInvoiceEmailTest(TestCase):
 
 
 class InvoiceDeliveryOptionsTest(TestCase):
-    def test_messenger_delivery_options_are_not_available(self):
+    def test_delivery_options(self):
         values = {value for value, _label in GeneratedInvoice.SentVia.choices}
-        self.assertEqual(values, {'email', 'manual'})
+        self.assertEqual(values, {'email', 'whatsapp', 'manual'})
 
 
 class ResolveRecipientEmailTest(TestCase):

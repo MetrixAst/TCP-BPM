@@ -147,6 +147,7 @@ class GeneratedInvoice(models.Model):
 
     class SentVia(models.TextChoices):
         EMAIL     = 'email',     'Email'
+        WHATSAPP  = 'whatsapp',  'WhatsApp'
         MANUAL    = 'manual',    'Вручную'
 
     tenant = models.ForeignKey(

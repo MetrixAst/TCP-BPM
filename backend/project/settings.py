@@ -303,6 +303,14 @@ ONE_C_SYNC_SINCE_DAYS = config('ONE_C_SYNC_SINCE_DAYS', default=90, cast=int)
 ONE_C_TIMEOUT = config('ONE_C_TIMEOUT', default=30, cast=int)
 ONE_C_VERIFY_SSL = config('ONE_C_VERIFY_SSL', default=True, cast=bool)
 
+# Сервис счетов (invoice/): отправка счетов в WhatsApp через Green API.
+# INVOICE_SERVICE_TENANT_ID — id нашей организации в каталоге сервиса.
+INVOICE_SERVICE_URL = config('INVOICE_SERVICE_URL', default='')
+INVOICE_SERVICE_USERNAME = config('INVOICE_SERVICE_USERNAME', default='')
+INVOICE_SERVICE_PASSWORD = config('INVOICE_SERVICE_PASSWORD', default='')
+INVOICE_SERVICE_TENANT_ID = config('INVOICE_SERVICE_TENANT_ID', default=0, cast=int)
+INVOICE_SERVICE_TIMEOUT = config('INVOICE_SERVICE_TIMEOUT', default=30, cast=int)
+
 ENBEK_BASE_URL = config('ENBEK_BASE_URL', default='http://web:8000/api/enbek')
 ENBEK_USERNAME = config('ENBEK_USERNAME', default='test')
 ENBEK_PASSWORD = config('ENBEK_PASSWORD', default='test')

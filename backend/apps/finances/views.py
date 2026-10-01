@@ -380,9 +380,12 @@ def invoice_detail(request, pk):
         GeneratedInvoice.Status.PAID: 'success',
         GeneratedInvoice.Status.CANCELLED: 'danger',
     }
+    from .services import invoice_service
+
     context = {
         'invoice': invoice,
         'color':   STATUS_COLORS.get(invoice.status, 'secondary'),
+        'whatsapp_enabled': invoice_service.is_configured(),
     }
     return render(request, 'site/finances/invoice_detail.html', context)
 
@@ -450,6 +453,14 @@ def invoice_send(request, pk):
                 invoice.sent_at  = timezone.now()
                 invoice.save()
                 messages.warning(request, f'Счёт №{invoice.number} отмечен как отправленный, но письмо не доставлено.')
+        elif sent_via == GeneratedInvoice.SentVia.WHATSAPP:
+            from finances.services.notifications import send_invoice_via_whatsapp
+
+            ok, message = send_invoice_via_whatsapp(invoice)
+            if ok:
+                messages.success(request, message)
+            else:
+                messages.error(request, f'Счёт №{invoice.number} не отправлен: {message}')
         elif sent_via == GeneratedInvoice.SentVia.MANUAL:
             invoice.status   = GeneratedInvoice.Status.SENT
             invoice.sent_via = sent_via

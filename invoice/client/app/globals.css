@@ -1,0 +1,421 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 30, 41, 59;
+  --background-rgb: 245, 247, 250;
+  --mx-blue: 59, 130, 246;
+  --mx-blue-dark: 37, 99, 235;
+  --mx-green: 61, 190, 122;
+  --mx-orange: 245, 158, 11;
+  --mx-red: 239, 68, 68;
+  --mx-yellow: 250, 204, 21;
+  --mx-card-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+}
+
+/* metrix-ui: показ выпадающих блоков без jQuery main.js */
+.toggle_content.is-open {
+  display: block !important;
+}
+
+.tip_drop .toggle_content.is-open {
+  display: block !important;
+}
+
+/* metrix-ui: пути icons/svg в style.min.css → img/icons в public */
+.tip_drop > .title::before {
+  background-image: url('/metrix-ui/img/icons/tipdrop.svg') !important;
+}
+
+.readed_type {
+  background-image: url('/metrix-ui/img/icons/readed_type_1.svg') !important;
+}
+
+.readed_type.type-2 {
+  background-image: url('/metrix-ui/img/icons/readed_type_2.svg') !important;
+}
+
+.readed_type.type-3 {
+  background-image: url('/metrix-ui/img/icons/readed_type_3.svg') !important;
+}
+
+/* metrix-ui: точка в .radio.circle была смещена (left: 5.5px) */
+.radio.circle input:checked ~ .checkmark::after {
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+}
+
+/* DatePicker внутри filter_header */
+.filter_header .react-datepicker-wrapper {
+  width: 100%;
+}
+
+.filter_header .react-datepicker__input-container input {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  cursor: pointer;
+}
+
+.filter_header .react-datepicker__input-container input:focus {
+  outline: none;
+}
+
+/* Компактный календарь выбора месяца или диапазона дней */
+.filter_header .period-picker-dropdown {
+  width: 360px !important;
+  min-width: 360px;
+  max-width: calc(100vw - 32px);
+  max-height: none !important;
+  padding: 16px !important;
+  overflow: visible !important;
+  box-sizing: border-box;
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+}
+
+.period-picker-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  margin-bottom: 12px;
+  background: #f1f5f9;
+  border-radius: 12px;
+}
+
+.period-picker-mode {
+  border: 0;
+  border-radius: 9px;
+  padding: 9px 14px;
+  color: #64748b;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.period-picker-mode.is-active {
+  color: #fff;
+  background: #3b6edc;
+  box-shadow: 0 2px 8px rgba(59, 110, 220, 0.24);
+}
+
+.period-picker-hint {
+  min-height: 20px;
+  margin: 0 0 10px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.period-picker-calendar.react-datepicker {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.period-picker-calendar .react-datepicker__month-container {
+  float: none;
+  width: 100%;
+}
+
+.period-picker-calendar .react-datepicker__header {
+  padding: 14px 8px 8px;
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+
+.period-picker-calendar .react-datepicker__current-month {
+  margin-bottom: 10px;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.period-picker-calendar .react-datepicker__month {
+  margin: 8px;
+}
+
+.period-picker-calendar .react-datepicker__week {
+  display: flex;
+  justify-content: space-around;
+}
+
+.period-picker-calendar .react-datepicker__day-names {
+  display: flex;
+  justify-content: space-around;
+}
+
+.period-picker-calendar .react-datepicker__day,
+.period-picker-calendar .react-datepicker__day-name {
+  flex: 0 0 36px;
+  width: 36px;
+  margin: 2px;
+  line-height: 36px;
+  border-radius: 9px;
+}
+
+.period-picker-calendar .react-datepicker__day--selected,
+.period-picker-calendar .react-datepicker__day--range-start,
+.period-picker-calendar .react-datepicker__day--range-end {
+  color: #fff;
+  background: #3b6edc;
+}
+
+.period-picker-calendar .react-datepicker__day--in-range,
+.period-picker-calendar .react-datepicker__day--in-selecting-range {
+  color: #1e3a8a;
+  background: #dbeafe;
+}
+
+.period-picker-calendar .react-datepicker__day--keyboard-selected {
+  color: #1e3a8a;
+  background: #bfdbfe;
+}
+
+@media (max-width: 480px) {
+  .filter_header .period-picker-dropdown {
+    width: calc(100vw - 32px) !important;
+    min-width: 0;
+  }
+
+  .period-picker-calendar .react-datepicker__day,
+  .period-picker-calendar .react-datepicker__day-name {
+    flex-basis: 32px;
+    width: 32px;
+    line-height: 32px;
+  }
+}
+
+/* Логотип metriX Invoice в шапке metrix */
+header .logo.as_side h1 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+/* В BPM .main .container — flex-ряд под сайдбар; у нас один столбец контента */
+.main > .container.no_flex {
+  display: block !important;
+  max-width: 1980px;
+  padding: 0 16px;
+}
+
+.main > .container.no_flex .content_section {
+  width: 100%;
+}
+
+/* Вкладки — горизонтально, не сжимать в колонку */
+.main .tabs_header {
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.main .tabs_header .tab_item .title {
+  white-space: nowrap;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  .mx-page {
+    @apply min-h-screen;
+    background: rgb(var(--background-rgb));
+  }
+
+  .mx-card {
+    @apply bg-white rounded-2xl border border-slate-100;
+    box-shadow: var(--mx-card-shadow);
+  }
+
+  .mx-card-header {
+    @apply px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-4;
+  }
+
+  .mx-input {
+    @apply border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 bg-white
+      placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300;
+  }
+
+  .mx-btn-primary {
+    @apply px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700
+      transition-colors font-medium text-sm disabled:opacity-50;
+  }
+
+  .mx-btn-export {
+    @apply flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700
+      hover:text-blue-600 transition-colors;
+  }
+
+  .mx-trc-pill {
+    @apply appearance-none border-0 rounded-xl px-4 py-2 pr-9 text-sm font-semibold text-white
+      cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-300;
+    background: rgb(var(--mx-blue-dark));
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+
+  .mx-timezone-pill {
+    @apply rounded-xl px-4 py-2 text-sm text-slate-600 bg-white border border-slate-200;
+  }
+
+  .mx-lang-active {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-semibold;
+  }
+
+  .mx-lang-inactive {
+    @apply text-sm text-slate-600 hover:text-blue-600 transition-colors px-1;
+  }
+
+  .mx-kpi-card {
+    @apply mx-card p-6;
+  }
+
+  .mx-kpi-icon-paid {
+    @apply w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shrink-0;
+  }
+
+  .mx-kpi-icon-unpaid {
+    @apply w-10 h-10 rounded-full bg-amber-400 text-white flex items-center justify-center shrink-0;
+  }
+
+  .mx-kpi-icon-overdue {
+    @apply w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center shrink-0;
+  }
+
+  .mx-kpi-icon-neutral {
+    @apply w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center shrink-0;
+  }
+
+  .mx-table-head {
+    @apply bg-slate-50/80 border-b border-slate-100;
+  }
+
+  .mx-table-th {
+    @apply px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide;
+  }
+
+  .mx-table-td {
+    @apply px-5 py-4 text-sm text-slate-700 align-top;
+  }
+
+  .mx-badge-paid {
+    @apply inline-flex px-4 py-1.5 rounded-lg text-xs font-semibold text-white whitespace-nowrap;
+    background: rgb(var(--mx-green));
+  }
+
+  .mx-badge-unpaid {
+    @apply inline-flex px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-900 whitespace-nowrap;
+    background: rgb(var(--mx-orange));
+  }
+
+  .mx-badge-overdue {
+    @apply inline-flex px-4 py-1.5 rounded-lg text-xs font-semibold text-white whitespace-nowrap;
+    background: rgb(var(--mx-red));
+  }
+
+  .mx-badge-partial {
+    @apply inline-flex px-4 py-1.5 rounded-lg text-xs font-semibold text-white whitespace-nowrap;
+    background: rgb(var(--mx-blue));
+  }
+
+  /* Реестр использует table.style-white из metrix-ui, где td-фон задан через
+     !important — нужна селектор-специфичность как минимум не ниже, чтобы
+     перекрыть его (и hover-состояние тоже задано через !important). */
+  .style-white tr.mx-row-paid td {
+    background-color: rgba(var(--mx-green), 0.12) !important;
+  }
+  .style-white tr.mx-row-paid:hover td {
+    background-color: rgba(var(--mx-green), 0.2) !important;
+  }
+  .style-white tr.mx-row-partial td {
+    background-color: rgba(var(--mx-blue), 0.1) !important;
+  }
+  .style-white tr.mx-row-partial:hover td {
+    background-color: rgba(var(--mx-blue), 0.18) !important;
+  }
+  .style-white tr.mx-row-overdue td {
+    background-color: rgba(var(--mx-red), 0.1) !important;
+  }
+  .style-white tr.mx-row-overdue:hover td {
+    background-color: rgba(var(--mx-red), 0.18) !important;
+  }
+  .style-white tr.mx-row-unpaid td {
+    background-color: rgba(var(--mx-yellow), 0.18) !important;
+  }
+  .style-white tr.mx-row-unpaid:hover td {
+    background-color: rgba(var(--mx-yellow), 0.28) !important;
+  }
+
+  .mx-notify-trigger {
+    @apply inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700;
+  }
+
+  .mx-notify-popover {
+    @apply absolute z-50 mt-2 w-[22rem] bg-white rounded-2xl border border-slate-100 p-4;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.12);
+  }
+
+  .mx-whatsapp-btn {
+    @apply w-full mt-4 flex items-center justify-center gap-2 rounded-full py-3 px-4 text-white text-sm font-semibold
+      hover:opacity-95 transition-opacity;
+    background: #25d366;
+  }
+
+  .mx-pagination-active {
+    @apply w-9 h-9 rounded-full bg-blue-600 text-white text-sm font-semibold;
+  }
+
+  .mx-pagination-item {
+    @apply min-w-[2rem] h-9 px-2 rounded-full text-sm text-slate-600 hover:bg-slate-100;
+  }
+
+  .mx-tab-active {
+    @apply py-4 px-1 border-b-2 border-blue-600 text-blue-600 font-semibold text-sm;
+  }
+
+  .mx-tab-inactive {
+    @apply py-4 px-1 border-b-2 border-transparent text-slate-500 font-medium text-sm
+      hover:text-slate-700 hover:border-slate-200;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

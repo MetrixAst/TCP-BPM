@@ -1,0 +1,91 @@
+# Локальный стенд сервиса счетов (invoice/) рядом с BPM.
+#
+#   python3 invoice/dev/make_env.py      # один раз: invoice/backend/.env.local
+#   docker compose -f docker-compose.invoice.yml up -d --build
+#
+# API http://localhost:8004/docs, админка http://localhost:5173,
+# кабинет арендатора http://localhost:3003.
+# WhatsApp уходит в заглушку greenapi_mock (http://localhost:8099/_requests),
+# 1С/Nova/Kafka отключены — стенд не обращается к боевым системам.
+name: trc-invoice
+
+services:
+  invoice_db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: invoice
+      POSTGRES_USER: invoice
+      POSTGRES_PASSWORD: invoice
+    volumes:
+      - invoice_db_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U invoice -d invoice"]
+      interval: 5s
+      retries: 10
+
+  greenapi_mock:
+    image: python:3.12-alpine
+    command: python /app/greenapi_mock.py
+    volumes:
+      - ./invoice/dev/greenapi_mock.py:/app/greenapi_mock.py:ro
+      - greenapi_mock_data:/data
+    ports:
+      - "127.0.0.1:8099:8080"
+
+  invoice_api:
+    build:
+      context: ./invoice/backend
+      args:
+        ENV_FILE: .env.example
+    env_file:
+      - ./invoice/backend/.env.local
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+psycopg://invoice:invoice@invoice_db:5432/invoice
+      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3003","http://127.0.0.1:5173","http://127.0.0.1:3003"]'
+      KAFKA_ENABLED: "false"
+      SENTRY_DSN: ""
+      ONE_C_BASE_URL: http://127.0.0.1:9
+      NOVA_BACKEND_URL: http://127.0.0.1:9
+      NOVA_MCP_RELAY_URL: http://127.0.0.1:9
+      GREEN_API_URL: http://greenapi_mock:8080
+      GREEN_API_MEDIA_URL: http://greenapi_mock:8080
+      WHATSAPP_SEND_DELAY_SECONDS: "0"
+    volumes:
+      - invoice_uploads:/app/uploads
+    ports:
+      - "127.0.0.1:8004:8004"
+    depends_on:
+      invoice_db:
+        condition: service_healthy
+      greenapi_mock:
+        condition: service_started
+
+  invoice_admin:
+    build:
+      context: ./invoice/admin
+      args:
+        VITE_API_URL: http://localhost:8004
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      - invoice_api
+
+  invoice_client:
+    build:
+      context: ./invoice/client
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8004
+    environment:
+      API_BACKEND_URL: http://invoice_api:8004
+    ports:
+      - "127.0.0.1:3003:3003"
+    depends_on:
+      - invoice_api
+
+volumes:
+  invoice_db_data:
+  invoice_uploads:
+  greenapi_mock_data:

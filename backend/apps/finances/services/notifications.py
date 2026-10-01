@@ -3,6 +3,7 @@
 """
 
 import logging
+import re
 
 from django.conf import settings
 from django.core.mail import EmailMessage
@@ -68,7 +69,59 @@ def send_invoice_via_email(invoice) -> bool:
         return False
 
 
+def send_invoice_via_whatsapp(invoice) -> tuple[bool, str]:
+    """
+    Отправляет PDF счёта в WhatsApp через сервис счетов.
+
+    Контрагент нужен с ID 1С: сервис сверяет номер получателя с телефонами
+    этого контрагента. Статус счёта меняется только при успешной отправке.
+
+    Возвращает (успех, сообщение для пользователя).
+    """
+    from finances.services import invoice_service
+    from finances.services.invoice_pdf import build_invoice_pdf
+
+    if not invoice_service.is_configured():
+        return False, 'Сервис счетов не настроен.'
+
+    cp = invoice.counterparty if invoice.counterparty_id else None
+    if not cp or not cp.id_1c:
+        return False, 'У счёта нет контрагента из 1С — WhatsApp недоступен.'
+
+    phone = _resolve_recipient_phone(invoice)
+    if not phone:
+        return False, 'У контрагента и арендатора не указан телефон.'
+
+    try:
+        invoice_service.send_file_via_whatsapp(
+            phone=phone,
+            counterparty_id=cp.id_1c,
+            file_name=f'invoice_{invoice.pk}.pdf',
+            file_bytes=build_invoice_pdf(invoice),
+            invoice_number=invoice.onec_id or None,
+        )
+    except invoice_service.InvoiceServiceError as exc:
+        logger.warning(
+            f"invoice_whatsapp_error: invoice_id={invoice.pk} number={invoice.number} error={exc}"
+        )
+        return False, str(exc)
+
+    _mark_sent(invoice, 'whatsapp')
+    logger.info(f"invoice_whatsapp_sent: invoice_id={invoice.pk} number={invoice.number}")
+    return True, f'Счёт №{invoice.number} отправлен в WhatsApp.'
+
+
 # ── helpers ───────────────────────────────────────────────────────────────────
+
+def _resolve_recipient_phone(invoice) -> str | None:
+    """Первый номер из телефона контрагента, иначе арендатора (в поле бывает список)."""
+    for source in (invoice.counterparty, invoice.tenant):
+        raw = (getattr(source, 'phone', None) or '').strip()
+        first = re.split(r'[,;/]', raw)[0].strip()
+        if first:
+            return first
+    return None
+
 
 def _resolve_recipient_email(invoice) -> str | None:
     """Возвращает email получателя или None."""
