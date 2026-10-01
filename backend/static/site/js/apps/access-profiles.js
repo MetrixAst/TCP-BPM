@@ -219,17 +219,23 @@
         var deptOptions = (window.ACCESS_DEPARTMENTS || []).map(function (d) {
           return '<option value="' + d.id + '">' + d.name + '</option>';
         }).join('');
+        var positionOptions = (window.ACCESS_POSITIONS || []).map(function (p) {
+          return '<option value="' + p.id + '">' + p.name + '</option>';
+        }).join('');
   
         var html = '';
         html += '<h3 class="access-modal__title">' + t('Назначить профиль') + ' «' + profileName + '»</h3>';
         html += '<div class="access-form-row"><label class="access-page__label">Тип группы</label>' +
           '<select id="assignScopeType" class="access-page__search-input" style="padding-left:16px">' +
           '<option value="role">По роли</option><option value="department">По отделу</option>' +
+          '<option value="position">По должности</option>' +
           '</select></div>';
         html += '<div class="access-form-row" id="assignRoleRow"><label class="access-page__label">Роль</label>' +
           '<select id="assignRoleSelect" class="access-page__search-input" style="padding-left:16px">' + roleOptions + '</select></div>';
         html += '<div class="access-form-row" id="assignDeptRow" style="display:none"><label class="access-page__label">Отдел</label>' +
           '<select id="assignDeptSelect" class="access-page__search-input" style="padding-left:16px">' + deptOptions + '</select></div>';
+        html += '<div class="access-form-row" id="assignPositionRow" style="display:none"><label class="access-page__label">Должность</label>' +
+          '<select id="assignPositionSelect" class="access-page__search-input" style="padding-left:16px">' + positionOptions + '</select></div>';
         html += '<div class="access-form-row"><label class="access-page__item"><input type="checkbox" id="assignCanDelegate" /> Разрешить делегирование</label></div>';
   
         html += '<div class="access-preview-box" id="assignPreviewBox"><div class="access-modal__loading">Считаем затронутых сотрудников…</div></div>';
@@ -249,16 +255,24 @@
         var scopeSelect = document.getElementById('assignScopeType');
         var roleRow = document.getElementById('assignRoleRow');
         var deptRow = document.getElementById('assignDeptRow');
+        var positionRow = document.getElementById('assignPositionRow');
         var roleSelect = document.getElementById('assignRoleSelect');
         var deptSelect = document.getElementById('assignDeptSelect');
+        var positionSelect = document.getElementById('assignPositionSelect');
         var previewBox = document.getElementById('assignPreviewBox');
         var confirmBtn = document.getElementById('assignConfirmBtn');
-  
+
+        var scopeFields = {
+          role: { row: roleRow, select: roleSelect, param: 'role' },
+          department: { row: deptRow, select: deptSelect, param: 'department' },
+          position: { row: positionRow, select: positionSelect, param: 'position' },
+        };
+
         function refreshPreview() {
           confirmBtn.disabled = true;
           previewBox.innerHTML = '<div class="access-modal__loading">' + t('Считаем затронутых сотрудников…') + '</div>';
-          var scopeType = scopeSelect.value;
-          var query = scopeType === 'role' ? ('role=' + encodeURIComponent(roleSelect.value)) : ('department=' + encodeURIComponent(deptSelect.value));
+          var field = scopeFields[scopeSelect.value];
+          var query = field.param + '=' + encodeURIComponent(field.select.value);
           apiFetch('/api/v1/permissions/users/?' + query + '&page_size=1000')
             .then(function (data) {
               var items = data.results || (Array.isArray(data) ? data : []);
@@ -276,13 +290,14 @@
         }
   
         scopeSelect.addEventListener('change', function () {
-          var isRole = scopeSelect.value === 'role';
-          roleRow.style.display = isRole ? '' : 'none';
-          deptRow.style.display = isRole ? 'none' : '';
+          Object.keys(scopeFields).forEach(function (scope) {
+            scopeFields[scope].row.style.display = scope === scopeSelect.value ? '' : 'none';
+          });
           refreshPreview();
         });
-        roleSelect.addEventListener('change', refreshPreview);
-        deptSelect.addEventListener('change', refreshPreview);
+        Object.keys(scopeFields).forEach(function (scope) {
+          scopeFields[scope].select.addEventListener('change', refreshPreview);
+        });
   
         document.getElementById('assignCancelBtn').addEventListener('click', closeAssignModal);
         confirmBtn.addEventListener('click', function () {
@@ -294,8 +309,10 @@
             scope_type: scopeType,
             can_delegate: document.getElementById('assignCanDelegate').checked,
           };
-          if (scopeType === 'role') payload.role = roleSelect.value;
-          else payload.department = parseInt(deptSelect.value, 10);
+          var field = scopeFields[scopeType];
+          payload[field.param] = scopeType === 'role'
+            ? field.select.value
+            : parseInt(field.select.value, 10);
   
           confirmBtn.disabled = true;
           confirmBtn.textContent = t('Применяем…');

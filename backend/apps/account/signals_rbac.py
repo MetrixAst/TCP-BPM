@@ -25,8 +25,7 @@ def _permission_changed(sender, instance, **kwargs):
 @receiver(post_save, sender=ProfileAssignment)
 @receiver(post_delete, sender=ProfileAssignment)
 def _assignment_changed(sender, instance, **kwargs):
-    scope_id = instance.role if instance.scope_type == ProfileAssignment.SCOPE_ROLE else instance.department_id
-    invalidate_assignment_cache_for_scope(instance.scope_type, scope_id)
+    invalidate_assignment_cache_for_scope(instance.scope_type, instance.scope_id)
 
 def _get_ip(request):
     if request is None:

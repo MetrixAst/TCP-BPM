@@ -66,9 +66,12 @@ def assignment_permission_codes(user) -> set:
 
         role = role_value(getattr(user, "role", None))
         dept_id = None
+        position_id = None
         try:
             emp = user.employee_info
-            dept_id = emp.department_id if emp else None
+            if emp:
+                dept_id = emp.department_id
+                position_id = emp.position_id
         except Exception:
             pass
 
@@ -77,6 +80,8 @@ def assignment_permission_codes(user) -> set:
             query |= Q(scope_type=ProfileAssignment.SCOPE_ROLE, role=role)
         if dept_id:
             query |= Q(scope_type=ProfileAssignment.SCOPE_DEPARTMENT, department_id=dept_id)
+        if position_id:
+            query |= Q(scope_type=ProfileAssignment.SCOPE_POSITION, position_id=position_id)
 
         if not query:
             cache.set(key, set(), ROLE_CACHE_TTL)
@@ -172,12 +177,18 @@ def invalidate_user_assignment_cache(user_id: int):
 def invalidate_assignment_cache_for_scope(scope_type: str, scope_id):
     from account.models import UserAccount
 
+    # Ветки перечислены явно: раньше всё, кроме роли, считалось отделом, и
+    # назначение на должность сбрасывало кеш не тем людям.
     if scope_type == "role":
-        users = UserAccount.objects.filter(role=scope_id).values_list("pk", flat=True)
+        lookup = {"role": scope_id}
+    elif scope_type == "position":
+        lookup = {"employee_info__position_id": scope_id}
+    elif scope_type == "department":
+        lookup = {"employee_info__department_id": scope_id}
     else:
-        users = UserAccount.objects.filter(
-            employee_info__department_id=scope_id
-        ).values_list("pk", flat=True)
+        return
+
+    users = UserAccount.objects.filter(**lookup).values_list("pk", flat=True)
 
     for uid in users:
         cache.delete(ASSIGNMENT_CACHE_PREFIX + str(uid))

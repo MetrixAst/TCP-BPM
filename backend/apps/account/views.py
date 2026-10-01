@@ -484,15 +484,25 @@ def access_users(request):
 @need_permission(PermissionEnums.MANAGE_PERMISSIONS)
 def access_profiles(request):
     from account.models_rbac import PermissionProfile
+    from hr.models import Position
     profiles = (
         PermissionProfile.objects
-        .prefetch_related('permissions')
+        .prefetch_related(
+            'permissions',
+            'assignments__department',
+            'assignments__position',
+        )
         .annotate(permission_count=Count('permissions'))
         .order_by('name')
     )
     return render(request, 'site/account/access_profiles.html', {
         'profiles': profiles,
         'departments': Department.objects.all(),
+        'positions': (
+            Position.objects
+            .select_related('department')
+            .order_by('department__name', 'title')
+        ),
         'roles': UserAccount.ROLES,
     })
 
