@@ -106,9 +106,11 @@ class UserPermissionOverride(models.Model):
 class ProfileAssignment(models.Model):
     SCOPE_ROLE = "role"
     SCOPE_DEPARTMENT = "department"
+    SCOPE_POSITION = "position"
     SCOPE_CHOICES = [
         (SCOPE_ROLE, "По роли"),
         (SCOPE_DEPARTMENT, "По отделу"),
+        (SCOPE_POSITION, "По должности"),
     ]
 
     profile = models.ForeignKey(
@@ -131,6 +133,14 @@ class ProfileAssignment(models.Model):
         related_name="profile_assignments",
         verbose_name="Отдел",
     )
+    position = models.ForeignKey(
+        "hr.Position",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="profile_assignments",
+        verbose_name="Должность",
+    )
     can_delegate = models.BooleanField(
         "Разрешена делегация", default=False,
     )
@@ -152,7 +162,30 @@ class ProfileAssignment(models.Model):
     def __str__(self):
         if self.scope_type == self.SCOPE_ROLE:
             return f"{self.profile.name} → роль:{self.role}"
+        if self.scope_type == self.SCOPE_POSITION:
+            return f"{self.profile.name} → должность:{self.position}"
         return f"{self.profile.name} → отдел:{self.department}"
+
+    @property
+    def scope_label(self):
+        """Человеко-читаемая группа: «Отдел: Эксплуатация», «Должность: Кладовщик»."""
+        if self.scope_type == self.SCOPE_ROLE:
+            return f"Роль: {self.role}"
+        if self.scope_type == self.SCOPE_POSITION:
+            return f"Должность: {self.position.title}" if self.position else "Должность: —"
+        return f"Отдел: {self.department.name}" if self.department else "Отдел: —"
+
+    @property
+    def scope_id(self):
+        """Идентификатор группы, на которую назначен профиль.
+
+        Нужен для сброса кеша: у каждого типа группы он лежит в своём поле.
+        """
+        if self.scope_type == self.SCOPE_ROLE:
+            return self.role
+        if self.scope_type == self.SCOPE_POSITION:
+            return self.position_id
+        return self.department_id
 
 class PermissionAuditLog(models.Model):
     ACTION_GRANT = "GRANT"

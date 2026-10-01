@@ -23,7 +23,7 @@
     <div class="access-table" id="profilesTable">
       <div class="access-table__head access-table__head--profiles">
         <div>{% t 'access.col_profile' 'Профиль' %}</div>
-        <div>{% t 'access.col_role_binding' 'Системная роль' %}</div>
+        <div>{% t 'access.col_scope_binding' 'Назначен' %}</div>
         <div>{% t 'access.col_permissions_count' 'Прав' %}</div>
         <div></div>
       </div>
@@ -34,7 +34,13 @@
             <div class="access-user__name">{{ profile.name }}</div>
             {% if profile.description %}<div class="access-user__meta">{{ profile.description }}</div>{% endif %}
           </div>
-          <div class="access-muted">{{ profile.role|default:"—" }}</div>
+          <div class="access-muted">
+            {% if profile.role %}<div>Роль: {{ profile.role }}</div>{% endif %}
+            {% for assignment in profile.assignments.all %}
+              <div>{{ assignment.scope_label }}</div>
+            {% endfor %}
+            {% if not profile.role and not profile.assignments.all %}—{% endif %}
+          </div>
           <div class="access-muted">{{ profile.permission_count }}</div>
           <div class="access-table__actions">
             <button type="button" class="access-page__btn access-page__btn--light" data-edit-profile="{{ profile.id }}">
@@ -82,6 +88,8 @@
 <script>
   window.ACCESS_ROLES = [{% for value, label in roles %}{ value: "{{ value }}", label: "{{ label }}" }{% if not forloop.last %},{% endif %}{% endfor %}];
   window.ACCESS_DEPARTMENTS = [{% for dept in departments %}{ id: {{ dept.id }}, name: "{{ dept.name|escapejs }}" }{% if not forloop.last %},{% endif %}{% endfor %}];
+  // Должности уникальны только внутри отдела, поэтому в подписи он обязателен.
+  window.ACCESS_POSITIONS = [{% for position in positions %}{ id: {{ position.id }}, name: "{{ position.title|escapejs }} — {{ position.department.name|escapejs }}" }{% if not forloop.last %},{% endif %}{% endfor %}];
 </script>
 <script src="{% static 'site/js/apps/access.js' %}?v={{ static_version|default:'3' }}"></script>
 <script src="{% static 'site/js/apps/access-profiles.js' %}?v={{ static_version|default:'1' }}"></script>

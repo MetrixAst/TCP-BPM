@@ -148,7 +148,7 @@ class UserPermissionOverrideAdmin(admin.ModelAdmin):
 
 @admin.register(ProfileAssignment)
 class ProfileAssignmentAdmin(admin.ModelAdmin):
-    list_display = ('profile', 'scope_type', 'role', 'department', 'can_delegate', 'assigned_by', 'assigned_at')
+    list_display = ('profile', 'scope_type', 'role', 'department', 'position', 'can_delegate', 'assigned_by', 'assigned_at')
     list_filter = ('scope_type', 'can_delegate', 'profile')
     readonly_fields = ('assigned_by', 'assigned_at')
 

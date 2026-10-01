@@ -143,42 +143,47 @@ class UserListSerializer(serializers.ModelSerializer):
 class ProfileAssignmentSerializer(serializers.ModelSerializer):
     profile_name = serializers.CharField(source='profile.name', read_only=True)
     department_name = serializers.SerializerMethodField()
+    position_name = serializers.SerializerMethodField()
 
     class Meta:
         model = ProfileAssignment
         fields = [
             'id', 'profile', 'profile_name',
             'scope_type', 'role', 'department', 'department_name',
+            'position', 'position_name',
             'can_delegate', 'assigned_by', 'assigned_at',
         ]
-        read_only_fields = ['id', 'profile_name', 'department_name', 'assigned_by', 'assigned_at']
+        read_only_fields = [
+            'id', 'profile_name', 'department_name', 'position_name',
+            'assigned_by', 'assigned_at',
+        ]
 
     def get_department_name(self, obj):
         return obj.department.name if obj.department else None
 
+    def get_position_name(self, obj):
+        return obj.position.title if obj.position else None
+
     def validate(self, attrs):
         scope_type = attrs.get('scope_type')
-        role = attrs.get('role')
-        department = attrs.get('department')
+        fields = {
+            ProfileAssignment.SCOPE_ROLE: 'role',
+            ProfileAssignment.SCOPE_DEPARTMENT: 'department',
+            ProfileAssignment.SCOPE_POSITION: 'position',
+        }
+        expected = fields.get(scope_type)
+        if expected is None:
+            return attrs
 
-        if scope_type == ProfileAssignment.SCOPE_ROLE:
-            if not role:
-                raise serializers.ValidationError(
-                    {'role': 'Обязательно для scope_type=role.'}
-                )
-            if department:
-                raise serializers.ValidationError(
-                    {'department': 'Должно быть пустым для scope_type=role.'}
-                )
+        if not attrs.get(expected):
+            raise serializers.ValidationError(
+                {expected: f'Обязательно для scope_type={scope_type}.'}
+            )
 
-        elif scope_type == ProfileAssignment.SCOPE_DEPARTMENT:
-            if not department:
+        for name in fields.values():
+            if name != expected and attrs.get(name):
                 raise serializers.ValidationError(
-                    {'department': 'Обязательно для scope_type=department.'}
-                )
-            if role:
-                raise serializers.ValidationError(
-                    {'role': 'Должно быть пустым для scope_type=department.'}
+                    {name: f'Должно быть пустым для scope_type={scope_type}.'}
                 )
 
         return attrs

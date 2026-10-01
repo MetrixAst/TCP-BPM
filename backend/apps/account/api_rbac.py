@@ -36,11 +36,12 @@ class UserFilter(filters.FilterSet):
     full_name = filters.CharFilter(method='filter_full_name')
     has_overrides = filters.BooleanFilter(method='filter_has_overrides')
     department = filters.NumberFilter(field_name='employee_info__department_id')
+    position = filters.NumberFilter(field_name='employee_info__position_id')
     employee_status = filters.CharFilter(field_name='employee_info__status')
 
     class Meta:
         model = UserAccount
-        fields = ['role', 'username', 'department', 'employee_status']
+        fields = ['role', 'username', 'department', 'position', 'employee_status']
 
     def filter_full_name(self, qs, name, value):
         return qs.filter(
@@ -198,8 +199,8 @@ class ProfileAssignmentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsPermissionAdmin]
     serializer_class = ProfileAssignmentSerializer
     queryset = ProfileAssignment.objects.select_related(
-        'profile', 'department', 'assigned_by'
-    ).order_by('scope_type', 'role', 'department_id')
+        'profile', 'department', 'position', 'assigned_by'
+    ).order_by('scope_type', 'role', 'department_id', 'position_id')
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
@@ -212,13 +213,15 @@ class ProfileAssignmentViewSet(viewsets.ModelViewSet):
         from account.models import UserAccount
 
         if assignment.scope_type == ProfileAssignment.SCOPE_ROLE:
-            users = UserAccount.objects.filter(
-                role=assignment.role
-            ).select_related('employee_info__department')
+            scope_filter = {'role': assignment.role}
+        elif assignment.scope_type == ProfileAssignment.SCOPE_POSITION:
+            scope_filter = {'employee_info__position_id': assignment.position_id}
         else:
-            users = UserAccount.objects.filter(
-                employee_info__department_id=assignment.department_id
-            ).select_related('employee_info__department')
+            scope_filter = {'employee_info__department_id': assignment.department_id}
+
+        users = UserAccount.objects.filter(**scope_filter).select_related(
+            'employee_info__department'
+        )
 
         data = UserListSerializer(
             users.annotate(
