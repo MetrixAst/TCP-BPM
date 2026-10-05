@@ -20,6 +20,10 @@ class AuthInterceptor extends Interceptor {
   Dio get _refreshClient =>
       refreshDio ?? Dio(BaseOptions(baseUrl: dio.options.baseUrl));
 
+  static bool _isAuthPath(String path) {
+    return path.contains('/api/token/');
+  }
+
   @override
   Future<void> onRequest(
       RequestOptions options,
@@ -27,9 +31,13 @@ class AuthInterceptor extends Interceptor {
       ) async {
     options.headers['User-Agent'] = 'flutter_app';
 
-    final token = await storage.read(key: _accessKey);
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
+    // Логин и refresh не носят чужой Bearer: иначе 401 на /api/token/
+    // запускает повторный refresh и маскирует «неверный пароль».
+    if (!_isAuthPath(options.path)) {
+      final token = await storage.read(key: _accessKey);
+      if (token != null) {
+        options.headers['Authorization'] = 'Bearer $token';
+      }
     }
 
     handler.next(options);
@@ -40,7 +48,9 @@ class AuthInterceptor extends Interceptor {
       DioException err,
       ErrorInterceptorHandler handler,
       ) async {
-    if (err.response?.statusCode != 401 || _isRefreshing) {
+    if (err.response?.statusCode != 401 ||
+        _isRefreshing ||
+        _isAuthPath(err.requestOptions.path)) {
       return handler.next(err);
     }
 

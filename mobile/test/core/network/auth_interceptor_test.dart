@@ -21,6 +21,15 @@ class FakeAdapter implements HttpClientAdapter {
       Stream<Uint8List>? requestStream,
       Future<void>? cancelFuture,
       ) async {
+    if (options.path == '/api/token/') {
+      return ResponseBody.fromString(
+        '{"detail":"No active account"}',
+        401,
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+        },
+      );
+    }
     if (options.path == '/protected') {
       callCount++;
       if (callCount == 1) {
@@ -128,6 +137,35 @@ void main() {
 
     verify(() => storage.delete(key: 'auth_access_token')).called(1);
     verify(() => storage.delete(key: 'auth_refresh_token')).called(1);
+  });
+
+  test('401 на /api/token/ не запускает refresh', () async {
+    when(() => storage.read(key: 'auth_access_token'))
+        .thenAnswer((_) async => 'staleToken');
+    when(() => storage.read(key: 'auth_refresh_token'))
+        .thenAnswer((_) async => 'validRefreshToken');
+
+    await expectLater(
+      dio.post('/api/token/', data: {'username': 'x', 'password': 'y'}),
+      throwsA(
+        isA<DioException>().having((e) => e.response?.statusCode, 'status', 401),
+      ),
+    );
+
+    verifyNever(
+      () => refreshDio.post('/api/token/refresh/', data: any(named: 'data')),
+    );
+    verifyNever(() => storage.delete(key: any(named: 'key')));
+  });
+
+  test('логин не подставляет Bearer из прошлого сеанса', () async {
+    when(() => storage.read(key: 'auth_access_token'))
+        .thenAnswer((_) async => 'staleToken');
+
+    final options = RequestOptions(path: '/api/token/');
+    await authInterceptor.onRequest(options, RequestInterceptorHandler());
+
+    expect(options.headers.containsKey('Authorization'), isFalse);
   });
 
   test('нет refresh токена -> сразу logout без запроса refresh', () async {

@@ -20,12 +20,17 @@ export function getApiBaseUrl(): string {
     return configured
   }
 
+  // Same-origin path через BPM gateway (/invoice-api)
+  if (configured.startsWith('/')) {
+    return configured
+  }
+
   const host = window.location.hostname
   if (host === 'localhost' || host === '127.0.0.1') {
     return configured
   }
 
-  return '/api-proxy'
+  return '/invoice-api'
 }
 
 /** @deprecated */

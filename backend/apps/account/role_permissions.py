@@ -318,6 +318,7 @@ class MenuItem:
             MenuItem('fin_reg', 'finances:reg', '', 'Реестр оплат'),
             MenuItem('fin_calendar', 'finances:payment_calendar', '', 'Календарь платежей'),
             MenuItem('fin_invoices', 'finances:invoice_list', '', 'Счета'),
+            MenuItem('fin_invoice_service', 'finances:invoice_service', '', 'Сервис счетов'),
             MenuItem('fin_opiu', 'finances:opiu', '', 'ОПиУ'),
             MenuItem('fin_cashflow', 'finances:cashflow', '', 'ДДС'),
         ]
@@ -333,6 +334,7 @@ class MenuItem:
             MenuItem('fin_opiu', 'finances:opiu', '', 'ОПиУ'),
             MenuItem('fin_cashflow', 'finances:cashflow', '', 'ДДС'),
             MenuItem('fin_invoices', 'finances:invoice_list', '', 'Счета'),
+            MenuItem('fin_invoice_service', 'finances:invoice_service', '', 'Сервис счетов'),
             MenuItem('fin_reg', 'finances:reg', '', 'Реестр оплат'),
             MenuItem('fin_calendar', 'finances:payment_calendar', '', 'Календарь платежей'),
             MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),

@@ -1,0 +1,96 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/finances.css' %}?v=fe53">
+<style>
+  .inv-hub { max-width: 920px; margin: 0 auto; padding: 24px; }
+  .inv-hub h1 { margin: 0 0 8px; font-size: 24px; }
+  .inv-hub-lead { color: #64748b; margin-bottom: 24px; }
+  .inv-hub-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .inv-hub-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 16px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .inv-hub-card h2 { margin: 0; font-size: 16px; }
+  .inv-hub-card p { margin: 0; color: #64748b; font-size: 13px; flex: 1; }
+  .inv-hub-card a { font-weight: 600; color: #2563eb; text-decoration: none; }
+  .inv-hub-status {
+    margin: 20px 0; padding: 14px 16px; border-radius: 12px;
+    border: 1px solid #e2e8f0; background: #f8fafc;
+  }
+  .inv-hub-status.ok { border-color: #86efac; background: #f0fdf4; }
+  .inv-hub-status.bad { border-color: #fca5a5; background: #fef2f2; }
+  .inv-hub-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  .inv-hub-table th, .inv-hub-table td { text-align: left; padding: 8px; border-bottom: 1px solid #e2e8f0; }
+  .badge-ok { color: #15803d; font-weight: 600; }
+  .badge-bad { color: #b91c1c; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="inv-hub">
+  <h1>Сервис счетов</h1>
+  <p class="inv-hub-lead">
+    Invoice-сервис из обновления работает вместе с BPM: отправка WhatsApp из карточки счёта
+    и отдельные админка / кабинет арендатора на том же адресе.
+  </p>
+
+  <div class="inv-hub-status {% if configured and health and health.status_code == 200 %}ok{% else %}bad{% endif %}">
+    {% if configured and health and health.status_code == 200 %}
+      <strong class="badge-ok">Связь OK</strong>
+      — API {{ service_url }} отвечает, tenant_id={{ tenant_id }}.
+    {% elif configured %}
+      <strong class="badge-bad">Сервис настроен, но не отвечает</strong>
+      {% if health_error %}: {{ health_error }}{% endif %}
+    {% else %}
+      <strong class="badge-bad">Не настроено</strong>
+      — задайте INVOICE_SERVICE_* в backend/.env
+    {% endif %}
+  </div>
+
+  <div class="inv-hub-grid">
+    <div class="inv-hub-card">
+      <h2>Счета BPM</h2>
+      <p>Создание счёта и отправка в WhatsApp через сервис (успех / ошибка на карточке).</p>
+      <a href="{% url 'finances:invoice_list' %}">Открыть счета →</a>
+    </div>
+    <div class="inv-hub-card">
+      <h2>Админка invoice</h2>
+      <p>ТРЦ, арендаторы, телефоны, рассылки WhatsApp, импорт Excel.</p>
+      <a href="{{ admin_path }}" target="_blank" rel="noopener">{{ admin_path }}</a>
+    </div>
+    <div class="inv-hub-card">
+      <h2>Кабинет арендатора</h2>
+      <p>Портал, где арендатор видит счета и может отправлять файлы.</p>
+      <a href="{{ portal_path }}" target="_blank" rel="noopener">{{ portal_path }}</a>
+    </div>
+    <div class="inv-hub-card">
+      <h2>API docs</h2>
+      <p>Swagger сервиса счетов.</p>
+      <a href="{{ api_docs_path }}" target="_blank" rel="noopener">{{ api_docs_path }}</a>
+    </div>
+  </div>
+
+  <h2 style="margin-top:28px;font-size:18px;">Последние отправки WhatsApp из BPM</h2>
+  {% if recent_whatsapp %}
+  <table class="inv-hub-table">
+    <thead>
+      <tr><th>Счёт</th><th>Статус</th><th>Когда</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for inv in recent_whatsapp %}
+      <tr>
+        <td>№{{ inv.number }}</td>
+        <td>{{ inv.get_status_display }}</td>
+        <td>{{ inv.sent_at|date:"d.m.Y H:i" }}</td>
+        <td><a href="{% url 'finances:invoice_detail' inv.pk %}">Открыть</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="inv-hub-lead">Пока нет отправок через WhatsApp.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -24,6 +24,23 @@
   </section>
 
   <section class="inv-lifecycle-card">
+    {% if invoice.status == 'sent' or invoice.status == 'viewed' or invoice.status == 'paid' %}
+    <div class="inv-delivery-banner inv-delivery-banner--ok" style="margin-bottom:16px;padding:12px 14px;border-radius:10px;background:#f0fdf4;border:1px solid #86efac;color:#166534;">
+      <strong>Отправка успешна.</strong>
+      Канал: {{ invoice.get_sent_via_display|default:"—" }}{% if invoice.sent_at %}, {{ invoice.sent_at|date:"d.m.Y H:i" }}{% endif %}.
+    </div>
+    {% elif invoice.status == 'created' and whatsapp_enabled %}
+    <div class="inv-delivery-banner" style="margin-bottom:16px;padding:12px 14px;border-radius:10px;background:#eff6ff;border:1px solid #93c5fd;color:#1e40af;">
+      WhatsApp доступен через сервис счетов.
+      Нужны контрагент с ID 1С и телефон. При ошибке статус останется «Создан».
+    </div>
+    {% elif invoice.status == 'created' and not whatsapp_enabled %}
+    <div class="inv-delivery-banner" style="margin-bottom:16px;padding:12px 14px;border-radius:10px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;">
+      Сервис счетов не подключён — WhatsApp скрыт. Настройте INVOICE_SERVICE_* или откройте
+      <a href="{% url 'finances:invoice_service' %}">хаб сервиса</a>.
+    </div>
+    {% endif %}
+
     <div class="inv-lifecycle">
       <div class="inv-life-step {% if invoice.status == 'created' or invoice.status == 'sent' or invoice.status == 'viewed' or invoice.status == 'paid' %}is-active{% endif %}">
         <i></i><span>Создан</span>

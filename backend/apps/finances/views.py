@@ -386,8 +386,48 @@ def invoice_detail(request, pk):
         'invoice': invoice,
         'color':   STATUS_COLORS.get(invoice.status, 'secondary'),
         'whatsapp_enabled': invoice_service.is_configured(),
+        'invoice_service_ok': invoice_service.is_configured(),
     }
     return render(request, 'site/finances/invoice_detail.html', context)
+
+
+@need_permission(PermissionEnums.FINANCE_INVOICES)
+def invoice_service_hub(request):
+    """Хаб сервиса счетов: статус связи BPM ↔ invoice и ссылки для теста."""
+    from django.conf import settings
+    from .services import invoice_service
+
+    health = None
+    health_error = None
+    if invoice_service.is_configured():
+        try:
+            import requests
+            resp = requests.get(
+                f"{settings.INVOICE_SERVICE_URL.rstrip('/')}/health",
+                timeout=5,
+            )
+            health = {'status_code': resp.status_code, 'body': resp.json() if resp.ok else resp.text[:200]}
+        except Exception as exc:
+            health_error = str(exc)
+
+    recent = (
+        GeneratedInvoice.objects
+        .filter(sent_via=GeneratedInvoice.SentVia.WHATSAPP)
+        .order_by('-sent_at')[:10]
+    )
+
+    return render(request, 'site/finances/invoice_service.html', {
+        'configured': invoice_service.is_configured(),
+        'service_url': settings.INVOICE_SERVICE_URL,
+        'tenant_id': settings.INVOICE_SERVICE_TENANT_ID,
+        'health': health,
+        'health_error': health_error,
+        'recent_whatsapp': recent,
+        'admin_path': '/invoice-admin/',
+        'portal_path': '/invoice-portal/',
+        'api_docs_path': '/invoice-api/docs',
+        'mock_path': '/invoice-mock/_requests',
+    })
 
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)

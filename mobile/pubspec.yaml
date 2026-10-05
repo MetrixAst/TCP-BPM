@@ -50,9 +50,15 @@ dependencies:
   mobile_scanner: ^6.0.2
   flutter_launcher_icons: ^0.14.1
 
+dependency_overrides:
+  mobile_scanner:
+    path: packages/mobile_scanner_stub
+
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
   flutter_lints: ^4.0.0
   build_runner: ^2.4.12
