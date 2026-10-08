@@ -10,6 +10,7 @@ urlpatterns = [
     path('<slug:document_type>/edit/<int:pk>/', views.edit_document, name="edit"),
     path('<slug:document_type>/folders/create/', views.create_folder_view, name="folder_create"),
     path('document/<int:pk>/', views.document_view, name="document"),
+    path('document/<int:pk>/access/', views_acl.document_access_edit, name="document_access"),
     path('document/<int:pk>/action/', views.document_action_view, name="document_action"),
     path('document/<int:pk>/esigner/send/', views.document_esigner_send, name="document_esigner_send"),
     path('document/<int:pk>/esigner/download/', views.document_esigner_download, name="document_esigner_download"),

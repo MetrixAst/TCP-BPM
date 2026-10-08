@@ -42,11 +42,82 @@ class DocumentForm(forms.ModelForm):
     )
     folder = TreeField(Folder.objects.none(), required=True)
 
+    # Видимость (AccessScope): по умолчанию — всем с доступом к папке
+    scope_is_global = forms.BooleanField(
+        label='Виден всем (у кого есть доступ к папке)',
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+    scope_roles = forms.MultipleChoiceField(
+        label='Роли',
+        choices=[],
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
+    scope_departments = forms.ModelMultipleChoiceField(
+        label='Отделы',
+        queryset=None,
+        required=False,
+        widget=forms.SelectMultiple(attrs={'class': 'form-control', 'size': 6}),
+    )
+    scope_users = forms.ModelMultipleChoiceField(
+        label='Пользователи',
+        queryset=None,
+        required=False,
+        widget=forms.SelectMultiple(attrs={'class': 'form-control', 'size': 6}),
+    )
+
     def __init__(self, *args, **kwargs):
         kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        from account.models import Department, UserAccount
+
         self.fields['folder'].queryset = all_folders_queryset('documents')
         self.fields['folder'].label = 'Папка'
+        self.fields['scope_roles'].choices = UserAccount.ROLES
+        self.fields['scope_departments'].queryset = (
+            Department.objects.select_related('company').order_by('name')
+        )
+        self.fields['scope_users'].queryset = (
+            UserAccount.objects.filter(is_active=True).order_by('username')
+        )
+        scope = getattr(self.instance, 'access_scope', None) if self.instance and self.instance.pk else None
+        if scope:
+            self.fields['scope_is_global'].initial = scope.is_global
+            self.fields['scope_roles'].initial = scope.roles or []
+            self.fields['scope_departments'].initial = scope.departments.all()
+            self.fields['scope_users'].initial = scope.users.all()
+
+    def save_access_scope(self, document: Document):
+        """Сохраняет зону видимости после document.save()."""
+        from account.models import AccessScope
+
+        is_global = self.cleaned_data.get('scope_is_global', False)
+        roles = self.cleaned_data.get('scope_roles') or []
+        departments = self.cleaned_data.get('scope_departments') or []
+        users = self.cleaned_data.get('scope_users') or []
+
+        existing = document.access_scope
+        # Пустая матрица — без зоны: видят все с доступом к папке.
+        if not roles and not departments and not users:
+            if existing is not None:
+                existing.delete()
+                document.access_scope = None
+                document.save(update_fields=['access_scope'])
+            return None
+
+        title = (document.title or f'document-{document.pk}')[:100]
+        scope = existing or AccessScope(name=f'Doc: {title}')
+        scope.name = f'Doc: {title}'
+        scope.is_global = bool(is_global)
+        scope.roles = list(roles)
+        scope.save()
+        scope.departments.set(departments)
+        scope.users.set(users)
+        document.access_scope = scope
+        document.save(update_fields=['access_scope'])
+        return scope
 
     class Meta:
         model = Document

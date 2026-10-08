@@ -89,21 +89,68 @@ class Document(models.Model):
 
     date_notify = models.DateTimeField(verbose_name="Дата уведомления о сроке", null=True, blank=True)
 
+    access_scope = models.ForeignKey(
+        'account.AccessScope',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='documents',
+        verbose_name='Зона доступа',
+        help_text='Для документооборота: пусто = видят все, у кого есть доступ к папке.',
+    )
+
     @staticmethod
     def get_available_queryset(request):
-        queryset = Document.objects.filter(
-            Q(author=request.user) | 
-            Q(coordinators=request.user) | 
-            Q(observers=request.user)
-        )
+        from account.models import AccessScope
+        from account.services.access_scope import user_has_full_access
+        from .enums import DocumentTypeEnum
 
-        return queryset.distinct()
-    
+        user = request.user
+        if user_has_full_access(user):
+            return Document.objects.all()
+
+        docs_type = DocumentTypeEnum.DOCUMENTS.value[0]
+        participant = (
+            Q(author=user)
+            | Q(coordinators=user)
+            | Q(observers=user)
+        )
+        # Документооборот: без зоны или «всем» — виден в рамках папки;
+        # иначе — роли / отделы / пользователи зоны.
+        open_docflow = Q(document_type=docs_type, access_scope__isnull=True)
+        global_docflow = Q(document_type=docs_type, access_scope__is_global=True)
+        by_user = Q(document_type=docs_type, access_scope__users=user)
+
+        # JSONField.contains не везде поддерживается (sqlite) — роли матчим в Python.
+        role = getattr(user, 'role', None)
+        role_scope_ids = []
+        if role:
+            for scope_id, roles in AccessScope.objects.values_list('id', 'roles'):
+                if role in (roles or []):
+                    role_scope_ids.append(scope_id)
+        by_role = Q(document_type=docs_type, access_scope_id__in=role_scope_ids)
+
+        by_dept = Q(pk__in=[])
+        employee = getattr(user, 'employee_info', None)
+        if employee and getattr(employee, 'department_id', None):
+            by_dept = Q(
+                document_type=docs_type,
+                access_scope__departments=employee.department_id,
+            )
+
+        return Document.objects.filter(
+            participant | open_docflow | global_docflow | by_user | by_role | by_dept
+        ).distinct()
+
     @staticmethod
-    def get_by_id(request, id, exception = True):
+    def get_by_id(request, id, exception=True):
         from account.services.access_scope import user_can_view_folder
 
-        qs = Document.get_available_queryset(request).filter(pk=id).select_related('folder', 'folder__access_scope')
+        qs = (
+            Document.get_available_queryset(request)
+            .filter(pk=id)
+            .select_related('folder', 'folder__access_scope', 'access_scope')
+        )
         doc = qs.first()
         if doc is not None and user_can_view_folder(request.user, doc.folder):
             return doc

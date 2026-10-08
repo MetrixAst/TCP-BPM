@@ -1,14 +1,14 @@
 from django.contrib import messages
-from django.http import HttpResponseForbidden
+from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
-from account.role_permissions import need_permission, PermissionEnums
+from account.role_permissions import need_permission, PermissionEnums, RolePermissions
 from account.services.access_scope import user_can_manage_access_scopes
 
 from .enums import DocumentTypeEnum
 from .folder_structure import ensure_folder_tree
-from .forms_acl import FolderAccessForm
-from .models import Folder
+from .forms_acl import DocumentAccessForm, FolderAccessForm
+from .models import Document, Folder
 from account.i18n import translate
 
 
@@ -19,6 +19,17 @@ def _require_acl_manager(view_func):
         return view_func(request, *args, **kwargs)
 
     return wrapper
+
+
+def _user_can_manage_document_visibility(user, document) -> bool:
+    if user_can_manage_access_scopes(user):
+        return True
+    if document.author_id == getattr(user, 'id', None):
+        return True
+    return RolePermissions.checkPermission(
+        getattr(user, 'role', None),
+        PermissionEnums.EDIT_DOCUMENT,
+    )
 
 
 @need_permission(PermissionEnums.DOCUMENTS)
@@ -62,4 +73,31 @@ def folder_access_edit(request, document_type, pk):
         'folder': folder,
         'form': form,
         'title': f'{translate(getattr(request, "current_lang", "ru"), "documents.access", default="Доступ")}: {folder.short_name}',
+    })
+
+
+@need_permission(PermissionEnums.DOCUMENTS)
+def document_access_edit(request, pk):
+    """Настройка видимости карточки документооборота."""
+    document = Document.get_by_id(request, pk)
+    if document.document_type != DocumentTypeEnum.DOCUMENTS.value[0]:
+        raise Http404
+    if not _user_can_manage_document_visibility(request.user, document):
+        return HttpResponseForbidden('Недостаточно прав для настройки видимости документа.')
+
+    form = DocumentAccessForm(document, request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Видимость документа сохранена.')
+        return redirect('documents:document', pk=document.pk)
+
+    return render(request, 'site/documents/settings/document_access_form.html', {
+        'document': document,
+        'form': form,
+        'type_config': DocumentTypeEnum.get_config(document.document_type),
+        'title': translate(
+            getattr(request, 'current_lang', 'ru'),
+            'documents.visibility',
+            default='Видимость документа',
+        ),
     })

@@ -157,6 +157,16 @@ def document(request, pk):
         object_id=current.pk,
     ).first()
 
+    can_edit = RolePermissions.checkPermission(
+        request.user.role,
+        PermissionEnums.EDIT_DOCUMENT,
+    )
+    can_manage_visibility = (
+        user_can_manage_access_scopes(request.user)
+        or current.author_id == getattr(request.user, 'id', None)
+        or can_edit
+    )
+
     context = {
         'document': current,
         'inner_documents': inner_documents,
@@ -166,10 +176,8 @@ def document(request, pk):
         'type_config': DocumentTypeEnum.get_config(current.document_type),
         'addit_form': InnerDocumentForm(),
         'esigner_signing': esigner_signing,
-        'can_edit': RolePermissions.checkPermission(
-            request.user.role,
-            PermissionEnums.EDIT_DOCUMENT,
-        ),
+        'can_edit': can_edit,
+        'can_manage_visibility': can_manage_visibility,
     }
 
     return render(request, 'site/documents/document.html', context)
@@ -249,8 +257,13 @@ def edit_document_by_type(request, pk, document_type):
                 if not new.number:
                     new.number = f'DOC-{new.pk:05d}'
                     new.save(update_fields=['number'])
-                new.coordinators.set([request.user])
-                new.observers.set([request.user])
+                # Участники не ограничивают видимость: по умолчанию документ
+                # виден всем с доступом к папке (access_scope=None).
+                # Автор остаётся в observers для удобства уведомлений.
+                if current is None:
+                    new.observers.add(request.user)
+                if hasattr(form, 'save_access_scope'):
+                    form.save_access_scope(new)
             else:
                 form.save_m2m()
 

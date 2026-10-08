@@ -9,4 +9,10 @@ class FolderA(DjangoMpttAdmin):
 
 admin.site.register(Folder, FolderA)
 
-admin.site.register(Document)
+@admin.register(Document)
+class DocumentAdmin(admin.ModelAdmin):
+    list_display = ('number', 'title', 'document_type', 'author', 'status', 'access_scope', 'date')
+    list_filter = ('document_type', 'status')
+    search_fields = ('number', 'title')
+    raw_id_fields = ('author', 'folder', 'access_scope')
+    filter_horizontal = ('coordinators', 'observers')

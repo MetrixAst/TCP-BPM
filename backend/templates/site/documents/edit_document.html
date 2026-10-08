@@ -100,6 +100,36 @@
         </div>
       </div>
 
+      {% if form.scope_is_global %}
+        <div class="doc-form-divider"></div>
+        <div class="doc-form-section">
+          <div class="doc-form-section__title">Видимость</div>
+          <div class="doc-form-grid">
+            <div class="doc-form-field doc-form-field--full">
+              <label class="doc-form-check">
+                {{ form.scope_is_global }}
+                <span>{{ form.scope_is_global.label }}</span>
+              </label>
+              <div class="text-muted" style="font-size:12px;margin-top:6px;">
+                По умолчанию документ видят все с доступом к папке. Чтобы ограничить — снимите галочку и выберите роли, отделы или пользователей ниже.
+              </div>
+            </div>
+            <div class="doc-form-field">
+              <label class="doc-form-label">Роли</label>
+              {{ form.scope_roles }}
+            </div>
+            <div class="doc-form-field">
+              <label class="doc-form-label">Отделы</label>
+              {{ form.scope_departments }}
+            </div>
+            <div class="doc-form-field doc-form-field--full">
+              <label class="doc-form-label">Пользователи</label>
+              {{ form.scope_users }}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
       {% if form.coordinators %}
         <div class="doc-form-divider"></div>
         <div class="doc-form-section">
