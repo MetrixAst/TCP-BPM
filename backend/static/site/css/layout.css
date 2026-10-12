@@ -25,32 +25,36 @@
 }
 /* Brand logo: metri + BPM — blue, X — green, Poppins */
 .bpm-logo {
-  font-family: "Poppins", "Inter", var(--font-family-base, sans-serif), sans-serif;
-  font-weight: 700;
-  font-size: inherit;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   white-space: nowrap;
   text-decoration: none;
+  line-height: 0;
 }
-.bpm-logo__metri,
-.bpm-logo__bpm {
-  color: #2563eb;
+.bpm-logo__img {
+  display: block;
+  height: 28px;
+  width: auto;
+  object-fit: contain;
 }
-.bpm-logo__x {
-  color: #16a34a;
+.bpm-logo__img--full {
+  height: 28px;
+  max-width: 150px;
+}
+.bpm-logo__img--mono {
+  height: 26px;
+  width: auto;
+}
+.bpm-sidebar__logo .bpm-logo__img--full {
+  height: 30px;
+  max-width: 160px;
+}
+.bpm-topbar__brand .bpm-logo__img--mono {
+  height: 28px;
 }
 a.bpm-logo:hover {
   text-decoration: none;
-}
-a.bpm-logo:hover .bpm-logo__metri,
-a.bpm-logo:hover .bpm-logo__bpm {
-  color: #2563eb;
-}
-a.bpm-logo:hover .bpm-logo__x {
-  color: #16a34a;
+  opacity: 0.92;
 }
 
 .bpm-sidebar__logo {
