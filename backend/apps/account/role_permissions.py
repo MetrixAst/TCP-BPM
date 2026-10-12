@@ -65,6 +65,7 @@ class PermissionEnums(Enum):
     FINANCE_REGISTERS = "finance_registers"
     EDIT_TENANTS = "edit_tenants"
     TICKETS_DISPATCH = "tickets_dispatch"
+    PLANS_VIEW_ALL = "plans_view_all"
 
 
 class RolePermissions:
@@ -94,6 +95,7 @@ class RolePermissions:
             PermissionEnums.REQUISTIONS,
             PermissionEnums.SERVICE_REQUESTS,
             PermissionEnums.TICKETS_DISPATCH,
+            PermissionEnums.PLANS_VIEW_ALL,
             PermissionEnums.REPORTS,
             PermissionEnums.COMMENT,
             PermissionEnums.HR_JOURNAL,
@@ -116,6 +118,7 @@ class RolePermissions:
             PermissionEnums.REPORTS,
             PermissionEnums.ROUNDS_MONITOR,
             PermissionEnums.HR_JOURNAL,
+            PermissionEnums.PLANS_VIEW_ALL,
             PermissionEnums.TASKS,
             PermissionEnums.EDIT_TASK,
             PermissionEnums.COMMENT,
@@ -552,6 +555,10 @@ class MenuItem:
             and 'tickets_report' not in _menu_ids(menu)
         ):
             menu.append(MenuItem('tickets_report', 'tickets:report', 'bar-chart', 'Отчёт по заявкам'))
+
+        from plans.access import has_plans_access
+        if 'plans' not in _menu_ids(menu) and has_plans_access(user):
+            menu.append(MenuItem('plans', 'plans:list', 'calendar3', 'Планы отделов'))
 
         if user_has_permission(user, PermissionEnums.ROUNDS_MONITOR):
             present = _menu_ids(menu)

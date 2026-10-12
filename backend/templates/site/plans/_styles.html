@@ -1,0 +1,33 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .pl-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 900px) { .pl-kpi { grid-template-columns: repeat(2, 1fr); } }
+  .pl-kpi__card { background: #fff; border: 1px solid #eceaf3; border-radius: 14px; padding: 14px 18px; }
+  .pl-kpi__label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #74728a; }
+  .pl-kpi__value { font-size: 24px; font-weight: 700; color: #25233f; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .pl-kpi__card--done .pl-kpi__value { color: #15803d; }
+  .pl-kpi__card--warn .pl-kpi__value { color: #ff3b30; }
+  .pl-month { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: #25233f; }
+  .pl-month a { color: #74728a; font-size: 18px; text-decoration: none; }
+  .pl-progress { height: 8px; border-radius: 999px; background: #f0eff6; overflow: hidden; min-width: 120px; }
+  .pl-progress__bar { height: 100%; background: #22a85a; border-radius: 999px; }
+  .pl-badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .pl-badge--planned { background: #f0eff6; color: #74728a; }
+  .pl-badge--in_progress { background: #eef2ff; color: #2f6bed; }
+  .pl-badge--done { background: #dcfce7; color: #15803d; }
+  .pl-badge--cancelled { background: #f0eff6; color: #a5a3b8; text-decoration: line-through; }
+  .pl-badge--overdue { background: #feecec; color: #ff3b30; }
+  .pl-num { font-variant-numeric: tabular-nums; }
+  .pl-section { background: #fff; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; }
+  .pl-section h2 { font-size: 15px; margin: 0 0 12px; color: #25233f; }
+  .pl-inline-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .pl-inline-form label { font-size: 11px; color: #74728a; display: block; margin-bottom: 3px; }
+  .pl-inline-form .hr-form-input { min-width: 160px; }
+  .pl-grow { flex: 1 1 260px; }
+  .pl-muted { color: #74728a; font-size: 13px; }
+  .pl-row-overdue td:first-child { box-shadow: inset 3px 0 0 #ff3b30; }
+  .pl-status-select { border: 1px solid #eceaf3; border-radius: 8px; padding: 3px 6px; font-size: 12px; background: #fff; }
+  .pl-actions { display: flex; gap: 4px; justify-content: flex-end; }
+  .pl-actions form { display: inline; }
+</style>

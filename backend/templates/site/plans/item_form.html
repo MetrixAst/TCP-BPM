@@ -1,0 +1,38 @@
+{% extends "site/base.html" %}
+
+{% block title %}Пункт плана — metriX BPM{% endblock %}
+
+{% block styles %}{% include 'site/plans/_styles.html' %}{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page">
+
+  <div class="hr-registry-top">
+    <div>
+      <h1>{% if full %}Пункт плана{% else %}{{ item.title }}{% endif %}</h1>
+      <div class="pl-muted">
+        <a href="{% url 'plans:detail' plan.pk %}"><i class="bi bi-arrow-left"></i> {{ plan.department.name }} · {{ plan.month|date:"F Y" }}</a>
+        {% if not full %} · срок {{ item.deadline|date:"d.m.Y" }}{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="pl-section">
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+        <div style="margin-bottom:12px;">
+          <label class="pl-muted" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% for error in field.errors %}<div style="color:#ff3b30;font-size:12px;">{{ error }}</div>{% endfor %}
+        </div>
+      {% endfor %}
+      <div class="pl-inline-form">
+        <a href="{% url 'plans:detail' plan.pk %}" class="hr-registry-btn hr-registry-btn--light">Отмена</a>
+        <button type="submit" class="hr-registry-btn hr-registry-btn--primary"><i class="bi bi-check-lg"></i> Сохранить</button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

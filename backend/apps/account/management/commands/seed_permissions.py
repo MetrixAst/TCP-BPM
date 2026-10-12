@@ -28,6 +28,7 @@ PERMISSIONS = [
     ("finance_scenarios", "finances", "edit",   "finances", "Финансы: сценарии"),
 
     ("tasks",     "tasks", "view", "tasks", "Задачи: просмотр"),
+    ("plans_view_all", "plans", "view", "tasks", "Планы отделов: просмотр всех отделов"),
     ("edit_task", "tasks", "edit", "tasks", "Задачи: редактирование"),
 
     ("documents",     "documents", "view", "documents", "Документы: просмотр"),
@@ -55,7 +56,7 @@ PROFILES = {
         "is_system": True,
         "description": "Полный доступ ко всем разделам системы",
         "permissions": [
-            "dashboard", "profile", "ecopark", "rounds_monitor", "comment", "reports",
+            "dashboard", "profile", "ecopark", "rounds_monitor", "plans_view_all", "comment", "reports",
             "hr", "hr_self", "hr_registries", "hr_companies", "hr_positions", "hr_journal",
             "finances", "finance_dashboard", "finance_invoices", "finance_registers",
             "finance_reports", "finance_budget", "finance_scenarios",
@@ -73,7 +74,7 @@ PROFILES = {
         "is_system": True,
         "description": "Доступ к финансам и задачам",
         "permissions": [
-            "dashboard", "profile", "comment", "reports", "rounds_monitor", "hr_journal",
+            "dashboard", "profile", "comment", "reports", "rounds_monitor", "hr_journal", "plans_view_all",
             "finances", "finance_dashboard", "finance_invoices", "finance_registers",
             "finance_reports", "finance_budget", "finance_scenarios",
             "tasks", "edit_task",

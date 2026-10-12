@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'tasks',
     'tenants',
     'tickets',
+    'plans',
     'addits',
     'enbek',
     'onec',

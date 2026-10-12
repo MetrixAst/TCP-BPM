@@ -1,0 +1,136 @@
+{% extends "site/base.html" %}
+
+{% block title %}Планы отделов — metriX BPM{% endblock %}
+
+{% block styles %}{% include 'site/plans/_styles.html' %}{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page">
+
+  <div class="hr-registry-top">
+    <div>
+      <h1>Планы отделов</h1>
+      <div class="pl-month">
+        <a href="?month={{ prev_month|date:'Y-m' }}" aria-label="Предыдущий месяц"><i class="bi bi-chevron-left"></i></a>
+        {{ month|date:"F Y" }}
+        <a href="?month={{ next_month|date:'Y-m' }}" aria-label="Следующий месяц"><i class="bi bi-chevron-right"></i></a>
+      </div>
+    </div>
+    <div class="hr-registry-top__actions">
+      <a href="{% url 'plans:export' %}?month={{ month|date:'Y-m' }}" class="hr-registry-btn hr-registry-btn--light">
+        <i class="bi bi-file-earmark-excel"></i> Excel
+      </a>
+    </div>
+  </div>
+
+  <div class="pl-kpi">
+    <div class="pl-kpi__card">
+      <div class="pl-kpi__label">Пунктов в планах</div>
+      <div class="pl-kpi__value">{{ totals.total }}</div>
+    </div>
+    <div class="pl-kpi__card pl-kpi__card--done">
+      <div class="pl-kpi__label">Выполнено</div>
+      <div class="pl-kpi__value">{{ totals.done }} <span class="pl-muted">· {{ totals.progress }}%</span></div>
+    </div>
+    <div class="pl-kpi__card">
+      <div class="pl-kpi__label">В работе</div>
+      <div class="pl-kpi__value">{{ totals.in_progress }}</div>
+    </div>
+    <div class="pl-kpi__card {% if totals.overdue %}pl-kpi__card--warn{% endif %}">
+      <div class="pl-kpi__label">Просрочено</div>
+      <div class="pl-kpi__value">{{ totals.overdue }}</div>
+    </div>
+  </div>
+
+  {% if creatable %}
+  <div class="pl-section">
+    <h2>Составить план на {{ month|date:"F Y" }}</h2>
+    <form method="post" action="{% url 'plans:create' %}" class="pl-inline-form">
+      {% csrf_token %}
+      <input type="hidden" name="month" value="{{ month|date:'Y-m' }}">
+      <div>
+        <label>Отдел</label>
+        <select name="department" class="hr-form-input" required>
+          {% for d in creatable %}<option value="{{ d.pk }}">{{ d.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <label class="hr-checkbox">
+        <input type="checkbox" name="carry_over" checked>
+        <span>Перенести незавершённые пункты прошлого месяца</span>
+      </label>
+      <button type="submit" class="hr-registry-btn hr-registry-btn--primary"><i class="bi bi-plus-lg"></i> Создать план</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="hr-registry-panel">
+    <div class="hr-registry-table-wrap">
+      <table class="hr-registry-table">
+        <thead>
+          <tr>
+            <th>Отдел</th>
+            <th>Пунктов</th>
+            <th>Выполнено</th>
+            <th>В работе</th>
+            <th>Просрочено</th>
+            <th>Выполнение</th>
+            <th>Составил</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td><a href="{% url 'plans:detail' row.plan.pk %}"><strong>{{ row.plan.department.name }}</strong></a></td>
+            <td class="pl-num">{{ row.stats.total }}</td>
+            <td class="pl-num">{{ row.stats.done }}</td>
+            <td class="pl-num">{{ row.stats.in_progress }}</td>
+            <td class="pl-num">{% if row.stats.overdue %}<span class="pl-badge pl-badge--overdue">{{ row.stats.overdue }}</span>{% else %}0{% endif %}</td>
+            <td>
+              <div class="pl-progress" title="{{ row.stats.progress }}%"><div class="pl-progress__bar" style="width: {{ row.stats.progress }}%"></div></div>
+              <span class="pl-muted pl-num">{{ row.stats.progress }}%</span>
+            </td>
+            <td class="pl-muted">{% if row.plan.author %}{{ row.plan.author.get_name }}{% else %}—{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7">
+              <div class="hr-registry-empty">
+                <i class="bi bi-calendar3"></i>
+                <strong>Планов на этот месяц нет</strong>
+                <span>Руководители отделов составляют планы на странице «Планы отделов».</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if missing %}
+  <div class="pl-section" style="margin-top:14px;">
+    <h2>План не внесён ({{ missing|length }})</h2>
+    <div class="pl-muted">{% for d in missing %}{{ d.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>
+  </div>
+  {% endif %}
+
+  {% if my_items %}
+  <div class="pl-section" style="margin-top:14px;">
+    <h2>Мои пункты</h2>
+    <table class="hr-registry-table">
+      <tbody>
+        {% for item in my_items %}
+        <tr class="{% if item.is_overdue %}pl-row-overdue{% endif %}">
+          <td><a href="{% url 'plans:detail' item.plan_id %}">{{ item.title }}</a></td>
+          <td class="pl-muted">{{ item.plan.department.name }}</td>
+          <td class="pl-num">{{ item.deadline|date:"d.m.Y" }}</td>
+          <td><span class="pl-badge pl-badge--{% if item.is_overdue %}overdue{% else %}{{ item.status }}{% endif %}">{% if item.is_overdue %}Просрочено{% else %}{{ item.get_status_display }}{% endif %}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
