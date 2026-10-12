@@ -218,6 +218,8 @@ def _rounds_monitor_required(view):
 
 
 def round_points_list(request):
+    from account.models import Department
+
     points = RoundPoint.objects.select_related(
         'eco_object',
         'checklist',
@@ -227,7 +229,24 @@ def round_points_list(request):
         'substitute_employee__user',
         'substitute_employee__position',
     ).order_by('name')
-    return render(request, 'site/ecopark/round_points_list.html', {'points': points})
+
+    dept_filter = (request.GET.get('dept') or '').strip()
+    if dept_filter == 'cleaning':
+        points = points.filter(name__startswith='[Клининг]')
+    elif dept_filter == 'ops':
+        points = points.filter(name__startswith='[Эксплуатация]')
+    elif dept_filter.isdigit():
+        points = points.filter(responsible_department_id=int(dept_filter))
+
+    service_departments = Department.objects.filter(
+        name__in=['Клининг', 'Эксплуатация', 'Хозяйственная часть'],
+    ).order_by('name')
+
+    return render(request, 'site/ecopark/round_points_list.html', {
+        'points': points,
+        'dept_filter': dept_filter,
+        'service_departments': service_departments,
+    })
 
 
 def _round_assignment_options():

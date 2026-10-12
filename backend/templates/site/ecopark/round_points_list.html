@@ -14,7 +14,7 @@
     <div>
       <h1>Точки обхода</h1>
       <p class="attendance-page__subtitle">
-        Точки на объекте, которые сотрудник проверяет по QR во время обхода
+        У каждого служебного помещения — отдельная точка, чек-лист и QR для клининга и эксплуатации
       </p>
     </div>
     <div class="hr-registry-top__actions">
@@ -24,12 +24,28 @@
     </div>
   </div>
 
+  <div class="hr-registry-panel" style="margin-bottom:12px;padding:12px 16px;">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+      <span class="hr-muted" style="margin-right:4px;">Подразделение:</span>
+      <a href="{% url 'ecopark:round_points_list' %}"
+         class="hr-registry-btn {% if not dept_filter %}hr-registry-btn--primary{% endif %}"
+         style="height:32px;padding:0 12px;font-size:13px;">Все</a>
+      <a href="?dept=cleaning"
+         class="hr-registry-btn {% if dept_filter == 'cleaning' %}hr-registry-btn--primary{% endif %}"
+         style="height:32px;padding:0 12px;font-size:13px;">Клининг</a>
+      <a href="?dept=ops"
+         class="hr-registry-btn {% if dept_filter == 'ops' %}hr-registry-btn--primary{% endif %}"
+         style="height:32px;padding:0 12px;font-size:13px;">Эксплуатация</a>
+    </div>
+  </div>
+
   <div class="hr-registry-panel">
     <div class="hr-registry-table-wrap">
       <table class="hr-registry-table">
         <thead>
           <tr>
             <th>Название</th>
+            <th>Подразделение</th>
             <th>Объект</th>
             <th>Чек-лист</th>
             <th>Ответственные</th>
@@ -43,6 +59,17 @@
             <td>
               <strong>{{ point.name }}</strong>
               {% if point.location %}<div class="hr-muted">{{ point.location }}</div>{% endif %}
+            </td>
+            <td>
+              {% if point.responsible_department %}
+                {{ point.responsible_department.name }}
+              {% elif point.name|slice:":9" == "[Клининг]" %}
+                Клининг
+              {% elif point.name|slice:":14" == "[Эксплуатация]" %}
+                Эксплуатация
+              {% else %}
+                —
+              {% endif %}
             </td>
             <td>{{ point.eco_object.name|default:"—" }}</td>
             <td>{{ point.checklist.name|default:"—" }}</td>
