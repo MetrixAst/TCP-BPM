@@ -39,7 +39,7 @@
           <button type="button" class="task-deal__icon-btn" title="{% t 'common.copy_link' 'Скопировать ссылку' %}" data-copy-link>
             <i class="bi bi-link-45deg"></i>
           </button>
-          {% if user_role == 'author' %}
+          {% if can_edit %}
             <a href="{% url 'tasks:edit' task.id %}" class="task-deal__icon-btn" title="{% t 'common.edit' 'Редактировать' %}">
               <i class="bi bi-pencil"></i>
             </a>
@@ -310,7 +310,7 @@
     <section class="task-panel">
       <div class="task-panel__head">
         <h3 class="task-panel__title">{% t 'tasks.route' 'Маршрут' %}</h3>
-        {% if user_role == 'author' %}
+        {% if can_edit %}
           <a href="{% url 'tasks:edit' task.id %}" class="task-panel__add" title="{% t 'common.edit' 'Редактировать' %}">
             <i class="bi bi-pencil"></i>
           </a>
@@ -349,6 +349,17 @@
             </div>
           </div>
         {% endif %}
+        {% if can_reassign %}
+          <form method="post" action="{% url 'tasks:reassign' task.id %}" class="task-route__item" style="gap:8px;flex-wrap:wrap;">
+            {% csrf_token %}
+            <select name="executor" class="form-select form-select-sm" style="flex:1;min-width:160px;" aria-label="Новый исполнитель">
+              {% for u in reassign_candidates %}
+                <option value="{{ u.pk }}" {% if u.pk == task.executor_id %}selected{% endif %}>{{ u.get_name }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-outline-primary">Перенаправить</button>
+          </form>
+        {% endif %}
         {% for u in task.co_executors.all %}
           <div class="task-route__item">
             <div class="task-route__avatar">
@@ -384,7 +395,7 @@
     <section class="task-panel">
       <div class="task-panel__head">
         <h3 class="task-panel__title">{% t 'tasks.client' 'Клиент' %}</h3>
-        {% if user_role == 'author' %}
+        {% if can_edit %}
           <a href="{% url 'tasks:edit' task.id %}" class="task-panel__add"><i class="bi bi-pencil"></i></a>
         {% endif %}
       </div>

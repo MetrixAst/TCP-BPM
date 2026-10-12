@@ -384,7 +384,9 @@ def attachment_delete(request, pk, attachment_pk):
 def approval_queue(request):
     if request.user.is_portal_user:
         return redirect('tickets:home')
-    if not user_is_manager(request.user):
+    from account.services.permissions import user_has_permission
+    can_approve_any = user_has_permission(request.user, PermissionEnums.TICKETS_APPROVE)
+    if not (user_is_manager(request.user) or can_approve_any):
         raise PermissionDenied('Согласование заявок доступно только руководителям')
 
     from .services import get_approver
@@ -399,6 +401,7 @@ def approval_queue(request):
     is_admin = (
         request.user.is_superuser
         or request.user.role == RoleEnums.ADMINISTRATOR.value
+        or can_approve_any
     )
     if is_admin:
         queue = list(pending)

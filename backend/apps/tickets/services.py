@@ -124,8 +124,11 @@ def get_approver(user):
 
 def can_bypass_approval(user):
     from account.models import Employee
+    from account.services.permissions import user_has_permission
 
     if user.role == RoleEnums.ADMINISTRATOR.value:
+        return True
+    if user_has_permission(user, PermissionEnums.TICKETS_APPROVE):
         return True
 
     employee = getattr(user, 'employee_info', None)

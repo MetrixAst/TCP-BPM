@@ -29,10 +29,17 @@ PERMISSIONS = [
 
     ("tasks",     "tasks", "view", "tasks", "Задачи: просмотр"),
     ("plans_view_all", "plans", "view", "tasks", "Планы отделов: просмотр всех отделов"),
-    ("edit_task", "tasks", "edit", "tasks", "Задачи: редактирование"),
+    ("edit_task", "tasks", "create", "tasks", "Задачи: создание и редактирование своих"),
+    ("tasks_view_all", "tasks", "view",   "tasks", "Задачи: просмотр всех задач"),
+    ("tasks_edit_any", "tasks", "edit",   "tasks", "Задачи: редактирование любых задач"),
+    ("tasks_delete",   "tasks", "delete", "tasks", "Задачи: удаление любых задач"),
+    ("tasks_assign",   "tasks", "assign", "tasks", "Задачи: назначение и перенаправление исполнителя"),
 
     ("documents",     "documents", "view", "documents", "Документы: просмотр"),
-    ("edit_document", "documents", "edit", "documents", "Документы: редактирование"),
+    ("edit_document", "documents", "create", "documents", "Документы: создание и редактирование своих"),
+    ("documents_delete",  "documents", "delete",  "documents", "Документы: удаление любых документов"),
+    ("documents_approve", "documents", "approve", "documents", "Документы: согласование любых документов"),
+    ("documents_sign",    "documents", "sign",    "documents", "Документы: подписание"),
 
     ("suppliers",      "suppliers", "view", "suppliers", "Поставщики: просмотр"),
     ("edit_suppliers", "suppliers", "edit", "suppliers", "Поставщики: редактирование"),
@@ -47,6 +54,7 @@ PERMISSIONS = [
 
     ("service_requests", "requests", "view", "general", "Заявки на обслуживание"),
     ("tickets_dispatch", "requests", "assign", "general", "Заявки: распределение и перенаправление (диспетчер)"),
+    ("tickets_approve",  "requests", "approve", "general", "Заявки: согласование любых заявок"),
     ("requistions",      "requests", "view", "general", "Заявки на пропуск"),
 ]
 
@@ -60,13 +68,13 @@ PROFILES = {
             "hr", "hr_self", "hr_registries", "hr_companies", "hr_positions", "hr_journal",
             "finances", "finance_dashboard", "finance_invoices", "finance_registers",
             "finance_reports", "finance_budget", "finance_scenarios",
-            "tasks", "edit_task",
-            "documents", "edit_document",
+            "tasks", "edit_task", "tasks_view_all", "tasks_edit_any", "tasks_delete", "tasks_assign",
+            "documents", "edit_document", "documents_delete", "documents_approve", "documents_sign",
             "suppliers", "edit_suppliers",
             "purchases",
             "tenants", "edit_tenants",
             "users_list", "manage_permissions",
-            "service_requests", "tickets_dispatch", "requistions",
+            "service_requests", "tickets_dispatch", "tickets_approve", "requistions",
         ],
     },
     "owner": {
@@ -74,7 +82,7 @@ PROFILES = {
         "is_system": True,
         "description": "Доступ к финансам и задачам",
         "permissions": [
-            "dashboard", "profile", "comment", "reports", "rounds_monitor", "hr_journal", "plans_view_all",
+            "dashboard", "profile", "comment", "reports", "rounds_monitor", "hr_journal", "plans_view_all", "tasks_view_all",
             "finances", "finance_dashboard", "finance_invoices", "finance_registers",
             "finance_reports", "finance_budget", "finance_scenarios",
             "tasks", "edit_task",

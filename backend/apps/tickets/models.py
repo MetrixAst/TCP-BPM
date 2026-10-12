@@ -28,7 +28,10 @@ def user_is_manager(user):
         return True
     from account.role_permissions import PermissionEnums
     from account.services.permissions import user_has_permission
-    return user_has_permission(user, PermissionEnums.TICKETS_DISPATCH)
+    return (
+        user_has_permission(user, PermissionEnums.TICKETS_DISPATCH)
+        or user_has_permission(user, PermissionEnums.TICKETS_APPROVE)
+    )
 
 
 class ServiceRequest(models.Model):
@@ -168,6 +171,11 @@ class ServiceRequest(models.Model):
             user = request.user
             is_admin = getattr(user, 'is_superuser', False) or user.role == RoleEnums.ADMINISTRATOR.value
             approver = get_approver(self.author) if self.author_id else None
+
+            from account.role_permissions import PermissionEnums
+            from account.services.permissions import user_has_permission
+            if user_has_permission(user, PermissionEnums.TICKETS_APPROVE):
+                is_admin = True
 
             if not is_admin and (not approver or approver.id != user.id):
                 return False, 'Только назначенный согласующий может принять решение по этой заявке'

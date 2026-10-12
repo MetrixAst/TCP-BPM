@@ -66,6 +66,14 @@ class PermissionEnums(Enum):
     EDIT_TENANTS = "edit_tenants"
     TICKETS_DISPATCH = "tickets_dispatch"
     PLANS_VIEW_ALL = "plans_view_all"
+    TASKS_VIEW_ALL = "tasks_view_all"
+    TASKS_EDIT_ANY = "tasks_edit_any"
+    TASKS_DELETE = "tasks_delete"
+    TASKS_ASSIGN = "tasks_assign"
+    DOCUMENTS_DELETE = "documents_delete"
+    DOCUMENTS_APPROVE = "documents_approve"
+    DOCUMENTS_SIGN = "documents_sign"
+    TICKETS_APPROVE = "tickets_approve"
 
 
 class RolePermissions:
@@ -96,6 +104,14 @@ class RolePermissions:
             PermissionEnums.SERVICE_REQUESTS,
             PermissionEnums.TICKETS_DISPATCH,
             PermissionEnums.PLANS_VIEW_ALL,
+            PermissionEnums.TASKS_VIEW_ALL,
+            PermissionEnums.TASKS_EDIT_ANY,
+            PermissionEnums.TASKS_DELETE,
+            PermissionEnums.TASKS_ASSIGN,
+            PermissionEnums.DOCUMENTS_DELETE,
+            PermissionEnums.DOCUMENTS_APPROVE,
+            PermissionEnums.DOCUMENTS_SIGN,
+            PermissionEnums.TICKETS_APPROVE,
             PermissionEnums.REPORTS,
             PermissionEnums.COMMENT,
             PermissionEnums.HR_JOURNAL,
@@ -119,6 +135,7 @@ class RolePermissions:
             PermissionEnums.ROUNDS_MONITOR,
             PermissionEnums.HR_JOURNAL,
             PermissionEnums.PLANS_VIEW_ALL,
+            PermissionEnums.TASKS_VIEW_ALL,
             PermissionEnums.TASKS,
             PermissionEnums.EDIT_TASK,
             PermissionEnums.COMMENT,

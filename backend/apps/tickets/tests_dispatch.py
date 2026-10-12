@@ -77,3 +77,35 @@ class TicketDispatchTest(TestCase):
     def test_without_config_ticket_stays_unassigned(self):
         ticket = self._create_ticket(category='plumbing')
         self.assertIsNone(ticket.assignee)
+
+
+class TicketApprovePermissionTest(TestCase):
+    """Право «согласование любых заявок» — без роли администратора и без руководства отделом."""
+
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        company = Company.objects.create(name='Appr Co', bin_number='909090909090')
+        dept = Department.objects.create(name='Склад', company=company)
+        self.author = UserAccount.objects.create_user(username='appr_author', password='pass', role='staff')
+        Employee.objects.create(user=self.author, department=dept, status='active')
+        self.deputy = UserAccount.objects.create_user(username='deputy', password='pass', role='staff')
+        Employee.objects.create(user=self.deputy, department=dept, status='active')
+        self.ticket = ServiceRequest.objects.create(
+            author=self.author, title='Закупка', description='-', status='pending_approval',
+        )
+
+    def test_deputy_with_permission_approves(self):
+        self.client.force_login(self.deputy)
+        self.assertEqual(self.client.get(reverse('tickets:approvals')).status_code, 403)
+
+        UserPermissionOverride.objects.create(
+            user=self.deputy, permission=AppPermission.objects.get(code='tickets_approve'), effect='ALLOW',
+        )
+        cache.clear()
+        queue = self.client.get(reverse('tickets:approvals'))
+        self.assertEqual(queue.status_code, 200)
+
+        self.client.post(reverse('tickets:action', args=[self.ticket.pk]), {'action': 'approve'})
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, 'approved')

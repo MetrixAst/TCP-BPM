@@ -13,6 +13,8 @@ from .models import Folder, Document, InnerDocument
 from .forms import DocumentForm, PurchaseForm, BudgetForm, DocumentsForm, InnerDocumentForm
 from .folder_structure import ensure_folder_tree, folder_display_name
 
+from django.core.exceptions import PermissionDenied
+
 from account.role_permissions import PermissionEnums, RolePermissions
 from account.services.access_scope import (
     filter_folders_queryset,
@@ -190,10 +192,16 @@ def document_action(request, pk):
     action = request.POST.get('action', None)
     text = request.POST.get('text', None)
 
+    if request.method != 'POST':
+        return redirect('documents:document', pk=pk)
+
+    if not any(item['action'] == action for item in current.actions(request)):
+        raise PermissionDenied('Действие с документом недоступно')
+
     if action == "cancel":
         current.delete()
         return redirect('documents:list', document_type=document_type)
-    
+
     current.set_action(request, action, text)
 
 

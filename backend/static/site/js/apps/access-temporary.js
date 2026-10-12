@@ -16,8 +16,9 @@
     ecopark: 'Эксплуатация',
     profile: 'Профиль',
     reports: 'Показатели',
+    plans: 'Планы отделов',
   };
-  var OPERATION_LABELS = { view: 'Просмотр', create: 'Создание', edit: 'Изменение', delete: 'Удаление' };
+  var OPERATION_LABELS = { view: 'Просмотр', create: 'Создание', edit: 'Изменение', delete: 'Удаление', approve: 'Согласование', sign: 'Подписание', assign: 'Назначение' };
   var STATUS_LABELS = { active: 'Активен', revoked: 'Отозван', expired: 'Истёк' };
 
   function t(ru) { return window.BPM ? window.BPM.t(ru, ru) : ru; }

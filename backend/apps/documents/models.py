@@ -165,12 +165,55 @@ class Document(models.Model):
     def status_info(self):
         return DocumentStatusEnum.get_info(self.status, self.document_type)
     
+    def can_perform(self, user, item):
+        """
+        Права на действие из DocumentStatusEnum.get_actions:
+        author — автор; coordinators — согласующий или право «согласование любых»;
+        head — право «подписание»; all — все, кто видит документ.
+        Удаление дополнительно разрешает право «удаление любых документов».
+        """
+        from account.role_permissions import PermissionEnums, RoleEnums
+        from account.services.permissions import user_has_permission
+
+        role = getattr(user, 'role', None)
+        if hasattr(role, 'value'):
+            role = role.value
+        if user.is_superuser or role == RoleEnums.ADMINISTRATOR.value:
+            return True
+        if item.get('action') == 'cancel' and user_has_permission(user, PermissionEnums.DOCUMENTS_DELETE):
+            return True
+
+        required = item.get('permission', 'all')
+        if required == 'author':
+            return self.author_id == user.id
+        if required == 'coordinators':
+            return (
+                self.coordinators.filter(pk=user.pk).exists()
+                or user_has_permission(user, PermissionEnums.DOCUMENTS_APPROVE)
+            )
+        if required == 'head':
+            return user_has_permission(user, PermissionEnums.DOCUMENTS_SIGN)
+        return required == 'all'
+
     def actions(self, request):
-        #TODO check can action
-        return DocumentStatusEnum.get_actions(self.status, self.document_type)
-    
+        from account.role_permissions import PermissionEnums
+        from account.services.permissions import user_has_permission
+
+        available = DocumentStatusEnum.get_actions(self.status, self.document_type) or []
+        result = [item for item in available if self.can_perform(request.user, item)]
+        # Право «удаление любых документов» действует на любом статусе.
+        if (
+            not any(item['action'] == 'cancel' for item in result)
+            and user_has_permission(request.user, PermissionEnums.DOCUMENTS_DELETE)
+        ):
+            result.append({'title': 'Удалить', 'color': 'outline-dark', 'action': 'cancel'})
+        return result
+
     def set_action(self, request, action, text = ''):
         actions = self.actions(request)
+        if action not in ('create',) and not any(item['action'] == action for item in actions):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied('Действие с документом недоступно')
         if action == "confirm":
             confirm_action = next((item for item in actions if item["action"] == "confirm"), None)
             if confirm_action is not None:

@@ -151,10 +151,56 @@ class Task(models.Model):
         },
     }
 
+    @staticmethod
+    def _has_perm(user, permission):
+        from account.services.permissions import user_has_permission
+        return user_has_permission(user, permission)
+
+    def _is_department_head_for(self, user):
+        employee = getattr(user, 'employee_info', None)
+        if not (employee and getattr(employee, 'head', False) and employee.department_id):
+            return False
+        from account.models import Employee
+        dept_ids = list(
+            employee.department.get_descendants(include_self=True).values_list('id', flat=True)
+        )
+        member_ids = set(
+            Employee.objects.filter(department_id__in=dept_ids).values_list('user_id', flat=True)
+        )
+        return self.author_id in member_ids or self.executor_id in member_ids
+
+    def can_edit(self, user):
+        """Автор правит свою задачу; право «редактирование любых» — любую доступную."""
+        from account.role_permissions import PermissionEnums
+
+        if not user or not user.is_authenticated:
+            return False
+        if self._user_is_tasks_admin(user):
+            return True
+        if self.author_id == user.id:
+            return self._has_perm(user, PermissionEnums.EDIT_TASK)
+        return self._has_perm(user, PermissionEnums.TASKS_EDIT_ANY)
+
+    def can_reassign(self, user):
+        """Сменить исполнителя: автор, руководитель отдела, право «назначение»."""
+        from account.role_permissions import PermissionEnums
+
+        if not user or not user.is_authenticated:
+            return False
+        return (
+            self._user_is_tasks_admin(user)
+            or self.author_id == user.id
+            or self._has_perm(user, PermissionEnums.TASKS_ASSIGN)
+            or self._is_department_head_for(user)
+        )
+
     def can_delete(self, user):
         if not user or not user.is_authenticated:
             return False
         if getattr(user, 'is_superuser', False):
+            return True
+        from account.role_permissions import PermissionEnums
+        if self._has_perm(user, PermissionEnums.TASKS_DELETE):
             return True
         from account.role_permissions import RoleEnums
         role = getattr(user, 'role', None)
@@ -164,18 +210,7 @@ class Task(models.Model):
             return True
         if self.author_id == user.id:
             return True
-        employee = getattr(user, 'employee_info', None)
-        if employee and getattr(employee, 'head', False) and employee.department_id:
-            from account.models import Employee
-            dept_ids = list(
-                employee.department.get_descendants(include_self=True).values_list('id', flat=True)
-            )
-            member_ids = list(
-                Employee.objects.filter(department_id__in=dept_ids).values_list('user_id', flat=True)
-            )
-            if self.author_id in member_ids or self.executor_id in member_ids:
-                return True
-        return False
+        return self._is_department_head_for(user)
 
     def restore(self):
         self.deleted_at = None
@@ -202,6 +237,10 @@ class Task(models.Model):
         if hasattr(role, 'value'):
             role = role.value
         if getattr(user, 'is_superuser', False) or role == RoleEnums.ADMINISTRATOR.value:
+            return Task.objects.filter(deleted_at__isnull=True)
+
+        from account.role_permissions import PermissionEnums
+        if Task._has_perm(user, PermissionEnums.TASKS_VIEW_ALL):
             return Task.objects.filter(deleted_at__isnull=True)
 
         filters = (
