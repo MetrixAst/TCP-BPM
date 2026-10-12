@@ -24,7 +24,11 @@ def user_is_manager(user):
     if role == RoleEnums.ADMINISTRATOR.value:
         return True
     employee = getattr(user, 'employee_info', None)
-    return bool(employee and getattr(employee, 'head', False))
+    if employee and getattr(employee, 'head', False):
+        return True
+    from account.role_permissions import PermissionEnums
+    from account.services.permissions import user_has_permission
+    return user_has_permission(user, PermissionEnums.TICKETS_DISPATCH)
 
 
 class ServiceRequest(models.Model):

@@ -1,0 +1,168 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Отчёт по заявкам — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .tr-groups { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 1000px) { .tr-groups { grid-template-columns: repeat(2, 1fr); } }
+  .tr-card {
+    display: block; background: #fff; border: 1px solid #eceaf3; border-radius: 14px;
+    padding: 14px 18px; color: inherit; text-decoration: none;
+  }
+  .tr-card.is-active { border-color: #2f6bed; box-shadow: 0 0 0 1px #2f6bed inset; }
+  .tr-card__label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #74728a; }
+  .tr-card__value { font-size: 26px; font-weight: 700; color: #25233f; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .tr-card__hint { font-size: 12px; color: #74728a; }
+  .tr-card--done .tr-card__value { color: #15803d; }
+  .tr-card--rejected .tr-card__value { color: #ff3b30; }
+  .tr-card--in_work .tr-card__value { color: #2f6bed; }
+  .tr-filters {
+    background: #fff; border-radius: 14px; padding: 14px 18px; margin-bottom: 14px;
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+  }
+  .tr-filters label { font-size: 11px; color: #74728a; display: block; margin-bottom: 3px; }
+  .tr-badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: #f0eff6; color: #74728a; }
+  .tr-badge--done { background: #dcfce7; color: #15803d; }
+  .tr-badge--rejected { background: #feecec; color: #ff3b30; }
+  .tr-badge--in_work { background: #eef2ff; color: #2f6bed; }
+  .tr-num { font-variant-numeric: tabular-nums; }
+  @media print {
+    .tr-filters, .hr-registry-top__actions, .sidebar, .topbar { display: none !important; }
+  }
+</style>
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page">
+
+  <div class="hr-registry-top">
+    <div>
+      <h1>Отчёт по заявкам</h1>
+      <div class="tr-card__hint">{{ filters.date_from|date:"d.m.Y" }} — {{ filters.date_to|date:"d.m.Y" }}</div>
+    </div>
+    <div class="hr-registry-top__actions">
+      <a href="{% url 'tickets:report_export' %}?{{ request.GET.urlencode }}" class="hr-registry-btn hr-registry-btn--light">
+        <i class="bi bi-file-earmark-excel"></i> Excel
+      </a>
+      <button type="button" class="hr-registry-btn hr-registry-btn--light" onclick="window.print()">
+        <i class="bi bi-file-earmark-pdf"></i> PDF / печать
+      </button>
+    </div>
+  </div>
+
+  <form method="get" class="tr-filters">
+    <div>
+      <label>С даты</label>
+      <input type="date" name="date_from" class="hr-form-input" value="{{ filters.date_from|date:'Y-m-d' }}">
+    </div>
+    <div>
+      <label>По дату</label>
+      <input type="date" name="date_to" class="hr-form-input" value="{{ filters.date_to|date:'Y-m-d' }}">
+    </div>
+    <div>
+      <label>Подразделение</label>
+      <select name="department" class="hr-form-input">
+        <option value="">Все</option>
+        <option value="none" {% if filters.department == 'none' %}selected{% endif %}>Не распределено</option>
+        {% for d in departments %}
+          <option value="{{ d.pk }}" {% if filters.department == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Исполнитель</label>
+      <select name="assignee" class="hr-form-input">
+        <option value="">Все</option>
+        <option value="none" {% if filters.assignee == 'none' %}selected{% endif %}>Не назначен</option>
+        {% for u in assignees %}
+          <option value="{{ u.pk }}" {% if filters.assignee == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.get_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Тип заявки</label>
+      <select name="category" class="hr-form-input">
+        <option value="">Все</option>
+        {% for value, label in categories %}
+          <option value="{{ value }}" {% if filters.category == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Статус</label>
+      <select name="group" class="hr-form-input">
+        <option value="">Все</option>
+        {% for value, label in status_groups %}
+          <option value="{{ value }}" {% if filters.group == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="hr-registry-btn hr-registry-btn--primary">
+      <i class="bi bi-search"></i> Показать
+    </button>
+  </form>
+
+  <div class="tr-groups">
+    <div class="tr-card">
+      <div class="tr-card__label">Всего поступило</div>
+      <div class="tr-card__value">{{ total }}</div>
+      <div class="tr-card__hint">{% if avg_done_hours is not None %}Среднее исполнение: {{ avg_done_hours }} ч{% else %}&nbsp;{% endif %}</div>
+    </div>
+    {% for g in groups %}
+      <div class="tr-card tr-card--{{ g.key }} {% if filters.group == g.key %}is-active{% endif %}">
+        <div class="tr-card__label">{{ g.label }}</div>
+        <div class="tr-card__value">{{ g.count }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="hr-registry-panel">
+    <div class="hr-registry-table-wrap">
+      <table class="hr-registry-table">
+        <thead>
+          <tr>
+            <th>Номер</th>
+            <th>Создано</th>
+            <th>Тип</th>
+            <th>Тема</th>
+            <th>Арендатор</th>
+            <th>Подразделение</th>
+            <th>Исполнитель</th>
+            <th>Статус</th>
+            <th>Исполнено за, ч</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in rows %}
+          <tr>
+            <td><a href="{% url 'tickets:item' t.pk %}">{{ t.number }}</a></td>
+            <td class="tr-num">{{ t.created_at|date:"d.m.Y H:i" }}</td>
+            <td>{{ t.get_category_display }}</td>
+            <td>{{ t.title }}</td>
+            <td>{{ t.tenant|default:"—" }}</td>
+            <td>{{ t.department.name|default:"Не распределено" }}</td>
+            <td>{% if t.assignee %}{{ t.assignee.get_name }}{% else %}—{% endif %}</td>
+            <td><span class="tr-badge tr-badge--{{ t.report_group }}">{{ t.get_status_display }}</span></td>
+            <td class="tr-num">{{ t.done_hours|default_if_none:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9">
+              <div class="hr-registry-empty">
+                <i class="bi bi-inbox"></i>
+                <strong>Заявок за период нет</strong>
+                <span>Измените период или фильтры.</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

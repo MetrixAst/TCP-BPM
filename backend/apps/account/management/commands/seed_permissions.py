@@ -8,15 +8,16 @@ PERMISSIONS = [
     ("dashboard",  "dashboard", "",      "general", "Дашборд"),
     ("profile",    "profile",   "",      "general", "Профиль"),
     ("ecopark",    "ecopark",   "",      "general", "Эксплуатация"),
+    ("rounds_monitor", "ecopark", "view", "general", "Эксплуатация: журнал обходов и история помещений"),
     ("comment",    "comment",   "",      "general", "Комментарии"),
     ("reports",    "reports",   "",      "general", "Показатели"),
 
     ("hr",           "hr", "view",   "hr", "HR: просмотр сотрудников"),
     ("hr_self",      "hr", "view",   "hr", "HR: личный профиль"),
     ("hr_registries","hr", "view",   "hr", "HR: реестры"),
-    ("hr_companies", "hr", "create", "hr", "HR: управление компаниями"),
-    ("hr_positions", "hr", "edit",   "hr", "HR: управление должностями"),
-    ("hr_journal",   "hr", "delete", "hr", "HR: журнал посещаемости"),
+    ("hr_companies", "hr", "edit",   "hr", "HR: оргструктура (компании, отделы, должности)"),
+    ("hr_positions", "hr", "edit",   "hr", "HR: справочник должностей"),
+    ("hr_journal",   "hr", "view",   "hr", "HR: журнал и реестр посещаемости (все отделы)"),
 
     ("finances",          "finances", "view",   "finances", "Финансы: просмотр"),
     ("finance_dashboard", "finances", "view",   "finances", "Финансы: дашборд"),
@@ -38,11 +39,13 @@ PERMISSIONS = [
     ("purchases", "purchases", "view", "purchases", "Закупки: просмотр"),
 
     ("tenants", "tenants", "view", "tenants", "Арендаторы: просмотр"),
+    ("edit_tenants", "tenants", "edit", "tenants", "Арендаторы: редактирование, удаление, архив"),
 
     ("users_list",         "users", "view", "access", "Пользователи: просмотр"),
     ("manage_permissions", "users", "edit", "access", "Пользователи: управление правами"),
 
     ("service_requests", "requests", "view", "general", "Заявки на обслуживание"),
+    ("tickets_dispatch", "requests", "assign", "general", "Заявки: распределение и перенаправление (диспетчер)"),
     ("requistions",      "requests", "view", "general", "Заявки на пропуск"),
 ]
 
@@ -52,7 +55,7 @@ PROFILES = {
         "is_system": True,
         "description": "Полный доступ ко всем разделам системы",
         "permissions": [
-            "dashboard", "profile", "ecopark", "comment", "reports",
+            "dashboard", "profile", "ecopark", "rounds_monitor", "comment", "reports",
             "hr", "hr_self", "hr_registries", "hr_companies", "hr_positions", "hr_journal",
             "finances", "finance_dashboard", "finance_invoices", "finance_registers",
             "finance_reports", "finance_budget", "finance_scenarios",
@@ -60,9 +63,9 @@ PROFILES = {
             "documents", "edit_document",
             "suppliers", "edit_suppliers",
             "purchases",
-            "tenants",
+            "tenants", "edit_tenants",
             "users_list", "manage_permissions",
-            "service_requests", "requistions",
+            "service_requests", "tickets_dispatch", "requistions",
         ],
     },
     "owner": {
@@ -70,7 +73,7 @@ PROFILES = {
         "is_system": True,
         "description": "Доступ к финансам и задачам",
         "permissions": [
-            "dashboard", "profile", "comment", "reports",
+            "dashboard", "profile", "comment", "reports", "rounds_monitor", "hr_journal",
             "finances", "finance_dashboard", "finance_invoices", "finance_registers",
             "finance_reports", "finance_budget", "finance_scenarios",
             "tasks", "edit_task",

@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from account.role_permissions import need_permission, PermissionEnums
+from account.services.permissions import user_has_permission
 from project.paginator import CustomPaginator
 from .forms import TenantForm
 from .models import Tenant, TenantCategory, Room
@@ -18,7 +19,8 @@ from .qr_labels import generate_single_label_pdf, generate_batch_labels_pdf
 
 @need_permission(PermissionEnums.TENANTS)
 def home(request):
-    all_queryset = Tenant.objects.select_related('room', 'category').all()
+    show_archived = request.GET.get('archived') == '1'
+    all_queryset = Tenant.objects.select_related('room', 'category').filter(is_active=not show_archived)
     queryset = all_queryset
     search = request.GET.get('search', '')
     page = int(request.GET.get('page', 1))
@@ -42,6 +44,9 @@ def home(request):
         'categories': TenantCategory.objects.all(),
         'rooms': Room.objects.all(),
         'search': search,
+        'show_archived': show_archived,
+        'archived_count': Tenant.objects.filter(is_active=False).count(),
+        'can_edit': user_has_permission(request.user, PermissionEnums.EDIT_TENANTS),
         'stats': {
             'total': all_queryset.count(),
             'on_map': on_map,
@@ -94,6 +99,7 @@ def tenant_detail(request, pk):
         'annual_base_rent': monthly_base_rent * 12,
         'missing_lease_fields': missing_lease_fields,
         'lease_completeness': lease_completeness,
+        'can_edit': user_has_permission(request.user, PermissionEnums.EDIT_TENANTS),
     })
 
 
@@ -120,9 +126,57 @@ def create_tenant(request):
     return redirect('tenants:list')
 
 
+@need_permission(PermissionEnums.EDIT_TENANTS)
+def edit_tenant(request, pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+    form = TenantForm(request.POST or None, instance=tenant)
+    if request.method == 'POST' and form.is_valid():
+        tenant = form.save()
+        messages.success(request, f'Карточка «{tenant.name}» сохранена.')
+        return redirect('tenants:detail', pk=tenant.pk)
+
+    return render(request, 'site/tenants/tenant_form.html', {
+        'tenant': tenant,
+        'form': form,
+    })
+
+
+@need_permission(PermissionEnums.EDIT_TENANTS)
+@require_POST
+def delete_tenant(request, pk):
+    from django.db.models import ProtectedError
+
+    tenant = get_object_or_404(Tenant, pk=pk)
+    name = tenant.name
+    try:
+        tenant.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            f'Нельзя удалить «{name}»: по арендатору выставлены счета. Перенесите карточку в архив.',
+        )
+        return redirect('tenants:detail', pk=pk)
+
+    messages.success(request, f'Арендатор «{name}» удалён.')
+    return redirect('tenants:list')
+
+
+@need_permission(PermissionEnums.EDIT_TENANTS)
+@require_POST
+def toggle_tenant_archive(request, pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+    tenant.is_active = not tenant.is_active
+    tenant.save(update_fields=['is_active'])
+    if tenant.is_active:
+        messages.success(request, f'Арендатор «{tenant.name}» возвращён из архива.')
+    else:
+        messages.success(request, f'Арендатор «{tenant.name}» перенесён в архив.')
+    return redirect('tenants:detail', pk=pk)
+
+
 @need_permission(PermissionEnums.TENANTS)
 def all_json(request):
-    queryset = Tenant.objects.all().exclude(room=None)
+    queryset = Tenant.objects.filter(is_active=True).exclude(room=None)
     res = [current.to_json() for current in queryset]
     return JsonResponse(res, safe=False)
 
@@ -214,3 +268,37 @@ def rooms_qr_labels_batch(request):
     response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="qr_labels_batch.pdf"'
     return response
+
+@need_permission(PermissionEnums.EDIT_TENANTS)
+def import_tenants_view(request):
+    from project.excel_import import import_tenants, tenant_template
+
+    if request.GET.get('template'):
+        response = HttpResponse(
+            tenant_template(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = 'attachment; filename=tenants_import_template.xlsx'
+        return response
+
+    result = None
+    if request.method == 'POST' and request.FILES.get('file'):
+        try:
+            result = import_tenants(request.FILES['file'])
+        except Exception:
+            messages.error(request, 'Не удалось прочитать файл. Загрузите .xlsx по шаблону.')
+        else:
+            if result.ok:
+                messages.success(
+                    request,
+                    f'Импорт завершён: добавлено {result.created}, обновлено {result.updated}.',
+                )
+                return redirect('tenants:list')
+
+    return render(request, 'site/import_excel.html', {
+        'title': 'Импорт арендаторов',
+        'back_url': 'tenants:list',
+        'template_url': request.path + '?template=1',
+        'hint': 'Существующий арендатор с тем же названием будет обновлён.',
+        'result': result,
+    })

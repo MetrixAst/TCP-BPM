@@ -88,7 +88,8 @@ class NotificationsOnApprovalTest(TestCase):
         self.admin = make_user('admin_be18_notif', role='administrator')
         self.staff = make_user('staff_be18_notif')
         make_employee(self.staff, self.dept)
-        self.ticket = make_ticket(self.admin, status='pending_approval')
+        # Автор — сотрудник: решение администратора уведомляет именно автора.
+        self.ticket = make_ticket(self.staff, status='pending_approval')
 
     def test_approve_creates_notification(self):
         from account.models import Notification

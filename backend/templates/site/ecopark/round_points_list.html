@@ -103,6 +103,9 @@
                     <i class="bi bi-qr-code"></i>
                   </a>
                 {% endif %}
+                <a href="{% url 'ecopark:round_point_history' point.pk %}" class="hr-icon-btn" title="История помещения">
+                  <i class="bi bi-clock-history"></i>
+                </a>
                 <a href="{% url 'ecopark:round_point_edit' point.pk %}" class="hr-icon-btn" title="Редактировать">
                   <i class="bi bi-pencil"></i>
                 </a>

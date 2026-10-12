@@ -146,6 +146,7 @@ class Counterparty(models.Model):
     contracts = models.JSONField("Договоры", default=list, blank=True)
     
     synced_at = models.DateTimeField("Дата синхронизации", null=True, blank=True)
+    is_active = models.BooleanField("Активен", default=True, help_text="Снимите, чтобы перенести карточку в архив")
 
     def __str__(self):
         return self.short_name or self.full_name

@@ -36,6 +36,24 @@
             <i class="bi bi-qr-code"></i>
           </a>
           {% endif %}
+          {% if can_edit %}
+          <a href="{% url 'tenants:edit' tenant.pk %}" class="onec-icon-btn" title="Редактировать">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <form method="post" action="{% url 'tenants:archive' tenant.pk %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="onec-icon-btn" title="{% if tenant.is_active %}В архив{% else %}Вернуть из архива{% endif %}">
+              <i class="bi {% if tenant.is_active %}bi-archive{% else %}bi-arrow-counterclockwise{% endif %}"></i>
+            </button>
+          </form>
+          <form method="post" action="{% url 'tenants:delete' tenant.pk %}" style="display:inline;"
+                onsubmit="return confirm('Удалить карточку «{{ tenant.name|escapejs }}»? Действие необратимо.');">
+            {% csrf_token %}
+            <button type="submit" class="onec-icon-btn" title="Удалить">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+          {% endif %}
         </div>
       </div>
 
@@ -50,6 +68,7 @@
         <div class="tenant-detail-identity">
           <h1 class="onec-detail-title">{{ tenant.name }}</h1>
           <div class="tenant-detail-badges">
+            {% if not tenant.is_active %}<span class="tenant-detail-badge tenant-detail-badge--muted"><i class="bi bi-archive"></i> В архиве</span>{% endif %}
             <span class="tenant-detail-badge"><i class="bi bi-door-open"></i> {{ tenant.number }}</span>
             {% if tenant.room %}<span class="tenant-detail-badge"><i class="bi bi-layers"></i> {{ tenant.room.floor }} этаж</span>{% endif %}
             {% if tenant.category %}<span class="tenant-detail-badge"><i class="bi bi-tag"></i> {{ tenant.category.title }}</span>{% endif %}

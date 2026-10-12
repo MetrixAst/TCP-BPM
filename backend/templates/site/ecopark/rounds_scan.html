@@ -60,6 +60,9 @@
     <div class="round-scan-header">
       <h1>{{ point.name }}</h1>
       {% if point.location %}<p>{{ point.location }}</p>{% endif %}
+      {% if can_view_history %}
+        <p><a href="{% url 'ecopark:round_point_history' point.pk %}"><i class="bi bi-clock-history"></i> История помещения</a></p>
+      {% endif %}
     </div>
 
     {% if errors %}

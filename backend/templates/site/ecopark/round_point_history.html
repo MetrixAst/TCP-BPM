@@ -1,0 +1,142 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{{ point.name }} — история помещения — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .rj-kpi-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;
+  }
+  @media (max-width: 900px) { .rj-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  .rj-kpi-card {
+    background: #fff; border: 1px solid #eceaf3; border-radius: 14px; padding: 14px 18px;
+  }
+  .rj-kpi-card__label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #74728a; }
+  .rj-kpi-card__value { font-size: 24px; font-weight: 700; color: #25233f; margin-top: 4px; }
+  .rj-kpi-card__hint { font-size: 12px; color: #74728a; margin-top: 2px; }
+  .rj-kpi-card--warn .rj-kpi-card__value { color: #ff3b30; }
+  .rj-filters {
+    background: #fff; border-radius: 14px; padding: 14px 18px; margin-bottom: 14px;
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+  }
+  .rj-filters label { font-size: 11px; color: #74728a; display: block; margin-bottom: 3px; }
+  .rj-check-badge {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600;
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .rj-check-badge--ok { background: #dcfce7; color: #15803d; }
+  .rj-check-badge--fail { background: #feecec; color: #ff3b30; }
+  .rph-meta { color: #74728a; font-size: 13px; margin-top: 4px; }
+  .rph-fail-list { margin: 6px 0 0; padding-left: 18px; font-size: 12px; color: #ff3b30; }
+</style>
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page">
+
+  <div class="hr-registry-top">
+    <div>
+      <h1>{{ point.name }}</h1>
+      <div class="rph-meta">
+        {% if point.location %}{{ point.location }} · {% endif %}
+        {% if point.responsible_department %}{{ point.responsible_department.name }}{% endif %}
+        {% if point.checklist %} · чек-лист «{{ point.checklist.name }}»{% endif %}
+      </div>
+    </div>
+    <div class="hr-registry-top__actions">
+      {% if can_check_in %}
+        <a href="{% url 'ecopark:rounds_scan' point.uuid %}" class="hr-registry-btn hr-registry-btn--primary">
+          <i class="bi bi-qr-code-scan"></i> Отметить посещение
+        </a>
+      {% endif %}
+      <a href="{% url 'ecopark:rounds_journal_export' %}?point={{ point.pk }}" class="hr-registry-btn hr-registry-btn--light">
+        <i class="bi bi-file-earmark-excel"></i> Экспорт в Excel
+      </a>
+    </div>
+  </div>
+
+  <div class="rj-kpi-grid">
+    <div class="rj-kpi-card {% if stats.is_overdue %}rj-kpi-card--warn{% endif %}">
+      <div class="rj-kpi-card__label">Последнее посещение</div>
+      <div class="rj-kpi-card__value">{% if stats.last_visit %}{{ stats.last_visit.created_at|date:"d.m H:i" }}{% else %}—{% endif %}</div>
+      <div class="rj-kpi-card__hint">{% if stats.is_overdue %}Просрочено{% else %}В графике{% endif %}</div>
+    </div>
+    <div class="rj-kpi-card">
+      <div class="rj-kpi-card__label">Посещений за 30 дней</div>
+      <div class="rj-kpi-card__value">{{ stats.last_30_days }}</div>
+      <div class="rj-kpi-card__hint">Сотрудников: {{ stats.visitors }}</div>
+    </div>
+    <div class="rj-kpi-card">
+      <div class="rj-kpi-card__label">Фактический интервал</div>
+      <div class="rj-kpi-card__value">{% if stats.avg_interval_hours is not None %}{{ stats.avg_interval_hours }} ч{% else %}—{% endif %}</div>
+      <div class="rj-kpi-card__hint">План: каждые {{ stats.planned_interval_hours }} ч</div>
+    </div>
+    <div class="rj-kpi-card {% if stats.max_interval_hours and stats.max_interval_hours > stats.planned_interval_hours %}rj-kpi-card--warn{% endif %}">
+      <div class="rj-kpi-card__label">Самый длинный перерыв</div>
+      <div class="rj-kpi-card__value">{% if stats.max_interval_hours is not None %}{{ stats.max_interval_hours }} ч{% else %}—{% endif %}</div>
+    </div>
+  </div>
+
+  <form method="get" class="rj-filters">
+    <div>
+      <label>С даты</label>
+      <input type="date" name="date_from" class="hr-form-input" value="{{ request.GET.date_from }}">
+    </div>
+    <div>
+      <label>По дату</label>
+      <input type="date" name="date_to" class="hr-form-input" value="{{ request.GET.date_to }}">
+    </div>
+    <button type="submit" class="hr-registry-btn hr-registry-btn--primary">
+      <i class="bi bi-search"></i> Показать
+    </button>
+  </form>
+
+  <div class="hr-registry-panel">
+    <div class="hr-registry-table-wrap">
+      <table class="hr-registry-table">
+        <thead>
+          <tr>
+            <th>Когда</th>
+            <th>Сотрудник</th>
+            <th>Отдел</th>
+            <th>Чек-лист</th>
+            <th>Комментарий</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for visit in visits %}
+          <tr>
+            <td>{{ visit.created_at|date:"d.m.Y H:i" }}</td>
+            <td>{{ visit.employee.user.get_full_name|default:visit.employee.user.username }}</td>
+            <td>{{ visit.employee.department.name|default:"—" }}</td>
+            <td>
+              {% if visit.failed_answers %}
+                <span class="rj-check-badge rj-check-badge--fail"><i class="bi bi-exclamation-triangle"></i> Несоответствий: {{ visit.failed_answers|length }}</span>
+                <ul class="rph-fail-list">
+                  {% for a in visit.failed_answers %}<li>{{ a.item.text }}{% if a.comment %} — {{ a.comment }}{% endif %}</li>{% endfor %}
+                </ul>
+              {% else %}
+                <span class="rj-check-badge rj-check-badge--ok"><i class="bi bi-check-circle"></i> Выполнен полностью ({{ visit.answers.all|length }})</span>
+              {% endif %}
+            </td>
+            <td>{{ visit.comment|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5">
+              <div class="hr-registry-empty">
+                <i class="bi bi-clipboard-check"></i>
+                <strong>Посещений не найдено</strong>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

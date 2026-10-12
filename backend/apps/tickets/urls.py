@@ -1,5 +1,7 @@
 from django.urls import path
-from . import views
+from account.role_permissions import login_required
+
+from . import views, views_report
 
 urlpatterns = [
     path('', views.tickets, name="home"),
@@ -17,6 +19,8 @@ urlpatterns = [
     path('item/<int:pk>/attachments/<int:attachment_pk>/delete/', views.attachment_delete, name="attachment_delete"),
     path('item/<int:pk>/approval-history/', views.approval_history, name='approval_history'),
     path('approvals/', views.approval_queue, name="approvals"),
+    path('report/', login_required(views_report.tickets_report), name="report"),
+    path('report/export/', login_required(views_report.tickets_report_export), name="report_export"),
     path('workflow/', views.workflow_settings, name="workflow_settings"),
     path('workflow/new/', views.workflow_settings_edit, name="workflow_settings_create"),
     path('workflow/<int:pk>/edit/', views.workflow_settings_edit, name="workflow_settings_edit"),

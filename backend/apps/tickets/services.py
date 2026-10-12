@@ -3,13 +3,47 @@ from account.role_permissions import RoleEnums, RolePermissions, PermissionEnums
 
 
 def _manager_recipients():
-    """Сотрудники, обрабатывающие сервисные заявки (не портальные)."""
+    """
+    Диспетчеры заявок (право «Заявки: распределение») — первыми получают
+    новые заявки. Если диспетчеров нет — администраторы.
+    """
+    from account.services.permissions import user_has_permission
+
+    staff = UserAccount.objects.filter(is_active=True).exclude(role__in=RoleEnums.portal_roles())
     ids = [
-        user.pk
-        for user in UserAccount.objects.exclude(role__in=RoleEnums.portal_roles())
-        if RolePermissions.checkPermission(user.role, PermissionEnums.SERVICE_REQUESTS)
+        user.pk for user in staff
+        if user_has_permission(user, PermissionEnums.TICKETS_DISPATCH)
     ]
+    if not ids:
+        ids = list(staff.filter(role=RoleEnums.ADMINISTRATOR.value).values_list('pk', flat=True))
     return UserAccount.objects.filter(pk__in=ids)
+
+
+def apply_type_config(ticket):
+    """
+    Автоназначение из «Workflow заявок»: настройка для отдела заявки, иначе
+    общая (без отдела). Без автоназначения заявка остаётся у диспетчеров.
+    """
+    from .models import TicketTypeConfig
+
+    configs = TicketTypeConfig.objects.filter(ticket_type=ticket.category).select_related('auto_assign_to')
+    config = None
+    if ticket.department_id:
+        config = configs.filter(department_id=ticket.department_id).first()
+    if config is None:
+        config = configs.filter(department__isnull=True).first()
+    if config is None or not config.auto_assign_to_id:
+        return False
+
+    ticket.assignee = config.auto_assign_to
+    fields = ['assignee']
+    if not ticket.department_id:
+        employee = getattr(config.auto_assign_to, 'employee_info', None)
+        if employee and employee.department_id:
+            ticket.department_id = employee.department_id
+            fields.append('department')
+    ticket.save(update_fields=fields)
+    return True
 
 
 def _push(title, text, ticket, recipient_ids):

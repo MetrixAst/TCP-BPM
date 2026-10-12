@@ -401,7 +401,8 @@ class AttendanceRegistryViewSet(viewsets.ViewSet):
         return [AttendanceRegistryPermission()]
 
     def _get_allowed_employees(self, request):
-        from account.role_permissions import RoleEnums
+        from account.role_permissions import RoleEnums, PermissionEnums
+        from account.services.permissions import user_has_permission
         from account.models import Employee, Department
         user = request.user
         role = getattr(user, 'role', None)
@@ -412,7 +413,7 @@ class AttendanceRegistryViewSet(viewsets.ViewSet):
             RoleEnums.OWNER.value,
             RoleEnums.CFO.value,
             RoleEnums.CHIEF_ACCOUNTANT.value,
-        ]:
+        ] or user_has_permission(user, PermissionEnums.HR_JOURNAL):
             return Employee.objects.filter(status='active').select_related('user', 'department')
 
         employee = getattr(user, 'employee_info', None)

@@ -179,8 +179,14 @@ def create(request):
             request=ticket, user=request.user, status=ticket.status,
             comment='Заявка создана.',
         )
-        from .services import notify_ticket_created
+        from .services import apply_type_config, notify_ticket_assigned, notify_ticket_created
         notify_ticket_created(ticket)
+        if apply_type_config(ticket):
+            ServiceRequestHistory.objects.create(
+                request=ticket, user=None, status=ticket.status,
+                comment=f'Автоназначение: «{ticket.assignee.get_name}».',
+            )
+            notify_ticket_assigned(ticket)
         return redirect('tickets:item', pk=ticket.id)
  
     context = {'form': form, **_portal_context(request)}

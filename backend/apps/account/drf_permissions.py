@@ -124,6 +124,11 @@ class AttendanceRegistryPermission(BasePermission):
         if role in self.ALLOWED_ROLES:
             return True
 
+        from account.role_permissions import PermissionEnums
+        from account.services.permissions import user_has_permission
+        if user_has_permission(request.user, PermissionEnums.HR_JOURNAL):
+            return True
+
         employee = getattr(request.user, 'employee_info', None)
         if employee and getattr(employee, 'head', False):
             return True

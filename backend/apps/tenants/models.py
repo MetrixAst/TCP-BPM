@@ -63,6 +63,8 @@ class Tenant(models.Model):
 
     date_notify = models.DateTimeField(verbose_name="Дата уведомления о сроке", null=True, blank=True)
 
+    is_active = models.BooleanField("Активен", default=True, help_text="Снимите, чтобы перенести карточку в архив")
+
     def __str__(self):
         return self.name
 

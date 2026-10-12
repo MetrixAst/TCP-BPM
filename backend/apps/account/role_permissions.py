@@ -63,6 +63,8 @@ class PermissionEnums(Enum):
     FINANCE_REPORTS = "finance_reports"
     FINANCE_INVOICES = "finance_invoices"
     FINANCE_REGISTERS = "finance_registers"
+    EDIT_TENANTS = "edit_tenants"
+    TICKETS_DISPATCH = "tickets_dispatch"
 
 
 class RolePermissions:
@@ -77,6 +79,7 @@ class RolePermissions:
             PermissionEnums.DOCUMENTS,
             PermissionEnums.EDIT_DOCUMENT,
             PermissionEnums.TENANTS,
+            PermissionEnums.EDIT_TENANTS,
             PermissionEnums.PURCHASES,
             PermissionEnums.SUPPLIERS,
             PermissionEnums.EDIT_SUPPLIERS,
@@ -90,6 +93,7 @@ class RolePermissions:
             PermissionEnums.ROUNDS_MONITOR,
             PermissionEnums.REQUISTIONS,
             PermissionEnums.SERVICE_REQUESTS,
+            PermissionEnums.TICKETS_DISPATCH,
             PermissionEnums.REPORTS,
             PermissionEnums.COMMENT,
             PermissionEnums.HR_JOURNAL,
@@ -110,6 +114,8 @@ class RolePermissions:
             PermissionEnums.FINANCE_INVOICES,
             PermissionEnums.FINANCE_REGISTERS,
             PermissionEnums.REPORTS,
+            PermissionEnums.ROUNDS_MONITOR,
+            PermissionEnums.HR_JOURNAL,
             PermissionEnums.TASKS,
             PermissionEnums.EDIT_TASK,
             PermissionEnums.COMMENT,
@@ -394,6 +400,7 @@ class MenuItem:
                 MenuItem('tickets', 'tickets:kanban', 'notebook-1', 'Заявки от арендаторов', indicator_alias='ticket', permission=PermissionEnums.SERVICE_REQUESTS),
                 MenuItem('ticket_approvals', 'tickets:approvals', 'inbox-check', 'Согласования', permission=PermissionEnums.SERVICE_REQUESTS),
                 MenuItem('ticket_workflow', 'tickets:workflow_settings', 'gear', 'Workflow заявок', permission=PermissionEnums.MANAGE_PERMISSIONS),
+                MenuItem('tickets_report', 'tickets:report', 'bar-chart', 'Отчёт по заявкам', permission=PermissionEnums.REPORTS),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели', permission=PermissionEnums.REPORTS),
             ],
 
@@ -402,6 +409,7 @@ class MenuItem:
                 MenuItem('tasks', 'tasks:list', 'check2-square', 'Менеджер задач', indicator_alias='task', permission=PermissionEnums.TASKS),
                 MenuItem('finances', '#finances', 'credit-card', 'Финансы', permission=PermissionEnums.FINANCES, submenu=finance_full_submenu),
                 MenuItem('attendance_registry', 'hr:attendance_registry', 'people', 'Реестр посещаемости'),
+                MenuItem('tickets_report', 'tickets:report', 'bar-chart', 'Отчёт по заявкам', permission=PermissionEnums.REPORTS),
                 MenuItem('reports', 'reports:home', 'eye', 'Показатели', permission=PermissionEnums.REPORTS),
             ],
 
@@ -475,6 +483,7 @@ class MenuItem:
         can_manage_tickets = (
             role == RoleEnums.ADMINISTRATOR.value
             or bool(employee and getattr(employee, 'head', False))
+            or user_has_permission(user, PermissionEnums.TICKETS_DISPATCH)
         )
         if role == RoleEnums.STAFF.value and not can_manage_tickets:
             menu = [item for item in menu if item.id != 'tickets']
@@ -517,6 +526,43 @@ class MenuItem:
                 menu.append(
                     MenuItem('rounds_defects', 'ecopark:defects_list', 'exclamation-triangle', 'Неисправности')
                 )
+
+        def _menu_ids(entries):
+            ids = set()
+            for entry in entries:
+                ids.add(entry.id)
+                if entry.submenu:
+                    ids |= _menu_ids(entry.submenu)
+            return ids
+
+        # Право выдаётся профилем (например, «Служба безопасности») по отделу,
+        # должности или индивидуально — пункты нужны вне зависимости от роли.
+        if user_has_permission(user, PermissionEnums.HR_JOURNAL):
+            present = _menu_ids(menu)
+            extra = [
+                MenuItem('attendance_journal', 'hr:attendance_journal', '', 'Журнал посещаемости'),
+                MenuItem('attendance_registry', 'hr:attendance_registry', '', 'Реестр посещаемости'),
+            ]
+            extra = [i for i in extra if i.id not in present]
+            if extra:
+                menu.append(MenuItem('attendance', '#attendance', 'people', 'Посещаемость', submenu=extra))
+
+        if (
+            user_has_permission(user, PermissionEnums.TICKETS_DISPATCH)
+            and 'tickets_report' not in _menu_ids(menu)
+        ):
+            menu.append(MenuItem('tickets_report', 'tickets:report', 'bar-chart', 'Отчёт по заявкам'))
+
+        if user_has_permission(user, PermissionEnums.ROUNDS_MONITOR):
+            present = _menu_ids(menu)
+            extra = [
+                MenuItem('rounds_journal', 'ecopark:rounds_journal', '', 'Журнал обходов'),
+                MenuItem('planned_rounds_journal', 'ecopark:planned_rounds_journal', '', 'План/факт обходов'),
+                MenuItem('rounds_defects', 'ecopark:defects_list', '', 'Неисправности'),
+            ]
+            extra = [i for i in extra if i.id not in present]
+            if extra:
+                menu.append(MenuItem('rounds_monitor', '#rounds_monitor', 'clipboard-check', 'Обходы', submenu=extra))
 
         # Исполнитель видит раздел только после назначения на маршрут/обход.
         # Руководитель без собственного назначения использует журналы выше.
