@@ -96,6 +96,55 @@ SERVICE_ROOMS = [
     },
 ]
 
+# Боевые комнаты на сервере → тоже разносим на пару QR (клининг + эксплуатация)
+PRODUCTION_ROOMS = [
+    {
+        'room_key': 'prod_cleaning',
+        'base_name': 'Комната Клининга',
+        'location': '',
+        'eco_object': 'Общие зоны ТРЦ',
+        'interval_cleaning': 8,
+        'interval_ops': 48,
+        'source_names': ['Комната Клининга'],
+    },
+    {
+        'room_key': 'prod_aho',
+        'base_name': 'Комната отдела АХО',
+        'location': '',
+        'eco_object': 'Общие зоны ТРЦ',
+        'interval_cleaning': 24,
+        'interval_ops': 24,
+        'source_names': ['Комната отдела АХО'],
+    },
+    {
+        'room_key': 'prod_ops',
+        'base_name': 'Комната Эксплуатации',
+        'location': '',
+        'eco_object': 'Общие зоны ТРЦ',
+        'interval_cleaning': 24,
+        'interval_ops': 12,
+        'source_names': ['Комната Эксплуатации'],
+    },
+    {
+        'room_key': 'prod_sliv1',
+        'base_name': 'Комната «Слив 1»',
+        'location': '1 этаж',
+        'eco_object': 'Общие зоны ТРЦ',
+        'interval_cleaning': 8,
+        'interval_ops': 24,
+        'source_names': ['Комната "Слив 1"'],
+    },
+    {
+        'room_key': 'prod_sliv2',
+        'base_name': 'Комната «Слив 2»',
+        'location': '',
+        'eco_object': 'Общие зоны ТРЦ',
+        'interval_cleaning': 8,
+        'interval_ops': 24,
+        'source_names': ['Комната "Слив 2"'],
+    },
+]
+
 # Старые демо-точки без префикса отдела → переносим в эксплуатацию
 LEGACY_NAME_TO_ROOM = {
     'Входная группа': 'entrance',
@@ -191,8 +240,19 @@ class Command(BaseCommand):
                 legacy.save(update_fields=['name'])
                 self.stdout.write(f'  ~ legacy «{legacy_name}» → «{target}»')
 
-        for room in SERVICE_ROOMS:
+        def upsert_pair(room: dict):
+            nonlocal created, updated
             eco = _eco_by_name(room['eco_object'])
+            # Перенос локации из исходной боевой точки, если есть
+            source = None
+            for src_name in room.get('source_names') or []:
+                source = RoundPoint.objects.filter(name=src_name).first()
+                if source:
+                    break
+            location = room['location'] or (source.location if source else '')
+            if source and source.eco_object_id and eco is None:
+                eco = source.eco_object
+
             for prefix, dept, checklist, interval in (
                 ('Клининг', cleaning_dept, cleaning_cl, room['interval_cleaning']),
                 ('Эксплуатация', ops_dept, ops_cl, room['interval_ops']),
@@ -201,7 +261,7 @@ class Command(BaseCommand):
                 point, was_created = RoundPoint.objects.get_or_create(
                     name=name,
                     defaults={
-                        'location': room['location'],
+                        'location': location,
                         'eco_object': eco,
                         'checklist': checklist,
                         'responsible_department': dept,
@@ -210,10 +270,10 @@ class Command(BaseCommand):
                     },
                 )
                 fields = []
-                if point.location != room['location']:
-                    point.location = room['location']
+                if location and point.location != location:
+                    point.location = location
                     fields.append('location')
-                if point.eco_object_id != (eco.pk if eco else None):
+                if eco and point.eco_object_id != eco.pk:
                     point.eco_object = eco
                     fields.append('eco_object')
                 if point.checklist_id != checklist.pk:
@@ -237,14 +297,22 @@ class Command(BaseCommand):
                 else:
                     self.stdout.write(f'  = {name}  QR={point.uuid}')
 
+            # Исходную боевую точку без префикса оставляем, но помечаем в имени через comment в логе
+            if source and source.is_active and not source.name.startswith('['):
+                self.stdout.write(
+                    f'  i исходная «{source.name}» оставлена активной '
+                    f'(новые QR — с префиксами [Клининг]/[Эксплуатация])'
+                )
+
+        for room in SERVICE_ROOMS + PRODUCTION_ROOMS:
+            upsert_pair(room)
         if options.get('deactivate_legacy'):
-            legacy_qs = RoundPoint.objects.exclude(
-                name__startswith='[Клининг]',
-            ).exclude(
-                name__startswith='[Эксплуатация]',
-            ).filter(is_active=True)
-            n = legacy_qs.update(is_active=False)
-            self.stdout.write(f'Деактивировано legacy-точек: {n}')
+            # Только известные демо-имена без префикса — чужие боевые точки не трогаем.
+            n = RoundPoint.objects.filter(
+                name__in=list(LEGACY_NAME_TO_ROOM.keys()),
+                is_active=True,
+            ).update(is_active=False)
+            self.stdout.write(f'Деактивировано demo legacy-точек: {n}')
 
         self.stdout.write(self.style.SUCCESS(
             f'\nГотово: создано {created}, обновлено {updated}. '
