@@ -92,55 +92,30 @@
      animation: fadeInUp 0.6s ease both;
    }
    
-   /* metriX BPM logo — Poppins, blue metri/BPM, green X */
    .bpm-logo {
-     font-family: "Poppins", "Inter", sans-serif;
-     font-weight: 700;
-     font-size: inherit;
-     line-height: 1.1;
-     letter-spacing: -0.02em;
      display: inline-flex;
-     align-items: baseline;
-     white-space: nowrap;
+     align-items: center;
+     line-height: 0;
+     text-decoration: none;
    }
-   .bpm-logo__metri,
-   .bpm-logo__bpm {
-     color: #2563eb;
-   }
-   .bpm-logo__x {
-     color: #16a34a;
+   .bpm-logo__img {
+     display: block;
+     height: 36px;
+     width: auto;
+     object-fit: contain;
    }
 
    .auth-page__logo {
      display: inline-flex;
      align-items: center;
-     gap: 10px;
-     font-size: 20px;
-     font-weight: 700;
-     color: #fff;
      text-decoration: none;
      margin-bottom: 56px;
    }
-   .auth-page__logo:hover { color: #fff; text-decoration: none; }
-   .auth-page__logo-icon {
-     display: flex;
-     color: #fff;
-   }
-
-   /* Логотип на синем фоне — светлые буквы, иначе «metri» и BPM сливаются */
-   .auth-page__logo--white .bpm-logo__metri,
-   .auth-page__logo--white .bpm-logo__bpm {
-     color: #fff;
-   }
-   .auth-page__logo--white .bpm-logo__x {
-     color: #bbf7d0;
-   }
-   .auth-page__logo--white:hover .bpm-logo__metri,
-   .auth-page__logo--white:hover .bpm-logo__bpm {
-     color: #fff;
-   }
-   .auth-page__logo--white:hover .bpm-logo__x {
-     color: #dcfce7;
+   .auth-page__logo:hover { text-decoration: none; opacity: 0.92; }
+   .auth-page__logo .bpm-logo__img {
+     height: 42px;
+     /* синий wordmark на синем фоне → белый */
+     filter: brightness(0) invert(1);
    }
    
    .auth-page__heading {
@@ -203,15 +178,13 @@
    .auth-form__logo {
      display: flex;
      align-items: center;
-     gap: 8px;
-     font-size: 18px;
-     font-weight: 700;
-     color: var(--color-text-primary, #111827);
      text-decoration: none;
      margin-bottom: 24px;
    }
-   .auth-form__logo:hover { color: var(--color-text-primary, #111827); text-decoration: none; }
-   .auth-form__logo-icon { color: var(--color-primary, #2563EB); display: flex; }
+   .auth-form__logo:hover { text-decoration: none; opacity: 0.92; }
+   .auth-form__logo .bpm-logo__img {
+     height: 32px;
+   }
    
    .auth-form__title {
      font-size: 28px;
@@ -413,14 +386,12 @@
    .error-page__logo {
      display: inline-flex;
      align-items: center;
-     gap: 10px;
-     font-size: 18px;
-     font-weight: 700;
-     color: var(--color-text-primary, #111827);
      text-decoration: none;
    }
-   .error-page__logo:hover { color: var(--color-text-primary, #111827); text-decoration: none; }
-   .error-page__logo-icon { color: var(--color-primary, #2563EB); display: flex; }
+   .error-page__logo:hover { text-decoration: none; opacity: 0.92; }
+   .error-page__logo .bpm-logo__img {
+     height: 32px;
+   }
    
    .error-page {
      flex: 1;

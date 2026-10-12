@@ -1,1 +1,17 @@
-<span class="bpm-no-translate"><span class="bpm-logo__metri">metri</span><span class="bpm-logo__x">X</span><span class="bpm-logo__bpm"> BPM</span></span>
+{% load static %}
+{# variant: full (default) | mono #}
+{% if variant == 'mono' %}
+<img class="bpm-logo__img bpm-logo__img--mono"
+     src="{% static 'site/img/logo/metrix-mono.png' %}"
+     alt="metrix"
+     width="42"
+     height="28"
+     decoding="async" />
+{% else %}
+<img class="bpm-logo__img bpm-logo__img--full"
+     src="{% static 'site/img/logo/metrix-full.png' %}"
+     alt="metrix"
+     width="140"
+     height="35"
+     decoding="async" />
+{% endif %}
