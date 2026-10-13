@@ -12,6 +12,7 @@ import '../../../shared/spacing.dart';
 import '../../../shared/widgets/app_button.dart';
 //import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/app_top_bar.dart';
+import '../../../core/network/server_config.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -76,7 +77,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (avatarPath == null || avatarPath.isEmpty) return null;
     if (avatarPath.startsWith('http')) return avatarPath;
 
-    final baseUrl = DioClient().dio.options.baseUrl;
+    final baseUrl = ServerConfig.baseUrl;
     return '$baseUrl$avatarPath';
   }
   @override

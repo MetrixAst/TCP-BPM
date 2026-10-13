@@ -7,6 +7,7 @@ import 'firebase_options.dart';
 import 'core/theme/theme.dart';
 import 'app/router.dart';
 import 'core/network/dio_client.dart';
+import 'core/network/server_config.dart';
 import 'features/push/data/push_repository.dart';
 import 'features/push/data/push_service.dart';
 import 'features/push/data/deep_link_resolver.dart';
@@ -38,8 +39,9 @@ void _handleDeepLink(Map<String, dynamic> data) {
   }
 }
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ServerConfig.load();
   runApp(const MetrixApp());
   unawaited(_initializeServices());
 }

@@ -7,3 +7,4 @@ class AccountConfig(AppConfig):
 
     def ready(self):
         from account import signals_rbac  
+        from account import signals_gateway  # noqa: F401

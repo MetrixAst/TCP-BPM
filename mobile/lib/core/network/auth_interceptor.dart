@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'server_config.dart';
 
 class AuthInterceptor extends Interceptor {
   final Dio dio;
@@ -18,7 +19,7 @@ class AuthInterceptor extends Interceptor {
   });
 
   Dio get _refreshClient =>
-      refreshDio ?? Dio(BaseOptions(baseUrl: dio.options.baseUrl));
+      refreshDio ?? Dio(BaseOptions(baseUrl: ServerConfig.baseUrl));
 
   @override
   Future<void> onRequest(

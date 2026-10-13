@@ -3,12 +3,16 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../core/database/local_data_cleaner.dart';
 import '../../../core/network/api_result.dart';
+import '../../../core/network/server_config.dart';
 import 'auth_tokens.dart';
 
 class AuthRepository {
   final Dio dio;
   final FlutterSecureStorage storage;
   final LocalDataCleaner? localDataCleaner;
+
+  /// Клиент шлюза — подменяется в тестах.
+  final Dio? gatewayDio;
 
   static const _accessKey = 'auth_access_token';
   static const _refreshKey = 'auth_refresh_token';
@@ -18,6 +22,7 @@ class AuthRepository {
     required this.dio,
     required this.storage,
     this.localDataCleaner,
+    this.gatewayDio,
   });
 
   Future<ApiResult<AuthTokens>> login({
@@ -25,12 +30,29 @@ class AuthRepository {
     required String password,
   }) async {
     try {
-      final response = await dio.post(
-        '/api/token/',
-        data: {'username': username, 'password': password},
-      );
+      final Map<String, dynamic> data;
+      if (ServerConfig.usesGateway) {
+        // Единый вход: шлюз сам находит сервер ТРЦ по логину и паролю.
+        final response = await (gatewayDio ?? Dio(BaseOptions(
+          baseUrl: ServerConfig.gatewayUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 20),
+        ))).post(
+          '/api/login',
+          data: {'username': username, 'password': password},
+        );
+        data = response.data as Map<String, dynamic>;
+        await ServerConfig.save(data['base_url'] as String, storage: storage);
+        dio.options.baseUrl = ServerConfig.baseUrl;
+      } else {
+        final response = await dio.post(
+          '/api/token/',
+          data: {'username': username, 'password': password},
+        );
+        data = response.data as Map<String, dynamic>;
+      }
 
-      final tokens = AuthTokens.fromJson(response.data as Map<String, dynamic>);
+      final tokens = AuthTokens.fromJson(data);
       await _dropDataOfPreviousAccount(username);
       await _saveTokens(tokens);
       return Success(tokens);
@@ -103,6 +125,9 @@ class AuthRepository {
   String _errorMessage(DioException e) {
     if (e.response?.statusCode == 401) {
       return 'Неверный логин или пароль';
+    }
+    if (e.response?.statusCode == 429) {
+      return 'Слишком много попыток входа. Повторите через несколько минут';
     }
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
