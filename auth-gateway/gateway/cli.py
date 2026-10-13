@@ -1,7 +1,8 @@
 """
 Управление подключёнными BPM-серверами.
 
-    python -m gateway.cli add "ТРЦ Мега" https://bpm.mega.kz   # выдаёт API-ключ для .env BPM
+    python -m gateway.cli add "ТРЦ Мега" https://bpm.mega.kz --code mega   # выдаёт API-ключ для .env BPM
+    python -m gateway.cli code https://bpm.mega.kz mega   # задать/сменить код ТРЦ для входа «логин:mega»
     python -m gateway.cli list
     python -m gateway.cli disable https://bpm.mega.kz
     python -m gateway.cli enable https://bpm.mega.kz
@@ -19,6 +20,10 @@ def main(argv=None):
     add = sub.add_parser('add', help='подключить BPM-сервер')
     add.add_argument('name')
     add.add_argument('base_url')
+    add.add_argument('--code', help='код ТРЦ для входа «логин:код»')
+    code_cmd = sub.add_parser('code', help='задать код ТРЦ')
+    code_cmd.add_argument('base_url')
+    code_cmd.add_argument('code')
     sub.add_parser('list', help='список серверов')
     for name in ('disable', 'enable'):
         cmd = sub.add_parser(name)
@@ -27,12 +32,14 @@ def main(argv=None):
 
     store = Store(os.environ.get('GATEWAY_DB_PATH', 'gateway.sqlite3'))
     if args.command == 'add':
-        key = store.add_backend(args.name, args.base_url)
+        key = store.add_backend(args.name, args.base_url, args.code)
         print(f'Сервер подключён. В .env этого BPM пропишите:\nAUTH_GATEWAY_API_KEY={key}')
+    elif args.command == 'code':
+        print('Готово' if store.set_code(args.base_url, args.code) else 'Сервер не найден')
     elif args.command == 'list':
         for row in store.list_backends():
             state = 'вкл' if row['is_active'] else 'выкл'
-            print(f"{row['id']:>3}  {state:4}  {row['logins']:>6} логинов  {row['base_url']}  {row['name']}"
+            print(f"{row['id']:>3}  {state:4}  {row['code'] or '—':10}  {row['logins']:>6} логинов  {row['base_url']}  {row['name']}"
                   f"  (обновлено {row['logins_synced_at'] or '—'})")
     else:
         found = store.set_active(args.base_url, args.command == 'enable')

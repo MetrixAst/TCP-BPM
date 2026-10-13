@@ -40,6 +40,11 @@ def login_hash(secret: str, login: str) -> str:
     return hmac.new(secret.encode(), normalize_login(login).encode(), hashlib.sha256).hexdigest()
 
 
+def normalize_code(code: str | None) -> str | None:
+    code = (code or '').strip().lower()
+    return code or None
+
+
 def _key_hash(api_key: str) -> str:
     return hashlib.sha256(api_key.encode()).hexdigest()
 
@@ -56,6 +61,10 @@ class Store:
         self.path = path
         with self._conn() as conn:
             conn.executescript(SCHEMA)
+            columns = {row[1] for row in conn.execute('PRAGMA table_info(backends)')}
+            if 'code' not in columns:
+                conn.execute('ALTER TABLE backends ADD COLUMN code TEXT')
+                conn.execute('CREATE UNIQUE INDEX IF NOT EXISTS backends_code ON backends(code)')
 
     @contextmanager
     def _conn(self):
@@ -69,15 +78,31 @@ class Store:
 
     # ── управление серверами (CLI) ───────────────────────────────────────
 
-    def add_backend(self, name: str, base_url: str) -> str:
+    def add_backend(self, name: str, base_url: str, code: str | None = None) -> str:
         """Регистрирует BPM-сервер и возвращает его API-ключ (показывается один раз)."""
         api_key = secrets.token_urlsafe(32)
         with self._conn() as conn:
             conn.execute(
-                'INSERT INTO backends (name, base_url, api_key_hash) VALUES (?, ?, ?)',
-                (name, base_url.rstrip('/'), _key_hash(api_key)),
+                'INSERT INTO backends (name, base_url, api_key_hash, code) VALUES (?, ?, ?, ?)',
+                (name, base_url.rstrip('/'), _key_hash(api_key), normalize_code(code)),
             )
         return api_key
+
+    def set_code(self, base_url: str, code: str | None) -> bool:
+        with self._conn() as conn:
+            cur = conn.execute(
+                'UPDATE backends SET code = ? WHERE base_url = ?',
+                (normalize_code(code), base_url.rstrip('/')),
+            )
+            return cur.rowcount > 0
+
+    def backend_by_code(self, code: str) -> Backend | None:
+        with self._conn() as conn:
+            row = conn.execute(
+                'SELECT id, name, base_url FROM backends WHERE code = ? AND is_active = 1',
+                (normalize_code(code),),
+            ).fetchone()
+        return Backend(*row) if row else None
 
     def set_active(self, base_url: str, active: bool) -> bool:
         with self._conn() as conn:
@@ -90,10 +115,10 @@ class Store:
     def list_backends(self) -> list[dict]:
         with self._conn() as conn:
             rows = conn.execute(
-                'SELECT b.id, b.name, b.base_url, b.is_active, b.logins_synced_at, COUNT(l.login_hash) '
+                'SELECT b.id, b.name, b.base_url, b.is_active, b.logins_synced_at, COUNT(l.login_hash), b.code '
                 'FROM backends b LEFT JOIN logins l ON l.backend_id = b.id GROUP BY b.id ORDER BY b.id'
             ).fetchall()
-        keys = ('id', 'name', 'base_url', 'is_active', 'logins_synced_at', 'logins')
+        keys = ('id', 'name', 'base_url', 'is_active', 'logins_synced_at', 'logins', 'code')
         return [dict(zip(keys, row)) for row in rows]
 
     # ── API ──────────────────────────────────────────────────────────────
