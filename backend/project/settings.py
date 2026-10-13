@@ -263,6 +263,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'sync_onec_all_task',
         'schedule': timedelta(hours=4),
     },
+    'push_logins_to_auth_gateway_hourly': {
+        'task': 'account.push_logins_to_gateway',
+        'schedule': crontab(minute=40),
+    },
     'sync-enbek-every-6-hours': {
         'task': 'hr.tasks.sync_enbek_data',
         'schedule': crontab(minute=0, hour='*/6'),
@@ -329,6 +333,11 @@ ONE_C_API_PASSWORD = config('ONE_C_API_PASSWORD', default='')
 ONE_C_SYNC_ENABLED = config('ONE_C_SYNC_ENABLED', default=True, cast=bool)
 ONE_C_SYNC_SINCE_DAYS = config('ONE_C_SYNC_SINCE_DAYS', default=90, cast=int)
 ONE_C_TIMEOUT = config('ONE_C_TIMEOUT', default=30, cast=int)
+
+# Metrix Auth Gateway — единый вход мобильного приложения для всех ТРЦ
+AUTH_GATEWAY_URL = config('AUTH_GATEWAY_URL', default='')
+AUTH_GATEWAY_API_KEY = config('AUTH_GATEWAY_API_KEY', default='')
+AUTH_GATEWAY_LOGIN_SECRET = config('AUTH_GATEWAY_LOGIN_SECRET', default='')
 ONE_C_VERIFY_SSL = config('ONE_C_VERIFY_SSL', default=True, cast=bool)
 
 ENBEK_BASE_URL = config('ENBEK_BASE_URL', default='http://web:8000/api/enbek')

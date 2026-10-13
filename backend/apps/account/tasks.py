@@ -86,3 +86,12 @@ def expire_temporary_accesses():
     result = f'Истекло {count} временных доступов'
     logger.info(result)
     return result
+
+@shared_task(name='account.push_logins_to_gateway')
+def push_logins_to_gateway():
+    """Отпечатки логинов в Metrix Auth Gateway — вход в мобильное приложение без выбора ТРЦ."""
+    from account.services.auth_gateway import is_configured, push_logins
+
+    if not is_configured():
+        return 'auth gateway не настроен'
+    return f'отправлено логинов: {push_logins()}'
