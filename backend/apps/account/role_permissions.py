@@ -129,8 +129,6 @@ class RolePermissions:
             PermissionEnums.FINANCE_BUDGET,
             PermissionEnums.FINANCE_SCENARIOS,
             PermissionEnums.FINANCE_REPORTS,
-            PermissionEnums.FINANCE_INVOICES,
-            PermissionEnums.FINANCE_REGISTERS,
             PermissionEnums.REPORTS,
             PermissionEnums.ROUNDS_MONITOR,
             PermissionEnums.HR_JOURNAL,
@@ -340,29 +338,31 @@ class MenuItem:
         from account.services.permissions import user_has_permission
 
         finance_common_submenu = [
-            MenuItem('fin_dash', 'finances:dashboard', '', 'Финансовый дашборд'),
-            MenuItem('fin_reg', 'finances:reg', '', 'Реестр оплат'),
-            MenuItem('fin_calendar', 'finances:payment_calendar', '', 'Календарь платежей'),
-            MenuItem('fin_invoices', 'finances:invoice_list', '', 'Счета'),
-            MenuItem('fin_opiu', 'finances:opiu', '', 'ОПиУ'),
-            MenuItem('fin_cashflow', 'finances:cashflow', '', 'ДДС'),
+            MenuItem('fin_dash', 'finances:dashboard', '', 'Финансовый дашборд', permission=PermissionEnums.FINANCE_DASHBOARD),
+            MenuItem('fin_reg', 'finances:reg', '', 'Реестр оплат', permission=PermissionEnums.FINANCE_REGISTERS),
+            MenuItem('fin_calendar', 'finances:payment_calendar', '', 'Календарь платежей', permission=PermissionEnums.FINANCE_REGISTERS),
+            MenuItem('fin_invoices', 'finances:invoice_list', '', 'Счета', permission=PermissionEnums.FINANCE_INVOICES),
+            MenuItem('fin_opiu', 'finances:opiu', '', 'ОПиУ', permission=PermissionEnums.FINANCE_REPORTS),
+            MenuItem('fin_cashflow', 'finances:cashflow', '', 'ДДС', permission=PermissionEnums.FINANCE_REPORTS),
+            MenuItem('fin_sync', 'finances:sync_status', '', 'Синхронизация с 1С', permission=PermissionEnums.FINANCE_INVOICES),
         ]
 
         finance_full_submenu = finance_common_submenu + [
-            MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
-            MenuItem('fin_credit', 'finances:credit_model_list', '', 'Кредитная модель'),
-            MenuItem('fin_rent_analytics', 'finances:rent_analytics', '', 'Аналитика аренды'),
+            MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование', permission=PermissionEnums.FINANCE_BUDGET),
+            MenuItem('fin_credit', 'finances:credit_model_list', '', 'Кредитная модель', permission=PermissionEnums.FINANCE_SCENARIOS),
+            MenuItem('fin_rent_analytics', 'finances:rent_analytics', '', 'Аналитика аренды', permission=PermissionEnums.FINANCE_DASHBOARD),
         ]
 
         finance_readonly_submenu = [
-            MenuItem('fin_dash', 'finances:dashboard', '', 'Финансовый дашборд'),
-            MenuItem('fin_opiu', 'finances:opiu', '', 'ОПиУ'),
-            MenuItem('fin_cashflow', 'finances:cashflow', '', 'ДДС'),
-            MenuItem('fin_invoices', 'finances:invoice_list', '', 'Счета'),
-            MenuItem('fin_reg', 'finances:reg', '', 'Реестр оплат'),
-            MenuItem('fin_calendar', 'finances:payment_calendar', '', 'Календарь платежей'),
-            MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование'),
-            MenuItem('fin_rent_analytics', 'finances:rent_analytics', '', 'Аналитика аренды'),
+            MenuItem('fin_dash', 'finances:dashboard', '', 'Финансовый дашборд', permission=PermissionEnums.FINANCE_DASHBOARD),
+            MenuItem('fin_opiu', 'finances:opiu', '', 'ОПиУ', permission=PermissionEnums.FINANCE_REPORTS),
+            MenuItem('fin_cashflow', 'finances:cashflow', '', 'ДДС', permission=PermissionEnums.FINANCE_REPORTS),
+            MenuItem('fin_invoices', 'finances:invoice_list', '', 'Счета', permission=PermissionEnums.FINANCE_INVOICES),
+            MenuItem('fin_reg', 'finances:reg', '', 'Реестр оплат', permission=PermissionEnums.FINANCE_REGISTERS),
+            MenuItem('fin_calendar', 'finances:payment_calendar', '', 'Календарь платежей', permission=PermissionEnums.FINANCE_REGISTERS),
+            MenuItem('fin_budget', 'finances:budget_list', '', 'Бюджетирование', permission=PermissionEnums.FINANCE_BUDGET),
+            MenuItem('fin_rent_analytics', 'finances:rent_analytics', '', 'Аналитика аренды', permission=PermissionEnums.FINANCE_DASHBOARD),
+            MenuItem('fin_sync', 'finances:sync_status', '', 'Синхронизация с 1С', permission=PermissionEnums.FINANCE_INVOICES),
         ]
 
         items = {

@@ -53,9 +53,13 @@ class SprintFixUATSmokeTest(TestCase):
     def test_fix01_hr_documents_list(self):
         self._assert_ok('hr:documents_list')
 
-    def test_fix02_invoice_create_forbidden(self):
+    def test_fix02_invoice_create_disabled(self):
+        # Счета выставляются в 1С: локальное создание ведёт обратно в список.
+        from finances.models import GeneratedInvoice
         url = reverse('finances:invoice_create')
-        self.assertEqual(self.client.get(url).status_code, 403)
+        response = self.client.post(url, {'number': 'LOCAL-1'})
+        self.assertRedirects(response, reverse('finances:invoice_list'), fetch_redirect_response=False)
+        self.assertFalse(GeneratedInvoice.objects.filter(number='LOCAL-1').exists())
 
     def test_fix03_lang_switcher_in_layout(self):
         r = self._assert_ok('tasks:list')

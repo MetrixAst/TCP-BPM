@@ -381,16 +381,19 @@
         <div class="cf-summary-card cf-summary-card--in">
             <span class="cf-summary-card__label">Поступления</span>
             <span class="cf-summary-card__value is-success">+{{ total_inflow|floatformat:0 }} ₸</span>
+            {% if prev %}<span class="cf-summary-card__label" style="text-transform:none;">пред. период: {{ prev.inflow|floatformat:0 }} ₸{% if prev.inflow_delta is not None %} · {% if prev.inflow_delta > 0 %}+{% endif %}{{ prev.inflow_delta }}%{% endif %}</span>{% endif %}
         </div>
         <div class="cf-summary-card cf-summary-card--out">
             <span class="cf-summary-card__label">Списания</span>
             <span class="cf-summary-card__value is-danger">−{{ total_outflow|floatformat:0 }} ₸</span>
+            {% if prev %}<span class="cf-summary-card__label" style="text-transform:none;">пред. период: {{ prev.outflow|floatformat:0 }} ₸{% if prev.outflow_delta is not None %} · {% if prev.outflow_delta > 0 %}+{% endif %}{{ prev.outflow_delta }}%{% endif %}</span>{% endif %}
         </div>
         <div class="cf-summary-card cf-summary-card--net">
             <span class="cf-summary-card__label">Чистый поток</span>
             <span class="cf-summary-card__value {% if net_flow >= 0 %}is-success{% else %}is-danger{% endif %}">
                 {% if net_flow >= 0 %}+{% endif %}{{ net_flow|floatformat:0 }} ₸
             </span>
+            {% if prev %}<span class="cf-summary-card__label" style="text-transform:none;">{{ prev.start|date:"d.m" }}–{{ prev.end|date:"d.m.Y" }}: {% if prev.net >= 0 %}+{% endif %}{{ prev.net|floatformat:0 }} ₸</span>{% endif %}
         </div>
     </div>
 

@@ -80,11 +80,10 @@ PROFILES = {
     "owner": {
         "name": "Владелец",
         "is_system": True,
-        "description": "Доступ к финансам и задачам",
+        "description": "Агрегированные финансы: дашборд, отчёты, бюджет и сценарии — просмотр",
         "permissions": [
             "dashboard", "profile", "comment", "reports", "rounds_monitor", "hr_journal", "plans_view_all", "tasks_view_all",
-            "finances", "finance_dashboard", "finance_invoices", "finance_registers",
-            "finance_reports", "finance_budget", "finance_scenarios",
+            "finances", "finance_dashboard", "finance_reports", "finance_budget", "finance_scenarios",
             "tasks", "edit_task",
         ],
     },

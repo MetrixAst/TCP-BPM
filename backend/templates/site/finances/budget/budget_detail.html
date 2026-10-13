@@ -227,7 +227,7 @@
 
             <td class="bgtd-table__td text-right bgtd-amount">{{ row.item.plan|floatformat:0 }} ₸</td>
             <td class="bgtd-table__td text-right bgtd-amount">{{ row.item.fact|floatformat:0 }} ₸</td>
-            <td class="bgtd-table__td text-right bgtd-amount bgtd-muted">{{ row.item.forecast|floatformat:0 }} ₸</td>
+            <td class="bgtd-table__td text-right bgtd-amount bgtd-muted">{{ row.forecast|floatformat:0 }} ₸</td>
 
             <td class="bgtd-table__td text-right">
               <span class="bgtd-amount {% if row.overrun %}bgtd-danger{% elif row.variance < 0 and category.category_type == 'expense' %}bgtd-success{% else %}bgtd-muted{% endif %}">

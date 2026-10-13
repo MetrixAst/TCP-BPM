@@ -14,7 +14,17 @@ function fmtNum(n) {
 }
 
 /* ─── Forecast CF chart ──────────────────────────────────── */
+let currentForecastDays = 90;
+
+function forecastQuery(days) {
+  const scenarioEl = document.getElementById('forecastScenario');
+  const scenario = scenarioEl && !scenarioEl.hidden ? scenarioEl.value : 'base';
+  const horizon = String(days).startsWith('w') ? `weeks=${String(days).slice(1)}` : `days=${days}`;
+  return `${horizon}&scenario=${scenario}`;
+}
+
 async function loadForecast(days) {
+  currentForecastDays = days;
   const btn = document.querySelector(`.fin-chart-btn[data-forecast-days="${days}"]`);
   document.querySelectorAll('.fin-chart-btn[data-forecast-days]').forEach(b => b.classList.remove('is-active'));
   if (btn) btn.classList.add('is-active');
@@ -25,7 +35,7 @@ async function loadForecast(days) {
   if (canvas)  { canvas.style.display  = 'none'; }
 
   try {
-    const resp = await fetch(`/finances/dashboard/forecast/?days=${days}`);
+    const resp = await fetch(`/finances/dashboard/forecast/?${forecastQuery(days)}`);
     if (!resp.ok) throw new Error(resp.statusText);
     const data = await resp.json();
 
@@ -33,10 +43,14 @@ async function loadForecast(days) {
     const income   = data.projected_income  || [];
     const expense  = data.projected_expense || [];
     const net      = data.net_cf            || [];
+    const balance  = data.balance           || [];
     const gapDates = new Set(data.gap_dates || []);
 
+    const scenarioEl = document.getElementById('forecastScenario');
+    if (scenarioEl) scenarioEl.hidden = !data.can_use_scenarios;
+
     const pointColors = labels.map((lbl, i) =>
-      (net[i] !== undefined && net[i] < 0) ? '#ff3b30' : '#22a85a'
+      gapDates.has(lbl) ? '#ff3b30' : '#22a85a'
     );
     const pointRadius = labels.map((lbl, i) =>
       gapDates.has(lbl) ? 7 : 4
@@ -67,6 +81,16 @@ async function loadForecast(days) {
             fill: true,
             tension: 0.3,
             pointRadius: 3,
+          },
+          {
+            label: t('Прогнозный остаток'),
+            data: balance,
+            borderColor: '#25233f',
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.3,
+            borderDash: [6, 4],
+            pointRadius: 0,
           },
           {
             label: t('Чистый CF'),
@@ -179,8 +203,11 @@ async function loadScenarioChart(pk, name) {
 document.addEventListener('DOMContentLoaded', () => {
   loadForecast(90);
 
+  const scenarioEl = document.getElementById('forecastScenario');
+  if (scenarioEl) scenarioEl.addEventListener('change', () => loadForecast(currentForecastDays));
+
   document.querySelectorAll('.fin-chart-btn[data-forecast-days]').forEach(btn => {
-    btn.addEventListener('click', () => loadForecast(Number(btn.dataset.forecastDays)));
+    btn.addEventListener('click', () => loadForecast(btn.dataset.forecastDays));
   });
 
   document.addEventListener('click', e => {

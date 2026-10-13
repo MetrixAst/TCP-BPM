@@ -19,7 +19,7 @@ LOGIN_URL = '/account/auth'
 SECRET_KEY = config('SECRET_KEY')
 
 DEBUG = config('DEBUG', default=True, cast=bool)
-FINANCES_MENU_ENABLED = config('FINANCES_MENU_ENABLED', default=False, cast=bool)
+FINANCES_MENU_ENABLED = config('FINANCES_MENU_ENABLED', default=True, cast=bool)
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = not DEBUG
@@ -240,6 +240,14 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'sync_onec_all_task',
         'schedule': timedelta(hours=4),
     },
+    'sync_invoice_service_hourly': {
+        'task': 'finances.sync_invoice_service',
+        'schedule': crontab(minute=15),
+    },
+    'fetch_nbrk_rates_daily': {
+        'task': 'finances.tasks.fetch_exchange_rates',
+        'schedule': crontab(hour=14, minute=0),
+    },
     'sync-enbek-every-6-hours': {
         'task': 'hr.tasks.sync_enbek_data',
         'schedule': crontab(minute=0, hour='*/6'),
@@ -302,6 +310,18 @@ ONE_C_API_PASSWORD = config('ONE_C_API_PASSWORD', default='')
 ONE_C_SYNC_ENABLED = config('ONE_C_SYNC_ENABLED', default=True, cast=bool)
 ONE_C_SYNC_SINCE_DAYS = config('ONE_C_SYNC_SINCE_DAYS', default=90, cast=int)
 ONE_C_TIMEOUT = config('ONE_C_TIMEOUT', default=30, cast=int)
+
+# Invoice-сервис Metrix: счета из 1С, PDF, рассылка арендаторам (WhatsApp / e-mail)
+INVOICE_SERVICE_URL = config('INVOICE_SERVICE_URL', default='')
+INVOICE_SERVICE_USERNAME = config('INVOICE_SERVICE_USERNAME', default='')
+INVOICE_SERVICE_PASSWORD = config('INVOICE_SERVICE_PASSWORD', default='')
+INVOICE_SERVICE_TENANT_IDS = config('INVOICE_SERVICE_TENANT_IDS', default='')
+INVOICE_SERVICE_SYNC_MONTHS = config('INVOICE_SERVICE_SYNC_MONTHS', default=3, cast=int)
+INVOICE_SERVICE_TIMEOUT = config('INVOICE_SERVICE_TIMEOUT', default=60, cast=int)
+
+# План поступлений аренды по договорам (календарь платежей, прогноз)
+RENT_PLAN_MONTHS = config('RENT_PLAN_MONTHS', default=6, cast=int)
+RENT_DUE_DAY = config('RENT_DUE_DAY', default=10, cast=int)
 ONE_C_VERIFY_SSL = config('ONE_C_VERIFY_SSL', default=True, cast=bool)
 
 ENBEK_BASE_URL = config('ENBEK_BASE_URL', default='http://web:8000/api/enbek')

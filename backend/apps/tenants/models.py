@@ -64,6 +64,11 @@ class Tenant(models.Model):
     date_notify = models.DateTimeField(verbose_name="Дата уведомления о сроке", null=True, blank=True)
 
     is_active = models.BooleanField("Активен", default=True, help_text="Снимите, чтобы перенести карточку в архив")
+    counterparty = models.ForeignKey(
+        'onec.Counterparty', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='tenants', verbose_name='Контрагент в 1С',
+        help_text='По нему счета и оплаты из 1С попадают в реестр арендатора',
+    )
 
     def __str__(self):
         return self.name

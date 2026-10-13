@@ -1,6 +1,6 @@
 from django.urls import path, include
 from django.views.generic import RedirectView
-from . import views
+from . import views, views_sync
 
 urlpatterns = [
     path('', RedirectView.as_view(pattern_name='finances:dashboard', permanent=False)),
@@ -23,6 +23,9 @@ urlpatterns = [
 
    
     path('invoices/', views.invoice_list, name='invoice_list'),
+    path('sync/', views_sync.sync_status, name='sync_status'),
+    path('sync/run/', views_sync.sync_run, name='sync_run'),
+    path('sync/link/', views_sync.link_counterparty, name='sync_link'),
     path('invoices/create/', views.invoice_create, name='invoice_create'),
     path('invoices/<int:pk>/', views.invoice_detail, name='invoice_detail'),
     path('invoices/<int:pk>/pdf/', views.invoice_pdf, name='invoice_pdf'),

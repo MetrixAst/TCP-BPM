@@ -1,3 +1,4 @@
+import logging
 from django.shortcuts import redirect, render, get_object_or_404
 from account.role_permissions import need_permission, PermissionEnums, login_required as _login_required
 from django.core.exceptions import PermissionDenied
@@ -15,11 +16,13 @@ from .models import (
 )
 from .serializers import FinanceItemSerializer
 
-from datetime import date
+from datetime import date, timedelta
 from django.db.models import Q, Sum
 from django.utils import timezone
 
 from account.role_permissions import RoleEnums
+
+logger = logging.getLogger(__name__)
 
 
 def _finance_filter_context(extra=None):
@@ -348,7 +351,12 @@ def invoice_list(request):
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_create(request):
-    return HttpResponseForbidden("Локальное создание счётов отключено. Используйте 1С.")
+    messages.info(
+        request,
+        'Счета выставляются бухгалтерией в 1С и загружаются сюда автоматически. '
+        'Отсюда их можно отправить арендатору по WhatsApp или e-mail.',
+    )
+    return redirect('finances:invoice_list')
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_edit(request, pk):
@@ -380,11 +388,20 @@ def invoice_detail(request, pk):
         GeneratedInvoice.Status.PAID: 'success',
         GeneratedInvoice.Status.CANCELLED: 'danger',
     }
+    counterparty = invoice.counterparty
     context = {
         'invoice': invoice,
         'color':   STATUS_COLORS.get(invoice.status, 'secondary'),
+        'from_onec': _is_onec_invoice(invoice),
+        'default_phone': (counterparty.phone if counterparty else '') or (invoice.tenant.phone if invoice.tenant else ''),
+        'default_email': (counterparty.email if counterparty else '') or (invoice.tenant.email if invoice.tenant else ''),
     }
     return render(request, 'site/finances/invoice_detail.html', context)
+
+
+def _is_onec_invoice(invoice):
+    """Счёт выставлен в 1С и пришёл через invoice-сервис."""
+    return bool(invoice.counterparty_onec_id and invoice.onec_id)
 
 
 @need_permission(PermissionEnums.FINANCE_INVOICES)
@@ -392,11 +409,22 @@ def invoice_pdf(request, pk):
     """PDF счёта: ?inline=1 — preview в браузере, иначе скачивание."""
     invoice = _get_invoice_with_acl(request, pk, with_items=True)
     from .services.invoice_pdf import build_invoice_pdf
+    from .services.invoice_service import InvoiceServiceError, InvoiceServiceClient, is_configured
 
-    try:
-        pdf_bytes = build_invoice_pdf(invoice)
-    except Exception:
-        return HttpResponse('Ошибка генерации PDF', status=500, content_type='text/plain; charset=utf-8')
+    pdf_bytes = None
+    if _is_onec_invoice(invoice) and is_configured():
+        # Печатная форма из 1С (с печатью и подписью) — как её получает арендатор.
+        try:
+            pdf_bytes = InvoiceServiceClient().download_invoice_pdf(
+                invoice.onec_id, invoice.counterparty_onec_id, tenant_id=invoice.service_tenant_id,
+            )
+        except InvoiceServiceError as exc:
+            logger.warning('Invoice PDF from service failed for %s: %s', invoice.pk, exc)
+    if pdf_bytes is None:
+        try:
+            pdf_bytes = build_invoice_pdf(invoice)
+        except Exception:
+            return HttpResponse('Ошибка генерации PDF', status=500, content_type='text/plain; charset=utf-8')
 
     safe_number = ''.join(
         c if c.isascii() and (c.isalnum() or c in '-_') else '_'
@@ -419,6 +447,9 @@ def invoice_delete(request, pk):
     if invoice.status == GeneratedInvoice.Status.PAID:
         messages.error(request, 'Оплаченный счёт нельзя удалить.')
         return redirect('finances:invoice_list')
+    if _is_onec_invoice(invoice):
+        messages.error(request, 'Счёт выставлен в 1С — удалите или отмените его в 1С.')
+        return redirect('finances:invoice_detail', pk=pk)
 
     if request.method == 'POST':
         invoice.delete()
@@ -429,6 +460,8 @@ def invoice_delete(request, pk):
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_send(request, pk):
     invoice = _get_invoice_with_acl(request, pk)
+    if request.method == 'POST' and _is_onec_invoice(invoice):
+        return _send_onec_invoice(request, invoice)
     if request.method == 'POST' and invoice.status == GeneratedInvoice.Status.CREATED:
         sent_via = request.POST.get('sent_via', GeneratedInvoice.SentVia.EMAIL)
 
@@ -469,6 +502,53 @@ def invoice_send(request, pk):
     return redirect('finances:invoice_detail', pk=pk)
 
 
+def _send_onec_invoice(request, invoice):
+    """Отправка счёта из 1С арендатору через invoice-сервис (WhatsApp / e-mail)."""
+    from .services.invoice_service import InvoiceServiceClient, InvoiceServiceError, is_configured
+
+    if not is_configured():
+        messages.error(request, 'Invoice-сервис не подключён — отправка недоступна.')
+        return redirect('finances:invoice_detail', pk=invoice.pk)
+    if invoice.status in (GeneratedInvoice.Status.PAID, GeneratedInvoice.Status.CANCELLED):
+        messages.info(request, 'Счёт уже оплачен или отменён.')
+        return redirect('finances:invoice_detail', pk=invoice.pk)
+
+    channel = request.POST.get('sent_via')
+    client = InvoiceServiceClient()
+    common = {
+        'invoice_id': invoice.onec_id,
+        'counterparty_id': invoice.counterparty_onec_id,
+        'counterparty_name': invoice.counterparty_name or '',
+        'tenant_id': invoice.service_tenant_id,
+    }
+    try:
+        if channel == GeneratedInvoice.SentVia.WHATSAPP:
+            phone = ''.join(ch for ch in request.POST.get('phone', '') if ch.isdigit() or ch == '+')
+            if len(phone.lstrip('+')) < 10:
+                messages.error(request, 'Укажите номер WhatsApp арендатора.')
+                return redirect('finances:invoice_detail', pk=invoice.pk)
+            client.send_whatsapp(phone=phone, payment_id=invoice.service_payment_id, **common)
+            target = phone
+        elif channel == GeneratedInvoice.SentVia.EMAIL:
+            email = (request.POST.get('email') or '').strip()
+            result = client.send_email(email=email, **common)
+            target = result.get('email') or email
+        else:
+            messages.error(request, 'Выбран неподдерживаемый способ отправки.')
+            return redirect('finances:invoice_detail', pk=invoice.pk)
+    except InvoiceServiceError as exc:
+        messages.error(request, f'Счёт не отправлен: {exc}')
+        return redirect('finances:invoice_detail', pk=invoice.pk)
+
+    if invoice.status == GeneratedInvoice.Status.CREATED:
+        invoice.status = GeneratedInvoice.Status.SENT
+    invoice.sent_via = channel
+    invoice.sent_at = timezone.now()
+    invoice.save(update_fields=['status', 'sent_via', 'sent_at', 'updated_at'])
+    messages.success(request, f'Счёт №{invoice.number} отправлен: {target}.')
+    return redirect('finances:invoice_detail', pk=invoice.pk)
+
+
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_mark_viewed(request, pk):
     invoice = _get_invoice_with_acl(request, pk)
@@ -482,6 +562,9 @@ def invoice_mark_viewed(request, pk):
 @need_permission(PermissionEnums.FINANCE_INVOICES)
 def invoice_mark_paid(request, pk):
     invoice = _get_invoice_with_acl(request, pk)
+    if _is_onec_invoice(invoice):
+        messages.info(request, 'Оплата по счетам из 1С отмечается автоматически при загрузке из 1С.')
+        return redirect('finances:invoice_detail', pk=pk)
     if request.method == 'POST' and invoice.status in [
         GeneratedInvoice.Status.SENT,
         GeneratedInvoice.Status.VIEWED,
@@ -524,14 +607,20 @@ def _get_budget_access(user):
     
     role = user.role.value if hasattr(user.role, 'value') else user.role
 
-    can_edit = role in [
-        RoleEnums.CFO.value,
-        RoleEnums.ADMINISTRATOR.value,
-        RoleEnums.OWNER.value
-    ]
-    can_read = can_edit or role == RoleEnums.CHIEF_ACCOUNTANT.value
+    # ТЗ 4.6: бюджет редактирует CFO; главбух и владелец — только просмотр.
+    can_edit = user.is_superuser or role in (RoleEnums.CFO.value, RoleEnums.ADMINISTRATOR.value)
+    can_read = can_edit or role in (RoleEnums.CHIEF_ACCOUNTANT.value, RoleEnums.OWNER.value)
 
     return can_edit, can_read
+
+
+def _can_edit_ledger(user):
+    """
+    ОПиУ и ДДС приходят из 1С и по ТЗ (4.7, 4.9) только для чтения.
+    Ручная правка оставлена администратору — для исправлений и демо-данных.
+    """
+    role = user.role.value if hasattr(user.role, 'value') else user.role
+    return user.is_superuser or role == RoleEnums.ADMINISTRATOR.value
 
 
 @need_permission(PermissionEnums.FINANCE_BUDGET)
@@ -578,7 +667,7 @@ def budget_list(request):
 
         plan     = sum(i.plan     for i in qs) or Decimal('0')
         fact     = sum(i.fact     for i in qs) or Decimal('0')
-        forecast = sum(i.forecast for i in qs) or Decimal('0')
+        forecast = sum(i.effective_forecast() for i in qs) or Decimal('0')
         
         variance = fact - plan
         
@@ -669,6 +758,7 @@ def budget_detail(request, pk):
 
         rows.append({
             'item':      item,
+            'forecast':  item.effective_forecast(),
             'variance':  variance,
             'exec_pct':  exec_pct,
             'overrun':   overrun,
@@ -860,8 +950,7 @@ def financial_statement(request):
         'next_year':   next_year,
         'next_month':  next_month,
     }
-    can_edit, _ = _get_budget_access(request.user)
-    context['can_edit'] = can_edit
+    context['can_edit'] = _can_edit_ledger(request.user)
 
     if request.GET.get('export') == 'xlsx':
         from .services.excel import export_financial_statement
@@ -923,12 +1012,46 @@ def cashflow_register(request):
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
     records = qs.order_by('-transaction_date', '-created_at')[:500]
 
+    # ТЗ 4.9: сравнение с предыдущим периодом той же длины.
+    prev = None
+    try:
+        start, end = date.fromisoformat(date_from), date.fromisoformat(date_to)
+        length = end - start
+        prev_end = start - timedelta(days=1)
+        prev_start = prev_end - length
+        prev_qs = CashFlowRecord.objects.filter(
+            Q(counterparty__isnull=True) | Q(counterparty__in=allowed_counterparties),
+            transaction_date__gte=prev_start, transaction_date__lte=prev_end,
+        )
+        if flow_type:
+            prev_qs = prev_qs.filter(flow_type=flow_type)
+        if counterparty_id:
+            prev_qs = prev_qs.filter(counterparty_id=counterparty_id)
+        prev_totals = {
+            row['direction']: row['total'] or Decimal('0')
+            for row in prev_qs.values('direction').annotate(total=Sum('amount'))
+        }
+        prev_in = prev_totals.get(CashFlowRecord.Direction.INFLOW, Decimal('0'))
+        prev_out = prev_totals.get(CashFlowRecord.Direction.OUTFLOW, Decimal('0'))
+
+        def _delta(current, previous):
+            return round((current - previous) / previous * 100, 1) if previous else None
+
+        prev = {
+            'start': prev_start, 'end': prev_end,
+            'inflow': prev_in, 'outflow': prev_out, 'net': prev_in - prev_out,
+            'inflow_delta': _delta(total_inflow, prev_in),
+            'outflow_delta': _delta(total_outflow, prev_out),
+        }
+    except ValueError:
+        pass
+
     counterparties = filter_counterparties_queryset(
         Counterparty.objects.order_by('short_name'),
         request.user,
     )[:200]
 
-    can_edit, _ = _get_budget_access(request.user)
+    can_edit = _can_edit_ledger(request.user)
     context = _finance_filter_context({
         'records':        records,
         'date_from':      date_from,
@@ -942,14 +1065,16 @@ def cashflow_register(request):
         'total_inflow':   total_inflow,
         'total_outflow':  total_outflow,
         'net_flow':       total_inflow - total_outflow,
+        'prev':           prev,
         'can_edit':       can_edit,
     })
     return render(request, 'site/finances/cashflow.html', context)
 
 
 def _can_manage_credit(user):
+    """ТЗ 4.1, 4.11: сценарии и кредитная модель — только CFO (и администратор)."""
     role = user.role.value if hasattr(user.role, 'value') else user.role
-    return role in (RoleEnums.CFO.value, RoleEnums.OWNER.value, RoleEnums.ADMINISTRATOR.value)
+    return user.is_superuser or role in (RoleEnums.CFO.value, RoleEnums.ADMINISTRATOR.value)
 
 
 # ── BE-6.1: Executive Dashboard ───────────────────────────────────────────────
@@ -1715,11 +1840,20 @@ def drilldown_record(request, onec_id):
 @need_permission(PermissionEnums.FINANCE_DASHBOARD)
 def cashflow_forecast(request):
     from .services.forecast import forecast_cashflow
-    try:
-        days = max(1, min(int(request.GET.get('days', 90)), 365))
-    except (ValueError, TypeError):
-        days = 90
-    data = forecast_cashflow(horizon_days=days)
+
+    weeks = request.GET.get('weeks')
+    if weeks and str(weeks).isdigit():
+        days, group = max(1, min(int(weeks), 52)) * 7, 'week'
+    else:
+        try:
+            days = max(1, min(int(request.GET.get('days', 90)), 365))
+        except (ValueError, TypeError):
+            days = 90
+        group = 'week' if days > 120 else 'day'
+    # Сценарии Stress / Optimistic — только CFO (ТЗ 4.11).
+    scenario = request.GET.get('scenario', 'base') if _can_manage_credit(request.user) else 'base'
+    data = forecast_cashflow(horizon_days=days, group=group, scenario=scenario)
+    data['can_use_scenarios'] = _can_manage_credit(request.user)
     return JsonResponse(data)
 
 
@@ -1752,9 +1886,8 @@ def scenario_detail_json(request, pk):
 
 @need_permission(PermissionEnums.FINANCE_REPORTS)
 def financial_statement_create(request):
-    can_edit, _ = _get_budget_access(request.user)
-    if not can_edit:
-        return HttpResponseForbidden('<h1>403</h1><p>Создание ОПиУ доступно только CFO, Owner и Administrator.</p>')
+    if not _can_edit_ledger(request.user):
+        return HttpResponseForbidden('<h1>403</h1><p>ОПиУ и ДДС загружаются из 1С и доступны только для чтения.</p>')
 
     today = date.today()
 
@@ -1813,9 +1946,8 @@ def financial_statement_create(request):
 
 @need_permission(PermissionEnums.FINANCE_REPORTS)
 def financial_statement_edit(request, pk):
-    can_edit, _ = _get_budget_access(request.user)
-    if not can_edit:
-        return HttpResponseForbidden('<h1>403</h1><p>Редактирование ОПиУ доступно только CFO, Owner и Administrator.</p>')
+    if not _can_edit_ledger(request.user):
+        return HttpResponseForbidden('<h1>403</h1><p>ОПиУ и ДДС загружаются из 1С и доступны только для чтения.</p>')
 
     statement = get_object_or_404(FinancialStatement, pk=pk)
 
@@ -1869,9 +2001,8 @@ def financial_statement_edit(request, pk):
 
 @need_permission(PermissionEnums.FINANCE_REPORTS)
 def cashflow_create(request):
-    can_edit, _ = _get_budget_access(request.user)
-    if not can_edit:
-        return HttpResponseForbidden('<h1>403</h1><p>Создание записи ДДС доступно только CFO, Owner и Administrator.</p>')
+    if not _can_edit_ledger(request.user):
+        return HttpResponseForbidden('<h1>403</h1><p>ОПиУ и ДДС загружаются из 1С и доступны только для чтения.</p>')
 
     from onec.models import Counterparty
 
@@ -1923,9 +2054,8 @@ def cashflow_create(request):
 
 @need_permission(PermissionEnums.FINANCE_REPORTS)
 def financial_statement_delete(request, pk):
-    can_edit, _ = _get_budget_access(request.user)
-    if not can_edit:
-        return HttpResponseForbidden('<h1>403</h1>')
+    if not _can_edit_ledger(request.user):
+        return HttpResponseForbidden('<h1>403</h1><p>ОПиУ и ДДС загружаются из 1С и доступны только для чтения.</p>')
     statement = get_object_or_404(FinancialStatement, pk=pk)
     if request.method == 'POST':
         statement.delete()
@@ -1935,9 +2065,8 @@ def financial_statement_delete(request, pk):
 
 @need_permission(PermissionEnums.FINANCE_REPORTS)
 def cashflow_edit(request, pk):
-    can_edit, _ = _get_budget_access(request.user)
-    if not can_edit:
-        return HttpResponseForbidden('<h1>403</h1>')
+    if not _can_edit_ledger(request.user):
+        return HttpResponseForbidden('<h1>403</h1><p>ОПиУ и ДДС загружаются из 1С и доступны только для чтения.</p>')
     record = get_object_or_404(CashFlowRecord, pk=pk)
     from onec.models import Counterparty
 
@@ -1983,9 +2112,8 @@ def cashflow_edit(request, pk):
 
 @need_permission(PermissionEnums.FINANCE_REPORTS)
 def cashflow_delete(request, pk):
-    can_edit, _ = _get_budget_access(request.user)
-    if not can_edit:
-        return HttpResponseForbidden('<h1>403</h1>')
+    if not _can_edit_ledger(request.user):
+        return HttpResponseForbidden('<h1>403</h1><p>ОПиУ и ДДС загружаются из 1С и доступны только для чтения.</p>')
     record = get_object_or_404(CashFlowRecord, pk=pk)
     if request.method == 'POST':
         record.delete()

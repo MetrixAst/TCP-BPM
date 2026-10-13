@@ -1,0 +1,136 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Синхронизация с 1С — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .sy-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 900px) { .sy-cards { grid-template-columns: 1fr; } }
+  .sy-card { background: #fff; border: 1px solid #eceaf3; border-radius: 14px; padding: 14px 18px; }
+  .sy-card__label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #74728a; }
+  .sy-card__value { font-size: 18px; font-weight: 700; color: #25233f; margin-top: 6px; }
+  .sy-card__hint { font-size: 12px; color: #74728a; margin-top: 4px; }
+  .sy-badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+  .sy-badge--ok { background: #dcfce7; color: #15803d; }
+  .sy-badge--partial { background: #fef3c7; color: #b45309; }
+  .sy-badge--failed { background: #feecec; color: #ff3b30; }
+  .sy-badge--running, .sy-badge--off { background: #f0eff6; color: #74728a; }
+  .sy-section { background: #fff; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; }
+  .sy-section h2 { font-size: 15px; margin: 0 0 6px; color: #25233f; }
+  .sy-muted { color: #74728a; font-size: 13px; }
+  .sy-link-form { display: flex; gap: 6px; align-items: center; }
+  .sy-num { font-variant-numeric: tabular-nums; }
+</style>
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page">
+
+  <div class="hr-registry-top">
+    <div>
+      <h1>Синхронизация с 1С</h1>
+      <div class="sy-muted">Счета выставляются в 1С, invoice-сервис забирает их вместе с оплатами, BPM загружает каждый час за последние {{ sync_months }} мес.</div>
+    </div>
+    <div class="hr-registry-top__actions">
+      <form method="post" action="{% url 'finances:sync_run' %}">
+        {% csrf_token %}
+        <button type="submit" class="hr-registry-btn hr-registry-btn--primary" {% if not invoice_service_configured %}disabled{% endif %}>
+          <i class="bi bi-arrow-repeat"></i> Загрузить сейчас
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="sy-cards">
+    <div class="sy-card">
+      <div class="sy-card__label">Invoice-сервис</div>
+      <div class="sy-card__value">
+        {% if invoice_service_configured %}<span class="sy-badge sy-badge--ok">Подключён</span>{% else %}<span class="sy-badge sy-badge--off">Не настроен</span>{% endif %}
+      </div>
+      <div class="sy-card__hint">{% if invoice_service_configured %}{{ invoice_service_url }}{% else %}Заполните INVOICE_SERVICE_* в .env{% endif %}</div>
+    </div>
+    <div class="sy-card">
+      <div class="sy-card__label">Последняя загрузка</div>
+      <div class="sy-card__value">
+        {% if last %}<span class="sy-badge sy-badge--{{ last.status }}">{{ last.get_status_display }}</span>{% else %}—{% endif %}
+      </div>
+      <div class="sy-card__hint">{% if last %}{{ last.started_at|date:"d.m.Y H:i" }}{% else %}Загрузок ещё не было{% endif %}{% if last_ok and last_ok != last %} · последняя успешная {{ last_ok.started_at|date:"d.m.Y H:i" }}{% endif %}</div>
+    </div>
+    <div class="sy-card">
+      <div class="sy-card__label">Прямой REST 1С</div>
+      <div class="sy-card__value">
+        {% if onec_rest_configured %}<span class="sy-badge sy-badge--ok">Подключён</span>{% else %}<span class="sy-badge sy-badge--off">Не используется</span>{% endif %}
+      </div>
+      <div class="sy-card__hint">ДДС, ОПиУ, факт бюджета — задайте ONE_C_* в .env, если 1С отдаёт HTTP-сервис</div>
+    </div>
+  </div>
+
+  {% if last.error %}
+  <div class="sy-section">
+    <h2>Ошибки последней загрузки</h2>
+    <pre class="sy-muted" style="white-space:pre-wrap;margin:0;">{{ last.error }}</pre>
+  </div>
+  {% endif %}
+
+  {% if unmatched %}
+  <div class="sy-section">
+    <h2>Не сопоставлены с арендаторами ({{ unmatched|length }})</h2>
+    <div class="sy-muted" style="margin-bottom:10px;">Счета этих контрагентов есть в разделе «Счета», но не попадают в реестр и календарь. Свяжите контрагента с арендатором — со следующей загрузки счета разнесутся автоматически.</div>
+    <table class="hr-registry-table">
+      <thead><tr><th>Контрагент в 1С</th><th>БИН</th><th>Счетов</th><th>Арендатор BPM</th></tr></thead>
+      <tbody>
+        {% for row in unmatched %}
+        <tr>
+          <td>{{ row.name|default:"—" }}</td>
+          <td class="sy-num">{{ row.bin|default:"—" }}</td>
+          <td class="sy-num">{{ row.invoices }}</td>
+          <td>
+            {% if row.onec_id %}
+            <form method="post" action="{% url 'finances:sync_link' %}" class="sy-link-form">
+              {% csrf_token %}
+              <input type="hidden" name="onec_id" value="{{ row.onec_id }}">
+              <select name="tenant" class="hr-form-input" required aria-label="Арендатор">
+                <option value="">Выберите арендатора</option>
+                {% for t in tenants %}<option value="{{ t.pk }}">{{ t.name }}</option>{% endfor %}
+              </select>
+              <button type="submit" class="hr-registry-btn hr-registry-btn--light">Связать</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="hr-registry-panel">
+    <div class="hr-registry-table-wrap">
+      <table class="hr-registry-table">
+        <thead>
+          <tr><th>Начало</th><th>Запуск</th><th>Статус</th><th>Периоды</th><th>Счетов</th><th>В реестр</th><th>В календарь</th><th>Не сопоставлено</th></tr>
+        </thead>
+        <tbody>
+          {% for run in runs %}
+          <tr>
+            <td class="sy-num">{{ run.started_at|date:"d.m.Y H:i" }}</td>
+            <td>{% if run.trigger == 'manual' %}Вручную{% else %}По расписанию{% endif %}</td>
+            <td><span class="sy-badge sy-badge--{{ run.status }}">{{ run.get_status_display }}</span></td>
+            <td class="sy-muted">{{ run.periods }}</td>
+            <td class="sy-num">{{ run.stats.invoices|default:0 }}</td>
+            <td class="sy-num">{{ run.stats.registry|default:0 }}</td>
+            <td class="sy-num">{{ run.stats.calendar|default:0 }}</td>
+            <td class="sy-num">{{ run.stats.unmatched|default:0 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8"><div class="hr-registry-empty"><i class="bi bi-arrow-repeat"></i><strong>Загрузок ещё не было</strong></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -12,6 +12,10 @@ def resolve_tenant_for_counterparty(counterparty: Counterparty | None) -> Tenant
     if not counterparty:
         return None
 
+    linked = Tenant.objects.filter(counterparty=counterparty).first()
+    if linked:
+        return linked
+
     via_invoice = Tenant.objects.filter(
         generated_invoices__counterparty_id=counterparty.pk,
     ).distinct().first()

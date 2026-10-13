@@ -147,6 +147,7 @@ class GeneratedInvoice(models.Model):
 
     class SentVia(models.TextChoices):
         EMAIL     = 'email',     'Email'
+        WHATSAPP  = 'whatsapp',  'WhatsApp'
         MANUAL    = 'manual',    'Вручную'
 
     tenant = models.ForeignKey(
@@ -193,6 +194,16 @@ class GeneratedInvoice(models.Model):
     onec_status   = models.CharField('Статус в 1С', max_length=50, null=True, blank=True)
     onec_id       = models.CharField('ID в 1С', max_length=100, unique=True, null=True, blank=True)
     synced_at     = models.DateTimeField('Дата синхронизации', null=True, blank=True)
+
+    # Поля invoice-сервиса Metrix (счёт выставлен в 1С, сервис его рассылает).
+    counterparty_onec_id = models.CharField('ID контрагента в 1С', max_length=64, null=True, blank=True)
+    counterparty_name = models.CharField('Контрагент (из 1С)', max_length=255, null=True, blank=True)
+    due_date = models.DateField('Срок оплаты', null=True, blank=True)
+    paid_amount = models.DecimalField('Оплачено', max_digits=14, decimal_places=2, default=0)
+    paid_at = models.DateTimeField('Дата оплаты', null=True, blank=True)
+    service_type = models.CharField('Вид услуги', max_length=64, null=True, blank=True)
+    service_payment_id = models.IntegerField('ID в invoice-сервисе', null=True, blank=True)
+    service_tenant_id = models.IntegerField('Организация в invoice-сервисе', null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -360,6 +371,40 @@ class BudgetItem(models.Model):
         if self.plan == 0:
             return None
         return round(self.fact / self.plan * 100, 2)
+
+    def period_bounds(self):
+        import calendar
+        from datetime import date
+
+        if self.period_type == self.Period.MONTHLY and self.month:
+            start = date(self.year, self.month, 1)
+            end = date(self.year, self.month, calendar.monthrange(self.year, self.month)[1])
+        elif self.period_type == self.Period.QUARTERLY and self.quarter:
+            first = (self.quarter - 1) * 3 + 1
+            start = date(self.year, first, 1)
+            end = date(self.year, first + 2, calendar.monthrange(self.year, first + 2)[1])
+        else:
+            start, end = date(self.year, 1, 1), date(self.year, 12, 31)
+        return start, end
+
+    def effective_forecast(self, today=None):
+        """
+        Прогноз до конца периода (ТЗ 4.6): ручной, если задан CFO, иначе по темпу —
+        факт / доля прошедших дней. До начала периода — план, после — факт.
+        """
+        from decimal import Decimal
+        from django.utils import timezone
+
+        if self.forecast:
+            return self.forecast
+        today = today or timezone.localdate()
+        start, end = self.period_bounds()
+        if today < start:
+            return self.plan
+        if today > end or not self.fact:
+            return self.fact if today > end else self.plan
+        elapsed = Decimal((today - start).days + 1) / Decimal((end - start).days + 1)
+        return (self.fact / elapsed).quantize(Decimal('0.01'))
 
 class FinancialStatement(models.Model):
 
@@ -727,3 +772,30 @@ class ExchangeRate(models.Model):
         if rate_to is None:
             raise ValueError(f"Курс {to_currency}/KZT на {lookup_date} не найден")
         return (amount * Decimal(str(rate_from))) / Decimal(str(rate_to))
+
+
+class InvoiceSyncRun(models.Model):
+    """Журнал загрузок счетов и оплат из invoice-сервиса (источник — 1С)."""
+
+    class Status(models.TextChoices):
+        RUNNING = 'running', 'Выполняется'
+        OK = 'ok', 'Успешно'
+        PARTIAL = 'partial', 'С предупреждениями'
+        FAILED = 'failed', 'Ошибка'
+
+    started_at = models.DateTimeField('Начало', auto_now_add=True)
+    finished_at = models.DateTimeField('Окончание', null=True, blank=True)
+    status = models.CharField('Статус', max_length=10, choices=Status.choices, default=Status.RUNNING)
+    trigger = models.CharField('Запуск', max_length=20, default='schedule')
+    periods = models.CharField('Периоды', max_length=255, blank=True, default='')
+    stats = models.JSONField('Итоги', default=dict, blank=True)
+    unmatched = models.JSONField('Не сопоставлены с арендаторами', default=list, blank=True)
+    error = models.TextField('Ошибка', blank=True, default='')
+
+    class Meta:
+        verbose_name = 'Загрузка счетов из 1С'
+        verbose_name_plural = 'Загрузки счетов из 1С'
+        ordering = ['-started_at']
+
+    def __str__(self):
+        return f'{self.started_at:%d.%m.%Y %H:%M} — {self.get_status_display()}'
