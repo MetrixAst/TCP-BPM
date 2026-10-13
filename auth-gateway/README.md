@@ -30,7 +30,7 @@ export GATEWAY_DB_PATH=/data/gateway.sqlite3
 ## Подключение BPM
 
 ```bash
-.venv/bin/python -m gateway.cli add "ТРЦ Мега" https://bpm.mega.kz
+.venv/bin/python -m gateway.cli add "ТРЦ Мега" https://bpm.mega.kz --code mega
 ```
 
 Команда выдаёт `AUTH_GATEWAY_API_KEY`. В `.env` этого BPM:
@@ -41,8 +41,21 @@ AUTH_GATEWAY_API_KEY=<ключ из команды>
 AUTH_GATEWAY_LOGIN_SECRET=<тот же LOGIN_HASH_SECRET>
 ```
 
-`python -m gateway.cli list` — серверы и число логинов,
+`python -m gateway.cli code <url> <код>` — задать или сменить код ТРЦ,
+`python -m gateway.cli list` — серверы, коды и число логинов,
 `disable` / `enable <url>` — временно отключить сервер.
+
+## Логины администраторов и вход в конкретный ТРЦ
+
+- **Администраторы ТРЦ** — давайте им уникальные логины в каждом BPM:
+  `admin_mega`, `admin_park`. Шлюз ищет по полному логину, доработок не нужно.
+  Не оставляйте `admin` с одинаковым паролем в нескольких ТРЦ: шлюз пустит
+  в первый подключённый.
+- **Сотрудники Metrix с одним логином во всех ТРЦ** входят как `логин:код`,
+  например `support:mega`. Шлюз идёт только на сервер с кодом `mega` и передаёт
+  туда логин `support`. Коды нигде не показываются; неизвестный код даёт обычное
+  «Неверный логин или пароль». Двоеточие выбрано потому, что в логинах Django
+  оно запрещено, — путаницы с настоящими логинами нет.
 
 ## Переменные
 

@@ -12,8 +12,8 @@ class FakeBackends(httpx.AsyncBaseTransport):
     """Два BPM: у обоих есть логин ivanov, пароли разные."""
 
     passwords = {
-        'https://mega.test': {'ivanov': 'mega-pass'},
-        'https://park.test': {'ivanov': 'park-pass', 'petrov': 'p1'},
+        'https://mega.test': {'ivanov': 'mega-pass', 'support': 'same'},
+        'https://park.test': {'ivanov': 'park-pass', 'petrov': 'p1', 'support': 'same'},
     }
 
     async def handle_async_request(self, request):
@@ -34,8 +34,8 @@ def gateway(tmp_path, monkeypatch):
     app = create_app(Settings(), transport=FakeBackends())
     client = TestClient(app)
     keys = {
-        'mega': app.state.store.add_backend('Мега', 'https://mega.test'),
-        'park': app.state.store.add_backend('Парк', 'https://park.test'),
+        'mega': app.state.store.add_backend('Мега', 'https://mega.test', code='Mega'),
+        'park': app.state.store.add_backend('Парк', 'https://park.test', code='park'),
     }
     push = lambda key, logins: client.put(
         '/api/backend/logins', headers={'Authorization': f'Bearer {key}'},
@@ -78,3 +78,33 @@ def test_rate_limit(gateway):
     client, _keys, _push = gateway
     codes = [client.post('/api/login', json={'username': 'petrov', 'password': 'bad'}).status_code for _ in range(6)]
     assert codes[-1] == 429
+
+
+def test_login_with_trc_code(gateway):
+    client, _keys, _push = gateway
+    # support не зарегистрирован в шлюзе и одинаков в обоих ТРЦ — код решает, куда войти
+    assert client.post('/api/login', json={'username': 'support:mega', 'password': 'same'}).json()['base_url'] == 'https://mega.test'
+    assert client.post('/api/login', json={'username': 'support:PARK', 'password': 'same'}).json()['base_url'] == 'https://park.test'
+
+
+def test_unknown_code_is_generic_401(gateway):
+    client, _keys, _push = gateway
+    unknown = client.post('/api/login', json={'username': 'support:nope', 'password': 'same'})
+    empty = client.post('/api/login', json={'username': ':mega', 'password': 'same'})
+    assert unknown.status_code == empty.status_code == 401
+    assert unknown.json()['detail'] == 'Неверный логин или пароль'
+
+
+def test_existing_db_gets_code_column(tmp_path):
+    import sqlite3
+    from gateway.store import Store
+
+    path = tmp_path / 'old.sqlite3'
+    conn = sqlite3.connect(path)
+    conn.execute('CREATE TABLE backends (id INTEGER PRIMARY KEY, name TEXT, base_url TEXT UNIQUE, '
+                 'api_key_hash TEXT, is_active INTEGER DEFAULT 1, logins_synced_at TEXT)')
+    conn.commit()
+    conn.close()
+    store = Store(str(path))
+    store.add_backend('X', 'https://x.test', code='x')
+    assert store.backend_by_code('X').base_url == 'https://x.test'

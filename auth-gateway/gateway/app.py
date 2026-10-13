@@ -5,6 +5,9 @@ Metrix Auth Gateway — единая точка входа мобильного 
 BPM-сервер его ТРЦ, проверяет пароль на этом сервере и возвращает приложению
 токены и адрес сервера. Список подключённых ТРЦ наружу не отдаётся: на любой
 неуспех ответ одинаковый — «Неверный логин или пароль».
+
+Логин вида «логин:код» направляет вход на сервер с этим кодом ТРЦ — для
+сотрудников, у которых одинаковый логин в нескольких ТРЦ.
 """
 
 from __future__ import annotations
@@ -93,12 +96,22 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         if not (limiter.allow(f'ip:{client_ip}') and limiter.allow(f'login:{hash_value}')):
             raise HTTPException(status_code=429, detail='Слишком много попыток. Повторите позже.')
 
+        username, backends = data.username.strip(), None
+        if ':' in username:
+            # «логин:код» — вход в конкретный ТРЦ (сотрудники Metrix с одним логином
+            # во всех ТРЦ). Двоеточие в логинах Django запрещено — путаницы нет.
+            username, code = username.rsplit(':', 1)
+            backend = store.backend_by_code(code)
+            backends = [backend] if backend and username else []
+        if backends is None:
+            backends = store.candidates(hash_value)
+
         async with httpx.AsyncClient(timeout=settings.backend_timeout, transport=transport) as client:
-            for backend in store.candidates(hash_value):
+            for backend in backends:
                 try:
                     response = await client.post(
                         f'{backend.base_url}/api/token/',
-                        json={'username': data.username.strip(), 'password': data.password},
+                        json={'username': username, 'password': data.password},
                     )
                 except httpx.HTTPError:
                     continue
