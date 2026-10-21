@@ -1,11 +1,13 @@
 import csv
-from django.shortcuts import redirect, render
+import json
+from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse
 from django.views import View
 
 from django.db.models import Q, Count
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 
 from django.views.decorators.csrf import csrf_exempt
 
@@ -13,7 +15,13 @@ from django.contrib.auth.views import LoginView, LogoutView
 
 from .role_permissions import need_permission, PermissionEnums, login_required
 
-from .forms import CustomAuthenticationForm, EditProfileForm, CustomPasswordChangeForm, AccessUserFilterForm
+from .forms import (
+    CustomAuthenticationForm,
+    EditProfileForm,
+    CustomPasswordChangeForm,
+    AccessUserFilterForm,
+    AdminPasswordResetForm,
+)
 from .utils import get_structure_data
 from .models import UserAccount, PushToken, NotificationIndicator, Department
 
@@ -480,6 +488,39 @@ def access_users(request):
         'paginator': paginator,
         'filter_form': filter_form,
     })
+
+
+@need_permission(PermissionEnums.MANAGE_PERMISSIONS)
+@require_POST
+def access_user_reset_password(request, pk):
+    """Админ задаёт новый пароль пользователю (без знания старого)."""
+    target = get_object_or_404(UserAccount, pk=pk)
+
+    if target.is_superuser and not request.user.is_superuser:
+        return JsonResponse(
+            {'ok': False, 'detail': 'Нельзя сбросить пароль суперпользователя.'},
+            status=403,
+        )
+
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except (TypeError, ValueError, UnicodeDecodeError):
+        payload = request.POST
+
+    form = AdminPasswordResetForm(target, data=payload)
+    if not form.is_valid():
+        errors = {
+            field: [str(e) for e in errs]
+            for field, errs in form.errors.items()
+        }
+        return JsonResponse({'ok': False, 'errors': errors}, status=400)
+
+    form.save()
+    return JsonResponse({
+        'ok': True,
+        'detail': f'Пароль для @{target.username} обновлён.',
+    })
+
 
 @need_permission(PermissionEnums.MANAGE_PERMISSIONS)
 def access_profiles(request):

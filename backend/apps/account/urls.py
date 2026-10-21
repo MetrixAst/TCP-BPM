@@ -21,6 +21,11 @@ urlpatterns = [
     path("mobile/push_token", views.push_token, name="push_token_mobile"),
 
     path('access', views.access_users, name="access_users"),
+    path(
+        'access/<int:pk>/reset-password/',
+        views.access_user_reset_password,
+        name='access_user_reset_password',
+    ),
     path('access/profiles', views.access_profiles, name="access_profiles"),
     path('access/temporary', views.access_temporary, name="access_temporary"),
 

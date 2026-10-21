@@ -6,7 +6,7 @@
 {% block styles %}
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
-<link rel="stylesheet" href="{% static 'site/css/apps/access.css' %}?v={{ static_version|default:'3' }}" />
+<link rel="stylesheet" href="{% static 'site/css/apps/access.css' %}?v={{ static_version|default:'3' }}&pwd=1" />
 {% endblock %}
 
 {% block content %}
@@ -158,5 +158,5 @@
 
 {% block scripts %}
 <script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
-<script src="{% static 'site/js/apps/access.js' %}?v={{ static_version|default:'3' }}"></script>
+<script src="{% static 'site/js/apps/access.js' %}?v={{ static_version|default:'3' }}&pwd=1"></script>
 {% endblock %}

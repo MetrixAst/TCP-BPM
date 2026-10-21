@@ -1,6 +1,11 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm, PasswordChangeForm
-from django.core.exceptions import ValidationError 
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    UserCreationForm,
+    PasswordChangeForm,
+    SetPasswordForm,
+)
+from django.core.exceptions import ValidationError
 
 from addits.forms import CustomModelForm, Select2FieldDefault, Select2ChoiceField
 import re
@@ -35,6 +40,27 @@ class CustomPasswordChangeForm(PasswordChangeForm):
     old_password = forms.CharField(widget=forms.PasswordInput(attrs={"class": 'form-control'}), label="Старый пароль")
     new_password1 = forms.CharField(widget=forms.PasswordInput(attrs={"class": 'form-control'}), label="Новый пароль")
     new_password2 = forms.CharField(widget=forms.PasswordInput(attrs={"class": 'form-control'}), label="Повторите новый пароль")
+
+
+class AdminPasswordResetForm(SetPasswordForm):
+    """Сброс пароля пользователя администратором (без старого пароля)."""
+
+    new_password1 = forms.CharField(
+        label='Новый пароль',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'autocomplete': 'new-password',
+            'placeholder': 'Новый пароль',
+        }),
+    )
+    new_password2 = forms.CharField(
+        label='Повторите пароль',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'autocomplete': 'new-password',
+            'placeholder': 'Повторите пароль',
+        }),
+    )
 
 
 class EmployeeChoiceField(forms.ModelChoiceField):

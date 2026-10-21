@@ -281,6 +281,53 @@
 
 .access-modal__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 
+.access-pwd {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #f0eef6;
+}
+.access-pwd__title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #25233f;
+}
+.access-pwd__hint { margin: 0 0 12px; font-size: 12px; }
+.access-pwd__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+@media (max-width: 640px) {
+  .access-pwd__fields { grid-template-columns: 1fr; }
+}
+.access-pwd__input {
+  height: 38px;
+  border: 1.5px solid #ebe9f4;
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 13px;
+  color: #25233f;
+  background: #fff;
+  outline: none;
+  width: 100%;
+}
+.access-pwd__input:focus { border-color: #2f6bed; }
+.access-pwd__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.access-pwd__msg {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.access-pwd__msg--ok { color: #16a34a; }
+.access-pwd__msg--error { color: #ef4444; }
+
 .access-preview-box {
   background: #faf9fc;
   border-radius: 12px;
