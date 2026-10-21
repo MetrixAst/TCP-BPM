@@ -136,5 +136,5 @@
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-flextree@2.1.2/build/d3-flextree.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-org-chart@3"></script>
-<script src="{% static 'site/js/apps/hr.js' %}?v=9999"></script>
+<script src="{% static 'site/js/apps/hr.js' %}?v={{ static_version|default:'1' }}&org=4"></script>
 {% endblock scripts %}

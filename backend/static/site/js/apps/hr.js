@@ -244,7 +244,6 @@
     const rawName  = (data.name     || "Без названия").trim();
     const position = (data.position || "").trim();
     const type     = (data.type     || "").toLowerCase();
-    const imageUrl = (data.imageUrl || "").trim();
     const profileUrl = (data.profileUrl || "").trim();
     const highlighted = data._highlighted ? " org-node--hl" : "";
     const nodeId = String(data.id || "");
@@ -288,23 +287,15 @@
     const clickClass = profileUrl ? " org-node--link" : "";
     const dataProp   = profileUrl ? ` data-href="${profileUrl}"` : "";
 
-    // Инициалы из имени
+    // В оргструктуре фото не показываем — только инициалы
     const words    = rawName.split(/\s+/).filter(Boolean);
     const initials = words.length >= 2
       ? words[0][0].toUpperCase() + words[1][0].toUpperCase()
       : rawName.charAt(0).toUpperCase();
 
-    // Аватар — фото если есть, иначе инициалы
-    // дефолтный аватар из utils.py — profile-1.webp; если это он — показываем инициалы
-    const isDefaultAvatar = !imageUrl || imageUrl.includes("/profile/profile-") || imageUrl.length < 6;
-    const hasPhoto = !isDefaultAvatar;
-    const avatar   = hasPhoto
-      ? `<img class="org-emp__photo" src="${imageUrl}" alt="${rawName}">`
-      : `<div class="org-emp__initials">${initials}</div>`;
-
     return `
       <div class="org-node org-node--emp${clickClass}${highlighted}"${dataProp}>
-        <div class="org-emp__avatar">${avatar}</div>
+        <div class="org-emp__avatar"><div class="org-emp__initials">${initials}</div></div>
         <div class="org-emp__info">
           <div class="org-emp__name">${rawName}</div>
           ${position ? `<div class="org-emp__pos">${position}</div>` : ""}
