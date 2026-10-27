@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
-from django.test import Client, TestCase
+from django.core import mail
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -68,3 +69,15 @@ class ReportsIndicatorsViewTest(TestCase):
             response.context['eco_status_rows'],
             [{'status': 'В работе', 'count': 1}],
         )
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_send_report_by_email(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('reports:send'), {
+            'email': 'boss@example.com',
+            'period': '30',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['boss@example.com'])
+        self.assertIn('Показатели metriX BPM', mail.outbox[0].body)

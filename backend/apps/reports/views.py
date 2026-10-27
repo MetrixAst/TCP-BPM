@@ -10,8 +10,9 @@ from account.role_permissions import need_permission, PermissionEnums
 
 
 def _get_period(request):
+    raw = request.GET.get('period', request.POST.get('period', 30))
     try:
-        days = int(request.GET.get('period', 30))
+        days = int(raw)
         days = max(7, min(days, 365))
     except (ValueError, TypeError):
         days = 30
@@ -19,8 +20,7 @@ def _get_period(request):
     return today - timedelta(days=days), today, days
 
 
-@need_permission(PermissionEnums.REPORTS)
-def reports(request):
+def _report_context(request):
     from finances.models import TenantPaymentRegistry
     from tenants.models import Tenant
     from ecopark.models import EcoWork
@@ -219,4 +219,80 @@ def reports(request):
         'collection_rate': collection_rate,
         'overdue_count':   overdue_count,
     }
-    return render(request, 'site/dashboard/statistic.html', context)
+    return context
+
+
+def _report_email_text(context) -> str:
+    lines = [
+        'Показатели metriX BPM',
+        f"Период: {context['date_from']:%d.%m.%Y} — {context['today']:%d.%m.%Y} ({context['period_days']} дней)",
+        '',
+    ]
+    for card in context['kpi_cards']:
+        lines.append(f"{card['label']}: {card['value']}")
+        if card.get('sub'):
+            lines.append(f"  {card['sub']}")
+    if context['top_debtors']:
+        lines.append('')
+        lines.append('Крупные задолженности:')
+        for row in context['top_debtors']:
+            name = row.get('tenant__name') or '—'
+            debt = row.get('debt') or 0
+            lines.append(f"  {name}: {debt:,.0f} ₸")
+    if context['tickets_status_rows']:
+        lines.append('')
+        lines.append('Заявки по статусам:')
+        for row in context['tickets_status_rows']:
+            lines.append(f"  {row['status']}: {row['count']}")
+    if context['eco_status_rows']:
+        lines.append('')
+        lines.append('Эксплуатация по статусам:')
+        for row in context['eco_status_rows']:
+            lines.append(f"  {row['status']}: {row['count']}")
+    lines.append('')
+    lines.append(f"Сумма работ эксплуатации: {context['eco_amount']:,.0f} ₸")
+    lines.append('')
+    lines.append('— metriX BPM')
+    return '\n'.join(lines)
+
+
+@need_permission(PermissionEnums.REPORTS)
+def reports(request):
+    return render(request, 'site/dashboard/statistic.html', _report_context(request))
+
+
+@need_permission(PermissionEnums.REPORTS)
+def reports_send(request):
+    from django.contrib import messages
+    from django.core.mail import send_mail
+    from django.conf import settings
+    from django.shortcuts import redirect
+    from django.urls import reverse
+
+    if request.method != 'POST':
+        return redirect('reports:home')
+
+    email = (request.POST.get('email') or '').strip()
+    period = request.POST.get('period') or '30'
+    back = redirect(f"{reverse('reports:home')}?period={period}")
+    if '@' not in email:
+        messages.error(request, 'Укажите корректный email.')
+        return back
+
+    context = _report_context(request)
+    try:
+        sent = send_mail(
+            subject=f"metriX BPM — показатели за {context['period_days']} дней",
+            message=_report_email_text(context),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+    except Exception as exc:
+        messages.error(request, f'Письмо не отправлено: {exc}')
+        return back
+    if not sent:
+        messages.error(request, 'Письмо не отправлено.')
+        return back
+    messages.success(request, f'Отчёт отправлен на {email}.')
+    return back

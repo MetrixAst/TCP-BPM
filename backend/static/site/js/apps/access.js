@@ -53,6 +53,7 @@
       var currentUserId = null;
       var currentUserName = '';
       var currentUsername = '';
+      var currentUserEmail = '';
       var currentRole = '';
       var currentRolePerms = [];
       var currentOverrides = []; // [{id, permission_code, effect, reason}]
@@ -149,20 +150,14 @@
           '<div class="access-pwd" data-access-pwd>' +
             '<h4 class="access-pwd__title">' + t('Сброс пароля') + '</h4>' +
             '<p class="access-muted access-pwd__hint">' +
-              t('Задайте новый пароль пользователю. Старый пароль знать не нужно.') +
+              (currentUserEmail
+                ? t('Новый пароль будет отправлен на ') + currentUserEmail + t('. Администратор пароль не увидит.')
+                : t('У пользователя не указан email — отправить пароль нельзя.')) +
             '</p>' +
-            '<div class="access-pwd__fields">' +
-              '<input type="password" class="access-pwd__input" name="new_password1" ' +
-                'autocomplete="new-password" placeholder="' + t('Новый пароль') + '" />' +
-              '<input type="password" class="access-pwd__input" name="new_password2" ' +
-                'autocomplete="new-password" placeholder="' + t('Повторите пароль') + '" />' +
-            '</div>' +
             '<div class="access-pwd__actions">' +
-              '<button type="button" class="access-page__btn access-page__btn--ghost" data-access-pwd-generate>' +
-                t('Сгенерировать') +
-              '</button>' +
-              '<button type="button" class="access-page__btn access-page__btn--primary" data-access-pwd-save>' +
-                t('Сохранить пароль') +
+              '<button type="button" class="access-page__btn access-page__btn--primary" data-access-pwd-save' +
+                (currentUserEmail ? '' : ' disabled') + '>' +
+                t('Сбросить и отправить на почту') +
               '</button>' +
             '</div>' +
             '<p class="access-pwd__msg" data-access-pwd-msg hidden></p>' +
@@ -179,22 +174,10 @@
         }
       }
 
-      function randomPassword() {
-        var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
-        var out = '';
-        for (var i = 0; i < 12; i++) {
-          out += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return out;
-      }
-
       function bindPasswordReset() {
         var box = body.querySelector('[data-access-pwd]');
         if (!box || !currentUserId) return;
-        var p1 = box.querySelector('[name="new_password1"]');
-        var p2 = box.querySelector('[name="new_password2"]');
         var msg = box.querySelector('[data-access-pwd-msg]');
-        var genBtn = box.querySelector('[data-access-pwd-generate]');
         var saveBtn = box.querySelector('[data-access-pwd-save]');
 
         function showMsg(text, isError) {
@@ -204,51 +187,25 @@
           msg.classList.toggle('access-pwd__msg--ok', !isError);
         }
 
-        if (genBtn) {
-          genBtn.addEventListener('click', function () {
-            var pwd = randomPassword();
-            p1.type = 'text';
-            p2.type = 'text';
-            p1.value = pwd;
-            p2.value = pwd;
-            showMsg(t('Сгенерирован пароль — скопируйте и сохраните: ') + pwd, false);
-          });
-        }
-
         if (saveBtn) {
           saveBtn.addEventListener('click', function () {
-            if (!p1.value || !p2.value) {
-              showMsg(t('Введите новый пароль дважды.'), true);
+            if (!currentUserEmail) {
+              showMsg(t('У пользователя не указан email.'), true);
               return;
             }
-            if (p1.value !== p2.value) {
-              showMsg(t('Пароли не совпадают.'), true);
-              return;
-            }
+            var proceed = window.confirm(
+              t('Сбросить пароль и отправить новый логин и пароль на ') + currentUserEmail + '?'
+            );
+            if (!proceed) return;
             saveBtn.disabled = true;
             apiFetch('/account/access/' + currentUserId + '/reset-password/', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                new_password1: p1.value,
-                new_password2: p2.value,
-              }),
+              body: '{}',
             }).then(function (data) {
-              showMsg((data && data.detail) || t('Пароль обновлён.'), false);
-              p1.value = '';
-              p2.value = '';
-              p1.type = 'password';
-              p2.type = 'password';
+              showMsg((data && data.detail) || t('Пароль отправлен на почту.'), false);
             }).catch(function (err) {
-              var detail = err.message || t('Не удалось сбросить пароль.');
-              if (err.body && err.body.errors) {
-                var parts = [];
-                Object.keys(err.body.errors).forEach(function (k) {
-                  parts = parts.concat(err.body.errors[k]);
-                });
-                if (parts.length) detail = parts.join(' ');
-              }
-              showMsg(detail, true);
+              showMsg(err.message || t('Не удалось сбросить пароль.'), true);
             }).then(function () {
               saveBtn.disabled = false;
             });
@@ -302,10 +259,11 @@
           });
       }
   
-      function loadUser(userId, userName, username) {
+      function loadUser(userId, userName, username, email) {
         currentUserId = userId;
         currentUserName = userName;
         currentUsername = username;
+        currentUserEmail = email || '';
         openModal();
         body.innerHTML = '<div class="access-modal__loading">Загрузка…</div>';
   
@@ -329,8 +287,9 @@
         row.addEventListener('click', function () {
           var userId = row.getAttribute('data-user-id');
           var name = row.getAttribute('data-user-name') || '';
+          var email = row.getAttribute('data-user-email') || '';
           var username = row.querySelector('.access-user__meta') ? row.querySelector('.access-user__meta').textContent.replace('@', '') : '';
-          loadUser(userId, name, username);
+          loadUser(userId, name, username, email);
         });
       });
   

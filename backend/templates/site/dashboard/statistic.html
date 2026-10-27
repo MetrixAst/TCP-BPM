@@ -4,7 +4,7 @@
 {% block body_classes %}reports-statistic-page{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'site/css/apps/reports.css' %}?v=ra07">
+<link rel="stylesheet" href="{% static 'site/css/apps/reports.css' %}?v=ra08">
 {% endblock %}
 
 {% block content %}
@@ -16,6 +16,19 @@
             <div>
                 <h1 class="stat-title">Показатели</h1>
             </div>
+
+            <form class="stat-mail" method="post" action="{% url 'reports:send' %}">
+                {% csrf_token %}
+                <input type="hidden" name="period" value="{{ period_days }}">
+                <label class="stat-field">
+                    <span class="stat-field__label">Отправить на email</span>
+                    <span class="stat-mail__row">
+                        <input class="stat-mail__input" type="email" name="email" required
+                               value="{{ request.user.email }}" placeholder="email@example.kz">
+                        <button class="stat-mail__btn" type="submit">Отправить</button>
+                    </span>
+                </label>
+            </form>
 
             <div class="stat-field">
                 <span class="stat-field__label">Период</span>

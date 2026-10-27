@@ -1,5 +1,6 @@
 import csv
 import json
+import logging
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse
 from django.views import View
@@ -20,10 +21,11 @@ from .forms import (
     EditProfileForm,
     CustomPasswordChangeForm,
     AccessUserFilterForm,
-    AdminPasswordResetForm,
 )
 from .utils import get_structure_data
 from .models import UserAccount, PushToken, NotificationIndicator, Department
+
+logger = logging.getLogger(__name__)
 
 #AUTH
 from account.forms import CustomAuthenticationForm
@@ -493,7 +495,14 @@ def access_users(request):
 @need_permission(PermissionEnums.MANAGE_PERMISSIONS)
 @require_POST
 def access_user_reset_password(request, pk):
-    """Админ задаёт новый пароль пользователю (без знания старого)."""
+    """Генерирует пароль и отправляет логин с паролем на email пользователя.
+
+    Новый пароль в ответ не попадает — администратор его не видит.
+    Если письмо не ушло, прежний пароль остаётся.
+    """
+    from django.utils.crypto import get_random_string
+    from account.services.credential_mail import send_password_reset_email
+
     target = get_object_or_404(UserAccount, pk=pk)
 
     if target.is_superuser and not request.user.is_superuser:
@@ -502,23 +511,34 @@ def access_user_reset_password(request, pk):
             status=403,
         )
 
+    email = (target.email or '').strip()
+    if not email:
+        return JsonResponse(
+            {'ok': False, 'detail': 'У пользователя не указан email. Укажите почту, чтобы отправить пароль.'},
+            status=400,
+        )
+
+    alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
+    password = get_random_string(12, allowed_chars=alphabet)
+    previous_hash = target.password
+    target.set_password(password)
+    target.save(update_fields=['password'])
+
     try:
-        payload = json.loads(request.body.decode('utf-8') or '{}')
-    except (TypeError, ValueError, UnicodeDecodeError):
-        payload = request.POST
+        send_password_reset_email(user=target, password=password, request=request)
+    except Exception as exc:
+        target.password = previous_hash
+        target.save(update_fields=['password'])
+        logger.exception('password reset email failed for user %s', target.pk)
+        return JsonResponse(
+            {'ok': False, 'detail': f'Письмо не отправлено, пароль не изменён. {exc}'},
+            status=502,
+        )
 
-    form = AdminPasswordResetForm(target, data=payload)
-    if not form.is_valid():
-        errors = {
-            field: [str(e) for e in errs]
-            for field, errs in form.errors.items()
-        }
-        return JsonResponse({'ok': False, 'errors': errors}, status=400)
-
-    form.save()
     return JsonResponse({
         'ok': True,
-        'detail': f'Пароль для @{target.username} обновлён.',
+        'detail': f'Новый пароль отправлен на {email}.',
+        'email': email,
     })
 
 
