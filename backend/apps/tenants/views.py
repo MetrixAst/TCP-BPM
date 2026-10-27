@@ -1,32 +1,61 @@
 import json
+import os
 from decimal import Decimal
 
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import F, Q
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from account.role_permissions import need_permission, PermissionEnums
 from project.paginator import CustomPaginator
 from .forms import TenantForm
-from .models import Tenant, TenantCategory, Room
+from .models import Tenant, TenantCategory, TenantDocument, Room
 from .serializers import TenantSerializer
 from addits.models import Comment
 from .qr_labels import generate_single_label_pdf, generate_batch_labels_pdf
+from .services.portal_mail import send_tenant_portal_credentials
+
+
+def _tenant_order_by(sort: str, order: str):
+    """Сортировка списка арендаторов; пустые значения всегда в конце."""
+    descending = order == 'desc'
+    if sort == 'name':
+        return (F('name').desc(nulls_last=True) if descending else F('name').asc(nulls_last=True),)
+    if sort == 'end_date':
+        primary = F('end_date').desc(nulls_last=True) if descending else F('end_date').asc(nulls_last=True)
+        return (primary, 'name')
+    primary = F('room__number').desc(nulls_last=True) if descending else F('room__number').asc(nulls_last=True)
+    return (primary, 'name')
 
 
 @need_permission(PermissionEnums.TENANTS)
 def home(request):
-    all_queryset = Tenant.objects.select_related('room', 'category').all()
+    sort = request.GET.get('sort', 'room')
+    if sort not in ('room', 'name', 'end_date'):
+        sort = 'room'
+    order = request.GET.get('order', 'asc')
+    if order not in ('asc', 'desc'):
+        order = 'asc'
+
+    all_queryset = Tenant.objects.select_related('room', 'category').prefetch_related('portal_users').all()
     queryset = all_queryset
     search = request.GET.get('search', '')
-    page = int(request.GET.get('page', 1))
+    try:
+        page = int(request.GET.get('page') or 1)
+    except (TypeError, ValueError):
+        page = 1
+    if page < 1:
+        page = 1
 
     if search:
         queryset = queryset.filter(
             Q(name__icontains=search) | Q(room__number__icontains=search)
         )
+
+    queryset = queryset.order_by(*_tenant_order_by(sort, order))
 
     paginator = CustomPaginator(queryset, page)
     serializer = TenantSerializer(all_queryset, many=True)
@@ -42,6 +71,8 @@ def home(request):
         'categories': TenantCategory.objects.all(),
         'rooms': Room.objects.all(),
         'search': search,
+        'sort': sort,
+        'order': order,
         'stats': {
             'total': all_queryset.count(),
             'on_map': on_map,
@@ -69,6 +100,8 @@ def tenant_detail(request, pk):
         target_type='tenant', target_id=current.pk
     ).select_related('user').order_by('id')
 
+    documents = current.documents.select_related('uploaded_by').all()
+
     monthly_base_rent = (
         Decimal(str(current.area or 0)) * Decimal(str(current.price or 0))
     )
@@ -90,10 +123,12 @@ def tenant_detail(request, pk):
         'tenant': current,
         'has_portal': has_portal,
         'comments': comments,
+        'documents': documents,
         'monthly_base_rent': monthly_base_rent,
         'annual_base_rent': monthly_base_rent * 12,
         'missing_lease_fields': missing_lease_fields,
         'lease_completeness': lease_completeness,
+        'can_edit': True,
     })
 
 
@@ -175,12 +210,62 @@ def tenant_portal_access(request, pk):
     user.is_active = True
     user.save()
 
+    send_email = request.POST.get('send_email', '1') not in ('0', 'false', 'False')
+    mail_result = {'sent': False, 'error': None}
+    if send_email:
+        mail_result = send_tenant_portal_credentials(
+            tenant=tenant,
+            username=user.username,
+            password=password,
+            created=created,
+            request=request,
+        )
+
     return JsonResponse({
         'success': True,
         'created': created,
         'username': user.username,
         'password': password,
+        'email_sent': mail_result['sent'],
+        'email_error': mail_result['error'],
+        'email_to': email if send_email else None,
     })
+
+
+@need_permission(PermissionEnums.TENANTS)
+@require_POST
+def tenant_document_upload(request, pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+    uploaded = request.FILES.get('file')
+    if not uploaded:
+        messages.error(request, 'Выберите файл для загрузки.')
+        return redirect('tenants:detail', pk=pk)
+
+    title = (request.POST.get('title') or '').strip()
+    if not title:
+        title = os.path.basename(uploaded.name)
+
+    TenantDocument.objects.create(
+        tenant=tenant,
+        title=title[:255],
+        file=uploaded,
+        uploaded_by=request.user if request.user.is_authenticated else None,
+    )
+    messages.success(request, f'Документ «{title}» добавлен.')
+    return redirect(reverse('tenants:detail', args=[pk]) + '#docs')
+
+
+@need_permission(PermissionEnums.TENANTS)
+@require_POST
+def tenant_document_delete(request, pk, doc_pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+    doc = get_object_or_404(TenantDocument, pk=doc_pk, tenant=tenant)
+    name = doc.display_name
+    if doc.file:
+        doc.file.delete(save=False)
+    doc.delete()
+    messages.success(request, f'Документ «{name}» удалён.')
+    return redirect(reverse('tenants:detail', args=[pk]) + '#docs')
 
 
 @need_permission(PermissionEnums.TENANTS)

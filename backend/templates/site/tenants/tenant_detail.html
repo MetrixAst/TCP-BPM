@@ -28,7 +28,9 @@
           <button type="button" class="onec-icon-btn" id="cpFavoriteBtn" title="В избранное" aria-pressed="false">
             <i class="bi bi-star"></i>
           </button>
-          <button type="button" class="onec-icon-btn" id="tenantPortalBtn" title="Доступ в портал">
+          <button type="button" class="onec-icon-btn" id="tenantPortalBtn"
+                  title="{% if has_portal %}Сбросить пароль портала{% else %}Выдать доступ в портал{% endif %}"
+                  data-has-portal="{% if has_portal %}1{% else %}0{% endif %}">
             <i class="bi bi-key"></i>
           </button>
           {% if tenant.room %}
@@ -148,11 +150,45 @@
       </div>
 
       <div class="onec-tab-panel" id="docs" hidden>
+        {% if can_edit %}
+        <form class="tenant-doc-upload" method="post" action="{% url 'tenants:document_upload' tenant.pk %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="tenant-doc-upload__row">
+            <input type="text" name="title" class="tenant-form-input" placeholder="Название (необязательно)" maxlength="255">
+            <input type="file" name="file" required class="tenant-doc-upload__file">
+            <button type="submit" class="onec-btn onec-btn--primary onec-btn--sm">
+              <i class="bi bi-upload"></i> Загрузить
+            </button>
+          </div>
+        </form>
+        {% endif %}
+
+        {% if documents %}
+        <ul class="tenant-doc-list">
+          {% for doc in documents %}
+          <li class="tenant-doc-list__item">
+            <a href="{{ doc.file.url }}" target="_blank" rel="noopener" class="tenant-doc-list__link">
+              <i class="bi bi-file-earmark-text"></i>
+              <span>{{ doc.display_name }}</span>
+            </a>
+            <span class="tenant-doc-list__meta">{{ doc.created_at|date:"d.m.Y H:i" }}</span>
+            {% if can_edit %}
+            <form method="post" action="{% url 'tenants:document_delete' tenant.pk doc.pk %}"
+                  onsubmit="return confirm('Удалить документ «{{ doc.display_name|escapejs }}»?');">
+              {% csrf_token %}
+              <button type="submit" class="onec-icon-btn" title="Удалить"><i class="bi bi-trash"></i></button>
+            </form>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
         <div class="tenant-empty-state">
           <span><i class="bi bi-file-earmark-text"></i></span>
-          <strong>Документы не привязаны</strong>
-          <p>Договоры и дополнительные соглашения появятся после привязки к арендатору.</p>
+          <strong>Документов пока нет</strong>
+          <p>{% if can_edit %}Загрузите договор или доп. соглашение выше.{% else %}Файлы появятся после загрузки менеджером.{% endif %}</p>
         </div>
+        {% endif %}
       </div>
 
       <div class="onec-tab-panel" id="history" hidden>
@@ -260,8 +296,12 @@
     const portalBtn = document.getElementById('tenantPortalBtn');
     if (portalBtn) {
       portalBtn.addEventListener('click', function () {
-        grantPortalAccess({{ tenant.id }}, '{{ tenant.name|escapejs }}');
+        grantPortalAccess({{ tenant.id }}, '{{ tenant.name|escapejs }}', portalBtn.dataset.hasPortal === '1');
       });
+    }
+    if (window.location.hash === '#docs') {
+      const docsTab = document.querySelector('.onec-tab[data-tab="docs"]');
+      if (docsTab) docsTab.click();
     }
 
     const list = document.getElementById('onecMessagesList');
@@ -307,18 +347,24 @@
     return tag ? tag.value : '';
   }
 
-  async function grantPortalAccess(tenantId, tenantName) {
+  async function grantPortalAccess(tenantId, tenantName, hasPortal) {
+    var title = hasPortal ? 'Сброс пароля' : 'Доступ в портал';
+    var confirmText = hasPortal ? 'Сбросить и отправить' : 'Выдать и отправить';
+    var body = hasPortal
+      ? 'Сбросить пароль для «' + tenantName + '» и отправить новый логин/пароль на email арендатора?'
+      : 'Создать доступ в портал для «' + tenantName + '» и отправить логин/пароль на email арендатора?';
     var proceed = window.bpmModal
-      ? await window.bpmModal.confirm(
-          'Создать или сбросить доступ в портал для «' + tenantName + '»? Текущий пароль (если был) перестанет действовать.',
-          { title: 'Доступ в портал', confirmText: 'Выдать доступ', variant: 'warning' })
-      : window.confirm('Выдать доступ в портал для «' + tenantName + '»?');
+      ? await window.bpmModal.confirm(body, { title: title, confirmText: confirmText, variant: 'warning' })
+      : window.confirm(body);
     if (!proceed) return;
     try {
+      var form = new FormData();
+      form.append('send_email', '1');
       var res = await fetch('/tenants/' + tenantId + '/portal-access/', {
         method: 'POST',
         headers: { 'X-CSRFToken': _tenantCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
         credentials: 'same-origin',
+        body: form,
       });
       var data = await res.json().catch(function () { return {}; });
       if (!res.ok || data.success === false) {
@@ -326,8 +372,15 @@
           (data.message || 'Не удалось выдать доступ'), { variant: 'danger', title: 'Ошибка' });
         return;
       }
-      var msg = 'Логин: ' + data.username + '\nПароль: ' + data.password +
-        '\n\nПередайте эти данные арендатору. Пароль больше не будет показан.';
+      var msg = 'Логин: ' + data.username + '\nПароль: ' + data.password;
+      if (data.email_sent) {
+        msg += '\n\nПисьмо отправлено на ' + (data.email_to || '') + '.';
+        var btn = document.getElementById('tenantPortalBtn');
+        if (btn) btn.dataset.hasPortal = '1';
+      } else {
+        msg += '\n\nПисьмо не отправлено' + (data.email_error ? ': ' + data.email_error : '') +
+          '.\nПередайте данные арендатору вручную.';
+      }
       (window.bpmModal ? window.bpmModal.alert : window.alert)(
         msg, { variant: 'success', title: data.created ? 'Доступ создан' : 'Пароль сброшен' });
     } catch (e) {

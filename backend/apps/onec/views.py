@@ -45,11 +45,20 @@ class CounterpartyListView(ListView):
     context_object_name = 'counterparties'
     paginate_by = 50
 
+    SORT_CHOICES = {
+        'room': 'room_number',
+        'name': 'short_name',
+        'bin': 'bin_number',
+    }
+
     def get_queryset(self):
+        from django.db.models import Min
+
         queryset = filter_counterparties_queryset(
             super().get_queryset().select_related('counterparty_type', 'counterparty_type__access_scope'),
             self.request.user,
         )
+        queryset = queryset.annotate(room_number=Min('tenants__room__number'))
 
         search_query = self.request.GET.get('search')
 
@@ -59,11 +68,27 @@ class CounterpartyListView(ListView):
                 | models.Q(full_name__icontains=search_query)
                 | models.Q(bin_number__icontains=search_query)
                 | models.Q(phone__icontains=search_query)
-            )
+                | models.Q(tenants__room__number__icontains=search_query)
+            ).distinct()
 
-        type_id = self.request.GET.get('type')
-        if type_id:
-            queryset = queryset.filter(counterparty_type_id=type_id)
+        type_id = (self.request.GET.get('type') or '').strip()
+        if type_id.isdigit():
+            queryset = queryset.filter(counterparty_type_id=int(type_id))
+
+        sort = self.request.GET.get('sort', 'room')
+        if sort not in self.SORT_CHOICES:
+            sort = 'room'
+        order = self.request.GET.get('order', 'asc')
+        if order not in ('asc', 'desc'):
+            order = 'asc'
+
+        field = self.SORT_CHOICES[sort]
+        if sort == 'room':
+            expr = models.F('room_number').asc(nulls_last=True) if order == 'asc' else models.F('room_number').desc(nulls_last=True)
+            queryset = queryset.order_by(expr, 'short_name')
+        else:
+            prefix = '' if order == 'asc' else '-'
+            queryset = queryset.order_by(f'{prefix}{field}', 'short_name')
 
         return queryset
 
@@ -78,6 +103,14 @@ class CounterpartyListView(ListView):
         from .models import CounterpartyType
         context['counterparty_types'] = CounterpartyType.objects.filter(is_active=True)
         context['f_type'] = self.request.GET.get('type', '')
+        sort = self.request.GET.get('sort', 'room')
+        if sort not in self.SORT_CHOICES:
+            sort = 'room'
+        order = self.request.GET.get('order', 'asc')
+        if order not in ('asc', 'desc'):
+            order = 'asc'
+        context['sort'] = sort
+        context['order'] = order
         from account.services.access_scope import user_can_manage_access_scopes
         context['can_manage_acl'] = user_can_manage_access_scopes(self.request.user)
         return context

@@ -38,6 +38,8 @@
           <input type="text" name="search" value="{{ search }}" placeholder="Название или № помещения" autocomplete="off">
         </div>
       </div>
+      <input type="hidden" name="sort" value="{{ sort|default:'room' }}">
+      <input type="hidden" name="order" value="{{ order|default:'asc' }}">
       <div class="onec-filter-actions">
         <button type="submit" class="onec-btn onec-btn--primary">
           <i class="bi bi-search"></i> Найти
@@ -63,12 +65,27 @@
       <table class="onec-table">
         <thead>
           <tr>
-            <th>Помещение</th>
-            <th>Арендатор</th>
+            <th>
+              <a class="onec-sort-link{% if sort == 'room' %} is-active{% endif %}"
+                 href="?sort=room&order={% if sort == 'room' and order == 'asc' %}desc{% else %}asc{% endif %}{% if search %}&search={{ search|urlencode }}{% endif %}{% if show_archived %}&archived=1{% endif %}">
+                Помещение{% if sort == 'room' %} <i class="bi bi-caret-{% if order == 'asc' %}up{% else %}down{% endif %}-fill"></i>{% endif %}
+              </a>
+            </th>
+            <th>
+              <a class="onec-sort-link{% if sort == 'name' %} is-active{% endif %}"
+                 href="?sort=name&order={% if sort == 'name' and order == 'asc' %}desc{% else %}asc{% endif %}{% if search %}&search={{ search|urlencode }}{% endif %}{% if show_archived %}&archived=1{% endif %}">
+                Арендатор{% if sort == 'name' %} <i class="bi bi-caret-{% if order == 'asc' %}up{% else %}down{% endif %}-fill"></i>{% endif %}
+              </a>
+            </th>
             <th>Категория</th>
             <th>Площадь</th>
             <th>Ставка / {% t 'common.sqm' 'м²' %}</th>
-            <th>Окончание</th>
+            <th>
+              <a class="onec-sort-link{% if sort == 'end_date' %} is-active{% endif %}"
+                 href="?sort=end_date&order={% if sort == 'end_date' and order == 'asc' %}desc{% else %}asc{% endif %}{% if search %}&search={{ search|urlencode }}{% endif %}{% if show_archived %}&archived=1{% endif %}">
+                Окончание{% if sort == 'end_date' %} <i class="bi bi-caret-{% if order == 'asc' %}up{% else %}down{% endif %}-fill"></i>{% endif %}
+              </a>
+            </th>
             <th>Статус</th>
             <th>Портал</th>
           </tr>
@@ -95,8 +112,8 @@
             </td>
             <td>
               <button type="button" class="onec-btn onec-btn--light onec-btn--sm"
-                      onclick="grantPortalAccess({{ current.id }}, '{{ current.name|escapejs }}')">
-                <i class="bi bi-key"></i> Доступ
+                      onclick="grantPortalAccess({{ current.id }}, '{{ current.name|escapejs }}', {{ current.portal_users.exists|yesno:'true,false' }})">
+                <i class="bi bi-key"></i> {% if current.portal_users.exists %}Сброс{% else %}Доступ{% endif %}
               </button>
             </td>
           </tr>
@@ -271,19 +288,25 @@
         return tag ? tag.value : '';
       }
 
-      async function grantPortalAccess(tenantId, tenantName) {
+      async function grantPortalAccess(tenantId, tenantName, hasPortal) {
+        var title = hasPortal ? 'Сброс пароля' : 'Доступ в портал';
+        var confirmText = hasPortal ? 'Сбросить и отправить' : 'Выдать и отправить';
+        var body = hasPortal
+          ? 'Сбросить пароль для «' + tenantName + '» и отправить новый логин/пароль на email арендатора?'
+          : 'Создать доступ в портал для «' + tenantName + '» и отправить логин/пароль на email арендатора?';
         var proceed = window.bpmModal
-          ? await window.bpmModal.confirm(
-              'Создать или сбросить доступ в портал для «' + tenantName + '»? Текущий пароль (если был) перестанет действовать.',
-              { title: 'Доступ в портал', confirmText: 'Выдать доступ', variant: 'warning' })
-          : window.confirm('Выдать доступ в портал для «' + tenantName + '»?');
+          ? await window.bpmModal.confirm(body, { title: title, confirmText: confirmText, variant: 'warning' })
+          : window.confirm(body);
         if (!proceed) return;
 
         try {
+          var form = new FormData();
+          form.append('send_email', '1');
           var res = await fetch('/tenants/' + tenantId + '/portal-access/', {
             method: 'POST',
             headers: { 'X-CSRFToken': _tenantCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin',
+            body: form,
           });
           var data = await res.json().catch(function () { return {}; });
           if (!res.ok || data.success === false) {
@@ -291,8 +314,13 @@
               (data.message || 'Не удалось выдать доступ'), { variant: 'danger', title: 'Ошибка' });
             return;
           }
-          var msg = 'Логин: ' + data.username + '\nПароль: ' + data.password +
-            '\n\nПередайте эти данные арендатору. Пароль больше не будет показан.';
+          var msg = 'Логин: ' + data.username + '\nПароль: ' + data.password;
+          if (data.email_sent) {
+            msg += '\n\nПисьмо отправлено на ' + (data.email_to || '') + '.';
+          } else {
+            msg += '\n\nПисьмо не отправлено' + (data.email_error ? ': ' + data.email_error : '') +
+              '.\nПередайте данные арендатору вручную.';
+          }
           if (window.bpmModal) {
             window.bpmModal.alert(msg, { variant: 'success', title: data.created ? 'Доступ создан' : 'Пароль сброшен' });
           } else {

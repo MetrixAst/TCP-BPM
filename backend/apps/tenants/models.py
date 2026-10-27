@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from project.utils import PathAndRename
 from datetime import date
@@ -62,6 +63,11 @@ class Tenant(models.Model):
     icon = models.ImageField("Иконка на карте", upload_to=PathAndRename("tenant_icons/"), null=True, blank=True)
 
     date_notify = models.DateTimeField(verbose_name="Дата уведомления о сроке", null=True, blank=True)
+    counterparty = models.ForeignKey(
+        'onec.Counterparty', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='tenants', verbose_name='Контрагент в 1С',
+        help_text='По нему счета и оплаты из 1С попадают в реестр арендатора',
+    )
 
     def __str__(self):
         return self.name
@@ -118,3 +124,41 @@ class Tenant(models.Model):
             "floor": self.room.floor,
             "icon": icon,
         }
+
+
+class TenantDocument(models.Model):
+    """Файл, прикреплённый к карточке арендатора (договор, ДС и т.п.)."""
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='documents',
+        verbose_name='Арендатор',
+    )
+    title = models.CharField('Название', max_length=255, blank=True)
+    file = models.FileField('Файл', upload_to=PathAndRename('tenant_documents/'))
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tenant_documents',
+        verbose_name='Кто загрузил',
+    )
+    created_at = models.DateTimeField('Создан', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Документ арендатора'
+        verbose_name_plural = 'Документы арендаторов'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title or (self.file.name.rsplit('/', 1)[-1] if self.file else 'Документ')
+
+    @property
+    def display_name(self):
+        if self.title:
+            return self.title
+        if self.file:
+            return self.file.name.rsplit('/', 1)[-1]
+        return 'Документ'

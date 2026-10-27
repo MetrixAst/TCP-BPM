@@ -184,12 +184,35 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 
-# EMAIL_HOST = config('EMAIL_HOST')
-# EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-# EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-# EMAIL_USE_TLS = True
-# EMAIL_PORT = config('EMAIL_PORT')
-# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# SMTP (Cloud24 / Outlook / любой SMTP)
+# Cloud24: mail.cloud24.kz:587 + TLS | M365: smtp.office365.com:587 + TLS
+EMAIL_HOST = config('EMAIL_HOST', default='mail.cloud24.kz')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+_default_from = config('DEFAULT_FROM_EMAIL', default='') or EMAIL_HOST_USER or 'noreply@metrix.com.ai'
+DEFAULT_FROM_EMAIL = _default_from
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=30, cast=int)
+# Без пароля — письма в консоль (удобно для локальной разработки)
+_email_backend_default = (
+    'django.core.mail.backends.smtp.EmailBackend'
+    if EMAIL_HOST_PASSWORD
+    else 'django.core.mail.backends.console.EmailBackend'
+)
+EMAIL_BACKEND = config('EMAIL_BACKEND', default=_email_backend_default)
+# Публичный URL для ссылок в письмах (логин портала и т.п.)
+PUBLIC_SITE_URL = config('PUBLIC_SITE_URL', default='').rstrip('/')
+# macOS / системный Python часто без корневых CA — подставляем certifi
+try:
+    import certifi as _certifi
+    import os as _os
+    _os.environ.setdefault('SSL_CERT_FILE', _certifi.where())
+    _os.environ.setdefault('REQUESTS_CA_BUNDLE', _certifi.where())
+except ImportError:
+    pass
 
 
 REST_FRAMEWORK = {

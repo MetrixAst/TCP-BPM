@@ -93,12 +93,14 @@
       </div>
       {% endif %}
 
+      <input type="hidden" name="sort" value="{{ sort|default:'room' }}">
+      <input type="hidden" name="order" value="{{ order|default:'asc' }}">
       <div class="onec-filter-actions">
         <button type="submit" class="onec-btn onec-btn--primary">
           <i class="bi bi-search"></i> Найти
         </button>
         {% if request.GET.search or f_type %}
-          <a href="{% url 'onec:counterparty_list' %}" class="onec-btn onec-btn--light">
+          <a href="{% url 'onec:counterparty_list' %}?sort={{ sort }}&order={{ order }}" class="onec-btn onec-btn--light">
             <i class="bi bi-x"></i> Сбросить
           </a>
         {% endif %}
@@ -120,8 +122,24 @@
       <table class="onec-table">
         <thead>
           <tr>
-            <th>Название</th>
-            <th>БИН</th>
+            <th>
+              <a class="onec-sort-link{% if sort == 'room' %} is-active{% endif %}"
+                 href="?sort=room&order={% if sort == 'room' and order == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}{% if f_type %}&type={{ f_type }}{% endif %}">
+                Помещение{% if sort == 'room' %} <i class="bi bi-caret-{% if order == 'asc' %}up{% else %}down{% endif %}-fill"></i>{% endif %}
+              </a>
+            </th>
+            <th>
+              <a class="onec-sort-link{% if sort == 'name' %} is-active{% endif %}"
+                 href="?sort=name&order={% if sort == 'name' and order == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}{% if f_type %}&type={{ f_type }}{% endif %}">
+                Название{% if sort == 'name' %} <i class="bi bi-caret-{% if order == 'asc' %}up{% else %}down{% endif %}-fill"></i>{% endif %}
+              </a>
+            </th>
+            <th>
+              <a class="onec-sort-link{% if sort == 'bin' %} is-active{% endif %}"
+                 href="?sort=bin&order={% if sort == 'bin' and order == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}{% if f_type %}&type={{ f_type }}{% endif %}">
+                БИН{% if sort == 'bin' %} <i class="bi bi-caret-{% if order == 'asc' %}up{% else %}down{% endif %}-fill"></i>{% endif %}
+              </a>
+            </th>
             <th>Email</th>
             <th>Телефон</th>
             <th>Тип</th>
@@ -131,6 +149,7 @@
         <tbody>
           {% for cp in counterparties %}
           <tr>
+            <td><span class="onec-mono">{{ cp.room_number|default:"—" }}</span></td>
             <td>
               <a href="{% url 'onec:counterparty_detail' cp.pk %}" class="onec-name">
                 {{ cp.short_name|default:cp.full_name }}
@@ -157,7 +176,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6" class="onec-empty">
+            <td colspan="7" class="onec-empty">
               <i class="bi bi-building-x" style="font-size:28px;display:block;margin-bottom:8px;opacity:.35"></i>
               Контрагенты не найдены
             </td>
