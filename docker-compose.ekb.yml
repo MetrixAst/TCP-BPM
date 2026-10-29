@@ -1,0 +1,19 @@
+# Отдельный экземпляр для Maxi Mall Экибастуз на той же VM.
+# Запуск: docker compose -p tcp-bpm-ekb -f docker-compose.yml -f docker-compose.ekb.yml up -d
+# Своя БД, redis и тома (по имени проекта); наружу только nginx на 8081,
+# TLS терминирует edge-прокси (VM 100).
+services:
+  db:
+    ports: !override []
+
+  redis:
+    ports: !override []
+
+  nginx:
+    ports: !override
+      - "8081:80"
+    volumes: !override
+      - static_volume:/home/app/web/static
+      - media_volume:/home/app/web/media
+      - ./nginx/nginx.ekb.conf:/etc/nginx/conf.d/nginx.conf:ro
+      - ./nginx/legal:/etc/nginx/legal:ro
