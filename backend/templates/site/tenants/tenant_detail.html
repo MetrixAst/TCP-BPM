@@ -38,6 +38,24 @@
             <i class="bi bi-qr-code"></i>
           </a>
           {% endif %}
+          {% if can_edit %}
+          <a href="{% url 'tenants:edit' tenant.pk %}" class="onec-icon-btn" title="Редактировать">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <form method="post" action="{% url 'tenants:archive' tenant.pk %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="onec-icon-btn" title="{% if tenant.is_active %}В архив{% else %}Вернуть из архива{% endif %}">
+              <i class="bi {% if tenant.is_active %}bi-archive{% else %}bi-arrow-counterclockwise{% endif %}"></i>
+            </button>
+          </form>
+          <form method="post" action="{% url 'tenants:delete' tenant.pk %}" style="display:inline;"
+                onsubmit="return confirm('Удалить карточку «{{ tenant.name|escapejs }}»? Действие необратимо.');">
+            {% csrf_token %}
+            <button type="submit" class="onec-icon-btn" title="Удалить">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+          {% endif %}
         </div>
       </div>
 
@@ -52,6 +70,7 @@
         <div class="tenant-detail-identity">
           <h1 class="onec-detail-title">{{ tenant.name }}</h1>
           <div class="tenant-detail-badges">
+            {% if not tenant.is_active %}<span class="tenant-detail-badge tenant-detail-badge--muted"><i class="bi bi-archive"></i> В архиве</span>{% endif %}
             <span class="tenant-detail-badge"><i class="bi bi-door-open"></i> {{ tenant.number }}</span>
             {% if tenant.room %}<span class="tenant-detail-badge"><i class="bi bi-layers"></i> {{ tenant.room.floor }} этаж</span>{% endif %}
             {% if tenant.category %}<span class="tenant-detail-badge"><i class="bi bi-tag"></i> {{ tenant.category.title }}</span>{% endif %}
@@ -172,6 +191,25 @@
               <span>{{ doc.display_name }}</span>
             </a>
             <span class="tenant-doc-list__meta">{{ doc.created_at|date:"d.m.Y H:i" }}</span>
+            {% if doc.signing and doc.signing.status == 'COMPLETED' %}
+              <span class="tenant-doc-sign tenant-doc-sign--done"><i class="bi bi-patch-check"></i> Подписан ЭЦП</span>
+              {% if doc.signing.signed_pdf %}
+              <a href="{% url 'tenants:document_signed' tenant.pk doc.pk %}" class="onec-icon-btn" title="Скачать подписанный PDF"><i class="bi bi-download"></i></a>
+              {% endif %}
+            {% elif doc.signing and doc.signing.status == 'SENT' %}
+              <a href="{{ doc.signing.sign_url }}" target="_blank" rel="noopener" class="tenant-doc-sign tenant-doc-sign--wait"><i class="bi bi-hourglass-split"></i> Ожидает подписи</a>
+            {% else %}
+              <details class="tenant-doc-sign-form">
+                <summary class="onec-btn onec-btn--light onec-btn--sm"><i class="bi bi-pen"></i> Подписать ЭЦП</summary>
+                <form method="post" action="{% url 'tenants:document_esign' tenant.pk doc.pk %}">
+                  {% csrf_token %}
+                  <input type="text" name="iin" class="tenant-form-input" inputmode="numeric" pattern="\d{12}" maxlength="12"
+                         placeholder="ИИН/БИН подписанта" value="{{ signer_bin }}" required>
+                  <label><input type="checkbox" name="is_company" {% if signer_bin %}checked{% endif %}> Юрлицо</label>
+                  <button type="submit" class="onec-btn onec-btn--primary onec-btn--sm">Отправить</button>
+                </form>
+              </details>
+            {% endif %}
             {% if can_edit %}
             <form method="post" action="{% url 'tenants:document_delete' tenant.pk doc.pk %}"
                   onsubmit="return confirm('Удалить документ «{{ doc.display_name|escapejs }}»?');">
@@ -372,7 +410,7 @@
           (data.message || 'Не удалось выдать доступ'), { variant: 'danger', title: 'Ошибка' });
         return;
       }
-      var msg = 'Логин: ' + data.username + '\nПароль: ' + data.password;
+      var msg = 'Логин: ' + data.username + (data.password ? '\nПароль: ' + data.password : '');
       if (data.email_sent) {
         msg += '\n\nПисьмо отправлено на ' + (data.email_to || '') + '.';
         var btn = document.getElementById('tenantPortalBtn');

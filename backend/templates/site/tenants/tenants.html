@@ -23,6 +23,9 @@
       {% endif %}
     </div>
     <div class="onec-page-header__actions">
+      {% if can_edit %}
+      <a href="{% url 'tenants:import' %}" class="onec-btn onec-btn--light"><i class="bi bi-file-earmark-arrow-up"></i> Импорт из Excel</a>
+      {% endif %}
       <button type="button" class="onec-btn onec-btn--primary" data-bs-toggle="modal" data-bs-target="#createTenantModal">
         <i class="bi bi-plus-lg"></i> Добавить
       </button>
@@ -44,10 +47,16 @@
         <button type="submit" class="onec-btn onec-btn--primary">
           <i class="bi bi-search"></i> Найти
         </button>
+        {% if show_archived %}<input type="hidden" name="archived" value="1">{% endif %}
         {% if search %}
-          <a href="{% url 'tenants:list' %}" class="onec-btn onec-btn--light">
+          <a href="{% url 'tenants:list' %}{% if show_archived %}?archived=1{% endif %}" class="onec-btn onec-btn--light">
             <i class="bi bi-x"></i> Сбросить
           </a>
+        {% endif %}
+        {% if show_archived %}
+          <a href="{% url 'tenants:list' %}" class="onec-btn onec-btn--light"><i class="bi bi-arrow-left"></i> Действующие</a>
+        {% elif archived_count %}
+          <a href="{% url 'tenants:list' %}?archived=1" class="onec-btn onec-btn--light"><i class="bi bi-archive"></i> Архив ({{ archived_count }})</a>
         {% endif %}
       </div>
     </form>
@@ -56,7 +65,7 @@
   <section class="onec-table-card">
     <div class="onec-table-head">
       <div class="onec-table-title">
-        Реестр арендаторов
+        {% if show_archived %}Архив арендаторов{% else %}Реестр арендаторов{% endif %}
         {% if paginator.items %}<span class="onec-table-count">{{ paginator.count }}</span>{% endif %}
       </div>
     </div>
@@ -149,87 +158,7 @@
                 <div class="modal-body">
                     <div id="tenantFormAlert" class="tenant-form-alert tenant-form-alert--error" hidden></div>
 
-                    <div class="tenant-form-section">
-                        <div class="tenant-form-section__title">Основное</div>
-                        <div class="tenant-form-grid">
-                            <div class="tenant-form-field tenant-form-grid--full">
-                                <label class="tenant-form-label" for="id_name">Название <span>*</span></label>
-                                {{ tenant_form.name }}
-                            </div>
-                            <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_category">Категория</label>
-                                {{ tenant_form.category }}
-                            </div>
-                            <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_room">Помещение</label>
-                                {{ tenant_form.room }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="tenant-form-section">
-                        <div class="tenant-form-section__title">Условия аренды</div>
-                        <div class="tenant-form-grid">
-                            <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_area">Площадь, {% t 'common.sqm' 'м²' %} <span></span></label>
-                                {{ tenant_form.area }}
-                            </div>
-                            <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_price">Ставка за {% t 'common.sqm' 'м²' %}, ₸ <span></span></label>
-                                {{ tenant_form.price }}
-                            </div>
-                            <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_discount">Скидка, %</label>
-                                {{ tenant_form.discount }}
-                            </div>
-                            <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_percent">Процент с оборота, %</label>
-                                {{ tenant_form.percent }}
-                            </div>
-                            <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_start_date">Начало аренды <span></span></label>
-                                {{ tenant_form.start_date }}
-                            </div>
-                            <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_end_date">Завершение аренды <span></span></label>
-                                {{ tenant_form.end_date }}
-                            </div>
-                            <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_discount_date">Срок скидки <span></span></label>
-                                {{ tenant_form.discount_date }}
-                            </div>
-                            <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_increase_type">Повышение ставки <span></span></label>
-                                {{ tenant_form.increase_type }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="tenant-form-section">
-                        <div class="tenant-form-section__title">Контакты</div>
-                        <div class="tenant-form-grid">
-                            <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_contact">Ответственное лицо <span></span></label>
-                                {{ tenant_form.contact }}
-                            </div>
-                            <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_phone">Телефон <span></span></label>
-                                {{ tenant_form.phone }}
-                            </div>
-                            <div class="tenant-form-field">
-                                <label class="tenant-form-label" for="id_email">Email <span></span></label>
-                                {{ tenant_form.email }}
-                            </div>
-                            <div class="tenant-form-field tenant-form-grid--full">
-                                <label class="tenant-form-label" for="id_address">Адрес <span></span></label>
-                                {{ tenant_form.address }}
-                            </div>
-                            <div class="tenant-form-field tenant-form-grid--full">
-                                <label class="tenant-form-label" for="id_note">Примечание</label>
-                                {{ tenant_form.note }}
-                            </div>
-                        </div>
-                    </div>
+                    {% include 'site/tenants/_tenant_form_fields.html' with form=tenant_form %}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="tenant-btn tenant-btn--light" data-bs-dismiss="modal">Отмена</button>
@@ -314,7 +243,7 @@
               (data.message || 'Не удалось выдать доступ'), { variant: 'danger', title: 'Ошибка' });
             return;
           }
-          var msg = 'Логин: ' + data.username + '\nПароль: ' + data.password;
+          var msg = 'Логин: ' + data.username + (data.password ? '\nПароль: ' + data.password : '');
           if (data.email_sent) {
             msg += '\n\nПисьмо отправлено на ' + (data.email_to || '') + '.';
           } else {
@@ -323,8 +252,10 @@
           }
           if (window.bpmModal) {
             window.bpmModal.alert(msg, { variant: 'success', title: data.created ? 'Доступ создан' : 'Пароль сброшен' });
-          } else {
+          } else if (data.password) {
             window.prompt('Скопируйте данные доступа:', 'Логин: ' + data.username + ' / Пароль: ' + data.password);
+          } else {
+            window.alert(msg);
           }
         } catch (e) {
           console.error(e);

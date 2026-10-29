@@ -157,13 +157,28 @@
             <i class="bi bi-box-arrow-in-down"></i>
           </a>
           {% endif %}
+          {% if can_edit %}
           <a href="{% url 'purchases:edit_supplier' supplier.id %}" class="onec-icon-btn" title="Редактировать">
             <i class="bi bi-pencil"></i>
           </a>
+          <form method="post" action="{% url 'purchases:archive_supplier' supplier.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="onec-icon-btn" title="{% if supplier.is_active %}В архив{% else %}Вернуть из архива{% endif %}">
+              <i class="bi {% if supplier.is_active %}bi-archive{% else %}bi-arrow-counterclockwise{% endif %}"></i>
+            </button>
+          </form>
+          {% if not supplier.onec_id %}
+          <form method="post" action="{% url 'purchases:delete_supplier' supplier.id %}" style="display:inline;"
+                onsubmit="return confirm('Удалить карточку «{{ supplier.name|escapejs }}»? Действие необратимо.');">
+            {% csrf_token %}
+            <button type="submit" class="onec-icon-btn" title="Удалить"><i class="bi bi-trash"></i></button>
+          </form>
+          {% endif %}
+          {% endif %}
         </div>
       </div>
 
-      <h1 class="onec-detail-title">{{ supplier.name }}</h1>
+      <h1 class="onec-detail-title">{{ supplier.name }}{% if not supplier.is_active %} <span class="onec-type-badge onec-type-badge--neutral">В архиве</span>{% endif %}</h1>
 
       <div class="onec-detail-meta">
         <div>

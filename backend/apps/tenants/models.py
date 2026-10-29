@@ -69,6 +69,8 @@ class Tenant(models.Model):
         help_text='По нему счета и оплаты из 1С попадают в реестр арендатора',
     )
 
+    is_active = models.BooleanField("Активен", default=True, help_text="Снимите, чтобы перенести карточку в архив")
+
     def __str__(self):
         return self.name
 

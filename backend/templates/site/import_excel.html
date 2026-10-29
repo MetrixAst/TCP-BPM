@@ -1,0 +1,56 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .import-steps { margin: 0 0 16px; padding-left: 20px; color: #4a4860; font-size: 14px; line-height: 1.7; }
+  .import-errors {
+    background: #feecec; color: #b42318; border-radius: 12px; padding: 14px 18px; margin-bottom: 16px;
+    font-size: 13px;
+  }
+  .import-errors ul { margin: 6px 0 0; padding-left: 18px; max-height: 320px; overflow: auto; }
+  .import-file { display: block; margin-bottom: 16px; font-size: 14px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="onec-page">
+
+  <div class="onec-page-header-card">
+    <div class="onec-page-header__left">
+      <h1 class="onec-page-title">{{ title }}</h1>
+      <p class="onec-page-sub">{{ hint }}</p>
+    </div>
+  </div>
+
+  <section class="onec-table-card">
+    <ol class="import-steps">
+      <li>Скачайте <a href="{{ template_url }}">шаблон Excel</a> — первая строка с заголовками, вторая — пример (удалите её).</li>
+      <li>Заполните строки или вставьте выгрузку из 1С в те же колонки.</li>
+      <li>Загрузите файл. Если найдутся ошибки, ничего не сохранится — исправьте строки и загрузите снова.</li>
+    </ol>
+
+    {% if result and not result.ok %}
+      <div class="import-errors">
+        <strong>Файл не импортирован — ошибок: {{ result.errors|length }}</strong>
+        <ul>
+          {% for row, text in result.errors %}<li>Строка {{ row }}: {{ text }}</li>{% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="file" name="file" accept=".xlsx" required class="import-file">
+      <div class="onec-filter-actions">
+        <a href="{% url back_url %}" class="onec-btn onec-btn--light">Отмена</a>
+        <button type="submit" class="onec-btn onec-btn--primary"><i class="bi bi-upload"></i> Импортировать</button>
+      </div>
+    </form>
+  </section>
+
+</div>
+{% endblock %}

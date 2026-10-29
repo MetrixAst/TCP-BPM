@@ -24,6 +24,9 @@
         <i class="bi bi-shield-lock"></i> Типы и доступ
       </a>
       {% endif %}
+      <a href="{% url 'purchases:import_suppliers' %}" class="onec-btn onec-btn--light">
+        <i class="bi bi-file-earmark-arrow-up"></i> Импорт из Excel
+      </a>
       <a href="{% url 'purchases:edit_supplier' 0 %}" class="onec-btn onec-btn--primary">
         <i class="bi bi-plus-lg"></i> Добавить
       </a>
@@ -98,10 +101,16 @@
         <button type="submit" class="onec-btn onec-btn--primary">
           <i class="bi bi-search"></i> Найти
         </button>
+        {% if show_archived %}<input type="hidden" name="archived" value="1">{% endif %}
         {% if request.GET.search or status and status != 'all' %}
-          <a href="{% url 'purchases:suppliers' %}" class="onec-btn onec-btn--light">
+          <a href="{% url 'purchases:suppliers' %}{% if show_archived %}?archived=1{% endif %}" class="onec-btn onec-btn--light">
             <i class="bi bi-x"></i> Сбросить
           </a>
+        {% endif %}
+        {% if show_archived %}
+          <a href="{% url 'purchases:suppliers' %}" class="onec-btn onec-btn--light"><i class="bi bi-arrow-left"></i> Действующие</a>
+        {% elif archived_count %}
+          <a href="{% url 'purchases:suppliers' %}?archived=1" class="onec-btn onec-btn--light"><i class="bi bi-archive"></i> Архив ({{ archived_count }})</a>
         {% endif %}
       </div>
     </form>

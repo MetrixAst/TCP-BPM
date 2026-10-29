@@ -82,6 +82,7 @@ class Supplier(models.Model):
 
     lawyer = models.CharField("Юрист", max_length=100, null=True, blank=True)
     onec_id = models.CharField("ID 1С", max_length=50, unique=True, null=True, blank=True, db_index=True)
+    is_active = models.BooleanField("Активен", default=True, help_text="Снимите, чтобы перенести карточку в архив")
 
     def __str__(self):
         return self.name

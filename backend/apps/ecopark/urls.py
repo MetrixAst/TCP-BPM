@@ -31,6 +31,7 @@ urlpatterns = [
 
     # Прохождение обхода — только login_required, без ECOPARK (любой сотрудник)
     path('rounds/scan/<uuid:point_uuid>/', views.rounds_scan, name='rounds_scan'),
+    path('rounds/points/<int:pk>/history/', views.round_point_history, name='round_point_history'),
 
     # Журнал/KPI и неисправности — доступ через _rounds_monitor_required внутри view
     path('rounds/journal/',                views.rounds_journal,  name='rounds_journal'),

@@ -8,9 +8,10 @@
   var BLOCK_LABELS = {
     users: 'Пользователи', documents: 'Документы', finances: 'Финансы', hr: 'HR',
     purchases: 'Закупки', requests: 'Заявки', suppliers: 'Поставщики', tasks: 'Задачи', tenants: 'Арендаторы',
+      ecopark: 'Эксплуатация', plans: 'Планы отделов',
   };
-  var OPERATION_LABELS = { view: 'Просмотр', create: 'Создание', edit: 'Изменение', delete: 'Удаление' };
-  var OPERATION_ORDER = ['view', 'create', 'edit', 'delete'];
+  var OPERATION_LABELS = { view: 'Просмотр', create: 'Создание', edit: 'Изменение', delete: 'Удаление', approve: 'Согласование', sign: 'Подписание', assign: 'Назначение' };
+  var OPERATION_ORDER = ['view', 'create', 'edit', 'delete', 'approve', 'sign', 'assign'];
   
     function getCsrfToken() {
       var match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);

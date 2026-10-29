@@ -217,6 +217,45 @@ def _rounds_monitor_required(view):
     return wrapper
 
 
+def _rounds_full_access(user):
+    from account.role_permissions import RolePermissions
+    from account.services.permissions import user_has_permission
+
+    return (
+        user.is_superuser
+        or RolePermissions.checkPermission(user.role, PermissionEnums.ECOPARK)
+        or user_has_permission(user, PermissionEnums.ROUNDS_MONITOR)
+    )
+
+
+def _rounds_scope_point_ids(user):
+    """
+    None — пользователь видит все точки (админ эксплуатации, собственник, СБ).
+    Иначе — id точек, закреплённых за отделом руководителя (с подотделами)
+    или за его сотрудниками. Пустой список — доступа нет.
+    """
+    from django.db.models import Q
+
+    if _rounds_full_access(user):
+        return None
+    employee = getattr(user, 'employee_info', None)
+    if not employee or not getattr(employee, 'head', False) or not employee.department_id:
+        return []
+    dept_ids = list(
+        employee.department.get_descendants(include_self=True).values_list('id', flat=True)
+    )
+    return list(RoundPoint.objects.filter(
+        Q(responsible_department_id__in=dept_ids)
+        | Q(responsible_employee__department_id__in=dept_ids)
+        | Q(substitute_employee__department_id__in=dept_ids)
+    ).values_list('id', flat=True))
+
+
+def _can_view_point_history(user, point):
+    scope = _rounds_scope_point_ids(user)
+    return scope is None or point.pk in scope
+
+
 def round_points_list(request):
     from account.models import Department
 
@@ -614,7 +653,10 @@ def rounds_scan(request, point_uuid):
             'error': 'Профиль сотрудника не найден',
             'point': point,
         }, status=403)
+    can_view_history = _can_view_point_history(request.user, point)
     if not point.can_be_visited_by(employee):
+        if can_view_history:
+            return redirect('ecopark:round_point_history', pk=point.pk)
         return render(request, 'site/ecopark/rounds_scan.html', {
             'error': 'Вы не назначены ответственным за обход этой точки',
             'point': point,
@@ -684,13 +726,76 @@ def rounds_scan(request, point_uuid):
 
         return render(request, 'site/ecopark/rounds_scan_done.html', {'point': point, 'visit': visit})
 
-    return render(request, 'site/ecopark/rounds_scan.html', {'point': point, 'items': items})
+    return render(request, 'site/ecopark/rounds_scan.html', {
+        'point': point, 'items': items, 'can_view_history': can_view_history,
+    })
+
+
+@_rounds_monitor_required
+def round_point_history(request, pk):
+    """История помещения: кто и когда приходил, чек-лист, периодичность."""
+    point = get_object_or_404(
+        RoundPoint.objects.select_related(
+            'checklist', 'responsible_department', 'responsible_employee__user',
+        ),
+        pk=pk,
+    )
+    if not _can_view_point_history(request.user, point):
+        raise PermissionDenied('История помещения')
+
+    visits = (
+        point.visits
+        .select_related('employee__user', 'employee__department')
+        .prefetch_related('answers__item')
+        .order_by('-created_at')
+    )
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    if date_from:
+        visits = visits.filter(created_at__date__gte=date_from)
+    if date_to:
+        visits = visits.filter(created_at__date__lte=date_to)
+    visits = list(visits[:300])
+    for visit in visits:
+        visit.failed_answers = [a for a in visit.answers.all() if not a.passed]
+
+    # Фактическая периодичность — средний интервал между соседними посещениями.
+    gaps = [
+        (visits[i].created_at - visits[i + 1].created_at).total_seconds() / 3600
+        for i in range(len(visits) - 1)
+    ]
+    since = timezone.now() - timezone.timedelta(days=30)
+    stats = {
+        'total': len(visits),
+        'last_30_days': point.visits.filter(created_at__gte=since).count(),
+        'avg_interval_hours': round(sum(gaps) / len(gaps), 1) if gaps else None,
+        'max_interval_hours': round(max(gaps), 1) if gaps else None,
+        'planned_interval_hours': point.check_interval_hours,
+        'last_visit': visits[0] if visits else None,
+        'is_overdue': point.is_overdue,
+        'visitors': len({v.employee_id for v in visits}),
+    }
+
+    return render(request, 'site/ecopark/round_point_history.html', {
+        'point': point,
+        'visits': visits,
+        'stats': stats,
+        'can_check_in': (
+            getattr(request.user, 'employee_info', None) is not None
+            and point.can_be_visited_by(request.user.employee_info)
+        ),
+    })
 
 
 # ─────────────────────────── Журнал и KPI (руководитель) ───────────────────────────
 
 def _filtered_visits(request):
     visits = RoundVisit.objects.select_related('point', 'employee__user').order_by('-created_at')
+    scope = _rounds_scope_point_ids(request.user)
+    points_qs = RoundPoint.objects.filter(is_active=True)
+    if scope is not None:
+        visits = visits.filter(point_id__in=scope)
+        points_qs = points_qs.filter(pk__in=scope)
 
     point_filter = request.GET.get('point')
     employee_filter = request.GET.get('employee')
@@ -707,7 +812,7 @@ def _filtered_visits(request):
     if date_to:
         visits = visits.filter(created_at__date__lte=date_to)
 
-    all_points = list(RoundPoint.objects.filter(is_active=True))
+    all_points = list(points_qs)
     overdue_points = [p for p in all_points if p.is_overdue]
     if overdue_only:
         overdue_ids = {p.pk for p in overdue_points}
@@ -723,11 +828,18 @@ def rounds_journal(request):
     today = timezone.localdate()
     week_start = today - timezone.timedelta(days=today.weekday())
 
+    scope = _rounds_scope_point_ids(request.user)
+    scoped_visits = RoundVisit.objects.all()
+    scoped_defects = Defect.objects.exclude(status=Defect.STATUS_RESOLVED)
+    if scope is not None:
+        scoped_visits = scoped_visits.filter(point_id__in=scope)
+        scoped_defects = scoped_defects.filter(point_id__in=scope)
+
     kpi = {
-        'today': RoundVisit.objects.filter(created_at__date=today).count(),
-        'week': RoundVisit.objects.filter(created_at__date__gte=week_start).count(),
+        'today': scoped_visits.filter(created_at__date=today).count(),
+        'week': scoped_visits.filter(created_at__date__gte=week_start).count(),
         'overdue_points': len(overdue_points),
-        'open_defects': Defect.objects.exclude(status=Defect.STATUS_RESOLVED).count(),
+        'open_defects': scoped_defects.count(),
         'total_points': len(all_points),
     }
 

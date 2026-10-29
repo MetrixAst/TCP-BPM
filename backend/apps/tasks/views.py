@@ -5,10 +5,12 @@ from django.http import Http404, HttpResponseForbidden, JsonResponse
 from django.urls import reverse
 from django.db.models import Q
 from django.core.exceptions import PermissionDenied
-from django.views.decorators.http import require_http_methods
+from django.contrib import messages
+from django.views.decorators.http import require_http_methods, require_POST
 
 from addits.models import Comment
 from account.role_permissions import need_permission, PermissionEnums, RolePermissions
+from account.services.permissions import user_has_permission
 from account.services.access_scope import filter_counterparties_queryset
 from onec.models import Counterparty
 from project.paginator import CustomPaginator
@@ -148,13 +150,23 @@ def tasks_list(request, action):
                 "count": base_queryset.filter(observers=request.user).count(),
             },
         },
-        "can_create": RolePermissions.checkPermission(
-            request.user.role,
-            PermissionEnums.EDIT_TASK
-        ),
+        "can_create": user_has_permission(request.user, PermissionEnums.EDIT_TASK),
     }
 
     return render(request, "site/tasks/tasks.html", context)
+
+
+def _reassign_candidates(task, user):
+    from account.models import UserAccount
+    from account.role_permissions import RoleEnums
+
+    if not task.can_reassign(user):
+        return []
+    return (
+        UserAccount.objects.filter(is_active=True, employee_info__status='active')
+        .exclude(role__in=RoleEnums.portal_roles())
+        .order_by('last_name', 'first_name')
+    )
 
 
 @need_permission(PermissionEnums.TASKS)
@@ -217,7 +229,9 @@ def task(request, pk):
         "actions": current.actions(request),
         "primary_action": primary_action,
         "user_role": user_role,
-        "can_edit": user_role == 'author',
+        "can_edit": current.can_edit(request.user),
+        "can_reassign": current.can_reassign(request.user),
+        "reassign_candidates": _reassign_candidates(current, request.user),
         "can_edit_checklist": user_role in ('author', 'executor', 'co_executor'),
         "counterparty_choices": counterparty_qs.order_by('short_name')[:200],
         "comments": comments,
@@ -316,11 +330,16 @@ def task_action(request, pk, action):
     return redirect("tasks:task", pk=pk)
 
 
-@need_permission(PermissionEnums.EDIT_TASK)
+@need_permission(PermissionEnums.TASKS)
 def edit_task(request, pk):
+    from account.services.permissions import user_has_permission
+
     current = Task.get_by_id(request, pk, exception=False)
 
-    if current is not None and current.author != request.user:
+    if current is None:
+        if not user_has_permission(request.user, PermissionEnums.EDIT_TASK):
+            raise PermissionDenied('Создание задач')
+    elif not current.can_edit(request.user):
         raise Http404
 
     form = TaskForm(instance=current, user=request.user)
@@ -330,7 +349,9 @@ def edit_task(request, pk):
 
         if form.is_valid():
             new = form.save(commit=False)
-            new.author = request.user
+            # При правке чужой задачи (право «редактирование любых») автор не меняется.
+            if new.author_id is None:
+                new.author = request.user
             new.save()
             form.save_m2m()
 
@@ -372,6 +393,35 @@ def edit_task(request, pk):
     }
 
     return render(request, "site/tasks/edit_task.html", context)
+
+
+@need_permission(PermissionEnums.TASKS)
+@require_POST
+def task_reassign(request, pk):
+    """Перенаправить задачу другому исполнителю."""
+    from account.models import UserAccount
+
+    current = Task.get_by_id(request, pk)
+    if not current.can_reassign(request.user):
+        raise PermissionDenied('Переназначение задачи')
+
+    executor = UserAccount.objects.filter(pk=request.POST.get('executor'), is_active=True).first()
+    if executor is None or executor.is_portal_user:
+        messages.error(request, 'Выберите сотрудника.')
+        return redirect('tasks:task', pk=pk)
+    if executor.pk == current.executor_id:
+        return redirect('tasks:task', pk=pk)
+
+    previous = current.executor
+    current.executor = executor
+    current.save(update_fields=['executor'])
+    Comment.objects.create(
+        target_type='task', target_id=current.pk, user=request.user,
+        text=f'Исполнитель изменён: {previous.get_name if previous else "—"} → {executor.get_name}',
+    )
+    Task._notify_participants(current)
+    messages.success(request, f'Задача перенаправлена: {executor.get_name}.')
+    return redirect('tasks:task', pk=pk)
 
 
 @need_permission(PermissionEnums.TASKS)

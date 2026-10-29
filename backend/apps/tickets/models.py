@@ -24,7 +24,34 @@ def user_is_manager(user):
     if role == RoleEnums.ADMINISTRATOR.value:
         return True
     employee = getattr(user, 'employee_info', None)
-    return bool(employee and getattr(employee, 'head', False))
+    if employee and getattr(employee, 'head', False):
+        return True
+    from account.role_permissions import PermissionEnums
+    from account.services.permissions import user_has_permission
+    return (
+        user_has_permission(user, PermissionEnums.TICKETS_DISPATCH)
+        or user_has_permission(user, PermissionEnums.TICKETS_APPROVE)
+    )
+
+
+def user_sees_all_tickets(user):
+    if not user or not user.is_authenticated:
+        return False
+    if getattr(user, 'is_superuser', False) or user.role == RoleEnums.ADMINISTRATOR.value:
+        return True
+    from account.role_permissions import PermissionEnums
+    from account.services.permissions import user_has_permission
+    return (
+        user_has_permission(user, PermissionEnums.TICKETS_DISPATCH)
+        or user_has_permission(user, PermissionEnums.TICKETS_APPROVE)
+    )
+
+
+def head_department_id(user):
+    employee = getattr(user, 'employee_info', None)
+    if employee and getattr(employee, 'head', False):
+        return employee.department_id
+    return None
 
 
 class ServiceRequest(models.Model):
@@ -90,22 +117,23 @@ class ServiceRequest(models.Model):
 
     @staticmethod
     def get_available_queryset(request):
-        from tickets.enums import TicketStatusEnum
-        from tickets.services import can_bypass_approval
+        """Весь поток заявок — только администраторам, диспетчерам и согласующим.
 
+        Руководитель отдела видит заявки своего отдела, сотрудник — свои и
+        назначенные на него, арендатор — заявки своей компании.
+        """
         user = request.user
         base = ServiceRequest.objects.select_related(
             'tenant', 'author', 'assignee', 'department',
         )
-        if user_is_manager(user):
-            if can_bypass_approval(user):
-                return base
-            return base.filter(
-                ~Q(status=TicketStatusEnum.PENDING_APPROVAL.value[0]) |
-                Q(author=user)
-            )
+        if user_sees_all_tickets(user):
+            return base
 
-        return base.filter(Q(author=user) | Q(tenant__portal_users=user)).distinct()
+        visible = Q(author=user) | Q(assignee=user) | Q(tenant__portal_users=user)
+        department_id = head_department_id(user)
+        if department_id:
+            visible |= Q(department_id=department_id) | Q(author__employee_info__department_id=department_id)
+        return base.filter(visible).distinct()
 
     @staticmethod
     def get_by_id(request, pk, exception=True):
@@ -164,6 +192,11 @@ class ServiceRequest(models.Model):
             user = request.user
             is_admin = getattr(user, 'is_superuser', False) or user.role == RoleEnums.ADMINISTRATOR.value
             approver = get_approver(self.author) if self.author_id else None
+
+            from account.role_permissions import PermissionEnums
+            from account.services.permissions import user_has_permission
+            if user_has_permission(user, PermissionEnums.TICKETS_APPROVE):
+                is_admin = True
 
             if not is_admin and (not approver or approver.id != user.id):
                 return False, 'Только назначенный согласующий может принять решение по этой заявке'
@@ -310,9 +343,10 @@ class TicketMessage(models.Model):
             return True
         if ticket.assignee_id and ticket.assignee_id == user.id:
             return True
-        if user_is_manager(user):
+        if user_sees_all_tickets(user):
             return True
-        return False
+        department_id = head_department_id(user)
+        return bool(department_id and ticket.department_id == department_id)
 
 class TicketAttachment(models.Model):
     request = models.ForeignKey(

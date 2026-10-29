@@ -1,3 +1,6 @@
+import re
+
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 
@@ -5,6 +8,10 @@ from account.models import UserAccount
 from account.role_permissions import RoleEnums
 from tenants.forms import TenantForm
 from tenants.models import Tenant, TenantCategory, Room
+
+
+def _mailed_password():
+    return re.search(r'Пароль: (\S+)', mail.outbox[-1].body).group(1)
 
 
 class TenantPortalAccessTest(TestCase):
@@ -31,12 +38,13 @@ class TenantPortalAccessTest(TestCase):
         self.assertTrue(data['success'])
         self.assertTrue(data['created'])
         self.assertTrue(data['username'])
-        self.assertTrue(data['password'])
+        self.assertTrue(data['email_sent'])
+        self.assertIsNone(data['password'])
 
         user = self.tenant.portal_users.first()
         self.assertIsNotNone(user)
         self.assertEqual(user.role, RoleEnums.TENANT.value)
-        self.assertTrue(user.check_password(data['password']))
+        self.assertTrue(user.check_password(_mailed_password()))
 
     def test_reset_reuses_existing_user(self):
         self.client.force_login(self.staff)
@@ -48,7 +56,7 @@ class TenantPortalAccessTest(TestCase):
         self.assertEqual(self.tenant.portal_users.count(), 1)
         # новый пароль действует
         user = self.tenant.portal_users.first()
-        self.assertTrue(user.check_password(second['password']))
+        self.assertTrue(user.check_password(_mailed_password()))
 
     def test_portal_role_cannot_issue(self):
         tenant_user = UserAccount.create_tenant_user(self.tenant)

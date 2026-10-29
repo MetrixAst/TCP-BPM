@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from decimal import Decimal
 
@@ -10,6 +11,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from account.role_permissions import need_permission, PermissionEnums
+from account.services.permissions import user_has_permission
 from project.paginator import CustomPaginator
 from .forms import TenantForm
 from .models import Tenant, TenantCategory, TenantDocument, Room
@@ -17,6 +19,8 @@ from .serializers import TenantSerializer
 from addits.models import Comment
 from .qr_labels import generate_single_label_pdf, generate_batch_labels_pdf
 from .services.portal_mail import send_tenant_portal_credentials
+
+logger = logging.getLogger(__name__)
 
 
 def _tenant_order_by(sort: str, order: str):
@@ -40,7 +44,12 @@ def home(request):
     if order not in ('asc', 'desc'):
         order = 'asc'
 
-    all_queryset = Tenant.objects.select_related('room', 'category').prefetch_related('portal_users').all()
+    show_archived = request.GET.get('archived') == '1'
+    all_queryset = (
+        Tenant.objects.select_related('room', 'category')
+        .prefetch_related('portal_users')
+        .filter(is_active=not show_archived)
+    )
     queryset = all_queryset
     search = request.GET.get('search', '')
     try:
@@ -73,6 +82,9 @@ def home(request):
         'search': search,
         'sort': sort,
         'order': order,
+        'show_archived': show_archived,
+        'archived_count': Tenant.objects.filter(is_active=False).count(),
+        'can_edit': user_has_permission(request.user, PermissionEnums.EDIT_TENANTS),
         'stats': {
             'total': all_queryset.count(),
             'on_map': on_map,
@@ -100,7 +112,21 @@ def tenant_detail(request, pk):
         target_type='tenant', target_id=current.pk
     ).select_related('user').order_by('id')
 
-    documents = current.documents.select_related('uploaded_by').all()
+    from django.contrib.contenttypes.models import ContentType
+    from esigner.models import ESignerSigning
+
+    documents = list(current.documents.select_related('uploaded_by').all())
+    signings = {
+        s.object_id: s
+        for s in ESignerSigning.objects.filter(
+            content_type=ContentType.objects.get_for_model(TenantDocument),
+            object_id__in=[d.pk for d in documents],
+        )
+    }
+    for doc in documents:
+        doc.signing = signings.get(doc.pk)
+    counterparty = getattr(current, 'counterparty', None)
+    signer_bin = (counterparty.bin_number or counterparty.iin or '') if counterparty else ''
 
     monthly_base_rent = (
         Decimal(str(current.area or 0)) * Decimal(str(current.price or 0))
@@ -124,11 +150,12 @@ def tenant_detail(request, pk):
         'has_portal': has_portal,
         'comments': comments,
         'documents': documents,
+        'signer_bin': signer_bin,
         'monthly_base_rent': monthly_base_rent,
         'annual_base_rent': monthly_base_rent * 12,
         'missing_lease_fields': missing_lease_fields,
         'lease_completeness': lease_completeness,
-        'can_edit': True,
+        'can_edit': user_has_permission(request.user, PermissionEnums.EDIT_TENANTS),
     })
 
 
@@ -155,9 +182,57 @@ def create_tenant(request):
     return redirect('tenants:list')
 
 
+@need_permission(PermissionEnums.EDIT_TENANTS)
+def edit_tenant(request, pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+    form = TenantForm(request.POST or None, instance=tenant)
+    if request.method == 'POST' and form.is_valid():
+        tenant = form.save()
+        messages.success(request, f'Карточка «{tenant.name}» сохранена.')
+        return redirect('tenants:detail', pk=tenant.pk)
+
+    return render(request, 'site/tenants/tenant_form.html', {
+        'tenant': tenant,
+        'form': form,
+    })
+
+
+@need_permission(PermissionEnums.EDIT_TENANTS)
+@require_POST
+def delete_tenant(request, pk):
+    from django.db.models import ProtectedError
+
+    tenant = get_object_or_404(Tenant, pk=pk)
+    name = tenant.name
+    try:
+        tenant.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            f'Нельзя удалить «{name}»: по арендатору выставлены счета. Перенесите карточку в архив.',
+        )
+        return redirect('tenants:detail', pk=pk)
+
+    messages.success(request, f'Арендатор «{name}» удалён.')
+    return redirect('tenants:list')
+
+
+@need_permission(PermissionEnums.EDIT_TENANTS)
+@require_POST
+def toggle_tenant_archive(request, pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+    tenant.is_active = not tenant.is_active
+    tenant.save(update_fields=['is_active'])
+    if tenant.is_active:
+        messages.success(request, f'Арендатор «{tenant.name}» возвращён из архива.')
+    else:
+        messages.success(request, f'Арендатор «{tenant.name}» перенесён в архив.')
+    return redirect('tenants:detail', pk=pk)
+
+
 @need_permission(PermissionEnums.TENANTS)
 def all_json(request):
-    queryset = Tenant.objects.all().exclude(room=None)
+    queryset = Tenant.objects.filter(is_active=True).exclude(room=None)
     res = [current.to_json() for current in queryset]
     return JsonResponse(res, safe=False)
 
@@ -225,7 +300,7 @@ def tenant_portal_access(request, pk):
         'success': True,
         'created': created,
         'username': user.username,
-        'password': password,
+        'password': None if mail_result['sent'] else password,
         'email_sent': mail_result['sent'],
         'email_error': mail_result['error'],
         'email_to': email if send_email else None,
@@ -263,9 +338,71 @@ def tenant_document_delete(request, pk, doc_pk):
     name = doc.display_name
     if doc.file:
         doc.file.delete(save=False)
+    _signings_for(doc).delete()
     doc.delete()
     messages.success(request, f'Документ «{name}» удалён.')
     return redirect(reverse('tenants:detail', args=[pk]) + '#docs')
+
+
+def _signings_for(doc):
+    from django.contrib.contenttypes.models import ContentType
+    from esigner.models import ESignerSigning
+
+    return ESignerSigning.objects.filter(
+        content_type=ContentType.objects.get_for_model(TenantDocument),
+        object_id=doc.pk,
+    )
+
+
+@need_permission(PermissionEnums.TENANTS)
+@require_POST
+def tenant_document_esign(request, pk, doc_pk):
+    """Отправляет документ арендатора (договор, АВР и т.п.) на подписание ЭЦП в eSigner."""
+    from esigner.services import send_for_signing
+
+    tenant = get_object_or_404(Tenant, pk=pk)
+    doc = get_object_or_404(TenantDocument, pk=doc_pk, tenant=tenant)
+    back = redirect(reverse('tenants:detail', args=[pk]) + '#docs')
+
+    iin = (request.POST.get('iin') or '').strip()
+    if not (iin.isdigit() and len(iin) == 12):
+        messages.error(request, 'ИИН/БИН подписанта должен состоять из 12 цифр.')
+        return back
+    if not doc.file:
+        messages.error(request, 'У документа нет файла для подписания.')
+        return back
+
+    signers = [{'bin_or_iin': iin, 'is_company': request.POST.get('is_company') == 'on'}]
+    try:
+        signing = send_for_signing(doc, 'file', signers)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return back
+    except Exception as exc:
+        logger.exception('tenant document %s esign failed', doc.pk)
+        messages.error(request, f'eSigner недоступен: {exc}')
+        return back
+    return redirect(signing.sign_url)
+
+
+@need_permission(PermissionEnums.TENANTS)
+def tenant_document_signed(request, pk, doc_pk):
+    from django.http import FileResponse
+    from esigner.models import ESignerSigning
+
+    tenant = get_object_or_404(Tenant, pk=pk)
+    doc = get_object_or_404(TenantDocument, pk=doc_pk, tenant=tenant)
+    signing = _signings_for(doc).filter(status=ESignerSigning.STATUS_COMPLETED).first()
+    if signing is None or not signing.signed_pdf:
+        raise Http404('Подписанный PDF не найден')
+    response = FileResponse(
+        signing.signed_pdf.open('rb'),
+        content_type='application/pdf',
+        as_attachment=True,
+        filename=f'signed_tenant_doc_{doc.pk}.pdf',
+    )
+    response['Cache-Control'] = 'private, no-store'
+    return response
 
 
 @need_permission(PermissionEnums.TENANTS)
@@ -299,3 +436,37 @@ def rooms_qr_labels_batch(request):
     response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="qr_labels_batch.pdf"'
     return response
+
+@need_permission(PermissionEnums.EDIT_TENANTS)
+def import_tenants_view(request):
+    from project.excel_import import import_tenants, tenant_template
+
+    if request.GET.get('template'):
+        response = HttpResponse(
+            tenant_template(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = 'attachment; filename=tenants_import_template.xlsx'
+        return response
+
+    result = None
+    if request.method == 'POST' and request.FILES.get('file'):
+        try:
+            result = import_tenants(request.FILES['file'])
+        except Exception:
+            messages.error(request, 'Не удалось прочитать файл. Загрузите .xlsx по шаблону.')
+        else:
+            if result.ok:
+                messages.success(
+                    request,
+                    f'Импорт завершён: добавлено {result.created}, обновлено {result.updated}.',
+                )
+                return redirect('tenants:list')
+
+    return render(request, 'site/import_excel.html', {
+        'title': 'Импорт арендаторов',
+        'back_url': 'tenants:list',
+        'template_url': request.path + '?template=1',
+        'hint': 'Существующий арендатор с тем же названием будет обновлён.',
+        'result': result,
+    })

@@ -1,0 +1,82 @@
+{% load site_tags %}
+                    <div class="tenant-form-section">
+                        <div class="tenant-form-section__title">Основное</div>
+                        <div class="tenant-form-grid">
+                            <div class="tenant-form-field tenant-form-grid--full">
+                                <label class="tenant-form-label" for="id_name">Название <span>*</span></label>
+                                {{ form.name }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_category">Категория</label>
+                                {{ form.category }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_room">Помещение</label>
+                                {{ form.room }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tenant-form-section">
+                        <div class="tenant-form-section__title">Условия аренды</div>
+                        <div class="tenant-form-grid">
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_area">Площадь, {% t 'common.sqm' 'м²' %} <span></span></label>
+                                {{ form.area }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_price">Ставка за {% t 'common.sqm' 'м²' %}, ₸ <span></span></label>
+                                {{ form.price }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_discount">Скидка, %</label>
+                                {{ form.discount }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_percent">Процент с оборота, %</label>
+                                {{ form.percent }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_start_date">Начало аренды <span></span></label>
+                                {{ form.start_date }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_end_date">Завершение аренды <span></span></label>
+                                {{ form.end_date }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_discount_date">Срок скидки <span></span></label>
+                                {{ form.discount_date }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_increase_type">Повышение ставки <span></span></label>
+                                {{ form.increase_type }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tenant-form-section">
+                        <div class="tenant-form-section__title">Контакты</div>
+                        <div class="tenant-form-grid">
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_contact">Ответственное лицо <span></span></label>
+                                {{ form.contact }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_phone">Телефон <span></span></label>
+                                {{ form.phone }}
+                            </div>
+                            <div class="tenant-form-field">
+                                <label class="tenant-form-label" for="id_email">Email <span></span></label>
+                                {{ form.email }}
+                            </div>
+                            <div class="tenant-form-field tenant-form-grid--full">
+                                <label class="tenant-form-label" for="id_address">Адрес <span></span></label>
+                                {{ form.address }}
+                            </div>
+                            <div class="tenant-form-field tenant-form-grid--full">
+                                <label class="tenant-form-label" for="id_note">Примечание</label>
+                                {{ form.note }}
+                            </div>
+                        </div>
+                    </div>

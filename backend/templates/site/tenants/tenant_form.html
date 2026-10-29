@@ -1,0 +1,42 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{{ tenant.name }} — редактирование — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/onec.css' %}?v={{ static_version|default:'1' }}">
+<link rel="stylesheet" href="{% static 'site/css/apps/tenants.css' %}?v={{ static_version|default:'1' }}&t=5">
+{% endblock %}
+
+{% block content %}
+<div class="onec-page">
+
+  <div class="onec-page-header-card">
+    <div class="onec-page-header__left">
+      <h1 class="onec-page-title">Редактирование арендатора</h1>
+      <p class="onec-page-sub">{{ tenant.name }}</p>
+    </div>
+  </div>
+
+  <section class="onec-table-card">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.errors %}
+        <div class="tenant-form-alert tenant-form-alert--error">
+          {% for field, errors in form.errors.items %}
+            {% for error in errors %}<div>{% if field != '__all__' %}{{ field }}: {% endif %}{{ error }}</div>{% endfor %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% include 'site/tenants/_tenant_form_fields.html' with form=form %}
+
+      <div class="onec-filter-actions" style="margin-top:16px;">
+        <a href="{% url 'tenants:detail' tenant.pk %}" class="onec-btn onec-btn--light">Отмена</a>
+        <button type="submit" class="onec-btn onec-btn--primary"><i class="bi bi-check-lg"></i> Сохранить</button>
+      </div>
+    </form>
+  </section>
+
+</div>
+{% endblock %}

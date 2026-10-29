@@ -22,6 +22,7 @@ from project.utils import get_or_none, get_or_error
 from project.paginator import CustomPaginator, page_from_request
 
 from account.role_permissions import need_permission, PermissionEnums, RolePermissions, RoleEnums
+from account.services.permissions import user_has_permission
 from account.models import Employee, Department
 from account.forms import EmployeeForm
 
@@ -1140,7 +1141,7 @@ def attendance_journal(request):
     user = request.user
     employee = getattr(user, 'employee_info', None)
     
-    is_hr = RolePermissions.checkPermission(user.role, PermissionEnums.HR_JOURNAL)
+    is_hr = user_has_permission(user, PermissionEnums.HR_JOURNAL)
     is_head = employee and employee.head
 
     if not is_hr and not is_head:
@@ -1280,6 +1281,7 @@ def _attendance_registry_required(view):
         allowed = (
             request.user.is_superuser
             or role in (RoleEnums.ADMINISTRATOR.value, RoleEnums.HR.value, RoleEnums.OWNER.value)
+            or user_has_permission(request.user, PermissionEnums.HR_JOURNAL)
             or (employee is not None and getattr(employee, 'head', False))
         )
         if not allowed:
@@ -1295,8 +1297,10 @@ def attendance_registry(request):
     if hasattr(role, 'value'):
         role = role.value
     employee = getattr(user, 'employee_info', None)
-    is_full_access = user.is_superuser or role in (
-        RoleEnums.ADMINISTRATOR.value, RoleEnums.HR.value, RoleEnums.OWNER.value,
+    is_full_access = (
+        user.is_superuser
+        or role in (RoleEnums.ADMINISTRATOR.value, RoleEnums.HR.value, RoleEnums.OWNER.value)
+        or user_has_permission(user, PermissionEnums.HR_JOURNAL)
     )
 
     if is_full_access:
@@ -1326,7 +1330,7 @@ def attendance_my(request):
     
     target_emp_id = request.GET.get('employee_id')
     if target_emp_id:
-        is_hr = RolePermissions.checkPermission(request.user.role, PermissionEnums.HR_JOURNAL)
+        is_hr = user_has_permission(request.user, PermissionEnums.HR_JOURNAL)
         is_head = curr_employee and curr_employee.head
         
         if is_hr:

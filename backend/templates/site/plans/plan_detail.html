@@ -1,0 +1,153 @@
+{% extends "site/base.html" %}
+
+{% block title %}План: {{ plan.department.name }} — metriX BPM{% endblock %}
+
+{% block styles %}{% include 'site/plans/_styles.html' %}{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page">
+
+  <div class="hr-registry-top">
+    <div>
+      <h1>{{ plan.department.name }}</h1>
+      <div class="pl-muted">
+        <a href="{% url 'plans:list' %}?month={{ plan.month|date:'Y-m' }}"><i class="bi bi-arrow-left"></i> Планы отделов</a>
+        · {{ plan.month|date:"F Y" }}{% if plan.author %} · составил {{ plan.author.get_name }}{% endif %}
+      </div>
+    </div>
+    {% if can_edit %}
+    <div class="hr-registry-top__actions">
+      <form method="post" action="{% url 'plans:delete' plan.pk %}"
+            onsubmit="return confirm('Удалить план отдела «{{ plan.department.name|escapejs }}» со всеми пунктами?');">
+        {% csrf_token %}
+        <button type="submit" class="hr-registry-btn hr-registry-btn--light"><i class="bi bi-trash"></i> Удалить план</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="pl-kpi">
+    <div class="pl-kpi__card">
+      <div class="pl-kpi__label">Пунктов</div>
+      <div class="pl-kpi__value">{{ stats.total }}</div>
+    </div>
+    <div class="pl-kpi__card pl-kpi__card--done">
+      <div class="pl-kpi__label">Выполнено</div>
+      <div class="pl-kpi__value">{{ stats.done }} <span class="pl-muted">· {{ stats.progress }}%</span></div>
+    </div>
+    <div class="pl-kpi__card">
+      <div class="pl-kpi__label">В работе</div>
+      <div class="pl-kpi__value">{{ stats.in_progress }}</div>
+    </div>
+    <div class="pl-kpi__card {% if stats.overdue %}pl-kpi__card--warn{% endif %}">
+      <div class="pl-kpi__label">Просрочено</div>
+      <div class="pl-kpi__value">{{ stats.overdue }}</div>
+    </div>
+  </div>
+
+  {% if can_edit %}
+  <div class="pl-section">
+    <h2>Добавить пункт</h2>
+    <form method="post" action="{% url 'plans:item_create' plan.pk %}" class="pl-inline-form">
+      {% csrf_token %}
+      <div class="pl-grow"><label>Работа / задача</label>{{ form.title }}</div>
+      <div><label>Ответственный</label>{{ form.responsible }}</div>
+      <div><label>Срок</label>{{ form.deadline }}</div>
+      <input type="hidden" name="status" value="planned">
+      <button type="submit" class="hr-registry-btn hr-registry-btn--primary"><i class="bi bi-plus-lg"></i> Добавить</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="hr-registry-panel">
+    <div class="hr-registry-table-wrap">
+      <table class="hr-registry-table">
+        <thead>
+          <tr>
+            <th>Работа / задача</th>
+            <th>Ответственный</th>
+            <th>Срок</th>
+            <th>Статус</th>
+            <th>Результат / ход работы</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr class="{% if item.is_overdue %}pl-row-overdue{% endif %}">
+            <td>
+              <strong>{{ item.title }}</strong>
+              {% if item.description %}<div class="pl-muted">{{ item.description|linebreaksbr }}</div>{% endif %}
+              {% if item.task %}<div class="pl-muted"><a href="{% url 'tasks:task' item.task_id %}"><i class="bi bi-link-45deg"></i> Задача «{{ item.task.title }}»</a></div>{% endif %}
+            </td>
+            <td>{% if item.responsible %}{{ item.responsible.get_name }}{% else %}—{% endif %}</td>
+            <td class="pl-num">
+              {{ item.deadline|date:"d.m.Y" }}
+              {% if item.is_overdue %}<div><span class="pl-badge pl-badge--overdue">Просрочено</span></div>{% endif %}
+            </td>
+            <td>
+              {% if item.can_update %}
+                <form method="post" action="{% url 'plans:item_status' item.pk %}">
+                  {% csrf_token %}
+                  <select name="status" class="pl-status-select" onchange="this.form.submit()" aria-label="Статус пункта">
+                    {% for value, label in status_choices %}
+                      <option value="{{ value }}" {% if item.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </form>
+              {% else %}
+                <span class="pl-badge pl-badge--{{ item.status }}">{{ item.get_status_display }}</span>
+              {% endif %}
+              {% if item.completed_at %}<div class="pl-muted pl-num">{{ item.completed_at|date:"d.m.Y" }}</div>{% endif %}
+            </td>
+            <td class="pl-muted">{{ item.result|default:"—"|linebreaksbr }}</td>
+            <td>
+              <div class="pl-actions">
+                {% if item.can_update %}
+                  <a href="{% url 'plans:item_edit' item.pk %}" class="hr-icon-btn" title="Изменить"><i class="bi bi-pencil"></i></a>
+                {% endif %}
+                {% if can_edit %}
+                  {% if not item.task_id %}
+                  <form method="post" action="{% url 'plans:item_create_task' item.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="hr-icon-btn" title="Создать задачу ответственному"><i class="bi bi-check2-square"></i></button>
+                  </form>
+                  {% endif %}
+                  <form method="post" action="{% url 'plans:item_delete' item.pk %}" onsubmit="return confirm('Удалить пункт?');">
+                    {% csrf_token %}
+                    <button type="submit" class="hr-icon-btn hr-icon-btn--danger" title="Удалить"><i class="bi bi-trash"></i></button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6">
+              <div class="hr-registry-empty">
+                <i class="bi bi-list-check"></i>
+                <strong>В плане пока нет пунктов</strong>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="pl-section" style="margin-top:14px;">
+    <h2>Комментарий к плану</h2>
+    {% if can_edit %}
+      <form method="post" action="{% url 'plans:note' plan.pk %}">
+        {% csrf_token %}
+        <textarea name="note" rows="3" class="hr-form-input" style="width:100%;">{{ plan.note }}</textarea>
+        <button type="submit" class="hr-registry-btn hr-registry-btn--light" style="margin-top:8px;">Сохранить</button>
+      </form>
+    {% else %}
+      <div class="pl-muted">{{ plan.note|default:"—"|linebreaksbr }}</div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

@@ -108,7 +108,7 @@
         <tbody>
           {% for visit in visits %}
           <tr>
-            <td>{{ visit.point.name }}</td>
+            <td><a href="{% url 'ecopark:round_point_history' visit.point_id %}">{{ visit.point.name }}</a></td>
             <td>{{ visit.employee.user.get_full_name|default:visit.employee.user.username }}</td>
             <td>{{ visit.created_at|date:"d.m.Y H:i" }}</td>
             <td>
