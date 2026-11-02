@@ -592,11 +592,13 @@ class RoundsResolveQRView(APIView):
                 route__route_points__point=point,
                 planned_start__date=today,
             ).first()
+            employee = getattr(request.user, 'employee_info', None)
             return Response({
                 'type': 'round_point',
                 'point_name': point.name,
                 'point_uuid': str(point.uuid),
                 'planned_round_id': planned.pk if planned else None,
+                'can_visit': bool(planned) or bool(employee and point.can_be_visited_by(employee)),
             })
         except Exception:
             pass
@@ -698,6 +700,104 @@ class RoundPointDetailView(APIView):
         })
 
 
+def _save_visit_answers(request, visit, point, employee):
+    from ecopark.models import RoundVisitAnswer, Defect
+
+    if not point.checklist:
+        return
+    for item in point.checklist.items.all():
+        item_status = request.data.get(f'item_{item.pk}_status', 'ok')
+        item_comment = request.data.get(f'item_{item.pk}_comment', '')
+        item_photo = request.FILES.get(f'item_{item.pk}_photo')
+
+        answer = RoundVisitAnswer.objects.create(
+            visit=visit,
+            item=item,
+            passed=item_status == 'ok',
+            comment=item_comment,
+            photo=item_photo,
+        )
+
+        if item_status == 'fail':
+            Defect.objects.create(
+                visit=visit,
+                answer=answer,
+                point=point,
+                description=item_comment or f'Неисправность: {item.text}',
+                priority=Defect.PRIORITY_HIGH,
+                reported_by=employee,
+            )
+
+
+class RoundPointVisitView(APIView):
+    """POST /api/v1/mobile/rounds/points/<uuid>/answer/ — отметка точки по QR
+    без назначенного на сегодня обхода, по тем же правилам, что и веб-скан
+    (ecopark:rounds_scan): отметить может ответственный, заместитель или
+    сотрудник ответственного отдела, а точку без ответственных — любой."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    @idempotent('round-point-visit')
+    def post(self, request, point_uuid):
+        from ecopark.models import PlannedRound, RoundPoint, RoundVisit, Defect
+        from ecopark.views import _parse_geo_field
+        from django.db import transaction
+        from django.utils import timezone
+
+        try:
+            point = RoundPoint.objects.select_related('checklist').get(uuid=point_uuid, is_active=True)
+        except RoundPoint.DoesNotExist:
+            return Response({'error': 'Точка не найдена или неактивна'}, status=404)
+
+        employee = getattr(request.user, 'employee_info', None)
+        if not employee:
+            return Response({'error': 'Профиль сотрудника не найден'}, status=403)
+        if not point.can_be_visited_by(employee):
+            return Response({'error': 'Вы не назначены ответственным за обход этой точки'}, status=403)
+
+        today = timezone.localdate()
+        existing = RoundVisit.objects.filter(point=point, employee=employee, created_at__date=today).first()
+        if existing:
+            return Response({
+                'success': True,
+                'already_done': True,
+                'visit_id': existing.pk,
+                'message': 'Точка уже отмечена',
+            })
+
+        with transaction.atomic():
+            visit = RoundVisit.objects.create(
+                point=point,
+                employee=employee,
+                comment=request.data.get('comment', ''),
+                latitude=_parse_geo_field(request.data.get('latitude')),
+                longitude=_parse_geo_field(request.data.get('longitude')),
+            )
+            _save_visit_answers(request, visit, point, employee)
+
+            candidate_rounds = PlannedRound.objects.filter(
+                assigned_to=request.user,
+                route__route_points__point=point,
+                planned_start__lte=visit.created_at,
+                planned_end__gte=visit.created_at,
+                status__in=[PlannedRound.STATUS_PENDING, PlannedRound.STATUS_IN_PROGRESS],
+            ).distinct()
+            for planned in candidate_rounds:
+                if planned.is_all_points_done():
+                    planned.status = PlannedRound.STATUS_COMPLETED
+                    planned.completed_at = timezone.now()
+                    planned.save(update_fields=['status', 'completed_at'])
+
+        return Response({
+            'success': True,
+            'already_done': False,
+            'visit_id': visit.pk,
+            'message': 'Точка отмечена',
+            'defects_created': Defect.objects.filter(visit=visit).count(),
+        }, status=status.HTTP_201_CREATED)
+
+
 class RoundPointAnswerView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser]
@@ -743,36 +843,7 @@ class RoundPointAnswerView(APIView):
                 'message': 'Точка уже отмечена',
             })
 
-        from ecopark.models import ChecklistItem
-        answers = []
-        checklist = point.checklist
-        if checklist:
-            for item in checklist.items.all():
-                status_key = f'item_{item.pk}_status'
-                comment_key = f'item_{item.pk}_comment'
-                photo_key = f'item_{item.pk}_photo'
-                item_status = request.data.get(status_key, 'ok')
-                item_comment = request.data.get(comment_key, '')
-                item_photo = request.FILES.get(photo_key)
-
-                answer = RoundVisitAnswer.objects.create(
-                    visit=visit,
-                    item=item,
-                    passed=item_status == 'ok',
-                    comment=item_comment,
-                    photo=item_photo,
-                )
-                answers.append(answer)
-
-                if item_status == 'fail':
-                    Defect.objects.create(
-                        visit=visit,
-                        answer=answer,
-                        point=point,
-                        description=item_comment or f'Неисправность: {item.text}',
-                        priority=Defect.PRIORITY_HIGH,
-                        reported_by=employee,
-                    )
+        _save_visit_answers(request, visit, point, employee)
 
         if planned.is_all_points_done():
             planned.status = PlannedRound.STATUS_COMPLETED

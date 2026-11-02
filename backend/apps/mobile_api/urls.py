@@ -15,6 +15,7 @@ from .views import (
     RoundDetailView,
     RoundPointDetailView,
     RoundPointAnswerView,
+    RoundPointVisitView,
 )
 
 
@@ -37,6 +38,7 @@ urlpatterns = [
     path('rounds/history/', RoundsHistoryView.as_view(), name='rounds-history'),
     path('rounds/resolve/', RoundsResolveQRView.as_view(), name='rounds-resolve'),
     path('rounds/points/<uuid:point_uuid>/', RoundPointDetailView.as_view(), name='round-point-detail'),
+    path('rounds/points/<uuid:point_uuid>/answer/', RoundPointVisitView.as_view(), name='round-point-visit'),
     path('rounds/<int:pk>/', RoundDetailView.as_view(), name='round-detail'),
     path('rounds/<int:pk>/points/<uuid:point_uuid>/answer/', RoundPointAnswerView.as_view(), name='round-point-answer'),
 ]

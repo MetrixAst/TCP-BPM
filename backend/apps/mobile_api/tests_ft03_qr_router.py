@@ -181,3 +181,88 @@ class RoundPointDetailTest(TestCase):
         self.client.force_authenticate(user=None)
         r = self.client.get(f'/api/v1/mobile/rounds/points/{self.point.uuid}/')
         self.assertEqual(r.status_code, 401)
+
+
+class RoundPointVisitWithoutPlanTest(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        (self.admin, self.emp_user, self.no_profile_user, self.employee,
+         self.office_qr, self.point, self.route, self.planned,
+         self.item1, self.item2) = make_setup()
+        self.planned.delete()
+        self.other_dept = Department.objects.create(name='FT03R Other', company=self.employee.department.company)
+        self.client.force_authenticate(user=self.emp_user)
+
+    def _url(self):
+        return f'/api/v1/mobile/rounds/points/{self.point.uuid}/answer/'
+
+    def test_resolve_reports_can_visit_without_plan(self):
+        r = self.client.get(f'/api/v1/mobile/rounds/resolve/?qr={self.point.uuid}')
+        self.assertEqual(r.data['type'], 'round_point')
+        self.assertIsNone(r.data['planned_round_id'])
+        self.assertTrue(r.data['can_visit'])
+
+    def test_resolve_reports_cannot_visit_other_department_point(self):
+        self.point.responsible_department = self.other_dept
+        self.point.save()
+        r = self.client.get(f'/api/v1/mobile/rounds/resolve/?qr={self.point.uuid}')
+        self.assertFalse(r.data['can_visit'])
+
+    def test_unassigned_point_visit_creates_visit_and_defect(self):
+        from ecopark.models import RoundVisit, Defect
+        r = self.client.post(self._url(), {
+            f'item_{self.item1.pk}_status': 'ok',
+            f'item_{self.item2.pk}_status': 'fail',
+            f'item_{self.item2.pk}_comment': 'Лампа не горит',
+            'latitude': '49.9480000',
+            'longitude': '82.6280000',
+        }, format='multipart')
+        self.assertEqual(r.status_code, 201)
+        visit = RoundVisit.objects.get(pk=r.data['visit_id'])
+        self.assertEqual(visit.employee, self.employee)
+        self.assertEqual(visit.answers.count(), 2)
+        self.assertEqual(Defect.objects.filter(visit=visit).count(), 1)
+
+    def test_department_member_can_visit(self):
+        self.point.responsible_department = self.employee.department
+        self.point.save()
+        r = self.client.post(self._url(), {}, format='multipart')
+        self.assertEqual(r.status_code, 201)
+
+    def test_other_department_point_returns_403(self):
+        from ecopark.models import RoundVisit
+        self.point.responsible_department = self.other_dept
+        self.point.save()
+        r = self.client.post(self._url(), {}, format='multipart')
+        self.assertEqual(r.status_code, 403)
+        self.assertFalse(RoundVisit.objects.exists())
+
+    def test_second_visit_same_day_reports_already_done(self):
+        from ecopark.models import RoundVisit
+        self.client.post(self._url(), {}, format='multipart')
+        r = self.client.post(self._url(), {}, format='multipart')
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data['already_done'])
+        self.assertEqual(RoundVisit.objects.count(), 1)
+
+    def test_visit_completes_matching_planned_round(self):
+        now = timezone.now()
+        planned = PlannedRound.objects.create(
+            route=self.route, assigned_to=self.emp_user,
+            planned_start=now - timedelta(hours=1), planned_end=now + timedelta(hours=1),
+        )
+        self.client.post(self._url(), {}, format='multipart')
+        planned.refresh_from_db()
+        self.assertEqual(planned.status, PlannedRound.STATUS_COMPLETED)
+
+    def test_inactive_point_returns_404(self):
+        self.point.is_active = False
+        self.point.save()
+        r = self.client.post(self._url(), {}, format='multipart')
+        self.assertEqual(r.status_code, 404)
+
+    def test_no_employee_profile_returns_403(self):
+        self.client.force_authenticate(user=self.no_profile_user)
+        r = self.client.post(self._url(), {}, format='multipart')
+        self.assertEqual(r.status_code, 403)
