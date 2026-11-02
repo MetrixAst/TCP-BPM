@@ -50,7 +50,7 @@ class RoundsRepository {
   }
 
   Future<ApiResult<Map<String, dynamic>>> submitPointAnswer({
-    required int plannedRoundId,
+    required int? plannedRoundId,
     required String pointUuid,
     required List<RoundItemAnswer> answers,
     String comment = '',
@@ -76,7 +76,9 @@ class RoundsRepository {
       }
 
       final response = await dio.post(
-        '/api/v1/mobile/rounds/$plannedRoundId/points/$pointUuid/answer/',
+        plannedRoundId != null
+            ? '/api/v1/mobile/rounds/$plannedRoundId/points/$pointUuid/answer/'
+            : '/api/v1/mobile/rounds/points/$pointUuid/answer/',
         data: FormData.fromMap(map),
         options: idempotencyKey != null
             ? Options(headers: {'Idempotency-Key': idempotencyKey})

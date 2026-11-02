@@ -129,8 +129,8 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
   }
 
   Future<void> _submit() async {
+    if (!widget.target.canVisit) return;
     final plannedRoundId = widget.target.plannedRoundId;
-    if (plannedRoundId == null) return;
 
     setState(() {
       _isSubmitting = true;
@@ -179,11 +179,11 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
   }
 
   Widget _buildBody() {
-    if (widget.target.plannedRoundId == null) {
+    if (!widget.target.canVisit) {
       return _buildInfoState(
-        icon: Icons.event_busy_rounded,
+        icon: Icons.lock_outline_rounded,
         color: MetrixColors.warning,
-        text: 'На сегодня у вас нет назначенного обхода по этой точке',
+        text: 'Вы не назначены ответственным за обход этой точки',
       );
     }
 
