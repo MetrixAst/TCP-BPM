@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.db import models
 from django.utils import timezone
@@ -9,6 +9,13 @@ from account.models import Department, UserAccount
 def month_start(value=None):
     value = value or timezone.localdate()
     return date(value.year, value.month, 1)
+
+
+def month_end(value=None):
+    start = month_start(value)
+    if start.month == 12:
+        return date(start.year, 12, 31)
+    return date(start.year, start.month + 1, 1) - timedelta(days=1)
 
 
 class DepartmentPlan(models.Model):
@@ -56,6 +63,30 @@ class DepartmentPlan(models.Model):
         }
 
 
+class PlanRoutine(models.Model):
+    """Ежедневная работа отдела: один раз завели — пункт сам встаёт в план каждого месяца."""
+
+    department = models.ForeignKey(
+        Department, on_delete=models.CASCADE, related_name='plan_routines', verbose_name='Отдел',
+    )
+    title = models.CharField('Работа / задача', max_length=255)
+    description = models.TextField('Описание', blank=True, default='')
+    responsible = models.ForeignKey(
+        UserAccount, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='plan_routines', verbose_name='Ответственный',
+    )
+    is_active = models.BooleanField('Действует', default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Ежедневная задача'
+        verbose_name_plural = 'Ежедневные задачи'
+        ordering = ['title', 'id']
+
+    def __str__(self):
+        return self.title
+
+
 class PlanItem(models.Model):
     STATUS_PLANNED = 'planned'
     STATUS_IN_PROGRESS = 'in_progress'
@@ -70,6 +101,10 @@ class PlanItem(models.Model):
     OPEN_STATUSES = (STATUS_PLANNED, STATUS_IN_PROGRESS)
 
     plan = models.ForeignKey(DepartmentPlan, on_delete=models.CASCADE, related_name='items', verbose_name='План')
+    routine = models.ForeignKey(
+        PlanRoutine, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='items', verbose_name='Ежедневная задача',
+    )
     title = models.CharField('Работа / задача', max_length=255)
     description = models.TextField('Описание', blank=True, default='')
     responsible = models.ForeignKey(
@@ -95,6 +130,10 @@ class PlanItem(models.Model):
 
     def __str__(self):
         return self.title
+
+    @property
+    def is_daily(self):
+        return bool(self.routine_id)
 
     @property
     def is_overdue(self):
@@ -127,3 +166,26 @@ class PlanItem(models.Model):
         self.set_status(new_status)
         self.save(update_fields=['status', 'completed_at', 'updated_at'])
         return True
+
+
+def ensure_daily_items(plan):
+    """Кладёт действующие ежедневные задачи отдела в план месяца, если их там ещё нет."""
+    routines = PlanRoutine.objects.filter(department_id=plan.department_id, is_active=True)
+    existing = set(plan.items.exclude(routine__isnull=True).values_list('routine_id', flat=True))
+    end = month_end(plan.month)
+    missing = [
+        PlanItem(
+            plan=plan,
+            routine=routine,
+            title=routine.title,
+            description=routine.description,
+            responsible=routine.responsible,
+            deadline=end,
+            status=PlanItem.STATUS_PLANNED,
+        )
+        for routine in routines
+        if routine.pk not in existing
+    ]
+    if missing:
+        PlanItem.objects.bulk_create(missing)
+    return missing

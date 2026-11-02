@@ -11,7 +11,7 @@ from account.models import UserAccount, Employee, Department
 from account.role_permissions import MenuItem
 from hr.models import Company
 from tasks.models import Task
-from .models import DepartmentPlan, PlanItem, month_start
+from .models import DepartmentPlan, PlanItem, month_end, month_start
 
 
 class PlansTest(TestCase):
@@ -108,6 +108,33 @@ class PlansTest(TestCase):
         self.client.get(reverse('plans:detail', args=[plan.pk]))
         item.refresh_from_db()
         self.assertEqual(item.status, PlanItem.STATUS_DONE)
+
+    def test_daily_item_appears_in_the_next_month_without_retyping(self):
+        plan = self._create_plan()
+        self.client.post(reverse('plans:item_create', args=[plan.pk]), {
+            'title': 'Обход территории', 'responsible': self.worker.pk,
+            'status': 'planned', 'daily': '1',
+        })
+        item = plan.items.get(title='Обход территории')
+        self.assertTrue(item.is_daily)
+        self.assertEqual(item.deadline, month_end(self.month))
+
+        index = self.month.year * 12 + self.month.month
+        next_month = date(index // 12, index % 12 + 1, 1)
+        self.client.post(reverse('plans:create'), {
+            'department': self.cleaning.pk, 'month': f'{next_month:%Y-%m}',
+        })
+        copied = DepartmentPlan.objects.get(department=self.cleaning, month=next_month).items.get()
+        self.assertEqual(copied.routine_id, item.routine_id)
+        self.assertEqual(copied.status, PlanItem.STATUS_PLANNED)
+
+        self.client.post(reverse('plans:item_delete', args=[item.pk]))
+        later = date((index + 1) // 12, (index + 1) % 12 + 1, 1)
+        self.client.post(reverse('plans:create'), {
+            'department': self.cleaning.pk, 'month': f'{later:%Y-%m}',
+        })
+        later_plan = DepartmentPlan.objects.get(department=self.cleaning, month=later)
+        self.assertFalse(later_plan.items.exists())
 
     def test_carry_over_unfinished_items(self):
         prev_month = date(self.month.year - (self.month.month == 1), (self.month.month - 2) % 12 + 1, 1)

@@ -14,7 +14,7 @@ from .access import (
     has_plans_access, is_plans_admin, managed_department_ids, own_department_id,
 )
 from .forms import PlanItemForm, PlanItemProgressForm
-from .models import DepartmentPlan, PlanItem, month_start
+from .models import DepartmentPlan, PlanItem, PlanRoutine, ensure_daily_items, month_end, month_start
 
 
 def _month_from_request(request):
@@ -61,6 +61,9 @@ def plans_list(request):
         raise PermissionDenied('Планы отделов')
 
     month = _month_from_request(request)
+    plans = list(_visible_plans(request.user, month))
+    for plan in plans:
+        ensure_daily_items(plan)
     plans = list(_visible_plans(request.user, month).prefetch_related('items__task'))
     rows = []
     for plan in plans:
@@ -113,7 +116,7 @@ def plan_create(request):
     if created and request.POST.get('carry_over'):
         previous = DepartmentPlan.objects.filter(department=department, month=_shift_month(month, -1)).first()
         if previous:
-            carried = previous.items.filter(status__in=PlanItem.OPEN_STATUSES)
+            carried = previous.items.filter(status__in=PlanItem.OPEN_STATUSES, routine__isnull=True)
             for item in carried:
                 PlanItem.objects.create(
                     plan=plan, title=item.title, description=item.description,
@@ -122,12 +125,14 @@ def plan_create(request):
                 )
             if carried:
                 messages.info(request, f'Перенесено незавершённых пунктов: {len(carried)}.')
+    ensure_daily_items(plan)
     return redirect('plans:detail', pk=plan.pk)
 
 
 @login_required
 def plan_detail(request, pk):
     plan = _get_plan(request, pk)
+    ensure_daily_items(plan)
     items = list(plan.items.select_related('responsible', 'task'))
     _sync_items(items)
     editable = can_edit_plan(request.user, plan)
@@ -180,14 +185,29 @@ def item_create(request, pk):
     plan = _get_plan(request, pk)
     if not can_edit_plan(request.user, plan):
         raise PermissionDenied('Редактирование плана')
-    form = PlanItemForm(request.POST, plan=plan)
+    data = request.POST
+    if request.POST.get('daily'):
+        data = request.POST.copy()
+        data['deadline'] = month_end(plan.month).isoformat()
+    form = PlanItemForm(data, plan=plan)
     if form.is_valid():
         item = form.save(commit=False)
         item.plan = plan
         item.order = plan.items.count()
         item.set_status(item.status)
+        if request.POST.get('daily'):
+            item.routine = PlanRoutine.objects.create(
+                department=plan.department,
+                title=item.title,
+                description=item.description,
+                responsible=item.responsible,
+            )
+            item.deadline = month_end(plan.month)
         item.save()
-        messages.success(request, 'Пункт добавлен.')
+        messages.success(
+            request,
+            'Ежедневная задача добавлена: она будет в плане каждого месяца.' if item.routine_id else 'Пункт добавлен.',
+        )
     else:
         errors = '; '.join(f'{form.fields[f].label}: {e[0]}' for f, e in form.errors.items() if f in form.fields)
         messages.error(request, f'Пункт не добавлен. {errors}')
@@ -209,6 +229,17 @@ def item_edit(request, pk):
         updated = form.save(commit=False)
         updated.set_status(updated.status)
         updated.save()
+        if updated.routine_id and full:
+            routine = updated.routine
+            routine.title = updated.title
+            routine.description = updated.description
+            routine.responsible = updated.responsible
+            routine.save(update_fields=['title', 'description', 'responsible'])
+            PlanItem.objects.filter(
+                routine=routine, status=PlanItem.STATUS_PLANNED, plan__month__gt=plan.month,
+            ).update(
+                title=updated.title, description=updated.description, responsible=updated.responsible,
+            )
         messages.success(request, 'Пункт сохранён.')
         return redirect('plans:detail', pk=plan.pk)
 
@@ -235,8 +266,17 @@ def item_delete(request, pk):
     if not can_edit_plan(request.user, item.plan):
         raise PermissionDenied('Пункт плана')
     plan_id = item.plan_id
+    daily = bool(item.routine_id)
+    if daily:
+        PlanRoutine.objects.filter(pk=item.routine_id).update(is_active=False)
+        PlanItem.objects.filter(
+            routine_id=item.routine_id, status=PlanItem.STATUS_PLANNED,
+        ).exclude(pk=item.pk).delete()
     item.delete()
-    messages.success(request, 'Пункт удалён.')
+    messages.success(
+        request,
+        'Ежедневная задача убрана из этого и следующих месяцев.' if daily else 'Пункт удалён.',
+    )
     return redirect('plans:detail', pk=plan_id)
 
 
@@ -284,6 +324,9 @@ def plans_export(request):
     if not has_plans_access(request.user):
         raise PermissionDenied('Планы отделов')
     month = _month_from_request(request)
+    plans = list(_visible_plans(request.user, month))
+    for plan in plans:
+        ensure_daily_items(plan)
     plans = list(_visible_plans(request.user, month).prefetch_related('items__responsible', 'items__task'))
 
     wb = openpyxl.Workbook()
@@ -312,7 +355,7 @@ def plans_export(request):
                 plan.department.name,
                 item.title,
                 item.responsible.get_name if item.responsible else '',
-                item.deadline.strftime('%d.%m.%Y'),
+                'Каждый день' if item.routine_id else item.deadline.strftime('%d.%m.%Y'),
                 item.get_status_display(),
                 'да' if item.is_overdue else '',
                 item.result,

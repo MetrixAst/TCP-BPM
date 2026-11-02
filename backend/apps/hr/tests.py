@@ -523,7 +523,7 @@ class LeaveApproveViewTest(TestCase):
         self.u_emp2 = UserAccount.objects.create_user(username='emp_approve2', password='123')
         self.employee2 = Employee.objects.create(user=self.u_emp2, department=self.dept)
 
-        self.u_boss = UserAccount.objects.create_user(username='boss_approve', password='123')
+        self.u_boss = UserAccount.objects.create_user(username='boss_approve', password='123', head=True)
         self.u_boss.role = RoleEnums.ADMINISTRATOR.value
         self.u_boss.save()
         self.boss = Employee.objects.create(user=self.u_boss, department=self.dept, head=True)
@@ -574,6 +574,20 @@ class LeaveApproveViewTest(TestCase):
         self.client.post(self.get_url())
         self.leave.refresh_from_db()
         self.assertEqual(self.leave.status, LeaveStatusEnum.CONFIRMED)
+
+    def test_hr_accountant_and_department_head_cannot_approve(self):
+        for username, role, dept_head in (
+            ('hr_approve', RoleEnums.HR.value, False),
+            ('acc_approve', RoleEnums.CHIEF_ACCOUNTANT.value, False),
+            ('head_approve', RoleEnums.STAFF.value, True),
+            ('admin_approve', RoleEnums.ADMINISTRATOR.value, False),
+        ):
+            account = UserAccount.objects.create_user(username=username, password='123', role=role)
+            Employee.objects.create(user=account, department=self.dept, head=dept_head)
+            self.client.login(username=username, password='123')
+            self.client.post(self.get_url())
+            self.leave.refresh_from_db()
+            self.assertEqual(self.leave.status, LeaveStatusEnum.CONFIRMED, username)
 
     def test_cannot_approve_already_approved(self):
         self.leave.status = LeaveStatusEnum.APPROVED

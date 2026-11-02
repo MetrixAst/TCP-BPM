@@ -123,7 +123,7 @@
         <tr class="{% if item.is_overdue %}pl-row-overdue{% endif %}">
           <td><a href="{% url 'plans:detail' item.plan_id %}">{{ item.title }}</a></td>
           <td class="pl-muted">{{ item.plan.department.name }}</td>
-          <td class="pl-num">{{ item.deadline|date:"d.m.Y" }}</td>
+          <td class="pl-num">{% if item.routine_id %}Каждый день{% else %}{{ item.deadline|date:"d.m.Y" }}{% endif %}</td>
           <td><span class="pl-badge pl-badge--{% if item.is_overdue %}overdue{% else %}{{ item.status }}{% endif %}">{% if item.is_overdue %}Просрочено{% else %}{{ item.get_status_display }}{% endif %}</span></td>
         </tr>
         {% endfor %}

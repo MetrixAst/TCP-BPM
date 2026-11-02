@@ -53,6 +53,11 @@
       <div class="pl-grow"><label>Работа / задача</label>{{ form.title }}</div>
       <div><label>Ответственный</label>{{ form.responsible }}</div>
       <div><label>Срок</label>{{ form.deadline }}</div>
+      <label class="pl-daily">
+        <input type="checkbox" name="daily" value="1">
+        Каждый день
+        <span>Один пункт на месяц, в следующий план попадёт сам</span>
+      </label>
       <input type="hidden" name="status" value="planned">
       <button type="submit" class="hr-registry-btn hr-registry-btn--primary"><i class="bi bi-plus-lg"></i> Добавить</button>
     </form>
@@ -77,12 +82,13 @@
           <tr class="{% if item.is_overdue %}pl-row-overdue{% endif %}">
             <td>
               <strong>{{ item.title }}</strong>
+              {% if item.is_daily %}<span class="pl-badge pl-badge--daily">Каждый день</span>{% endif %}
               {% if item.description %}<div class="pl-muted">{{ item.description|linebreaksbr }}</div>{% endif %}
               {% if item.task %}<div class="pl-muted"><a href="{% url 'tasks:task' item.task_id %}"><i class="bi bi-link-45deg"></i> Задача «{{ item.task.title }}»</a></div>{% endif %}
             </td>
             <td>{% if item.responsible %}{{ item.responsible.get_name }}{% else %}—{% endif %}</td>
             <td class="pl-num">
-              {{ item.deadline|date:"d.m.Y" }}
+              {% if item.is_daily %}Каждый день{% else %}{{ item.deadline|date:"d.m.Y" }}{% endif %}
               {% if item.is_overdue %}<div><span class="pl-badge pl-badge--overdue">Просрочено</span></div>{% endif %}
             </td>
             <td>

@@ -644,8 +644,22 @@ def positions_by_department(request):
     })
 
 
+def _can_decide_leave(user):
+    """Принять или отклонить отпуск может только директор: руководитель компании или владелец."""
+    if not user or not getattr(user, 'is_authenticated', False):
+        return False
+    if getattr(user, 'head', False):
+        return True
+    role = user.role
+    if hasattr(role, 'value'):
+        role = role.value
+    return role == RoleEnums.OWNER.value
+
+
 def _is_manager(user):
-    """Согласование отпусков: руководитель отдела, HR-менеджер, администратор, журнал посещаемости."""
+    """Кто видит все заявки на отпуск. Решение по ним принимает только директор."""
+    if _can_decide_leave(user):
+        return True
     employee = getattr(user, 'employee_info', None)
     if employee and employee.head:
         return True
@@ -719,6 +733,7 @@ def leave_list(request):
         'paginator': paginator,
         'filter_form': filter_form,
         'is_manager': is_manager,
+        'can_decide': _can_decide_leave(request.user),
     }
 
     return render(request, 'site/hr/leave_list.html', context)
@@ -769,6 +784,7 @@ def leave_detail(request, pk):
     context = {
         'leave': leave,
         'is_manager': _is_manager(request.user),
+        'can_decide': _can_decide_leave(request.user),
         'is_owner': is_owner,
     }
     return render(request, 'site/hr/leave_detail.html', context)
@@ -780,7 +796,7 @@ def leave_confirm(request, pk):
     leave = get_object_or_404(LeaveRequest, pk=pk)
 
     if request.method == 'POST':
-        if _is_manager(request.user) and leave.status == LeaveStatusEnum.PENDING:
+        if _can_decide_leave(request.user) and leave.status == LeaveStatusEnum.PENDING:
             leave.status = LeaveStatusEnum.CONFIRMED
             leave.save()
             messages.success(request, "Заявка подтверждена. Можно одобрить окончательно.")
@@ -793,7 +809,7 @@ def leave_approve(request, pk):
     leave = get_object_or_404(LeaveRequest, pk=pk)
 
     if request.method == 'POST':
-        if _is_manager(request.user) and leave.status == LeaveStatusEnum.CONFIRMED:
+        if _can_decide_leave(request.user) and leave.status == LeaveStatusEnum.CONFIRMED:
             leave.status = LeaveStatusEnum.APPROVED
             leave.approver = request.user.employee_info
             leave.save()
@@ -807,7 +823,7 @@ def leave_reject(request, pk):
     leave = get_object_or_404(LeaveRequest, pk=pk)
 
     if request.method == 'POST':
-        if _is_manager(request.user) and leave.status in (
+        if _can_decide_leave(request.user) and leave.status in (
             LeaveStatusEnum.PENDING,
             LeaveStatusEnum.CONFIRMED,
         ):

@@ -12,7 +12,7 @@
       <h1>{% if full %}Пункт плана{% else %}{{ item.title }}{% endif %}</h1>
       <div class="pl-muted">
         <a href="{% url 'plans:detail' plan.pk %}"><i class="bi bi-arrow-left"></i> {{ plan.department.name }} · {{ plan.month|date:"F Y" }}</a>
-        {% if not full %} · срок {{ item.deadline|date:"d.m.Y" }}{% endif %}
+        {% if item.is_daily %} · каждый день, повторяется в следующих месяцах{% elif not full %} · срок {{ item.deadline|date:"d.m.Y" }}{% endif %}
       </div>
     </div>
   </div>

@@ -121,7 +121,11 @@
 
       <div class="leave-detail-card__workflow">
 
-        {% if is_manager and leave.status == 'pending' %}
+        {% if is_manager and not can_decide and leave.status == 'pending' or is_manager and not can_decide and leave.status == 'confirmed' %}
+          <p class="leave-detail-muted">Подтвердить или отклонить заявку может только директор.</p>
+        {% endif %}
+
+        {% if can_decide and leave.status == 'pending' %}
           <form method="post" action="{% url 'hr:leave_confirm' leave.pk %}">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.path }}">
@@ -141,7 +145,7 @@
           </form>
         {% endif %}
 
-        {% if is_manager and leave.status == 'confirmed' %}
+        {% if can_decide and leave.status == 'confirmed' %}
           <form method="post" action="{% url 'hr:leave_approve' leave.pk %}">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.path }}">

@@ -164,7 +164,7 @@
                     Детали
                   </a>
               
-                  {% if is_manager and leave.status == 'pending' %}
+                  {% if can_decide and leave.status == 'pending' %}
                     <form method="post" action="{% url 'hr:leave_confirm' leave.id %}">
                       {% csrf_token %}
                       <button type="submit" class="leave-action leave-action--success"
@@ -181,7 +181,7 @@
                       </button>
                     </form>
 
-                  {% elif is_manager and leave.status == 'confirmed' %}
+                  {% elif can_decide and leave.status == 'confirmed' %}
                     <form method="post" action="{% url 'hr:leave_approve' leave.id %}">
                       {% csrf_token %}
                       <button type="submit" class="leave-action leave-action--success"
