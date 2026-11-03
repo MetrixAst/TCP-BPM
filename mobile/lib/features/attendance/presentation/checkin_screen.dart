@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/camera/camera_access.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_result.dart';
 import '../data/attendance_repository.dart';
@@ -77,6 +78,11 @@ class _CheckinScreenState extends State<CheckinScreen> {
   }
 
   Future<void> _handleCapture() async {
+    if (!await ensureCameraAccess(context)) {
+      if (mounted) setState(() => _errorMessage = cameraDeniedMessage);
+      return;
+    }
+    if (!mounted) return;
     setState(() {
       _isCapturing = true;
       _errorMessage = null;

@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/camera/camera_access.dart';
 import '../../../core/network/api_result.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/theme/metrix_colors.dart';
@@ -100,12 +101,17 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
   }
 
   Future<void> _pickPhoto(int itemId) async {
+    if (!await ensureCameraAccess(context)) return;
     try {
       final xFile = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
       if (xFile == null || !mounted) return;
       setState(() => _photoPaths[itemId] = xFile.path);
     } catch (_) {
-      // отмена съёмки — просто не сохраняем фото
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось сделать фото. Попробуйте ещё раз.')),
+        );
+      }
     }
   }
 
