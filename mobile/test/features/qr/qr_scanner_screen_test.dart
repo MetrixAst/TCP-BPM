@@ -36,6 +36,37 @@ void main() {
     expect(find.textContaining('unexpected'), findsNothing);
   });
 
+  testWidgets('если камера не стартует, пробует заднюю и фронтальную и предлагает фото', (tester) async {
+    _mockCameraStatus(1);
+    const scannerChannel = MethodChannel('dev.steenbakker.mobile_scanner/scanner/method');
+    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final facings = <int>[];
+    messenger.setMockMethodCallHandler(scannerChannel, (call) async {
+      switch (call.method) {
+        case 'state':
+          return 1;
+        case 'start':
+          facings.add((call.arguments as Map)['facing'] as int);
+          throw PlatformException(code: 'MOBILE_SCANNER_GENERIC_ERROR');
+      }
+      return null;
+    });
+    messenger.setMockStreamHandler(
+      const EventChannel('dev.steenbakker.mobile_scanner/scanner/event'),
+      MockStreamHandler.inline(onListen: (_, __) {}),
+    );
+    addTearDown(() => messenger.setMockMethodCallHandler(scannerChannel, null));
+
+    await tester.pumpWidget(const MaterialApp(home: QrScannerScreen()));
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    expect(facings, [1, 1, 0, 0]);
+    expect(find.text('Сфотографировать QR'), findsOneWidget);
+    expect(find.text('Код: MOBILE_SCANNER_GENERIC_ERROR'), findsOneWidget);
+  });
+
   testWidgets('при запрете «больше не спрашивать» ведёт в настройки', (tester) async {
     _mockCameraStatus(4);
     await tester.pumpWidget(const MaterialApp(home: QrScannerScreen()));

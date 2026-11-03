@@ -109,8 +109,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
       for (var attempt = 0; attempt < 2; attempt++) {
         try {
           await _controller.start(cameraDirection: facing).timeout(_startTimeout);
-          started = true;
-          break outer;
+          // start() не выбрасывает ошибку запуска, а кладёт её в value.error.
+          final state = _controller.value;
+          if (state.isRunning) {
+            started = true;
+            break outer;
+          }
+          throw state.error ??
+              const MobileScannerException(errorCode: MobileScannerErrorCode.genericError);
         } on MobileScannerException catch (e) {
           if (e.errorCode == MobileScannerErrorCode.controllerAlreadyInitialized) {
             started = true;
