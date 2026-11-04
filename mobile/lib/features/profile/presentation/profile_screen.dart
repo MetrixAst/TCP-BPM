@@ -64,6 +64,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _handleLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Выход из аккаунта'),
+        content: const Text('Подтвердить выход из аккаунта?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: MetrixColors.danger),
+            child: const Text('Подтвердить выход'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     setState(() => _isLoggingOut = true);
 
     await _logoutRepository.logout();
@@ -85,6 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: MetrixColors.surfaceMuted,
       appBar: const AppTopBar(title: 'Профиль'),
       body: _buildBody(),
+      bottomNavigationBar: _isLoading ? null : _buildLogoutBar(),
     );
   }
 
@@ -140,15 +161,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ],
           ),
-          const SizedBox(height: AppSpacing.xl),
-          AppButton(
-            label: 'Выйти',
-            variant: AppButtonVariant.danger,
-            icon: Icons.logout,
-            isLoading: _isLoggingOut,
-            onPressed: _handleLogout,
-          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLogoutBar() {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.lg),
+        child: AppButton(
+          label: 'Выход из аккаунта',
+          variant: AppButtonVariant.danger,
+          icon: Icons.logout,
+          isLoading: _isLoggingOut,
+          onPressed: _handleLogout,
+        ),
       ),
     );
   }
