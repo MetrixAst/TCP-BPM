@@ -771,8 +771,7 @@ def _build_opiu_rows(statement):
     if not statement:
         return []
 
-    def row(label, plan, fact, forecast=None, margin_fact=None):
-        is_margin = margin_fact is not None
+    def row(label, plan, fact, forecast=None, margin_fact=None, is_margin=False):
         if is_margin:
             return {
                 'label': label,
@@ -811,6 +810,7 @@ def _build_opiu_rows(statement):
         None,
         statement.net_profit_fact,
         margin_fact=statement.net_margin_fact,
+        is_margin=True,
     ))
     return rows
 
