@@ -267,6 +267,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'hr.tasks.sync_enbek_data',
         'schedule': crontab(minute=0, hour='*/6'),
     },
+    'hr-auto-attendance': {
+        'task': 'hr.tasks.auto_attendance',
+        'schedule': crontab(minute='*/5'),
+    },
     'hr-check-expirations': {
         'task': 'hr.tasks.hr_check_expirations',
         'schedule': crontab(hour=6, minute=0),

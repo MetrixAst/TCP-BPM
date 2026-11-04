@@ -1,5 +1,6 @@
 import json
 
+from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
 from django.http import HttpResponseForbidden, JsonResponse
@@ -18,8 +19,24 @@ def _is_ajax(request):
     return request.headers.get("x-requested-with") == "XMLHttpRequest"
 
 
+def _can_delete_tickets(user):
+    return user.is_authenticated and (
+        user.is_superuser or user.role == RoleEnums.ADMINISTRATOR.value
+    )
+
+
+def _delete_tickets(queryset):
+    from .models import TicketAttachment
+    for attachment in TicketAttachment.objects.filter(request__in=queryset):
+        attachment.file.delete(save=False)
+    count = queryset.count()
+    ServiceRequest.objects.filter(pk__in=queryset.values('pk')).delete()
+    return count
+
+
 def _portal_context(request):
     return {
+        'can_delete_tickets': _can_delete_tickets(request.user),
         'is_manager': user_is_manager(request.user),
         'is_portal_user': request.user.is_portal_user,
         'portal_tenant': getattr(request.user, 'tenant', None),
@@ -84,6 +101,8 @@ def tickets(request):
 
     context = {
         'paginator': paginator,
+        'filtered_count': queryset.count() if (status or category) else None,
+        'total_count': ServiceRequest.objects.count() if _can_delete_tickets(request.user) else None,
         'statuses': TicketStatusEnum.list(),
         'categories': TicketCategoryEnum.list(),
         'active_status': status,
@@ -91,6 +110,44 @@ def tickets(request):
         **_portal_context(request),
     }
     return render(request, 'site/tickets/tickets.html', context)
+
+
+@need_permission(PermissionEnums.SERVICE_REQUESTS)
+@require_http_methods(['POST'])
+def delete_one(request, pk):
+    if not _can_delete_tickets(request.user):
+        return HttpResponseForbidden('Удалять заявки может только администратор.')
+    ticket = ServiceRequest.objects.filter(pk=pk).first()
+    if ticket is None:
+        messages.error(request, 'Заявка не найдена.')
+    else:
+        number = ticket.number
+        _delete_tickets(ServiceRequest.objects.filter(pk=pk))
+        messages.success(request, f'Заявка {number} удалена.')
+    return redirect('tickets:home')
+
+
+@need_permission(PermissionEnums.SERVICE_REQUESTS)
+@require_http_methods(['POST'])
+def delete_bulk(request):
+    if not _can_delete_tickets(request.user):
+        return HttpResponseForbidden('Удалять заявки может только администратор.')
+    if request.POST.get('confirm', '').strip().upper() != 'УДАЛИТЬ':
+        messages.error(request, 'Заявки не удалены: введите слово УДАЛИТЬ для подтверждения.')
+        return redirect('tickets:home')
+
+    queryset = ServiceRequest.objects.all()
+    if request.POST.get('scope') == 'filtered':
+        status = request.POST.get('status') or ''
+        category = request.POST.get('category') or ''
+        if status:
+            queryset = queryset.filter(status=status)
+        if category:
+            queryset = queryset.filter(category=category)
+
+    count = _delete_tickets(queryset)
+    messages.success(request, f'Удалено заявок: {count}.')
+    return redirect('tickets:home')
 
 
 @need_permission(PermissionEnums.SERVICE_REQUESTS)

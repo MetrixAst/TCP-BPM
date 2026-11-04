@@ -52,6 +52,7 @@ urlpatterns = [
     path('attendance/registry/', views.attendance_registry, name='attendance_registry'),
     path('attendance/export/', views.attendance_export, name='attendance_export'),
     path('attendance/manual/', views.manual_attendance, name='manual_attendance'),
+    path('attendance/auto/', views.auto_attendance_settings, name='auto_attendance'),
     path('attendance/manual/report/', views.manual_attendance_report, name='manual_attendance_report'),
 
     path('attendance/qr-checkin/', views.qr_checkin, name='qr_checkin'),

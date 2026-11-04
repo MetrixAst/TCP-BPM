@@ -42,6 +42,15 @@ def sync_enbek_data(self):
         cache.delete(LOCK_KEY)
 
 
+@shared_task(name='hr.tasks.auto_attendance')
+def auto_attendance():
+    from hr.auto_attendance import run_auto_attendance
+    created = run_auto_attendance()
+    if created:
+        logger.info(f"auto_attendance: created={created}")
+    return {'created': created}
+
+
 @shared_task
 def hr_check_expirations():
     """

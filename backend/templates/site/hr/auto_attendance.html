@@ -1,0 +1,116 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Автоотметка — metriX BPM{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  .aa-note { color: #74728a; font-size: 13px; margin-top: 4px; max-width: 720px; }
+  .aa-toolbar {
+    background: #fff; border-radius: 14px; padding: 12px 18px; margin-bottom: 14px;
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  }
+  .aa-toolbar .hr-form-input { min-width: 260px; }
+  .aa-count { margin-left: auto; color: #74728a; font-size: 13px; }
+  .aa-row-on { background: #f3fbf7; }
+  .aa-time { color: #74728a; font-size: 13px; white-space: nowrap; }
+</style>
+{% endblock styles %}
+
+{% block content %}
+<div class="hr-registry-page">
+
+  <div class="hr-registry-top">
+    <div>
+      <h1>Автоотметка</h1>
+      <p class="aa-note">
+        Для отмеченных сотрудников приход и уход ставятся автоматически по времени их графика
+        в рабочие дни. В праздники, отпуск и больничный отметки не ставятся.
+        Если сотрудник отметился сам, его отметка сохраняется.
+      </p>
+    </div>
+    <div class="hr-registry-top__actions">
+      <a href="{% url 'hr:attendance_registry' %}" class="hr-registry-btn hr-registry-btn--light">
+        <i class="bi bi-arrow-left"></i> Реестр посещаемости
+      </a>
+    </div>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="aa-toolbar">
+      <input type="search" id="aaSearch" class="hr-form-input" placeholder="Поиск по ФИО или отделу">
+      <span class="aa-count">Включено: <b id="aaCount">{{ enabled_count }}</b> из {{ rows|length }}</span>
+      <button type="submit" class="hr-registry-btn hr-registry-btn--primary">
+        <i class="bi bi-check2"></i> Сохранить
+      </button>
+    </div>
+
+    <div class="hr-registry-panel">
+      <div class="hr-registry-table-wrap">
+        <table class="hr-registry-table">
+          <thead>
+            <tr>
+              <th style="width:48px;"></th>
+              <th>Сотрудник</th>
+              <th>Отдел</th>
+              <th>Должность</th>
+              <th>График</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr class="aa-row{% if row.enabled %} aa-row-on{% endif %}"
+                data-search="{{ row.employee.user.get_name|lower }} {{ row.employee.department.name|lower }}">
+              <td>
+                <input type="checkbox" name="employees" value="{{ row.employee.pk }}"
+                       class="aa-check" {% if row.enabled %}checked{% endif %}>
+              </td>
+              <td>
+                <a href="{% url 'hr:edit_employee' row.employee.pk %}">{{ row.employee.user.get_name|default:row.employee.user.username }}</a>
+              </td>
+              <td>{{ row.employee.department.name|default:'—' }}</td>
+              <td>{{ row.employee.position.title|default:'—' }}</td>
+              <td class="aa-time">
+                {% if row.schedule %}
+                  {{ row.schedule.work_start|time:'H:i' }}–{{ row.schedule.work_end|time:'H:i' }}
+                {% else %}
+                  09:00–18:00, Пн–Пт
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" style="text-align:center; color:#74728a;">Нет активных сотрудников</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </form>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var search = document.getElementById('aaSearch');
+  var count = document.getElementById('aaCount');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('.aa-row'));
+
+  search.addEventListener('input', function () {
+    var q = search.value.trim().toLowerCase();
+    rows.forEach(function (row) {
+      row.hidden = q && row.dataset.search.indexOf(q) === -1;
+    });
+  });
+
+  document.addEventListener('change', function (e) {
+    if (!e.target.classList.contains('aa-check')) return;
+    e.target.closest('tr').classList.toggle('aa-row-on', e.target.checked);
+    count.textContent = document.querySelectorAll('.aa-check:checked').length;
+  });
+})();
+</script>
+{% endblock %}

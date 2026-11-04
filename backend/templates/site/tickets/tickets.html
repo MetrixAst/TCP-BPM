@@ -25,6 +25,12 @@
           <a href="{% url 'tickets:kanban' %}" class="tk-view-switch__btn">Канбан</a>
         </div>
         {% endif %}
+        {% if can_delete_tickets and total_count %}
+        <button type="button" class="tk-page__btn tk-page__btn--ghost" style="color:#c0392b;"
+                onclick="document.getElementById('tkDeleteDialog').showModal()">
+          <i class="bi bi-trash3"></i> Удалить заявки
+        </button>
+        {% endif %}
         <a href="{% url 'tickets:create' %}" class="tk-page__btn tk-page__btn--primary">
           <i class="bi bi-plus-lg"></i>
           {% if is_portal_user %}Новая заявка{% else %}Создать{% endif %}
@@ -32,6 +38,40 @@
       </div>
     </div>
   </div>
+
+  {% if can_delete_tickets and total_count %}
+  <dialog id="tkDeleteDialog" style="border:0; border-radius:16px; padding:24px; max-width:440px; width:calc(100% - 32px);">
+    <form method="post" action="{% url 'tickets:delete_bulk' %}">
+      {% csrf_token %}
+      <input type="hidden" name="status" value="{{ active_status }}">
+      <input type="hidden" name="category" value="{{ active_category }}">
+      <h3 style="margin:0 0 8px; font-size:18px;">Удалить заявки</h3>
+      <p style="margin:0 0 16px; color:#666; font-size:14px;">
+        Заявки удаляются вместе с перепиской, вложениями и историей. Восстановить их будет нельзя.
+      </p>
+      <label style="display:flex; gap:8px; align-items:center; margin-bottom:8px; font-size:14px;">
+        <input type="radio" name="scope" value="all" {% if not filtered_count %}checked{% endif %}>
+        Все заявки ({{ total_count }})
+      </label>
+      {% if filtered_count %}
+      <label style="display:flex; gap:8px; align-items:center; margin-bottom:8px; font-size:14px;">
+        <input type="radio" name="scope" value="filtered" checked>
+        Только по текущему фильтру ({{ filtered_count }})
+      </label>
+      {% endif %}
+      <label style="display:block; margin:16px 0 6px; font-size:13px; color:#666;">
+        Для подтверждения введите слово <b>УДАЛИТЬ</b>
+      </label>
+      <input type="text" name="confirm" autocomplete="off" required
+             style="width:100%; height:38px; border:1px solid #ddd; border-radius:10px; padding:0 12px;">
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+        <button type="button" class="tk-page__btn tk-page__btn--ghost"
+                onclick="this.closest('dialog').close()">Отмена</button>
+        <button type="submit" class="tk-page__btn tk-page__btn--primary" style="background:#c0392b;">Удалить</button>
+      </div>
+    </form>
+  </dialog>
+  {% endif %}
 
   <div class="tk-panel">
 

@@ -67,6 +67,15 @@
               <i class="bi bi-person-gear"></i>
             </button>
           {% endif %}
+          {% if can_delete_tickets %}
+            <form method="post" action="{% url 'tickets:delete_one' ticket.pk %}" style="display:inline;"
+                  onsubmit="return confirm('Удалить заявку {{ ticket.number }}? Переписка, вложения и история будут удалены без возможности восстановления.');">
+              {% csrf_token %}
+              <button type="submit" class="tk-deal__icon-btn" title="Удалить заявку" style="color:#c0392b;">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </form>
+          {% endif %}
         </div>
       </header>
 

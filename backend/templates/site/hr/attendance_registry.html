@@ -20,6 +20,7 @@
   .ar-source-badge--face { background: #eef2ff; color: #2f6bed; }
   .ar-source-badge--qr { background: #f0eef9; color: #7c3aed; }
   .ar-source-badge--manual { background: #fff7ed; color: #c2410c; }
+  .ar-source-badge--auto { background: #ecfdf5; color: #047857; }
   .ar-source-badge--mixed { background: #f0eff6; color: #74728a; }
   .ar-detail-flag { color: #ff3b30; font-size: 12px; font-weight: 600; }
   .ar-detail-ok { color: #74728a; font-size: 12px; }
@@ -35,6 +36,11 @@
       <p class="ar-kpi-note">Приход, уход и часы по сотрудникам за выбранный период</p>
     </div>
     <div class="hr-registry-top__actions">
+      {% if can_manage_auto_attendance %}
+      <a href="{% url 'hr:auto_attendance' %}" class="hr-registry-btn hr-registry-btn--light">
+        <i class="bi bi-clock-history"></i> Автоотметка
+      </a>
+      {% endif %}
       <a href="#" id="arExportBtn" class="hr-registry-btn hr-registry-btn--light">
         <i class="bi bi-file-earmark-excel"></i> Экспорт в Excel
       </a>

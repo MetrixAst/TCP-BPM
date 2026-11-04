@@ -277,10 +277,12 @@ class AttendanceRecord(models.Model):
     SOURCE_FACE = 'face'
     SOURCE_QR = 'qr'
     SOURCE_MANUAL = 'manual'
+    SOURCE_AUTO = 'auto'
     SOURCE_CHOICES = [
         (SOURCE_FACE, 'Фотофиксация'),
         (SOURCE_QR, 'QR-код'),
         (SOURCE_MANUAL, 'Ручная отметка'),
+        (SOURCE_AUTO, 'Автоотметка'),
     ]
     source = models.CharField(
         'Источник отметки', max_length=16,
@@ -409,6 +411,11 @@ class EmployeeWorkSchedule(models.Model):
         max_length=20,
         default='0,1,2,3,4',
         help_text='Номера дней через запятую: 0=Пн … 6=Вс',
+    )
+    auto_attendance = models.BooleanField(
+        'Автоотметка',
+        default=False,
+        help_text='Приход и уход ставятся автоматически по времени графика в рабочие дни.',
     )
 
     class Meta:

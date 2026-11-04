@@ -327,11 +327,70 @@ def edit_employee(request, pk):
     context = {
         'form': form,
         'employee': employee,
-        'schedule_form': WorkScheduleForm(instance=schedule),
+        'schedule_form': WorkScheduleForm(
+            instance=schedule, can_set_auto=_can_manage_auto_attendance(request.user),
+        ),
         'positions_by_department_url': reverse('hr:positions_by_department'),
     }
 
     return render(request, 'site/hr/edit_employee.html', context)
+
+
+def _can_manage_auto_attendance(user):
+    return user.is_authenticated and (
+        user.is_superuser or user.role == RoleEnums.ADMINISTRATOR.value
+    )
+
+
+@login_required
+def auto_attendance_settings(request):
+    if not _can_manage_auto_attendance(request.user):
+        return HttpResponseForbidden('Доступ только для администратора.')
+
+    from .enums import EmployeeStatusEnum
+
+    employees = (
+        Employee.objects.filter(status=EmployeeStatusEnum.ACTIVE, user__is_active=True)
+        .select_related('user', 'department', 'position', 'work_schedule')
+        .order_by('department__name', 'user__last_name', 'user__first_name')
+    )
+
+    if request.method == 'POST':
+        selected = set(request.POST.getlist('employees'))
+        enabled = disabled = 0
+        for employee in employees:
+            want = str(employee.pk) in selected
+            schedule = work_schedule_helper.get_schedule(employee)
+            if schedule is None:
+                if not want:
+                    continue
+                schedule = EmployeeWorkSchedule(employee=employee)
+            if schedule.auto_attendance == want and schedule.pk:
+                continue
+            schedule.auto_attendance = want
+            schedule.save()
+            if want:
+                enabled += 1
+            else:
+                disabled += 1
+        messages.success(
+            request,
+            f'Автоотметка сохранена: включено {enabled}, выключено {disabled}.',
+        )
+        return redirect('hr:auto_attendance')
+
+    rows = []
+    for employee in employees:
+        schedule = work_schedule_helper.get_schedule(employee)
+        rows.append({
+            'employee': employee,
+            'schedule': schedule,
+            'enabled': bool(schedule and schedule.auto_attendance),
+        })
+    return render(request, 'site/hr/auto_attendance.html', {
+        'rows': rows,
+        'enabled_count': sum(1 for r in rows if r['enabled']),
+    })
 
 
 @need_hr_directory
@@ -344,7 +403,10 @@ def employee_schedule(request, pk):
     schedule = work_schedule_helper.get_schedule(employee)
 
     if request.method == 'POST':
-        form = WorkScheduleForm(request.POST, instance=schedule)
+        form = WorkScheduleForm(
+            request.POST, instance=schedule,
+            can_set_auto=_can_manage_auto_attendance(request.user),
+        )
         if form.is_valid():
             obj = form.save(commit=False)
             obj.employee = employee
@@ -1334,6 +1396,7 @@ def attendance_registry(request):
     return render(request, 'site/hr/attendance_registry.html', {
         'departments': departments,
         'employees': employees,
+        'can_manage_auto_attendance': _can_manage_auto_attendance(request.user),
     })
 
 
