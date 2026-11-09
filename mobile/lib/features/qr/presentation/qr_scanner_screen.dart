@@ -94,6 +94,32 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
     if (await hasCameraAccess()) await _startCamera();
   }
 
+  /// Сбрасывает нативную сессию камеры, которая осталась от прошлого открытия
+  /// сканера. Если экран закрыли, пока камера запускалась, плагин всё равно
+  /// дозапускает её, и следующий start() отвечает controllerAlreadyInitialized,
+  /// а контроллер так и не получает картинку — пользователь видит чёрный экран.
+  Future<void> _releaseStaleSession() async {
+    if (_controller.value.isRunning) return;
+    try {
+      await MobileScannerPlatform.instance.stop();
+    } catch (_) {
+      // Сессии не было — сбрасывать нечего.
+    }
+  }
+
+  /// Запускает камеру. Если запуск не уложился в [_startTimeout], ждём его
+  /// ещё столько же: брошенный старт плагин всё равно доведёт до конца
+  /// и займёт камеру.
+  Future<void> _start(CameraFacing facing) async {
+    final pending = _controller.start(cameraDirection: facing);
+    try {
+      await pending.timeout(_startTimeout);
+    } on TimeoutException {
+      await pending.timeout(_startTimeout, onTimeout: () {});
+      if (!_controller.value.isRunning) rethrow;
+    }
+  }
+
   Future<void> _startCamera() async {
     if (_busy || _hasScanned || !mounted) return;
     _busy = true;
@@ -101,6 +127,10 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
       _phase = _Phase.starting;
       _errorCode = null;
     });
+    // Виджет MobileScanner должен появиться до start(): в debug-сборке он при
+    // монтировании принудительно останавливает камеру.
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
 
     String? lastCode;
     var started = false;
@@ -108,20 +138,16 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
     for (final facing in _facings) {
       for (var attempt = 0; attempt < 2; attempt++) {
         try {
-          await _controller.start(cameraDirection: facing).timeout(_startTimeout);
+          await _releaseStaleSession();
+          await _start(facing);
           // start() не выбрасывает ошибку запуска, а кладёт её в value.error.
           final state = _controller.value;
           if (state.isRunning) {
             started = true;
             break outer;
           }
-          throw state.error ??
-              const MobileScannerException(errorCode: MobileScannerErrorCode.genericError);
+          throw state.error ?? const MobileScannerException(errorCode: MobileScannerErrorCode.genericError);
         } on MobileScannerException catch (e) {
-          if (e.errorCode == MobileScannerErrorCode.controllerAlreadyInitialized) {
-            started = true;
-            break outer;
-          }
           lastCode = e.errorDetails?.code ?? e.errorCode.name;
           if (e.errorCode == MobileScannerErrorCode.permissionDenied) {
             _busy = false;
@@ -135,6 +161,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
           lastCode = e.runtimeType.toString();
         }
         await _controller.stop().catchError((_) {});
+        await _releaseStaleSession();
         await Future<void>.delayed(Duration(milliseconds: 700 * (attempt + 1)));
         if (!mounted) return;
       }
@@ -222,10 +249,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         title: const Text('Сканировать QR'),
-        actions: [
-          if (_phase == _Phase.running)
-            IconButton(icon: const Icon(Icons.flash_on), onPressed: _toggleTorch),
-        ],
+        actions: [if (_phase == _Phase.running) IconButton(icon: const Icon(Icons.flash_on), onPressed: _toggleTorch)],
       ),
       body: Stack(
         children: [
@@ -245,7 +269,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
   Widget _buildBody() {
     switch (_phase) {
       case _Phase.checkingAccess:
-      case _Phase.starting:
         return const Center(child: CircularProgressIndicator(color: Colors.white));
       case _Phase.noAccess:
         return _ScannerMessage(
@@ -268,7 +291,10 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
           onSecondary: _startCamera,
           onGallery: () => _scanFromPhoto(ImageSource.gallery),
         );
+      case _Phase.starting:
       case _Phase.running:
+        // Пока камера запускается, сканер уже в дереве (см. _startCamera),
+        // а поверх него — индикатор загрузки.
         return Stack(
           children: [
             Positioned.fill(
@@ -287,43 +313,49 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
                 ),
               ),
             ),
-            Center(
-              child: Container(
-                width: 240,
-                height: 240,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white, width: 2),
-                  borderRadius: BorderRadius.circular(16),
+            if (_phase == _Phase.starting)
+              const Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black,
+                  child: Center(child: CircularProgressIndicator(color: Colors.white)),
                 ),
               ),
-            ),
-            Positioned(
-              bottom: 32,
-              left: 0,
-              right: 0,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Наведите камеру на QR-код',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white, fontSize: 14),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    TextButton.icon(
-                      onPressed: () => _scanFromPhoto(ImageSource.camera),
-                      icon: const Icon(Icons.photo_camera_outlined, color: Colors.white70),
-                      label: const Text(
-                        'Не сканирует? Сфотографировать QR',
-                        style: TextStyle(color: Colors.white70),
+            if (_phase == _Phase.running) ...[
+              Center(
+                child: Container(
+                  width: 240,
+                  height: 240,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 32,
+                left: 0,
+                right: 0,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Наведите камеру на QR-код',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white, fontSize: 14),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.sm),
+                      TextButton.icon(
+                        onPressed: () => _scanFromPhoto(ImageSource.camera),
+                        icon: const Icon(Icons.photo_camera_outlined, color: Colors.white70),
+                        label: const Text('Не сканирует? Сфотографировать QR', style: TextStyle(color: Colors.white70)),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         );
     }
