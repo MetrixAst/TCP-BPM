@@ -28,10 +28,14 @@ class RoundScanTarget extends QrScanTarget {
   final String pointUuid;
   final String pointName;
   final int? plannedRoundId; // null — на сегодня обход по этой точке не назначен
+  // Без назначенного обхода точку можно отметить, если сотрудник отвечает за неё
+  // (сам, заместителем или через отдел) либо у точки нет ответственных.
+  final bool canVisit;
 
   const RoundScanTarget({
     required this.pointUuid,
     required this.pointName,
     required this.plannedRoundId,
+    this.canVisit = true,
   });
 }
