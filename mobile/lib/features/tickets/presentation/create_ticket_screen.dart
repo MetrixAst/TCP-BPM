@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/camera/camera_access.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_result.dart';
 import '../../../core/theme/metrix_colors.dart';
@@ -59,12 +60,19 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
+    if (source == ImageSource.camera && !await ensureCameraAccess(context)) return;
     setState(() => _isPickingPhoto = true);
 
     try {
       final xFile = await _picker.pickImage(source: source, imageQuality: 80);
       if (xFile != null && mounted) {
         setState(() => _photo = File(xFile.path));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось получить фото. Попробуйте ещё раз или выберите из галереи.')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isPickingPhoto = false);

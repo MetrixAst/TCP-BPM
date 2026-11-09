@@ -2,12 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../core/network/dio_client.dart';
 import '../../../core/theme/metrix_colors.dart';
 import '../../../shared/spacing.dart';
-import '../../profile/data/logout_repository.dart';
 import '../../qr/presentation/qr_router.dart';
 
 /// Ищет пункт меню с данным id в дереве меню (id верхнего уровня либо в submenu),
@@ -92,18 +90,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // /me/ уже вызывался и молча глотался и раньше — но теперь от него
       // зависит видимость разделов, поэтому при сбое важно видеть причину.
       debugPrint('HomeScreen._loadMe failed: $e\n$st');
-    }
-  }
-
-  Future<void> _logout(BuildContext context) async {
-    final logoutRepository = LogoutRepository(
-      dio: DioClient().dio,
-      storage: const FlutterSecureStorage(),
-    );
-    await logoutRepository.logout();
-
-    if (context.mounted) {
-      context.go('/login');
     }
   }
 
@@ -257,12 +243,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
           ],
         ),
-        const SizedBox(width: AppSpacing.sm),
-        _HeaderIconButton(
-          icon: Icons.logout_rounded,
-          iconColor: MetrixColors.danger,
-          onTap: () => _logout(context),
-        ),
       ],
     );
   }
@@ -345,12 +325,10 @@ class _BottomBarItem extends StatelessWidget {
 
 class _HeaderIconButton extends StatelessWidget {
   final IconData icon;
-  final Color iconColor;
   final VoidCallback onTap;
 
   const _HeaderIconButton({
     required this.icon,
-    this.iconColor = MetrixColors.text,
     required this.onTap,
   });
 
@@ -369,7 +347,7 @@ class _HeaderIconButton extends StatelessWidget {
             border: Border.all(color: MetrixColors.border),
             borderRadius: BorderRadius.circular(11),
           ),
-          child: Icon(icon, size: 18, color: iconColor),
+          child: Icon(icon, size: 18, color: MetrixColors.text),
         ),
       ),
     );

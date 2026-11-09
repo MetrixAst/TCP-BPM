@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/camera/camera_access.dart';
 import '../../../core/network/api_result.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/theme/metrix_colors.dart';
@@ -100,12 +101,17 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
   }
 
   Future<void> _pickPhoto(int itemId) async {
+    if (!await ensureCameraAccess(context)) return;
     try {
       final xFile = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
       if (xFile == null || !mounted) return;
       setState(() => _photoPaths[itemId] = xFile.path);
     } catch (_) {
-      // отмена съёмки — просто не сохраняем фото
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось сделать фото. Попробуйте ещё раз.')),
+        );
+      }
     }
   }
 
@@ -129,8 +135,8 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
   }
 
   Future<void> _submit() async {
+    if (!widget.target.canVisit) return;
     final plannedRoundId = widget.target.plannedRoundId;
-    if (plannedRoundId == null) return;
 
     setState(() {
       _isSubmitting = true;
@@ -179,11 +185,11 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
   }
 
   Widget _buildBody() {
-    if (widget.target.plannedRoundId == null) {
+    if (!widget.target.canVisit) {
       return _buildInfoState(
-        icon: Icons.event_busy_rounded,
+        icon: Icons.lock_outline_rounded,
         color: MetrixColors.warning,
-        text: 'На сегодня у вас нет назначенного обхода по этой точке',
+        text: 'Вы не назначены ответственным за обход этой точки',
       );
     }
 
