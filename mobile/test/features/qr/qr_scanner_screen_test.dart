@@ -37,7 +37,8 @@ void main() {
 
     expect(find.text('Разрешить доступ'), findsOneWidget);
     expect(find.textContaining('Нет доступа к камере'), findsOneWidget);
-    expect(find.text('Выбрать фото QR из галереи'), findsOneWidget);
+    expect(find.textContaining('Сфотографировать'), findsNothing);
+    expect(find.textContaining('галере'), findsNothing);
     expect(find.textContaining('unexpected'), findsNothing);
   });
 
@@ -68,7 +69,9 @@ void main() {
     }
 
     expect(facings, [1, 1, 0, 0]);
-    expect(find.text('Сфотографировать QR'), findsOneWidget);
+    expect(find.text('Повторить'), findsOneWidget);
+    expect(find.textContaining('Сфотографировать'), findsNothing);
+    expect(find.textContaining('галере'), findsNothing);
     expect(find.text('Код: MOBILE_SCANNER_GENERIC_ERROR'), findsOneWidget);
   });
 

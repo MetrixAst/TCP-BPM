@@ -1,13 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../core/camera/camera_access.dart';
 import '../../../shared/spacing.dart';
 
 enum _Phase { checkingAccess, noAccess, starting, running, failed }
+
+const _cameraFailedMessage =
+    'Камера не запустилась. Закройте другие приложения, которые используют камеру, и нажмите «Повторить».';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
@@ -33,7 +35,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
   bool _accessPermanentlyDenied = false;
   bool _hasScanned = false;
   bool _busy = false;
-  bool _analyzingPhoto = false;
   String? _errorCode;
 
   @override
@@ -201,41 +202,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
     }
   }
 
-  /// Запасной путь для устройств, где живая камера не работает: QR снимается
-  /// системным приложением камеры (или берётся из галереи) и распознаётся
-  /// по фото.
-  Future<void> _scanFromPhoto(ImageSource source) async {
-    if (_analyzingPhoto) return;
-    if (source == ImageSource.camera && !await ensureCameraAccess(context)) return;
-
-    if (_phase == _Phase.running) await _controller.stop();
-    setState(() => _analyzingPhoto = true);
-    String? message;
-    try {
-      final file = await ImagePicker().pickImage(source: source, maxWidth: 2000, maxHeight: 2000);
-      if (file == null) return;
-      final capture = await _controller.analyzeImage(file.path, formats: const [BarcodeFormat.qrCode]);
-      final rawValue = capture?.barcodes
-          .map((b) => b.rawValue)
-          .firstWhere((v) => v != null && v.isNotEmpty, orElse: () => null);
-      if (rawValue != null) {
-        _finish(rawValue);
-        return;
-      }
-      message = 'QR-код на фото не найден. Снимите код ближе и ровнее, чтобы он занимал большую часть кадра.';
-    } catch (_) {
-      message = 'Не удалось распознать фото. Попробуйте ещё раз.';
-    } finally {
-      if (mounted) setState(() => _analyzingPhoto = false);
-      if (mounted && !_hasScanned && _phase == _Phase.running && !_controller.value.isRunning) {
-        unawaited(_startCamera());
-      }
-    }
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-    }
-  }
-
   void _toggleTorch() {
     if (!_controller.value.isRunning) return;
     unawaited(_controller.toggleTorch().catchError((_) {}));
@@ -251,18 +217,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
         title: const Text('Сканировать QR'),
         actions: [if (_phase == _Phase.running) IconButton(icon: const Icon(Icons.flash_on), onPressed: _toggleTorch)],
       ),
-      body: Stack(
-        children: [
-          Positioned.fill(child: _buildBody()),
-          if (_analyzingPhoto)
-            const Positioned.fill(
-              child: ColoredBox(
-                color: Colors.black54,
-                child: Center(child: CircularProgressIndicator(color: Colors.white)),
-              ),
-            ),
-        ],
-      ),
+      body: _buildBody(),
     );
   }
 
@@ -278,18 +233,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
               : cameraDeniedMessage,
           primaryLabel: _accessPermanentlyDenied ? 'Открыть настройки' : 'Разрешить доступ',
           onPrimary: _requestAccessAgain,
-          onGallery: () => _scanFromPhoto(ImageSource.gallery),
         );
       case _Phase.failed:
         return _ScannerMessage(
           icon: Icons.videocam_off_outlined,
-          message: 'Камера не запустилась. Сфотографируйте QR-код — он распознается по фото.',
+          message: _cameraFailedMessage,
           code: _errorCode,
-          primaryLabel: 'Сфотографировать QR',
-          onPrimary: () => _scanFromPhoto(ImageSource.camera),
-          secondaryLabel: 'Повторить',
-          onSecondary: _startCamera,
-          onGallery: () => _scanFromPhoto(ImageSource.gallery),
+          primaryLabel: 'Повторить',
+          onPrimary: _startCamera,
         );
       case _Phase.starting:
       case _Phase.running:
@@ -303,13 +254,10 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
                 onDetect: _handleDetect,
                 errorBuilder: (context, error, child) => _ScannerMessage(
                   icon: Icons.videocam_off_outlined,
-                  message: 'Камера не запустилась. Сфотографируйте QR-код — он распознается по фото.',
+                  message: _cameraFailedMessage,
                   code: error.errorDetails?.code ?? error.errorCode.name,
-                  primaryLabel: 'Сфотографировать QR',
-                  onPrimary: () => _scanFromPhoto(ImageSource.camera),
-                  secondaryLabel: 'Повторить',
-                  onSecondary: _startCamera,
-                  onGallery: () => _scanFromPhoto(ImageSource.gallery),
+                  primaryLabel: 'Повторить',
+                  onPrimary: _startCamera,
                 ),
               ),
             ),
@@ -331,27 +279,16 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
                   ),
                 ),
               ),
-              Positioned(
+              const Positioned(
                 bottom: 32,
                 left: 0,
                 right: 0,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Наведите камеру на QR-код',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      TextButton.icon(
-                        onPressed: () => _scanFromPhoto(ImageSource.camera),
-                        icon: const Icon(Icons.photo_camera_outlined, color: Colors.white70),
-                        label: const Text('Не сканирует? Сфотографировать QR', style: TextStyle(color: Colors.white70)),
-                      ),
-                    ],
+                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: Text(
+                    'Наведите камеру на QR-код',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ),
               ),
@@ -368,10 +305,7 @@ class _ScannerMessage extends StatelessWidget {
     required this.message,
     required this.primaryLabel,
     required this.onPrimary,
-    required this.onGallery,
     this.code,
-    this.secondaryLabel,
-    this.onSecondary,
   });
 
   final IconData icon;
@@ -379,9 +313,6 @@ class _ScannerMessage extends StatelessWidget {
   final String? code;
   final String primaryLabel;
   final VoidCallback onPrimary;
-  final String? secondaryLabel;
-  final VoidCallback? onSecondary;
-  final VoidCallback onGallery;
 
   @override
   Widget build(BuildContext context) {
@@ -412,22 +343,6 @@ class _ScannerMessage extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(onPressed: onPrimary, child: Text(primaryLabel)),
-              ),
-              if (secondaryLabel != null && onSecondary != null) ...[
-                const SizedBox(height: AppSpacing.sm),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: onSecondary,
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
-                    child: Text(secondaryLabel!),
-                  ),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.sm),
-              TextButton(
-                onPressed: onGallery,
-                child: const Text('Выбрать фото QR из галереи', style: TextStyle(color: Colors.white70)),
               ),
             ],
           ),
