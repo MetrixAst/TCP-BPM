@@ -18,10 +18,26 @@ class RoundChecklistItem {
   }
 }
 
+/// Чек-лист, который сотрудник может пройти на точке. На одном помещении
+/// у сантехника, электрика и клининга — свои чек-листы.
+class RoundChecklistOption {
+  final int id;
+  final String name;
+
+  const RoundChecklistOption({required this.id, required this.name});
+
+  factory RoundChecklistOption.fromJson(Map<String, dynamic> json) {
+    return RoundChecklistOption(id: json['id'] as int, name: json['name'] as String? ?? '');
+  }
+}
+
 class RoundPointDetail {
   final String pointUuid;
   final String pointName;
   final String location;
+  final int? checklistId;
+  final String? checklistName;
+  final List<RoundChecklistOption> checklists;
   final List<RoundChecklistItem> items;
   final bool alreadyVisited;
 
@@ -29,16 +45,25 @@ class RoundPointDetail {
     required this.pointUuid,
     required this.pointName,
     required this.location,
+    this.checklistId,
+    this.checklistName,
+    this.checklists = const [],
     required this.items,
     required this.alreadyVisited,
   });
 
   factory RoundPointDetail.fromJson(Map<String, dynamic> json) {
     final itemsJson = json['items'] as List<dynamic>? ?? const [];
+    final checklistsJson = json['checklists'] as List<dynamic>? ?? const [];
     return RoundPointDetail(
       pointUuid: json['point_uuid'] as String,
       pointName: json['point_name'] as String,
       location: json['location'] as String? ?? '',
+      checklistId: json['checklist_id'] as int?,
+      checklistName: json['checklist_name'] as String?,
+      checklists: checklistsJson
+          .map((e) => RoundChecklistOption.fromJson(e as Map<String, dynamic>))
+          .toList(),
       items: itemsJson
           .map((e) => RoundChecklistItem.fromJson(e as Map<String, dynamic>))
           .toList(),

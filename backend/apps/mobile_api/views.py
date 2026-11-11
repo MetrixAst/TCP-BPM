@@ -21,6 +21,7 @@ from account.role_permissions import MenuItem
 from hr.models import AttendanceRecord
 from hr.services import create_attendance_checkin
 
+from ecopark.checklist_choice import NOT_CHOSEN
 from tickets.models import ServiceRequest, TicketMessage
 from .idempotency import idempotent
 from tenants.models import Room
@@ -584,8 +585,12 @@ class RoundsResolveQRView(APIView):
 
         try:
             from ecopark.models import RoundPoint, PlannedRound
-            import uuid
             point = RoundPoint.objects.get(uuid=str(qr), is_active=True)
+        except Exception:
+            point = None
+        if point is not None:
+            from ecopark.checklist_choice import checklist_options_json, visit_checklist_options
+            from ecopark.views import _can_view_point_history
             today = timezone.now().date()
             planned = PlannedRound.objects.filter(
                 assigned_to=request.user,
@@ -593,15 +598,17 @@ class RoundsResolveQRView(APIView):
                 planned_start__date=today,
             ).first()
             employee = getattr(request.user, 'employee_info', None)
+            options = visit_checklist_options(point, employee, request.user) if employee else []
             return Response({
                 'type': 'round_point',
                 'point_name': point.name,
                 'point_uuid': str(point.uuid),
                 'planned_round_id': planned.pk if planned else None,
-                'can_visit': bool(planned) or bool(employee and point.can_be_visited_by(employee)),
+                'can_visit': bool(options),
+                # Руководитель или админ видит отчёт по помещению.
+                'can_view_report': _can_view_point_history(request.user, point),
+                'checklists': checklist_options_json(options),
             })
-        except Exception:
-            pass
 
         return Response({'error': 'QR не распознан'}, status=404)
 
@@ -677,14 +684,23 @@ class RoundPointDetailView(APIView):
         if not employee:
             return Response({'error': 'Профиль сотрудника не найден'}, status=403)
 
+        from ecopark.checklist_choice import (
+            checklist_options_json, pick_checklist, visit_checklist_options,
+        )
+        options = visit_checklist_options(point, employee, request.user)
+        # Старые версии приложения не передают checklist и не умеют выбирать —
+        # им отдаём первый чек-лист. Новые видят checklists и спрашивают
+        # сотрудника, если вариантов несколько.
+        checklist = pick_checklist(options, request.query_params.get('checklist'), default_first=True)
+        if checklist is NOT_CHOSEN:  # options пуст — отметить точку нельзя
+            checklist = None
+
         today = timezone.now().date()
-        already_visited = RoundVisit.objects.filter(
-            point=point, employee=employee, created_at__date=today,
-        ).exists()
+        already_visited = _visits_today(point, employee, checklist, today).exists()
 
         items = []
-        if point.checklist:
-            for item in point.checklist.items.order_by('order'):
+        if checklist:
+            for item in checklist.items.order_by('order'):
                 items.append({
                     'id': item.pk,
                     'text': item.text,
@@ -695,17 +711,62 @@ class RoundPointDetailView(APIView):
             'point_uuid': str(point.uuid),
             'point_name': point.name,
             'location': point.location,
+            'checklist_id': checklist.pk if checklist else None,
+            'checklist_name': checklist.name if checklist else None,
+            'checklists': checklist_options_json(options),
             'items': items,
             'already_visited': already_visited,
         })
 
 
+class RoundPointReportView(APIView):
+    """GET /api/v1/mobile/rounds/points/<uuid>/report/ — отчёт по помещению
+    для руководителя или админа, отсканировавшего QR: кто и когда проверял
+    по каждому чек-листу, просрочка, открытые неисправности. Права те же, что
+    у истории помещения на сайте (ecopark:round_point_history)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, point_uuid):
+        from ecopark.models import RoundPoint
+        from ecopark.point_report import build_point_report
+        from ecopark.views import _can_view_point_history
+
+        try:
+            point = RoundPoint.objects.get(uuid=point_uuid)
+        except RoundPoint.DoesNotExist:
+            return Response({'error': 'Точка не найдена'}, status=404)
+        if not _can_view_point_history(request.user, point):
+            return Response({'error': 'Нет доступа к отчёту по этой точке'}, status=403)
+        return Response(build_point_report(point))
+
+
+def _visits_today(point, employee, checklist, day):
+    """Визиты сотрудника на точке за день по этому чек-листу: на одной точке
+    он может пройти несколько чек-листов, если совмещает должности."""
+    from ecopark.models import RoundVisit
+    visits = RoundVisit.objects.filter(point=point, employee=employee, created_at__date=day)
+    if checklist is not None and point.checklist_rules.exists():
+        visits = visits.filter(checklist=checklist)
+    return visits
+
+
+def _chosen_visit_checklist(request, point, employee):
+    """Чек-лист для отметки точки из запроса (checklist_id) или единственный
+    доступный. NOT_CHOSEN — у сотрудника нет доступа к точке."""
+    from ecopark.checklist_choice import NOT_CHOSEN, pick_checklist, visit_checklist_options
+    options = visit_checklist_options(point, employee, request.user)
+    if not options:
+        return NOT_CHOSEN
+    return pick_checklist(options, request.data.get('checklist_id'), default_first=True)
+
+
 def _save_visit_answers(request, visit, point, employee):
     from ecopark.models import RoundVisitAnswer, Defect
 
-    if not point.checklist:
+    if not visit.checklist:
         return
-    for item in point.checklist.items.all():
+    for item in visit.checklist.items.all():
         item_status = request.data.get(f'item_{item.pk}_status', 'ok')
         item_comment = request.data.get(f'item_{item.pk}_comment', '')
         item_photo = request.FILES.get(f'item_{item.pk}_photo')
@@ -753,11 +814,12 @@ class RoundPointVisitView(APIView):
         employee = getattr(request.user, 'employee_info', None)
         if not employee:
             return Response({'error': 'Профиль сотрудника не найден'}, status=403)
-        if not point.can_be_visited_by(employee):
+        checklist = _chosen_visit_checklist(request, point, employee)
+        if checklist is NOT_CHOSEN:
             return Response({'error': 'Вы не назначены ответственным за обход этой точки'}, status=403)
 
         today = timezone.localdate()
-        existing = RoundVisit.objects.filter(point=point, employee=employee, created_at__date=today).first()
+        existing = _visits_today(point, employee, checklist, today).first()
         if existing:
             return Response({
                 'success': True,
@@ -770,6 +832,7 @@ class RoundPointVisitView(APIView):
             visit = RoundVisit.objects.create(
                 point=point,
                 employee=employee,
+                checklist=checklist,
                 comment=request.data.get('comment', ''),
                 latitude=_parse_geo_field(request.data.get('latitude')),
                 longitude=_parse_geo_field(request.data.get('longitude')),
@@ -823,17 +886,23 @@ class RoundPointAnswerView(APIView):
             return Response({'error': 'Профиль сотрудника не найден'}, status=403)
 
         today = planned.planned_start.date()
+        checklist = _chosen_visit_checklist(request, point, employee)
+        if checklist is NOT_CHOSEN:
+            # Правила точки под сотрудника не подошли, а обход ему назначен
+            # (например, окно обхода не сегодня) — берём первый чек-лист точки.
+            checklist = point.all_checklists()[0]
 
-        visit, created = RoundVisit.objects.get_or_create(
-            point=point,
-            employee=employee,
-            created_at__date=today,
-            defaults={
-                'comment': request.data.get('comment', ''),
-                'latitude': request.data.get('latitude'),
-                'longitude': request.data.get('longitude'),
-            }
-        )
+        visit = _visits_today(point, employee, checklist, today).first()
+        created = visit is None
+        if created:
+            visit = RoundVisit.objects.create(
+                point=point,
+                employee=employee,
+                checklist=checklist,
+                comment=request.data.get('comment', ''),
+                latitude=request.data.get('latitude'),
+                longitude=request.data.get('longitude'),
+            )
 
         if not created:
             return Response({

@@ -31,11 +31,14 @@ class RoundScanTarget extends QrScanTarget {
   // Без назначенного обхода точку можно отметить, если сотрудник отвечает за неё
   // (сам, заместителем или через отдел) либо у точки нет ответственных.
   final bool canVisit;
+  // Руководитель или админ — может открыть отчёт по помещению.
+  final bool canViewReport;
 
   const RoundScanTarget({
     required this.pointUuid,
     required this.pointName,
     required this.plannedRoundId,
     this.canVisit = true,
+    this.canViewReport = false,
   });
 }

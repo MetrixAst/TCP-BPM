@@ -98,6 +98,7 @@
         <thead>
           <tr>
             <th>Точка</th>
+            <th>Чек-лист</th>
             <th>Сотрудник</th>
             <th>Когда</th>
             <th>Результат</th>
@@ -109,6 +110,7 @@
           {% for visit in visits %}
           <tr>
             <td><a href="{% url 'ecopark:round_point_history' visit.point_id %}">{{ visit.point.name }}</a></td>
+            <td>{{ visit.checklist.name|default:"—" }}</td>
             <td>{{ visit.employee.user.get_full_name|default:visit.employee.user.username }}</td>
             <td>{{ visit.created_at|date:"d.m.Y H:i" }}</td>
             <td>
@@ -137,7 +139,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6">
+            <td colspan="7">
               <div class="hr-registry-empty">
                 <i class="bi bi-clipboard-check"></i>
                 <strong>Обходов не найдено</strong>

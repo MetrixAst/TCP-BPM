@@ -23,6 +23,20 @@
     padding: 6px;
   }
   .equipment-row.is-removed { display: none; }
+  .rule-row {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 1.3fr 110px auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eceaf3;
+  }
+  .rule-row--head { font-size: 12px; color: #74728a; padding-bottom: 4px; }
+  .rule-row.is-removed { display: none; }
+  @media (max-width: 760px) {
+    .rule-row { grid-template-columns: 1fr; }
+    .rule-row--head { display: none; }
+  }
 </style>
 {% endblock styles %}
 
@@ -83,6 +97,9 @@
                   <option value="{{ cl.pk }}" {% if point.checklist_id == cl.pk %}selected{% endif %}>{{ cl.name }}</option>
                 {% endfor %}
               </select>
+              <small class="hr-registry-edit-field__help">
+                Для ответственных ниже. Разные чек-листы для служб и должностей — в разделе «Чек-листы по должностям».
+              </small>
             </div>
 
             <div class="hr-registry-edit-field">
@@ -180,6 +197,86 @@
 
         {% if point %}
         <section class="hr-registry-edit-section">
+          <h2 class="hr-registry-edit-section__title">Чек-листы по должностям</h2>
+          <p class="hr-muted" style="margin:0 0 10px;">
+            Один QR на помещение: сотрудник сканирует код и получает чек-лист своей должности или отдела.
+            Если должность не выбрана — чек-лист получат все сотрудники отдела.
+          </p>
+
+          <div id="checklistRules">
+            <div class="rule-row rule-row--head">
+              <span>Отдел</span><span>Должность</span><span>Чек-лист</span><span>Интервал, ч</span><span></span>
+            </div>
+            {% for rule in checklist_rules %}
+            <div class="rule-row">
+              <input type="hidden" name="rule_id[]" value="{{ rule.pk }}">
+              <select name="rule_department[]" class="hr-form-input" data-rule-department>
+                <option value="">— Любой —</option>
+                {% for department in departments %}
+                  <option value="{{ department.pk }}" {% if rule.department_id == department.pk %}selected{% endif %}>{{ department }}</option>
+                {% endfor %}
+              </select>
+              <select name="rule_position[]" class="hr-form-input" data-rule-position>
+                <option value="">— Любая —</option>
+                {% for position in positions %}
+                  <option value="{{ position.pk }}" data-department="{{ position.department_id }}" {% if rule.position_id == position.pk %}selected{% endif %}>{{ position.title }} ({{ position.department.name }})</option>
+                {% endfor %}
+              </select>
+              <select name="rule_checklist[]" class="hr-form-input">
+                {% for cl in checklists %}
+                  <option value="{{ cl.pk }}" {% if rule.checklist_id == cl.pk %}selected{% endif %}>{{ cl.name }}</option>
+                {% endfor %}
+                {% if not rule.checklist.is_active %}
+                  <option value="{{ rule.checklist_id }}" selected>{{ rule.checklist.name }} ✕</option>
+                {% endif %}
+              </select>
+              <input type="number" name="rule_interval[]" class="hr-form-input" min="1"
+                     value="{{ rule.check_interval_hours|default_if_none:'' }}" placeholder="{{ point.check_interval_hours }}">
+              <button type="button" class="equipment-row__del" data-rule-delete title="Удалить">
+                <i class="bi bi-trash"></i>
+              </button>
+              <input type="hidden" name="rule_delete[]" value="" data-delete-flag>
+            </div>
+            {% endfor %}
+          </div>
+
+          <template id="checklistRuleTemplate">
+            <div class="rule-row">
+              <input type="hidden" name="rule_id[]" value="">
+              <select name="rule_department[]" class="hr-form-input" data-rule-department>
+                <option value="">— Любой —</option>
+                {% for department in departments %}
+                  <option value="{{ department.pk }}">{{ department }}</option>
+                {% endfor %}
+              </select>
+              <select name="rule_position[]" class="hr-form-input" data-rule-position>
+                <option value="">— Любая —</option>
+                {% for position in positions %}
+                  <option value="{{ position.pk }}" data-department="{{ position.department_id }}">{{ position.title }} ({{ position.department.name }})</option>
+                {% endfor %}
+              </select>
+              <select name="rule_checklist[]" class="hr-form-input">
+                <option value="">— Выберите чек-лист —</option>
+                {% for cl in checklists %}
+                  <option value="{{ cl.pk }}">{{ cl.name }}</option>
+                {% endfor %}
+              </select>
+              <input type="number" name="rule_interval[]" class="hr-form-input" min="1" placeholder="{{ point.check_interval_hours }}">
+              <button type="button" class="equipment-row__del" data-rule-new-remove title="Убрать">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </template>
+
+          <button type="button" class="hr-registry-btn hr-registry-btn--light" id="addChecklistRuleBtn" style="margin-top:10px;">
+            <i class="bi bi-plus-lg"></i> Добавить чек-лист для должности
+          </button>
+          <small class="hr-registry-edit-field__help" style="display:block;margin-top:6px;">
+            Пустой интервал — как у точки. Просрочка считается по каждому чек-листу отдельно.
+          </small>
+        </section>
+
+        <section class="hr-registry-edit-section">
           <h2 class="hr-registry-edit-section__title">Оборудование на точке</h2>
 
           <div id="equipmentItems">
@@ -245,6 +342,56 @@
       },
       { timeout: 8000 }
     );
+  });
+})();
+
+(function () {
+  var container = document.getElementById('checklistRules');
+  var addBtn = document.getElementById('addChecklistRuleBtn');
+  var template = document.getElementById('checklistRuleTemplate');
+  if (!container || !addBtn || !template) return;
+
+  // Должность принадлежит отделу: выбрали должность — подставляем её отдел,
+  // выбрали отдел — в списке должностей остаются только его.
+  function filterPositions(row) {
+    var dept = row.querySelector('[data-rule-department]').value;
+    var positionSelect = row.querySelector('[data-rule-position]');
+    Array.prototype.forEach.call(positionSelect.options, function (opt) {
+      if (!opt.value) return;
+      opt.hidden = !!dept && opt.getAttribute('data-department') !== dept;
+    });
+    var selected = positionSelect.selectedOptions[0];
+    if (selected && selected.hidden) positionSelect.value = '';
+  }
+
+  container.querySelectorAll('.rule-row:not(.rule-row--head)').forEach(filterPositions);
+
+  addBtn.addEventListener('click', function () {
+    container.appendChild(template.content.firstElementChild.cloneNode(true));
+    // Строка из <template> не переведена при загрузке страницы (kk/en).
+    if (window.BPM && window.BPM.applyTranslations) window.BPM.applyTranslations();
+  });
+
+  container.addEventListener('change', function (e) {
+    var row = e.target.closest('.rule-row');
+    if (!row) return;
+    if (e.target.matches('[data-rule-position]')) {
+      var opt = e.target.selectedOptions[0];
+      if (opt && opt.value) row.querySelector('[data-rule-department]').value = opt.getAttribute('data-department');
+    }
+    filterPositions(row);
+  });
+
+  container.addEventListener('click', function (e) {
+    var delBtn = e.target.closest('[data-rule-delete]');
+    if (delBtn) {
+      var row = delBtn.closest('.rule-row');
+      row.classList.add('is-removed');
+      row.querySelector('[data-delete-flag]').value = row.querySelector('input[name="rule_id[]"]').value;
+      return;
+    }
+    var newDel = e.target.closest('[data-rule-new-remove]');
+    if (newDel) newDel.closest('.rule-row').remove();
   });
 })();
 

@@ -179,8 +179,93 @@ class RoundPoint(models.Model):
 
     @property
     def is_overdue(self):
-        deadline_base = self.last_visit.created_at if self.last_visit else self.created_at
-        return timezone.now() > deadline_base + timezone.timedelta(hours=self.check_interval_hours)
+        return any(slot['is_overdue'] for slot in self.checklist_slots())
+
+    def _active_rules(self):
+        return [
+            rule for rule in self.checklist_rules.select_related(
+                'checklist', 'department', 'position__department',
+            )
+            if rule.checklist.is_active
+        ]
+
+    def checklist_slots(self):
+        """
+        Кто и по какому чек-листу проверяет помещение — для отчёта
+        руководителю и подсчёта просрочки. «Основной» слот — старая настройка
+        точки (чек-лист + ответственные), остальные — чек-листы для отделов
+        и должностей (RoundPointChecklist). Просрочка считается по каждому
+        слоту отдельно: если сантехник пришёл, а электрик нет — помещение
+        всё равно просрочено.
+        """
+        rules = self._active_rules()
+        now = timezone.now()
+        slots = []
+
+        def _slot(checklist, assignee, interval_hours, visits):
+            last = visits.order_by('-created_at').first()
+            deadline_base = last.created_at if last else self.created_at
+            return {
+                'checklist': checklist,
+                'assignee': assignee,
+                'interval_hours': interval_hours,
+                'last_visit': last,
+                'is_overdue': now > deadline_base + timezone.timedelta(hours=interval_hours),
+            }
+
+        if self.checklist_id or not rules:
+            visits = self.visits.all()
+            if rules:
+                # Визиты по чек-листам служб не закрывают основной чек-лист.
+                visits = visits.filter(
+                    models.Q(checklist_id=self.checklist_id) | models.Q(checklist__isnull=True)
+                )
+            slots.append(_slot(
+                self.checklist, self.main_assignee_label(), self.check_interval_hours, visits,
+            ))
+        for rule in rules:
+            slots.append(_slot(
+                rule.checklist,
+                rule.assignee_label(),
+                rule.check_interval_hours or self.check_interval_hours,
+                self.visits.filter(checklist_id=rule.checklist_id),
+            ))
+        return slots
+
+    def main_assignee_label(self):
+        parts = []
+        if self.responsible_employee_id:
+            parts.append(str(self.responsible_employee))
+        if self.responsible_department_id:
+            parts.append(self.responsible_department.name)
+        if self.substitute_employee_id:
+            parts.append(f'замещает {self.substitute_employee}')
+        return ', '.join(parts) or 'Все сотрудники'
+
+    def checklists_for(self, employee):
+        """
+        Чек-листы, которые этот сотрудник проходит на точке. Один QR на
+        помещение: сантехник, электрик и клининг получают каждый свой.
+        Пустой список — сотрудник не может отметить точку. [None] — точка без
+        чек-листа (просто отметка посещения, как было до чек-листов служб).
+        """
+        rules = self._active_rules()
+        options = []
+        if (self.checklist_id or not rules) and self.can_be_visited_by(employee):
+            options.append(self.checklist)
+        for rule in rules:
+            if rule.matches(employee) and rule.checklist not in options:
+                options.append(rule.checklist)
+        return options
+
+    def all_checklists(self):
+        """Все чек-листы точки — для назначенного на маршрут сотрудника, если
+        ни одно правило под него не подошло."""
+        options = [self.checklist] if self.checklist_id else []
+        for rule in self._active_rules():
+            if rule.checklist not in options:
+                options.append(rule.checklist)
+        return options or [None]
 
     def can_be_visited_by(self, employee):
         assignment_ids = (
@@ -197,6 +282,61 @@ class RoundPoint(models.Model):
             )
             or employee.department_id == self.responsible_department_id
         )
+
+
+class RoundPointChecklist(models.Model):
+    """
+    Чек-лист точки для отдела или должности. Позволяет повесить на помещение
+    один QR: сантехник, электрик, теплотехник и клининг сканируют один и тот же
+    код, а приложение выдаёт каждому его чек-лист.
+    """
+    point = models.ForeignKey(
+        RoundPoint, on_delete=models.CASCADE, related_name='checklist_rules',
+        verbose_name='Точка',
+    )
+    checklist = models.ForeignKey(
+        ChecklistTemplate, on_delete=models.CASCADE, related_name='point_rules',
+        verbose_name='Чек-лист',
+    )
+    # CASCADE, а не SET_NULL: пустой отдел означает «любой», и удаление отдела
+    # не должно молча открыть чек-лист всем сотрудникам.
+    department = models.ForeignKey(
+        'account.Department', on_delete=models.CASCADE, null=True, blank=True,
+        related_name='round_checklist_rules', verbose_name='Отдел',
+    )
+    position = models.ForeignKey(
+        'hr.Position', on_delete=models.CASCADE, null=True, blank=True,
+        related_name='round_checklist_rules', verbose_name='Должность',
+    )
+    check_interval_hours = models.PositiveIntegerField(
+        'Интервал проверки, ч', null=True, blank=True,
+        help_text='Пусто — как у точки',
+    )
+    order = models.PositiveIntegerField('Порядок', default=0)
+
+    class Meta:
+        verbose_name = 'Чек-лист точки для должности'
+        verbose_name_plural = 'Чек-листы точки для должностей'
+        ordering = ['point', 'order', 'id']
+
+    def __str__(self):
+        return f'{self.point} — {self.checklist} ({self.assignee_label()})'
+
+    def matches(self, employee):
+        if self.position_id:
+            return employee.position_id == self.position_id
+        if self.department_id:
+            return self.department.get_descendants(include_self=True).filter(
+                pk=employee.department_id,
+            ).exists()
+        return True
+
+    def assignee_label(self):
+        if self.position_id:
+            return f'{self.position.title} ({self.position.department.name})'
+        if self.department_id:
+            return self.department.name
+        return 'Все сотрудники'
 
 
 class Equipment(models.Model):
@@ -231,6 +371,12 @@ class RoundVisit(models.Model):
     employee = models.ForeignKey(
         'account.Employee', on_delete=models.CASCADE, related_name='round_visits',
         verbose_name='Сотрудник',
+    )
+    # По какому чек-листу прошли точку: на одном помещении у служб разные
+    # чек-листы. Пусто — точка без чек-листа.
+    checklist = models.ForeignKey(
+        ChecklistTemplate, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='visits', verbose_name='Чек-лист',
     )
     comment = models.CharField('Комментарий', max_length=1000, blank=True)
     latitude = models.DecimalField(
@@ -554,7 +700,9 @@ class PlannedRound(models.Model):
         )
 
     def completed_points_count(self):
-        return self.visits().count()
+        # Точки, а не визиты: сотрудник может пройти на одной точке два
+        # чек-листа (например, совмещает две должности).
+        return self.visits().values('point_id').distinct().count()
 
     def total_points_count(self):
         return self.route.route_points.count()

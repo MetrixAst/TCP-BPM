@@ -18,9 +18,10 @@ from documents import onlyoffice
 
 from .models import (
     EcoObject, EcoExecutor, EcoWork,
-    RoundPoint, ChecklistTemplate, ChecklistItem, Equipment,
+    RoundPoint, RoundPointChecklist, ChecklistTemplate, ChecklistItem, Equipment,
     RoundVisit, RoundVisitAnswer, Defect,
 )
+from .checklist_choice import NOT_CHOSEN as _NOT_CHOSEN, pick_checklist, visit_checklist_options
 
 
 def _fmt_amount(value):
@@ -207,6 +208,7 @@ def _rounds_monitor_required(view):
         employee = getattr(request.user, 'employee_info', None)
         allowed = (
             request.user.is_superuser
+            or getattr(request.user, 'head', False)
             or RolePermissions.checkPermission(request.user.role, PermissionEnums.ECOPARK)
             or (employee is not None and getattr(employee, 'head', False))
             or user_has_permission(request.user, PermissionEnums.ROUNDS_MONITOR)
@@ -223,6 +225,8 @@ def _rounds_full_access(user):
 
     return (
         user.is_superuser
+        # Руководитель компании видит обходы и отчёты по всем помещениям.
+        or getattr(user, 'head', False)
         or RolePermissions.checkPermission(user.role, PermissionEnums.ECOPARK)
         or user_has_permission(user, PermissionEnums.ROUNDS_MONITOR)
     )
@@ -248,10 +252,15 @@ def _rounds_scope_point_ids(user):
         Q(responsible_department_id__in=dept_ids)
         | Q(responsible_employee__department_id__in=dept_ids)
         | Q(substitute_employee__department_id__in=dept_ids)
-    ).values_list('id', flat=True))
+        | Q(checklist_rules__department_id__in=dept_ids)
+        | Q(checklist_rules__position__department_id__in=dept_ids)
+    ).distinct().values_list('id', flat=True))
 
 
 def _can_view_point_history(user, point):
+    """Отчёт по помещению: админ эксплуатации и наблюдатели — по всем точкам,
+    руководитель отдела — по точкам своего отдела. Те же правила, что у
+    _rounds_monitor_required + _rounds_scope_point_ids."""
     scope = _rounds_scope_point_ids(user)
     return scope is None or point.pk in scope
 
@@ -267,15 +276,31 @@ def round_points_list(request):
         'responsible_department',
         'substitute_employee__user',
         'substitute_employee__position',
-    ).order_by('name')
+    ).prefetch_related('checklist_rules').order_by('name')
 
     dept_filter = (request.GET.get('dept') or '').strip()
+    departments = Department.objects.none()
     if dept_filter == 'cleaning':
-        points = points.filter(name__startswith='[Клининг]')
+        departments = Department.objects.filter(name__iexact='Клининг')
     elif dept_filter == 'ops':
-        points = points.filter(name__startswith='[Эксплуатация]')
+        departments = Department.objects.filter(name__iexact='Эксплуатация')
     elif dept_filter.isdigit():
-        points = points.filter(responsible_department_id=int(dept_filter))
+        departments = Department.objects.filter(pk=int(dept_filter))
+    if dept_filter:
+        # Помещение относится к службе, если она за него отвечает или у неё
+        # там свой чек-лист (одна точка на помещение для всех служб).
+        # Отделов с таким названием может быть несколько — по одному на компанию.
+        from django.db.models import Q
+        dept_ids = {
+            dept_id
+            for department in departments
+            for dept_id in department.get_descendants(include_self=True).values_list('id', flat=True)
+        }
+        points = points.filter(
+            Q(responsible_department_id__in=dept_ids)
+            | Q(checklist_rules__department_id__in=dept_ids)
+            | Q(checklist_rules__position__department_id__in=dept_ids)
+        ).distinct()
 
     service_departments = Department.objects.filter(
         name__in=['Клининг', 'Эксплуатация', 'Хозяйственная часть'],
@@ -384,6 +409,51 @@ def _save_equipment(request, point):
                 )
 
 
+def _positive_int_or_none(value):
+    value = (value or '').strip()
+    return int(value) if value.isdigit() and int(value) > 0 else None
+
+
+def _save_checklist_rules(request, point):
+    """Чек-листы точки для отделов и должностей (строки rule_*[] формы)."""
+    from hr.models import Position
+
+    ids = request.POST.getlist('rule_id[]')
+    checklists = request.POST.getlist('rule_checklist[]')
+    departments = request.POST.getlist('rule_department[]')
+    positions = request.POST.getlist('rule_position[]')
+    intervals = request.POST.getlist('rule_interval[]')
+    deletes = set(request.POST.getlist('rule_delete[]'))
+
+    with transaction.atomic():
+        for order, (rule_id, checklist_id, department_id, position_id, interval) in enumerate(
+            zip(ids, checklists, departments, positions, intervals)
+        ):
+            if rule_id and (rule_id in deletes or not checklist_id):
+                RoundPointChecklist.objects.filter(pk=rule_id, point=point).delete()
+                continue
+            if not checklist_id:
+                continue
+            position = Position.objects.filter(pk=position_id).first() if position_id else None
+            values = {
+                'checklist_id': checklist_id,
+                'position': position,
+                # Должность всегда принадлежит отделу — отдел берём из неё.
+                'department_id': position.department_id if position else (department_id or None),
+                'check_interval_hours': _positive_int_or_none(interval),
+                'order': order,
+            }
+            if rule_id:
+                RoundPointChecklist.objects.filter(pk=rule_id, point=point).update(**values)
+            else:
+                RoundPointChecklist.objects.create(point=point, **values)
+
+
+def _checklist_rule_options():
+    from hr.models import Position
+    return Position.objects.select_related('department').order_by('department__name', 'title')
+
+
 def round_point_edit(request, pk):
     point = get_object_or_404(RoundPoint, pk=pk)
     employees, departments = _round_assignment_options()
@@ -401,6 +471,7 @@ def round_point_edit(request, pk):
         point.is_active = request.POST.get('is_active') == 'on'
         point.save()
         _save_equipment(request, point)
+        _save_checklist_rules(request, point)
         return redirect('ecopark:round_points_list')
 
     return render(request, 'site/ecopark/round_point_form.html', {
@@ -410,6 +481,10 @@ def round_point_edit(request, pk):
         'checklists': ChecklistTemplate.objects.filter(is_active=True),
         'employees': employees,
         'departments': departments,
+        'positions': _checklist_rule_options(),
+        'checklist_rules': point.checklist_rules.select_related(
+            'checklist', 'department', 'position__department',
+        ),
         'equipment': point.equipment.order_by('name'),
         'scan_url': request.build_absolute_uri(reverse('ecopark:rounds_scan', args=[point.uuid])),
     })
@@ -654,7 +729,8 @@ def rounds_scan(request, point_uuid):
             'point': point,
         }, status=403)
     can_view_history = _can_view_point_history(request.user, point)
-    if not point.can_be_visited_by(employee):
+    options = visit_checklist_options(point, employee, request.user)
+    if not options:
         if can_view_history:
             return redirect('ecopark:round_point_history', pk=point.pk)
         return render(request, 'site/ecopark/rounds_scan.html', {
@@ -662,7 +738,15 @@ def rounds_scan(request, point_uuid):
             'point': point,
         }, status=403)
 
-    items = list(point.checklist.items.order_by('order', 'id')) if point.checklist else []
+    chosen = request.POST.get('checklist') or request.GET.get('checklist')
+    checklist = pick_checklist(options, chosen)
+    if checklist is _NOT_CHOSEN:
+        # Сотрудник проверяет помещение по нескольким чек-листам — пусть выберет.
+        return render(request, 'site/ecopark/rounds_scan.html', {
+            'point': point, 'checklist_options': options, 'can_view_history': can_view_history,
+        })
+
+    items = list(checklist.items.order_by('order', 'id')) if checklist else []
 
     if request.method == 'POST':
         errors = []
@@ -678,6 +762,7 @@ def rounds_scan(request, point_uuid):
         if errors:
             return render(request, 'site/ecopark/rounds_scan.html', {
                 'point': point,
+                'checklist': checklist,
                 'items': items,
                 'errors': errors,
             }, status=400)
@@ -686,6 +771,7 @@ def rounds_scan(request, point_uuid):
             visit = RoundVisit.objects.create(
                 point=point,
                 employee=employee,
+                checklist=checklist,
                 comment=request.POST.get('comment', '').strip(),
                 latitude=_parse_geo_field(request.POST.get('latitude')),
                 longitude=_parse_geo_field(request.POST.get('longitude')),
@@ -727,7 +813,9 @@ def rounds_scan(request, point_uuid):
         return render(request, 'site/ecopark/rounds_scan_done.html', {'point': point, 'visit': visit})
 
     return render(request, 'site/ecopark/rounds_scan.html', {
-        'point': point, 'items': items, 'can_view_history': can_view_history,
+        'point': point, 'checklist': checklist, 'items': items,
+        'can_view_history': can_view_history,
+        'has_other_checklists': len(options) > 1,
     })
 
 
@@ -745,7 +833,7 @@ def round_point_history(request, pk):
 
     visits = (
         point.visits
-        .select_related('employee__user', 'employee__department')
+        .select_related('employee__user', 'employee__department', 'checklist')
         .prefetch_related('answers__item')
         .order_by('-created_at')
     )
@@ -765,6 +853,7 @@ def round_point_history(request, pk):
         for i in range(len(visits) - 1)
     ]
     since = timezone.now() - timezone.timedelta(days=30)
+    slots = point.checklist_slots()
     stats = {
         'total': len(visits),
         'last_30_days': point.visits.filter(created_at__gte=since).count(),
@@ -772,17 +861,21 @@ def round_point_history(request, pk):
         'max_interval_hours': round(max(gaps), 1) if gaps else None,
         'planned_interval_hours': point.check_interval_hours,
         'last_visit': visits[0] if visits else None,
-        'is_overdue': point.is_overdue,
+        'is_overdue': any(slot['is_overdue'] for slot in slots),
         'visitors': len({v.employee_id for v in visits}),
     }
+    employee = getattr(request.user, 'employee_info', None)
 
     return render(request, 'site/ecopark/round_point_history.html', {
         'point': point,
         'visits': visits,
         'stats': stats,
+        'slots': slots,
+        'open_defects': point.defects.exclude(status=Defect.STATUS_RESOLVED)
+                        .select_related('visit__checklist').order_by('-created_at')[:20],
         'can_check_in': (
-            getattr(request.user, 'employee_info', None) is not None
-            and point.can_be_visited_by(request.user.employee_info)
+            employee is not None
+            and bool(visit_checklist_options(point, employee, request.user))
         ),
     })
 
@@ -790,7 +883,7 @@ def round_point_history(request, pk):
 # ─────────────────────────── Журнал и KPI (руководитель) ───────────────────────────
 
 def _filtered_visits(request):
-    visits = RoundVisit.objects.select_related('point', 'employee__user').order_by('-created_at')
+    visits = RoundVisit.objects.select_related('point', 'employee__user', 'checklist').order_by('-created_at')
     scope = _rounds_scope_point_ids(request.user)
     points_qs = RoundPoint.objects.filter(is_active=True)
     if scope is not None:
@@ -860,7 +953,7 @@ def rounds_journal_export(request):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = 'Журнал обходов'
-    ws.append(['Точка', 'Сотрудник', 'Когда', 'Результат', 'Геолокация', 'Комментарий'])
+    ws.append(['Точка', 'Чек-лист', 'Сотрудник', 'Когда', 'Результат', 'Геолокация', 'Комментарий'])
 
     geo_labels = {
         RoundVisit.GEO_OK: 'Рядом с точкой',
@@ -869,9 +962,10 @@ def rounds_journal_export(request):
         RoundVisit.GEO_UNKNOWN: '—',
     }
 
-    for visit in visits.select_related('point', 'employee__user')[:5000]:
+    for visit in visits.select_related('point', 'employee__user', 'checklist')[:5000]:
         ws.append([
             visit.point.name,
+            visit.checklist.name if visit.checklist else '—',
             visit.employee.user.get_full_name() or visit.employee.user.username,
             timezone.localtime(visit.created_at).strftime('%d.%m.%Y %H:%M'),
             'Есть несоответствия' if visit.has_failed_items else 'Всё в порядке',
@@ -889,14 +983,25 @@ def rounds_journal_export(request):
 
 @_rounds_monitor_required
 def defects_list(request):
-    defects = Defect.objects.select_related('point', 'reported_by__user', 'resolved_by').order_by('-created_at')
+    defects = Defect.objects.select_related(
+        'point', 'reported_by__user', 'resolved_by', 'visit__checklist',
+    ).order_by('-created_at')
     status_filter = request.GET.get('status')
     if status_filter:
         defects = defects.filter(status=status_filter)
+    # По какому чек-листу записана неисправность — в одном помещении работают
+    # несколько служб, и каждой нужны свои (например, только электрика).
+    checklist_filter = (request.GET.get('checklist') or '').strip()
+    if checklist_filter.isdigit():
+        defects = defects.filter(visit__checklist_id=int(checklist_filter))
 
     return render(request, 'site/ecopark/defects_list.html', {
         'defects': defects,
         'status_choices': Defect.STATUS_CHOICES,
+        'checklist_filter': checklist_filter,
+        'defect_checklists': ChecklistTemplate.objects.filter(
+            visits__defects__isnull=False,
+        ).distinct().order_by('name'),
     })
 
 

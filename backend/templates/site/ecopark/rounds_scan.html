@@ -45,6 +45,12 @@
     color: #fff; font-size: 14px; font-weight: 600; margin-top: 16px; cursor: pointer;
   }
   .round-scan-submit:disabled { opacity: .6; }
+  .round-choice {
+    display: block; background: #fff; border: 1px solid #eceaf3; border-radius: 16px;
+    padding: 16px; margin-bottom: 10px; font-size: 15px; font-weight: 600; color: #25233f;
+    text-decoration: none;
+  }
+  .round-choice:hover { border-color: #2f6bed; color: #2f6bed; }
 </style>
 {% endblock %}
 
@@ -60,12 +66,24 @@
     <div class="round-scan-header">
       <h1>{{ point.name }}</h1>
       {% if point.location %}<p>{{ point.location }}</p>{% endif %}
+      {% if checklist %}
+        <p><i class="bi bi-list-check"></i> {{ checklist.name }}
+          {% if has_other_checklists %}· <a href="{% url 'ecopark:rounds_scan' point.uuid %}">другой чек-лист</a>{% endif %}
+        </p>
+      {% endif %}
       {% if can_view_history %}
-        <p><a href="{% url 'ecopark:round_point_history' point.pk %}"><i class="bi bi-clock-history"></i> История помещения</a></p>
+        <p><a href="{% url 'ecopark:round_point_history' point.pk %}"><i class="bi bi-clock-history"></i> Отчёт по помещению</a></p>
       {% endif %}
     </div>
 
-    {% if errors %}
+    {% if checklist_options %}
+      <div class="round-scan-alert round-scan-alert--info">Выберите, какой чек-лист проходите:</div>
+      {% for option in checklist_options %}
+        <a class="round-choice" href="?checklist={{ option.pk }}">
+          <i class="bi bi-list-check"></i> {{ option.name }}
+        </a>
+      {% endfor %}
+    {% elif errors %}
       <div class="round-scan-alert round-scan-alert--error">
         {% for e in errors %}<div>«{{ e.item }}»: <span>{{ e.msg }}</span></div>{% endfor %}
       </div>
@@ -78,6 +96,7 @@
     {% if items %}
     <form method="post" enctype="multipart/form-data" id="roundScanForm">
       {% csrf_token %}
+      {% if checklist %}<input type="hidden" name="checklist" value="{{ checklist.pk }}">{% endif %}
       <input type="hidden" name="latitude" id="roundScanLat">
       <input type="hidden" name="longitude" id="roundScanLng">
 
