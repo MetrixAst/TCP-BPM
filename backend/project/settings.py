@@ -335,6 +335,9 @@ ONE_C_SYNC_SINCE_DAYS = config('ONE_C_SYNC_SINCE_DAYS', default=90, cast=int)
 ONE_C_TIMEOUT = config('ONE_C_TIMEOUT', default=30, cast=int)
 
 # Metrix Auth Gateway — единый вход мобильного приложения для всех ТРЦ
+# Аккаунт, под которым App Review проверяет приложение (seed_review_demo).
+REVIEW_DEMO_USERNAME = config('REVIEW_DEMO_USERNAME', default='apple_review')
+
 AUTH_GATEWAY_URL = config('AUTH_GATEWAY_URL', default='')
 AUTH_GATEWAY_API_KEY = config('AUTH_GATEWAY_API_KEY', default='')
 AUTH_GATEWAY_LOGIN_SECRET = config('AUTH_GATEWAY_LOGIN_SECRET', default='')

@@ -17,7 +17,7 @@ class SeedReviewDemoTest(TestCase):
         company = Company.objects.create(name='Demo Co', bin_number='111222333444')
         department = Department.objects.create(name='Эксплуатация', company=company)
         self.user = UserAccount.objects.create_user(
-            username='appreview', password='pass', role='staff',
+            username='apple_review', password='pass', role='staff',
         )
         self.employee = Employee.objects.create(
             user=self.user, department=department, status='active',

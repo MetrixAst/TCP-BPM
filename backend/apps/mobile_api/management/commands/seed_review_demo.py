@@ -12,6 +12,7 @@ Apple отклонила сборку по 2.3.3 из-за того, что на
 
 from datetime import datetime, time, timedelta, timezone as dt_timezone
 
+from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
@@ -89,7 +90,7 @@ class Command(BaseCommand):
     help = 'Наполняет демо-данными аккаунт для проверки в App Store'
 
     def add_arguments(self, parser):
-        parser.add_argument('--username', default='appreview')
+        parser.add_argument('--username', default=settings.REVIEW_DEMO_USERNAME)
 
     @transaction.atomic
     def handle(self, *args, **options):
