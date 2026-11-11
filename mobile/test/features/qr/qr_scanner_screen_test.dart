@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:metrix_app/features/qr/presentation/qr_scanner_screen.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 const _permissionsChannel = MethodChannel('flutter.baseflow.com/permissions/methods');
 const _cameraPermission = 1;
@@ -21,8 +24,10 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(_permissionsChannel, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      _permissionsChannel,
+      null,
+    );
   });
 
   testWidgets('без разрешения на камеру показывает просьбу разрешить, а не ошибку', (tester) async {
@@ -32,7 +37,8 @@ void main() {
 
     expect(find.text('Разрешить доступ'), findsOneWidget);
     expect(find.textContaining('Нет доступа к камере'), findsOneWidget);
-    expect(find.text('Выбрать фото QR из галереи'), findsOneWidget);
+    expect(find.textContaining('Сфотографировать'), findsNothing);
+    expect(find.textContaining('галере'), findsNothing);
     expect(find.textContaining('unexpected'), findsNothing);
   });
 
@@ -63,9 +69,68 @@ void main() {
     }
 
     expect(facings, [1, 1, 0, 0]);
-    expect(find.text('Сфотографировать QR'), findsOneWidget);
+    expect(find.text('Повторить'), findsOneWidget);
+    expect(find.textContaining('Сфотографировать'), findsNothing);
+    expect(find.textContaining('галере'), findsNothing);
     expect(find.text('Код: MOBILE_SCANNER_GENERIC_ERROR'), findsOneWidget);
   });
+
+  testWidgets(
+    'если сканер закрыли во время запуска камеры, при повторном открытии показывает камеру, а не чёрный экран',
+    (tester) async {
+      _mockCameraStatus(1);
+      const scannerChannel = MethodChannel('dev.steenbakker.mobile_scanner/scanner/method');
+      final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      final calls = <String>[];
+      Completer<void>? holdStart = Completer<void>();
+      messenger.setMockMethodCallHandler(scannerChannel, (call) async {
+        calls.add(call.method);
+        switch (call.method) {
+          case 'state':
+            return 1;
+          case 'start':
+            final hold = holdStart;
+            if (hold != null) await hold.future;
+            return {
+              'textureId': 7,
+              'numberOfCameras': 2,
+              'currentTorchState': -1,
+              'size': {'width': 480.0, 'height': 640.0},
+            };
+        }
+        return null;
+      });
+      messenger.setMockStreamHandler(
+        const EventChannel('dev.steenbakker.mobile_scanner/scanner/event'),
+        MockStreamHandler.inline(onListen: (_, __) {}),
+      );
+      addTearDown(() async {
+        await MobileScannerPlatform.instance.stop();
+        messenger.setMockMethodCallHandler(scannerChannel, null);
+      });
+
+      // Камера долго запускается, а пользователь уходит с экрана.
+      await tester.pumpWidget(const MaterialApp(home: QrScannerScreen()));
+      await tester.pump();
+      await tester.pump();
+      expect(calls, contains('start'));
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+      // Нативный старт всё равно завершается — уже после закрытия экрана.
+      holdStart.complete();
+      holdStart = null;
+      await tester.pump();
+
+      calls.clear();
+      await tester.pumpWidget(const MaterialApp(home: QrScannerScreen()));
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+
+      expect(calls, containsAllInOrder(['stop', 'start']));
+      expect(find.byType(Texture), findsOneWidget);
+      expect(find.text('Наведите камеру на QR-код'), findsOneWidget);
+    },
+  );
 
   testWidgets('при запрете «больше не спрашивать» ведёт в настройки', (tester) async {
     _mockCameraStatus(4);

@@ -6,6 +6,7 @@ import 'package:metrix_app/core/database/local_data_cleaner.dart';
 import 'package:metrix_app/features/auth/data/auth_repository.dart';
 import 'package:metrix_app/features/auth/data/auth_tokens.dart';
 import 'package:metrix_app/core/network/api_result.dart';
+import 'package:metrix_app/core/network/server_config.dart';
 
 class MockDio extends Mock implements Dio {}
 class MockSecureStorage extends Mock implements FlutterSecureStorage {}
@@ -146,7 +147,7 @@ void main() {
       expect(result, isA<Success<AuthTokens>>());
       verify(() => storage.write(key: 'auth_access_token', value: 'access123')).called(1);
     });
-  });
+  }, skip: ServerConfig.usesGateway ? 'вход через шлюз — см. auth_gateway_login_test' : false);
 
   group('refresh', () {
     test('успешный refresh обновляет access token', () async {

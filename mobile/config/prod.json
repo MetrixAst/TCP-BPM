@@ -1,3 +1,4 @@
 {
-  "BASE_URL": "https://94-131-230-101.sslip.io"
+  "BASE_URL": "https://94-131-230-101.sslip.io",
+  "AUTH_GATEWAY_URL": "https://gateway.metrix.com.ai"
 }
