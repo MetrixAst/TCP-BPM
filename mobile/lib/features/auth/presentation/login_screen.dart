@@ -169,6 +169,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         controller: _usernameController,
                         label: 'Логин',
                         icon: Icons.person_outline,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        autofillHints: const [AutofillHints.username],
+                        textInputAction: TextInputAction.next,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Введите логин';
@@ -182,6 +186,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         label: 'Пароль',
                         icon: Icons.lock_outline,
                         obscureText: true,
+                        autofillHints: const [AutofillHints.password],
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) {
+                          if (!_isLoading) _handleLogin();
+                        },
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Введите пароль';
