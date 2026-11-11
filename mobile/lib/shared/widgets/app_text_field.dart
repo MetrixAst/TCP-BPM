@@ -8,6 +8,11 @@ class AppTextField extends StatelessWidget {
   final bool obscureText;
   final IconData? icon;
   final String? Function(String?)? validator;
+  final bool autocorrect;
+  final bool enableSuggestions;
+  final TextCapitalization textCapitalization;
+  final TextInputType? keyboardType;
+  final Iterable<String>? autofillHints;
 
   const AppTextField({
     super.key,
@@ -16,6 +21,11 @@ class AppTextField extends StatelessWidget {
     this.obscureText = false,
     this.icon,
     this.validator,
+    this.autocorrect = true,
+    this.enableSuggestions = true,
+    this.textCapitalization = TextCapitalization.none,
+    this.keyboardType,
+    this.autofillHints,
   });
 
   @override
@@ -24,6 +34,11 @@ class AppTextField extends StatelessWidget {
       controller: controller,
       obscureText: obscureText,
       validator: validator,
+      autocorrect: autocorrect,
+      enableSuggestions: enableSuggestions,
+      textCapitalization: textCapitalization,
+      keyboardType: keyboardType,
+      autofillHints: autofillHints,
       style: const TextStyle(fontFamily: 'Inter', fontSize: 15),
       decoration: InputDecoration(
         labelText: label,

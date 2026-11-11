@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -162,6 +164,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ],
           ),
+          const SizedBox(height: AppSpacing.xl),
+          const _SectionLabel('ПОДДЕРЖКА'),
+          const SizedBox(height: AppSpacing.sm),
+          const _SupportGroup(),
         ],
       ),
     );
@@ -337,6 +343,93 @@ class _InfoRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Контакты поддержки (App Store Guideline 1.5).
+class SupportContacts {
+  static const email = 'info@avantage.one';
+  static const phones = ['+7 707 243 75 37', '+7 747 687 38 51'];
+  static const pageUrl = 'https://94-131-230-101.sslip.io/support';
+  static const company = 'ТОО «Avantage One»';
+}
+
+class _SupportGroup extends StatelessWidget {
+  const _SupportGroup();
+
+  Future<void> _open(BuildContext context, Uri uri, String copyText) async {
+    final messenger = ScaffoldMessenger.of(context);
+    var opened = false;
+    try {
+      opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      opened = false;
+    }
+    if (!opened) {
+      await Clipboard.setData(ClipboardData(text: copyText));
+      messenger.showSnackBar(SnackBar(content: Text('Скопировано: $copyText')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <Widget>[
+      _ActionRow(
+        icon: Icons.mail_outline,
+        label: 'Эл. почта',
+        value: SupportContacts.email,
+        onTap: () => _open(
+          context,
+          Uri(scheme: 'mailto', path: SupportContacts.email, queryParameters: {'subject': 'Metrix App'}),
+          SupportContacts.email,
+        ),
+      ),
+      for (final phone in SupportContacts.phones) ...[
+        const _RowDivider(),
+        _ActionRow(
+          icon: Icons.call_outlined,
+          label: 'Телефон',
+          value: phone,
+          onTap: () => _open(context, Uri(scheme: 'tel', path: phone.replaceAll(' ', '')), phone),
+        ),
+      ],
+      const _RowDivider(),
+      _ActionRow(
+        icon: Icons.help_outline,
+        label: 'Страница поддержки',
+        value: SupportContacts.company,
+        onTap: () => _open(context, Uri.parse(SupportContacts.pageUrl), SupportContacts.pageUrl),
+      ),
+    ];
+    return _ListGroup(children: rows);
+  }
+}
+
+class _ActionRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  const _ActionRow({required this.icon, required this.label, required this.value, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Row(
+          children: [
+            Expanded(child: _InfoRow(icon: icon, label: label, value: value)),
+            const Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: Icon(Icons.chevron_right, size: 20, color: MetrixColors.textMuted),
+            ),
+          ],
+        ),
       ),
     );
   }
