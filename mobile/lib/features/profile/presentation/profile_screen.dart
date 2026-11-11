@@ -160,7 +160,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
               if (employee?.status != null) ...[
                 const _RowDivider(),
-                _InfoRow(icon: Icons.verified_user_outlined, label: 'Статус', value: employee!.status),
+                _InfoRow(icon: Icons.verified_user_outlined, label: 'Статус', value: employeeStatusLabel(employee!.status)),
               ],
             ],
           ),
@@ -347,6 +347,15 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
+
+/// Коды статусов сотрудника из hr.enums.EmployeeStatusEnum.
+String employeeStatusLabel(String status) => switch (status) {
+      'active' => 'Активен',
+      'dismissed' => 'Уволен',
+      'vacation' => 'В отпуске',
+      'sick_leave' => 'На больничном',
+      _ => status,
+    };
 
 /// Контакты поддержки (App Store Guideline 1.5).
 class SupportContacts {
