@@ -352,7 +352,7 @@ class _InfoRow extends StatelessWidget {
 class SupportContacts {
   static const email = 'info@avantage.one';
   static const phones = ['+7 707 243 75 37', '+7 747 687 38 51'];
-  static const pageUrl = 'https://94-131-230-101.sslip.io/support';
+  static const pageUrl = 'https://gateway.metrix.com.ai/support';
   static const company = 'ТОО «Avantage One»';
 }
 

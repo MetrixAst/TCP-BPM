@@ -13,6 +13,8 @@ class AppTextField extends StatefulWidget {
   final TextCapitalization textCapitalization;
   final TextInputType? keyboardType;
   final Iterable<String>? autofillHints;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onFieldSubmitted;
 
   const AppTextField({
     super.key,
@@ -26,6 +28,8 @@ class AppTextField extends StatefulWidget {
     this.textCapitalization = TextCapitalization.none,
     this.keyboardType,
     this.autofillHints,
+    this.textInputAction,
+    this.onFieldSubmitted,
   });
 
   @override
@@ -46,6 +50,8 @@ class _AppTextFieldState extends State<AppTextField> {
       textCapitalization: widget.textCapitalization,
       keyboardType: widget.keyboardType,
       autofillHints: widget.autofillHints,
+      textInputAction: widget.textInputAction,
+      onFieldSubmitted: widget.onFieldSubmitted,
       style: const TextStyle(fontFamily: 'Inter', fontSize: 15),
       decoration: InputDecoration(
         labelText: widget.label,
