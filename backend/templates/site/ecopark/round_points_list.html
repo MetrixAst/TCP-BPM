@@ -72,7 +72,12 @@
               {% endif %}
             </td>
             <td>{{ point.eco_object.name|default:"—" }}</td>
-            <td>{{ point.checklist.name|default:"—" }}</td>
+            <td>
+              {{ point.checklist.name|default:"—" }}
+              {% with extra=point.checklist_rules.all|length %}
+                {% if extra %}<div style="font-size:12px;color:#74728a;">+ <span>Чек-листы по должностям</span>: {{ extra }}</div>{% endif %}
+              {% endwith %}
+            </td>
             <td>
               {% if point.responsible_employee %}
                 <strong>{{ point.responsible_employee.get_display_name }}</strong>

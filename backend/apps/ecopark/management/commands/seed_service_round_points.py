@@ -1,8 +1,14 @@
 """
-Разносит служебные помещения на отдельные точки обхода для клининга и эксплуатации:
-свой чек-лист, свой отдел, свой QR (uuid точки).
+Служебные помещения: одна точка обхода и один QR на помещение. Клининг и
+эксплуатация сканируют один код, а приложение выдаёт каждому чек-лист его
+отдела (правила RoundPointChecklist).
 
-Идемпотентно: повторный запуск обновляет чек-листы/привязки, не дублирует точки.
+Раньше команда заводила на помещение две точки — «[Клининг] …» и
+«[Эксплуатация] …» со своими QR. При запуске такие пары сливаются в одну
+точку: отметки, неисправности, оборудование и маршруты переносятся, старые
+точки деактивируются.
+
+Идемпотентно: повторный запуск ничего не дублирует.
 """
 
 from django.core.management.base import BaseCommand
@@ -10,6 +16,7 @@ from django.db import transaction
 
 from account.models import Department
 from ecopark.models import ChecklistItem, ChecklistTemplate, EcoObject, RoundPoint
+from ecopark.point_merge import ensure_rule, merge_points
 
 
 CLEANING_CHECKLIST = {
@@ -36,7 +43,7 @@ OPS_CHECKLIST = {
     ],
 }
 
-# Помещения → две точки: клининг + эксплуатация
+# Помещение → одна точка, чек-листы клининга и эксплуатации со своими интервалами
 SERVICE_ROOMS = [
     {
         'room_key': 'entrance',
@@ -96,7 +103,8 @@ SERVICE_ROOMS = [
     },
 ]
 
-# Боевые комнаты на сервере → тоже разносим на пару QR (клининг + эксплуатация)
+# Боевые комнаты на сервере: исходная точка (source_names) становится общей —
+# её QR, если уже напечатан, продолжает работать для обеих служб.
 PRODUCTION_ROOMS = [
     {
         'room_key': 'prod_cleaning',
@@ -145,14 +153,7 @@ PRODUCTION_ROOMS = [
     },
 ]
 
-# Старые демо-точки без префикса отдела → переносим в эксплуатацию
-LEGACY_NAME_TO_ROOM = {
-    'Входная группа': 'entrance',
-    'Техническое помещение': 'tech',
-    'Выход на кровлю': 'roof',
-    'Эвакуационный выход': 'evac',
-    'Электрощитовая': 'electrical',
-}
+SERVICE_PREFIXES = ('Эксплуатация', 'Клининг')
 
 
 def _ensure_checklist(spec: dict) -> ChecklistTemplate:
@@ -202,119 +203,87 @@ def _point_name(prefix: str, base_name: str) -> str:
     return f'[{prefix}] {base_name}'
 
 
+def _find_room_points(room: dict) -> list[RoundPoint]:
+    """Все точки этого помещения: исходная боевая, без префикса и старые
+    «[Эксплуатация] …» / «[Клининг] …». Первая станет общей — её QR сохраняется."""
+    names = list(room.get('source_names') or []) + [room['base_name']] + [
+        _point_name(prefix, room['base_name']) for prefix in SERVICE_PREFIXES
+    ]
+    points = []
+    for name in names:
+        for point in RoundPoint.objects.filter(name=name).order_by('pk'):
+            if point not in points:
+                points.append(point)
+    # Общей делаем включённую точку, чтобы помещение не выпало из обхода;
+    # среди включённых — по порядку names (исходная боевая точка первой).
+    points.sort(key=lambda point: not point.is_active)
+    return points
+
+
 class Command(BaseCommand):
     help = (
-        'Создаёт отдельные точки обхода для клининга и эксплуатации '
-        'со своими чек-листами и QR'
+        'Служебные помещения: одна точка и один QR на помещение, чек-листы '
+        'клининга и эксплуатации по отделу. Сливает старые пары точек [Клининг]/[Эксплуатация].'
     )
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--deactivate-legacy',
-            action='store_true',
-            help='Деактивировать старые точки без префикса [Клининг]/[Эксплуатация]',
-        )
+        # Оставлен, чтобы не ломать старые инструкции запуска: старые точки
+        # теперь сливаются в общие всегда.
+        parser.add_argument('--deactivate-legacy', action='store_true', help='Больше не нужен')
 
     @transaction.atomic
     def handle(self, *args, **options):
         cleaning_dept = _dept_by_name('Клининг')
         ops_dept = _dept_by_name('Эксплуатация')
         if cleaning_dept is None:
-            self.stdout.write(self.style.WARNING('Отдел «Клининг» не найден — точки клининга без отдела'))
+            self.stdout.write(self.style.WARNING('Отдел «Клининг» не найден — чек-лист клининга не назначен'))
         if ops_dept is None:
-            self.stdout.write(self.style.WARNING('Отдел «Эксплуатация» не найден — точки эксплуатации без отдела'))
+            self.stdout.write(self.style.WARNING('Отдел «Эксплуатация» не найден — чек-лист эксплуатации не назначен'))
 
         cleaning_cl = _ensure_checklist(CLEANING_CHECKLIST)
         ops_cl = _ensure_checklist(OPS_CHECKLIST)
         self.stdout.write(f'Чек-листы: «{cleaning_cl.name}», «{ops_cl.name}»')
 
-        created = updated = 0
-
-        # Переименовать legacy-точки в эксплуатационные, если ещё без префикса
-        for legacy_name, room_key in LEGACY_NAME_TO_ROOM.items():
-            room = next(r for r in SERVICE_ROOMS if r['room_key'] == room_key)
-            target = _point_name('Эксплуатация', room['base_name'])
-            legacy = RoundPoint.objects.filter(name=legacy_name).first()
-            if legacy and not RoundPoint.objects.filter(name=target).exclude(pk=legacy.pk).exists():
-                legacy.name = target
-                legacy.save(update_fields=['name'])
-                self.stdout.write(f'  ~ legacy «{legacy_name}» → «{target}»')
-
-        def upsert_pair(room: dict):
-            nonlocal created, updated
-            eco = _eco_by_name(room['eco_object'])
-            # Перенос локации из исходной боевой точки, если есть
-            source = None
-            for src_name in room.get('source_names') or []:
-                source = RoundPoint.objects.filter(name=src_name).first()
-                if source:
-                    break
-            location = room['location'] or (source.location if source else '')
-            if source and source.eco_object_id and eco is None:
-                eco = source.eco_object
-
-            for prefix, dept, checklist, interval in (
-                ('Клининг', cleaning_dept, cleaning_cl, room['interval_cleaning']),
-                ('Эксплуатация', ops_dept, ops_cl, room['interval_ops']),
-            ):
-                name = _point_name(prefix, room['base_name'])
-                point, was_created = RoundPoint.objects.get_or_create(
-                    name=name,
-                    defaults={
-                        'location': location,
-                        'eco_object': eco,
-                        'checklist': checklist,
-                        'responsible_department': dept,
-                        'check_interval_hours': interval,
-                        'is_active': True,
-                    },
-                )
-                fields = []
-                if location and point.location != location:
-                    point.location = location
-                    fields.append('location')
-                if eco and point.eco_object_id != eco.pk:
-                    point.eco_object = eco
-                    fields.append('eco_object')
-                if point.checklist_id != checklist.pk:
-                    point.checklist = checklist
-                    fields.append('checklist')
-                if dept and point.responsible_department_id != dept.pk:
-                    point.responsible_department = dept
-                    fields.append('responsible_department')
-                if point.check_interval_hours != interval:
-                    point.check_interval_hours = interval
-                    fields.append('check_interval_hours')
-                if not point.is_active:
-                    point.is_active = True
-                    fields.append('is_active')
-                if fields:
-                    point.save(update_fields=fields)
-                    updated += 1
-                if was_created:
-                    created += 1
-                    self.stdout.write(f'  + {name}  QR={point.uuid}')
-                else:
-                    self.stdout.write(f'  = {name}  QR={point.uuid}')
-
-            # Исходную боевую точку без префикса оставляем, но помечаем в имени через comment в логе
-            if source and source.is_active and not source.name.startswith('['):
-                self.stdout.write(
-                    f'  i исходная «{source.name}» оставлена активной '
-                    f'(новые QR — с префиксами [Клининг]/[Эксплуатация])'
-                )
-
+        created = merged = 0
         for room in SERVICE_ROOMS + PRODUCTION_ROOMS:
-            upsert_pair(room)
-        if options.get('deactivate_legacy'):
-            # Только известные демо-имена без префикса — чужие боевые точки не трогаем.
-            n = RoundPoint.objects.filter(
-                name__in=list(LEGACY_NAME_TO_ROOM.keys()),
-                is_active=True,
-            ).update(is_active=False)
-            self.stdout.write(f'Деактивировано demo legacy-точек: {n}')
+            points = _find_room_points(room)
+            if points:
+                point, others = points[0], points[1:]
+            else:
+                point, others = RoundPoint.objects.create(name=room['base_name']), []
+                created += 1
+
+            # Чек-листы служб — правилами по отделу, а не основным чек-листом точки.
+            if room.get('source_names') is None or point.name not in room['source_names']:
+                point.name = room['base_name']
+            point.location = room['location'] or point.location
+            point.eco_object = _eco_by_name(room['eco_object']) or point.eco_object
+            point.checklist = None
+            point.responsible_department = None
+            point.check_interval_hours = min(room['interval_cleaning'], room['interval_ops'])
+            # is_active не трогаем: помещение, выключенное админом на сайте
+            # (например, демо, которого нет в этом ТРЦ), остаётся выключенным.
+            point.save()
+
+            if others:
+                merge_points(point, others)
+                merged += len(others)
+            # Правила, перенесённые слиянием со старых точек, заменяем эталонными.
+            point.checklist_rules.filter(checklist__in=[cleaning_cl, ops_cl]).exclude(
+                department__in=[d for d in (cleaning_dept, ops_dept) if d],
+            ).delete()
+            for dept, checklist, interval in (
+                (cleaning_dept, cleaning_cl, room['interval_cleaning']),
+                (ops_dept, ops_cl, room['interval_ops']),
+            ):
+                if dept is not None:
+                    ensure_rule(point, checklist, department=dept, interval_hours=interval)
+
+            merged_note = f' (слиты: {", ".join(p.name for p in others)})' if others else ''
+            self.stdout.write(f'  {point.name}  QR={point.uuid}{merged_note}')
 
         self.stdout.write(self.style.SUCCESS(
-            f'\nГотово: создано {created}, обновлено {updated}. '
-            f'QR-этикетка: /ecopark/rounds/points/<id>/label/'
+            f'\nГотово: создано точек {created}, слито старых точек {merged}. '
+            f'Старые QR [Клининг]/[Эксплуатация] больше не действуют — распечатайте QR общих точек: '
+            f'/ecopark/rounds/points/<id>/label/'
         ))

@@ -4,7 +4,31 @@
 {% block title %}Неисправности — metriX BPM{% endblock %}
 
 {% block styles %}
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'site/css/vendor/select2-bootstrap4.min.css' %}" />
 <link rel="stylesheet" href="{% static 'site/css/apps/hr.css' %}?v={{ static_version|default:'1' }}">
+<style>
+  /* Фильтр по чек-листу — в строке вкладок, справа; та же «пилюля» select2,
+     что у фильтров реестров (см. #marFilterForm в hr.css). */
+  #defectsChecklistFilter { margin-left: auto; width: 300px; }
+  #defectsChecklistFilter .select2-container { width: 100% !important; }
+  #defectsChecklistFilter .select2-container--bootstrap4 .select2-selection--single {
+    height: 32px !important; min-height: 32px !important; border: 0 !important;
+    border-radius: 999px !important; background: #f5f3fa !important; box-shadow: none !important;
+    display: flex; align-items: center;
+  }
+  #defectsChecklistFilter .select2-selection__rendered {
+    height: 32px !important; line-height: 32px !important;
+    padding-left: 16px !important; padding-right: 34px !important;
+    color: #25233f !important; font-size: 13px !important; font-weight: 500;
+  }
+  #defectsChecklistFilter .select2-selection__arrow {
+    top: 0 !important; height: 32px !important; right: 10px !important;
+  }
+  @media (max-width: 760px) {
+    #defectsChecklistFilter { margin-left: 0; width: 100%; }
+  }
+</style>
 {% endblock styles %}
 
 {% block content %}
@@ -19,10 +43,22 @@
 
   <div class="hr-registry-panel">
     <div class="hr-registry-tabs">
-      <a href="{% url 'ecopark:defects_list' %}" class="hr-registry-tab {% if not request.GET.status %}is-active{% endif %}">Все</a>
+      <a href="{% url 'ecopark:defects_list' %}{% if checklist_filter %}?checklist={{ checklist_filter }}{% endif %}" class="hr-registry-tab {% if not request.GET.status %}is-active{% endif %}">Все</a>
       {% for value, label in status_choices %}
-        <a href="{% url 'ecopark:defects_list' %}?status={{ value }}" class="hr-registry-tab {% if request.GET.status == value %}is-active{% endif %}">{{ label }}</a>
+        <a href="{% url 'ecopark:defects_list' %}?status={{ value }}{% if checklist_filter %}&checklist={{ checklist_filter }}{% endif %}" class="hr-registry-tab {% if request.GET.status == value %}is-active{% endif %}">{{ label }}</a>
       {% endfor %}
+
+      {% if defect_checklists %}
+      <form method="get" id="defectsChecklistFilter">
+        {% if request.GET.status %}<input type="hidden" name="status" value="{{ request.GET.status }}">{% endif %}
+        <select name="checklist" aria-label="Чек-лист">
+          <option value="">Все чек-листы</option>
+          {% for cl in defect_checklists %}
+            <option value="{{ cl.pk }}" {% if checklist_filter == cl.pk|stringformat:"d" %}selected{% endif %}>{{ cl.name }}</option>
+          {% endfor %}
+        </select>
+      </form>
+      {% endif %}
     </div>
 
     <div class="hr-registry-table-wrap">
@@ -30,6 +66,7 @@
         <thead>
           <tr>
             <th>Точка</th>
+            <th>Чек-лист</th>
             <th>Описание</th>
             <th>Обнаружил</th>
             <th>Когда</th>
@@ -42,6 +79,7 @@
           {% for defect in defects %}
           <tr>
             <td>{{ defect.point.name }}</td>
+            <td>{{ defect.visit.checklist.name|default:"—" }}</td>
             <td>
               {{ defect.description }}
               {% if defect.photo %}
@@ -89,7 +127,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="7">
+            <td colspan="8">
               <div class="hr-registry-empty">
                 <i class="bi bi-check-circle"></i>
                 <strong>Неисправностей нет</strong>
@@ -105,3 +143,24 @@
 
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script src="{% static 'site/js/vendor/select2.full.min.js' %}"></script>
+<script>
+(function () {
+  var form = document.getElementById('defectsChecklistFilter');
+  if (!form) return;
+  var select = form.querySelector('select');
+  var $ = window.jQuery;
+  if ($ && $.fn.select2) {
+    $(select).select2({
+      width: '100%',
+      theme: 'bootstrap4',
+      minimumResultsForSearch: Infinity,
+    }).on('change', function () { form.submit(); });
+  } else {
+    select.addEventListener('change', function () { form.submit(); });
+  }
+})();
+</script>
+{% endblock scripts %}

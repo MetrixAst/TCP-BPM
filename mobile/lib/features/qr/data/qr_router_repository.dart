@@ -59,6 +59,7 @@ class QrRouterRepository {
             pointName: data['point_name'] as String? ?? '',
             plannedRoundId: data['planned_round_id'] as int?,
             canVisit: data['can_visit'] as bool? ?? data['planned_round_id'] != null,
+            canViewReport: data['can_view_report'] as bool? ?? false,
           ));
         default:
           return const Failure('QR-код не распознан');

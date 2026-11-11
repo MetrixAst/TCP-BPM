@@ -42,7 +42,6 @@
       <div class="rph-meta">
         {% if point.location %}{{ point.location }} · {% endif %}
         {% if point.responsible_department %}{{ point.responsible_department.name }}{% endif %}
-        {% if point.checklist %} · чек-лист «{{ point.checklist.name }}»{% endif %}
       </div>
     </div>
     <div class="hr-registry-top__actions">
@@ -79,6 +78,56 @@
     </div>
   </div>
 
+  <div class="hr-registry-panel" style="margin-bottom:14px;">
+    <div class="hr-registry-table-wrap">
+      <table class="hr-registry-table">
+        <thead>
+          <tr>
+            <th>Чек-лист</th>
+            <th>Кто проверяет</th>
+            <th>Интервал, ч</th>
+            <th>Последняя проверка</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for slot in slots %}
+          <tr>
+            <td>{% if slot.checklist %}{{ slot.checklist.name }}{% else %}Без чек-листа{% endif %}</td>
+            <td>{{ slot.assignee }}</td>
+            <td>{{ slot.interval_hours }}</td>
+            <td>
+              {% if slot.last_visit %}
+                {{ slot.last_visit.created_at|date:"d.m.Y H:i" }},
+                {{ slot.last_visit.employee.user.get_full_name|default:slot.last_visit.employee.user.username }}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if slot.is_overdue %}
+                <span class="rj-check-badge rj-check-badge--fail">Просрочено</span>
+              {% else %}
+                <span class="rj-check-badge rj-check-badge--ok">В графике</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if open_defects %}
+  <div class="hr-registry-panel" style="margin-bottom:14px;padding:14px 18px;">
+    <strong><span>Открытые неисправности</span>: {{ open_defects|length }}</strong>
+    <ul class="rph-fail-list">
+      {% for defect in open_defects %}
+        <li>{{ defect.created_at|date:"d.m.Y" }} — {{ defect.description }}{% if defect.visit.checklist %} <span class="hr-muted">({{ defect.visit.checklist.name }})</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    <a href="{% url 'ecopark:defects_list' %}" style="font-size:13px;">Все неисправности</a>
+  </div>
+  {% endif %}
+
   <form method="get" class="rj-filters">
     <div>
       <label>С даты</label>
@@ -112,6 +161,7 @@
             <td>{{ visit.employee.user.get_full_name|default:visit.employee.user.username }}</td>
             <td>{{ visit.employee.department.name|default:"—" }}</td>
             <td>
+              {% if visit.checklist %}<div style="font-size:13px;margin-bottom:4px;">{{ visit.checklist.name }}</div>{% endif %}
               {% if visit.failed_answers %}
                 <span class="rj-check-badge rj-check-badge--fail"><i class="bi bi-exclamation-triangle"></i> Несоответствий: {{ visit.failed_answers|length }}</span>
                 <ul class="rph-fail-list">

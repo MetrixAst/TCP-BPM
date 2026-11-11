@@ -17,6 +17,7 @@ import '../features/qr/presentation/qr_scanner_screen.dart';
 import '../features/qr/presentation/office_qr_confirm_screen.dart';
 import '../features/qr/data/qr_scan_target.dart';
 import '../features/rounds/presentation/round_point_confirm_screen.dart';
+import '../features/rounds/presentation/round_point_report_screen.dart';
 import '../features/rounds/presentation/rounds_today_screen.dart';
 import '../features/rounds/presentation/rounds_history_screen.dart';
 import '../features/rounds/presentation/route_detail_screen.dart';
@@ -75,6 +76,13 @@ final router = GoRouter(
     GoRoute(
       path: '/rounds/point-confirm',
       builder: (context, state) => RoundPointConfirmScreen(target: state.extra as RoundScanTarget),
+    ),
+    GoRoute(
+      path: '/rounds/point-report',
+      builder: (context, state) {
+        final target = state.extra as RoundScanTarget;
+        return RoundPointReportScreen(pointUuid: target.pointUuid, pointName: target.pointName);
+      },
     ),
     GoRoute(path: '/rounds/today', builder: (context, state) => const RoundsTodayScreen()),
     GoRoute(path: '/rounds/history', builder: (context, state) => const RoundsHistoryScreen()),

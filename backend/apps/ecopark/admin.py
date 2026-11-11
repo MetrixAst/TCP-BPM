@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     EcoObject, EcoExecutor, EcoWork,
-    RoundPoint, ChecklistTemplate, ChecklistItem, Equipment,
+    RoundPoint, RoundPointChecklist, ChecklistTemplate, ChecklistItem, Equipment,
     RoundVisit, RoundVisitAnswer, Defect,
 )
 
@@ -19,6 +19,11 @@ class ChecklistItemInline(admin.TabularInline):
 class ChecklistTemplateAdmin(admin.ModelAdmin):
     list_display = ('name', 'is_active', 'created_by', 'created_at')
     inlines = [ChecklistItemInline]
+
+
+class RoundPointChecklistInline(admin.TabularInline):
+    model = RoundPointChecklist
+    extra = 0
 
 
 class EquipmentInline(admin.TabularInline):
@@ -40,7 +45,7 @@ class RoundPointAdmin(admin.ModelAdmin):
         'created_at',
     )
     list_filter = ('is_active', 'checklist', 'responsible_department')
-    inlines = [EquipmentInline]
+    inlines = [RoundPointChecklistInline, EquipmentInline]
 
 
 class RoundVisitAnswerInline(admin.TabularInline):

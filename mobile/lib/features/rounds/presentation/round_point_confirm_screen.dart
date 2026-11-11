@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
@@ -18,8 +19,9 @@ import '../data/rounds_repository.dart';
 
 class RoundPointConfirmScreen extends StatefulWidget {
   final RoundScanTarget target;
+  final RoundsRepository? repository;
 
-  const RoundPointConfirmScreen({super.key, required this.target});
+  const RoundPointConfirmScreen({super.key, required this.target, this.repository});
 
   @override
   State<RoundPointConfirmScreen> createState() => _RoundPointConfirmScreenState();
@@ -31,6 +33,9 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   bool _done = false;
+  // На помещении несколько чек-листов, доступных этому сотруднику, и он ещё
+  // не выбрал, какой проходит.
+  bool _choosingChecklist = false;
   String? _loadError;
   String? _submitError;
   RoundPointDetail? _detail;
@@ -45,7 +50,7 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
   @override
   void initState() {
     super.initState();
-    _repository = RoundsRepository(dio: DioClient().dio);
+    _repository = widget.repository ?? RoundsRepository(dio: DioClient().dio);
     _load();
     _resolveLocation();
   }
@@ -83,14 +88,30 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
     }
   }
 
-  Future<void> _load() async {
-    final result = await _repository.getPointDetail(widget.target.pointUuid);
+  Future<void> _load({int? checklistId}) async {
+    if (!_isLoading) {
+      setState(() {
+        _isLoading = true;
+        _loadError = null;
+        _submitError = null;
+        _done = false;
+      });
+    }
+    final result = await _repository.getPointDetail(widget.target.pointUuid, checklistId: checklistId);
     if (!mounted) return;
     setState(() {
       _isLoading = false;
       switch (result) {
         case Success(:final data):
           _detail = data;
+          _choosingChecklist = checklistId == null && data.checklists.length > 1;
+          _passed.clear();
+          _photoPaths.clear();
+          for (final c in _comments.values) {
+            c.dispose();
+          }
+          _comments.clear();
+          _overallCommentController.clear();
           for (final item in data.items) {
             _comments[item.id] = TextEditingController();
           }
@@ -99,6 +120,12 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
       }
     });
   }
+
+  bool get _hasOtherChecklists => (_detail?.checklists.length ?? 0) > 1;
+
+  void _chooseAnotherChecklist() => setState(() => _choosingChecklist = true);
+
+  void _openReport() => context.push('/rounds/point-report', extra: widget.target);
 
   Future<void> _pickPhoto(int itemId) async {
     if (!await ensureCameraAccess(context)) return;
@@ -156,6 +183,7 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
       plannedRoundId: plannedRoundId,
       pointUuid: widget.target.pointUuid,
       answers: answers,
+      checklistId: _detail?.checklistId,
       comment: _overallCommentController.text,
       latitude: _latitude,
       longitude: _longitude,
@@ -179,7 +207,17 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MetrixColors.surfaceMuted,
-      appBar: AppTopBar(title: widget.target.pointName),
+      appBar: AppTopBar(
+        title: widget.target.pointName,
+        actions: [
+          if (widget.target.canViewReport)
+            IconButton(
+              tooltip: 'Отчёт по помещению',
+              icon: const Icon(Icons.assessment_outlined),
+              onPressed: _openReport,
+            ),
+        ],
+      ),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : _buildBody(),
     );
   }
@@ -190,6 +228,7 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
         icon: Icons.lock_outline_rounded,
         color: MetrixColors.warning,
         text: 'Вы не назначены ответственным за обход этой точки',
+        action: widget.target.canViewReport ? ('Отчёт по помещению', _openReport) : null,
       );
     }
 
@@ -197,17 +236,35 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
       return _buildInfoState(icon: Icons.error_outline_rounded, color: MetrixColors.danger, text: _loadError!);
     }
 
-    if (_done) {
-      return _buildInfoState(icon: Icons.check_circle_rounded, color: MetrixColors.accent, text: 'Точка отмечена');
-    }
-
     final detail = _detail;
     if (detail == null) {
       return _buildInfoState(icon: Icons.error_outline_rounded, color: MetrixColors.danger, text: 'Не удалось загрузить точку');
     }
 
+    if (_choosingChecklist) {
+      return _buildChecklistChoice(detail);
+    }
+
+    final another = _hasOtherChecklists ? ('Пройти другой чек-лист', _chooseAnotherChecklist) : null;
+
+    if (_done) {
+      return _buildInfoState(
+        icon: Icons.check_circle_rounded,
+        color: MetrixColors.accent,
+        text: 'Точка отмечена',
+        action: another,
+      );
+    }
+
     if (detail.alreadyVisited) {
-      return _buildInfoState(icon: Icons.check_circle_rounded, color: MetrixColors.accent, text: 'Точка уже отмечена сегодня');
+      return _buildInfoState(
+        icon: Icons.check_circle_rounded,
+        color: MetrixColors.accent,
+        text: _hasOtherChecklists
+            ? 'Чек-лист «${detail.checklistName}» уже пройден сегодня'
+            : 'Точка уже отмечена сегодня',
+        action: another,
+      );
     }
 
     if (detail.items.isEmpty) {
@@ -227,6 +284,24 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.md),
               child: Text(detail.location, style: const TextStyle(color: MetrixColors.textMuted, fontSize: 13)),
+            ),
+          if (detail.checklistName != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: Row(
+                children: [
+                  const Icon(Icons.checklist_rounded, size: 20, color: MetrixColors.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      detail.checklistName!,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: MetrixColors.text),
+                    ),
+                  ),
+                  if (_hasOtherChecklists)
+                    TextButton(onPressed: _chooseAnotherChecklist, child: const Text('Сменить')),
+                ],
+              ),
             ),
           for (final item in detail.items) ...[
             _buildItemCard(item),
@@ -328,7 +403,48 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
     );
   }
 
-  Widget _buildInfoState({required IconData icon, required Color color, required String text}) {
+  Widget _buildChecklistChoice(RoundPointDetail detail) {
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      children: [
+        const Text(
+          'Выберите, какой чек-лист проходите',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: MetrixColors.text),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        for (final option in detail.checklists) ...[
+          InkWell(
+            onTap: () => _load(checklistId: option.id),
+            borderRadius: BorderRadius.circular(12),
+            child: AppCard(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Row(
+                children: [
+                  const Icon(Icons.checklist_rounded, color: MetrixColors.primary),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      option.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: MetrixColors.text),
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded, color: MetrixColors.textMuted),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildInfoState({
+    required IconData icon,
+    required Color color,
+    required String text,
+    (String, VoidCallback)? action,
+  }) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -338,6 +454,10 @@ class _RoundPointConfirmScreenState extends State<RoundPointConfirmScreen> {
             Icon(icon, size: 44, color: color),
             const SizedBox(height: AppSpacing.sm),
             Text(text, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: color), textAlign: TextAlign.center),
+            if (action != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              OutlinedButton(onPressed: action.$2, child: Text(action.$1)),
+            ],
           ],
         ),
       ),

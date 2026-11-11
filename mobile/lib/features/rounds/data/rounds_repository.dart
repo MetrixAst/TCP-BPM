@@ -5,6 +5,7 @@ import 'planned_round_summary.dart';
 import 'round_detail.dart';
 import 'round_item_answer.dart';
 import 'round_point_detail.dart';
+import 'round_point_report.dart';
 
 class RoundsRepository {
   final Dio dio;
@@ -40,12 +41,33 @@ class RoundsRepository {
     }
   }
 
-  Future<ApiResult<RoundPointDetail>> getPointDetail(String pointUuid) async {
+  /// [checklistId] — какой из чек-листов точки пройти, если их несколько
+  /// (например, сотрудник совмещает две должности). Без него сервер отдаёт
+  /// первый доступный.
+  Future<ApiResult<RoundPointDetail>> getPointDetail(String pointUuid, {int? checklistId}) async {
     try {
-      final response = await dio.get('/api/v1/mobile/rounds/points/$pointUuid/');
+      final response = await dio.get(
+        '/api/v1/mobile/rounds/points/$pointUuid/',
+        queryParameters: checklistId != null ? {'checklist': checklistId} : null,
+      );
       return Success(RoundPointDetail.fromJson(response.data as Map<String, dynamic>));
     } on DioException catch (e) {
       return Failure(_errorMessage(e), statusCode: e.response?.statusCode);
+    }
+  }
+
+  Future<ApiResult<RoundPointReport>> getPointReport(String pointUuid) async {
+    try {
+      final response = await dio.get('/api/v1/mobile/rounds/points/$pointUuid/report/');
+      return Success(RoundPointReport.fromJson(response.data as Map<String, dynamic>));
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      final message = switch (status) {
+        403 => 'Нет доступа к отчёту по этой точке',
+        404 => 'Точка не найдена',
+        _ => _errorMessage(e),
+      };
+      return Failure(message, statusCode: status);
     }
   }
 
@@ -53,6 +75,7 @@ class RoundsRepository {
     required int? plannedRoundId,
     required String pointUuid,
     required List<RoundItemAnswer> answers,
+    int? checklistId,
     String comment = '',
     double? latitude,
     double? longitude,
@@ -61,6 +84,7 @@ class RoundsRepository {
     try {
       final map = <String, dynamic>{
         'comment': comment,
+        if (checklistId != null) 'checklist_id': checklistId.toString(),
         if (latitude != null) 'latitude': latitude.toString(),
         if (longitude != null) 'longitude': longitude.toString(),
       };

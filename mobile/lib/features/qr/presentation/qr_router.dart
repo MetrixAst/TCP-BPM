@@ -28,6 +28,9 @@ Future<void> handleQrScan(BuildContext context) async {
           await _handleRoom(context, mapId);
         case OfficeScanTarget():
           await context.push('/attendance/office-confirm', extra: data);
+        case RoundScanTarget(canVisit: false, canViewReport: true):
+          // Руководитель, который сам точку не проверяет, — сразу отчёт.
+          await context.push('/rounds/point-report', extra: data);
         case RoundScanTarget():
           await context.push('/rounds/point-confirm', extra: data);
       }
